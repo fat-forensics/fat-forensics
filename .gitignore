@@ -1,0 +1,6 @@
+.DS_Store
+
+*.pyc
+
+FAT_forensics.egg-info/
+*__pycache__

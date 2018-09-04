@@ -1,0 +1,4 @@
+[
+  "fatf/tests/test_example.py::test_should_fail",
+  "fatf/tests/test_example.py::test_should_pass"
+]

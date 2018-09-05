@@ -1,0 +1,30 @@
+sudo: false
+
+language: python
+python:
+  - "2.7"
+  - "3.6"
+  # - "3.7"  fails build 'Unable to download 3.7 archive. The archive may not exist.''
+
+notifications:
+  email: never
+
+install:
+  - pip install codecov
+  - pip install pytest
+  - pip install pytest pytest-cov
+
+#virtualenv:
+#  system_site_packages: true
+
+env:
+  - CODECOV_TOKEN="3b343171-4511-44bd-a4d6-dd7d64aef700"  #get token from https://codecov.io/ --> add new repository
+
+script:
+  - py.test --cov-report xml 
+  - coverage run fatf/tests/test_script.py
+
+after_success:
+  - codecov   # go to https://codecov.io/ to see report (have to log in with github)
+  #- codecov -t the_repository_upload_token #for private repository
+  

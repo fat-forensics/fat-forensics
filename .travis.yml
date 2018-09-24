@@ -1,29 +1,27 @@
-sudo: false    #container 
+# use container on EC2, other options availible (venvs) [https://docs.travis-ci.com/user/reference/overview/]
+sudo: false   
+dist: trusty
 
 language: python
 python:
   - "2.7"
   - "3.6"
-  # - "3.7"  fails build 'Unable to download 3.7 archive. The archive may not exist.''
+  - "3.7-dev" 
 
 notifications:
   email: never
 
 install:
-  - pip install -r requirements.txt
-  - pip install codecov
-  # - pip install pytest
-  - pip install pytest pytest-cov
-
-#virtualenv:
-#  system_site_packages: true
+  - pip install -r requirements-dev.txt
 
 env:
   - CODECOV_TOKEN="3b343171-4511-44bd-a4d6-dd7d64aef700"  #get token from https://codecov.io/ --> add new repository
 
 script:
-  - py.test --cov-report xml 
-  - coverage run fatf/tests/test_script.py
+  - pytest
+  - coverage run package/*.py
+  - pylint package/*.py
+  - flake8 package/*.py
 
 after_success:
   - codecov   # go to https://codecov.io/ to see report (have to log in with github)

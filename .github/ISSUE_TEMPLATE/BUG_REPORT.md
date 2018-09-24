@@ -1,6 +1,6 @@
 ---
 name: Bug report
-about: Form for reportgin bugs in the repository
+about: Form for reporting bugs in the repository
 
 ---
 <!-- CLICK "Preview" FOR INSTRUCTIONS IN A MORE READABLE FORMAT -->
@@ -20,7 +20,7 @@ Please check that you have already viewed existing issues and that the bug you a
 ## Description
 Please provide a brief description.
 
-## Steps to reporoduce the bug
+## Steps to reproduce the bug
 1. …
 2. …
 3. …
@@ -33,7 +33,7 @@ COPY THE ERROR MESSAGE HERE
 
 ## Source Code
 ```py
-# Please provide the relevant protions of the code to reproduce the bug.
+# Please provide the relevant portions of the code to reproduce the bug.
 # Avoid posting lots of code.
 # Try and provide comments if necessary.
 # Please insert code in a newline after this comment.

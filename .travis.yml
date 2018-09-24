@@ -19,9 +19,9 @@ env:
 
 script:
   - pytest
-  - coverage run package/*.py
-  - pylint package/*.py
-  - flake8 package/*.py
+  - coverage run fatf/tests/*.py
+  - pylint fatf/tests/*.py
+  - flake8 fatf/tests/*.py
 
 after_success:
   - codecov   # go to https://codecov.io/ to see report (have to log in with github)

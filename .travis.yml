@@ -1,0 +1,29 @@
+# use container on EC2, other options availible (venvs) [https://docs.travis-ci.com/user/reference/overview/]
+sudo: false   
+dist: trusty
+
+language: python
+python:
+  - "2.7"
+  - "3.6"
+  - "3.7-dev" 
+
+notifications:
+  email: never
+
+install:
+  - pip install -r requirements-dev.txt
+
+env:
+  - CODECOV_TOKEN="3b343171-4511-44bd-a4d6-dd7d64aef700"  #get token from https://codecov.io/ --> add new repository
+
+script:
+  - pytest
+  - coverage run fatf/tests/*.py
+  - pylint fatf/tests/*.py
+  - flake8 fatf/tests/*.py
+
+after_success:
+  - codecov   # go to https://codecov.io/ to see report (have to log in with github)
+  #- codecov -t the_repository_upload_token #for private repository
+  

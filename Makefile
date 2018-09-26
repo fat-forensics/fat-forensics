@@ -12,7 +12,7 @@ tests:
 	pytest --cov=./ --cov-report xml
 
 docs:
-	#get from alex
+	make -C docs html
 
 token:
 	#update token when we have it

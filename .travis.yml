@@ -26,4 +26,3 @@ script:
 after_success:
   - codecov   # go to https://codecov.io/ to see report (have to log in with github)
   #- codecov -t the_repository_upload_token #for private repositoryory
-  

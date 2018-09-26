@@ -4,5 +4,5 @@ ignore =
 
 # use to ignore certain files
 exclude = 
- 
-max-line-length = 120
+
+max-line-length=120

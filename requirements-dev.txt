@@ -1,7 +1,7 @@
 codecov=2.0.15
-flake8-3.5.0
+flake8=3.5.0
 numpy>=1.8.2
-pylint2.1.1
+pylint=2.1.1
 pytest=3.5.0
 pytest-cov=2.6.0
 scipy>=0.13.3

@@ -1,18 +1,22 @@
+# simple makefile to simplify repetitive build commands
+
+PYTEST ?= pytest
+
 install:
 	pip install -r requirements-dev.txt
 
-lint:
-	pylint fatf/
-	flake8 fatf/
+test-code:
+	$(PYTEST)
 
-tests:
-	pytest
+test-coverage:
+	$(PYTEST) --cov=./ --cov-report xml
+
+code-analysis:
 	pylint fatf/
 	flake8 fatf/
-	pytest --cov=./ --cov-report xml
 
 docs:
-	make -C docs html
+	$(MAKE) -C docs html
 
 token:
 	#update token when we have it

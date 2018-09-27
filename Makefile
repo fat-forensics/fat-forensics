@@ -2,6 +2,13 @@
 
 PYTEST ?= pytest
 
+code-analysis:
+	pylint fatf/
+	flake8 fatf/
+
+docs:
+	$(MAKE) -C docs html
+
 install:
 	pip install -r requirements-dev.txt
 
@@ -10,13 +17,6 @@ test-code:
 
 test-coverage:
 	$(PYTEST) --cov=./ --cov-report xml
-
-code-analysis:
-	pylint fatf/
-	flake8 fatf/
-
-docs:
-	$(MAKE) -C docs html
 
 token:
 	#update token when we have it

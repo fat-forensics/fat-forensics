@@ -14,14 +14,27 @@
 #
 import os
 import sys
-sys.path.insert(0, os.path.abspath('../../'))
+import subprocess
+import tempfile
 
+sys.path.insert(0, os.path.abspath('../../'))
+print(os.listdir(os.path.abspath('../../')))
+
+def run_apidoc(_):
+    from sphinx.apidoc import main as apidoc_main
+    cur_dir = os.path.abspath(os.path.dirname(__file__))
+    print(cur_dir)
+    apidoc_main([None, '-o', './source/', '../../fatf/', '../../fatf/transform/tests', '../../fatf/metrics/tests/', '../../fatf/analyse/tests', '../../fatf/tests'])
+
+def setup(app):
+    """Over-ride Sphinx setup to trigger sphinx-apidoc."""
+    app.connect('builder-inited', run_apidoc)
 
 # -- Project information -----------------------------------------------------
 
-project = 'fat-forensics'
-copyright = '2018, Kacper, Matt & Alex'
-author = 'Kacper, Matt & Alex'
+project = 'FAT-Forensics'
+copyright = '2018, AnthropocentricAI'
+author = 'AnthropocentricAI'
 
 # The short X.Y version
 version = ''
@@ -102,7 +115,7 @@ html_static_path = ['_static']
 # -- Options for HTMLHelp output ---------------------------------------------
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = 'fat-forensicsdoc'
+htmlhelp_basename = 'FAT-Forensicsdoc'
 
 
 # -- Options for LaTeX output ------------------------------------------------
@@ -129,8 +142,8 @@ latex_elements = {
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
-    (master_doc, 'fat-forensics.tex', 'fat-forensics Documentation',
-     'Kacper, Matt \\& Alex', 'manual'),
+    (master_doc, 'FAT-Forensics.tex', 'FAT-Forensics Documentation',
+     'AnthropocentricAI', 'manual'),
 ]
 
 
@@ -139,7 +152,7 @@ latex_documents = [
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    (master_doc, 'fat-forensics', 'fat-forensics Documentation',
+    (master_doc, 'fat-forensics', 'FAT-Forensics Documentation',
      [author], 1)
 ]
 
@@ -150,8 +163,8 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-    (master_doc, 'fat-forensics', 'fat-forensics Documentation',
-     author, 'fat-forensics', 'One line description of project.',
+    (master_doc, 'FAT-Forensics', 'FAT-Forensics Documentation',
+     author, 'FAT-Forensics', 'One line description of project.',
      'Miscellaneous'),
 ]
 

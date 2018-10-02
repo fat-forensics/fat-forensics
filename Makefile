@@ -3,10 +3,10 @@
 package:
 	pip install -e .
 
-dependancies:
+dependencies:
 	pip install -r requirements.txt
 
-dev-dependancies:
+dev-dependencies:
 	pip install -r requirements-dev.txt
 
 doc-test:

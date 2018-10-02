@@ -10,10 +10,10 @@ dev-dependancies:
 	pip install -r requirements-dev.txt
 
 doc-test:
-	#get from alex
+	pytest --doctest-glob='*.rst'
 
 doc-build:
-	$(MAKE) -C docs html #update from alex
+	sphinx-build -b html ./doc/source ./doc/build
 
 test:
 	pytest
@@ -26,9 +26,3 @@ check-linting-pylint:
 
 check-linting-flake8:
 	flake8 fatf/
-
-
-
-# token:
-# 	#update token when we have it
-# 	CODECOV_TOKEN="754ec358-2c9e-4f15-8123-b44041c1f09b" 

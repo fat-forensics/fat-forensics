@@ -1,0 +1,102 @@
+# Python CircleCI 2.0 configuration file
+#
+# Check https://circleci.com/docs/2.0/language-python/ for more details
+#
+version: 2
+workflows:
+  version: 2
+  test:
+    jobs:
+      - test-3.7
+      - test-3.6
+      - test-2.7
+jobs:
+  test-3.7:
+    docker:
+      - image: circleci/python:3.7
+    working_directory: ~/repo
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+          - v1-py37-dependencies-{{ checksum "requirements.txt" }}
+          - v1-py37-dependencies-
+      - run:
+          name: install dependencies
+          command: |
+            python -m venv venv
+            . venv/bin/activate
+            pip install -e .
+      - save_cache:
+          paths:
+            - ./venv
+          key: v1-py37-dependencies-{{ checksum "requirements.txt" }}
+      - run:
+          name: run tests
+          command: |
+            . venv/bin/activate
+            py.test --junit-xml=./fatf/tests/report37.xml
+      - store_test_results:
+          path: ./fatf/tests
+  test-3.6:
+    docker:
+      - image: circleci/python:3.6
+    working_directory: ~/repo
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+          - v1-py36-dependencies-{{ checksum "requirements.txt" }}
+          - v1-py36-dependencies-
+      - run:
+          name: install dependencies
+          command: |
+            python -m venv venv
+            . venv/bin/activate
+            pip install pytest codecov pytest-cov
+            pip install -e .
+      - save_cache:
+          paths:
+            - ./venv
+          key: v1-py36-dependencies-{{ checksum "requirements.txt" }}
+      - run:
+          name: run tests
+          command: |
+            . venv/bin/activate
+            py.test --junit-xml=./fatf/tests/report36.xml
+      - run:
+          name: CodeCov
+          command: |
+            . venv/bin/activate
+            py.test --cov-report xml
+            pytest --cov=./ --cov-report xml
+            codecov --token= INPUT TOKEN HERE
+      - store_test_results:
+          path: ./fatf/tests
+  test-2.7:
+    docker:
+      - image: circleci/python:2.7
+    working_directory: ~/repo
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+          - v1-py27-dependencies-{{ checksum "requirements.txt" }}
+          - v1-py27-dependencies-
+      - run:
+          name: install dependencies
+          command: |
+            virtualenv venv2
+            . venv2/bin/activate
+            pip install -e .
+      - save_cache:
+          paths:
+            - ./venv2
+          key: v1-py27-dependencies-{{ checksum "requirements.txt" }}
+      - run:
+          name: run tests
+          command: |
+            . venv2/bin/activate
+            py.test --junit-xml=./fatf/tests/report27.xml
+      - store_test_results:
+          path: ./fatf/tests

@@ -13,6 +13,7 @@ doc-test:
 	pytest --doctest-glob='*.rst'
 
 doc-build:
+	sphinx-apidoc -o doc/source/ fatf/ fatf/tests/ fatf/transform/tests fatf/metrics/tests/ fatf/analyse/tests
 	sphinx-build -b html ./doc/source ./doc/build
 
 test:

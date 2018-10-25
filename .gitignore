@@ -4,3 +4,6 @@
 
 FAT_forensics.egg-info/
 *__pycache__
+.pytest_cache
+.coverage
+coverage.xml

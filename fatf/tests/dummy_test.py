@@ -3,7 +3,7 @@
 
 def times(x_1, y_2):
     ''' times together '''
-    return x_1*y_2
+    return x_1 * y_2
 
 
 def test_pass():

@@ -1,0 +1,5 @@
+# .coveragerc to control coverage.py
+# docs for configuration - https://coverage.readthedocs.io/en/coverage-4.4.2/config.html
+
+[run]
+omit = */setup.py

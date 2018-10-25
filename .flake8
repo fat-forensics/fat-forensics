@@ -1,0 +1,8 @@
+[flake8]
+# ignore errors or warning (separate with , )
+ignore = 
+
+# use to ignore certain files
+exclude = 
+
+max-line-length=120

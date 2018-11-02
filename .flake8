@@ -1,8 +1,8 @@
 [flake8]
 # ignore errors or warning (separate with , )
-ignore = 
+ignore = E712, E701
 
 # use to ignore certain files
 exclude = 
 
-max-line-length=120
+max-line-length = 140

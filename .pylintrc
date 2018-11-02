@@ -1,8 +1,8 @@
 [pylint]
 # ignore errors or warning (separate with , )
-disable =
+disable = C0121  
 
 # can add more processes to jobs if performance speed up needed
-jobs=1 
+jobs = 1 
 
-max-line-length=120
+max-line-length = 140

@@ -1,5 +1,5 @@
-''' 
-Implimentation similar to pandas groupby function, which applies a function to subgroups of a given column in the dataset 
+'''
+Implimentation similar to pandas groupby function, which applies a function to subgroups of a given column in the dataset
 
 Author: Matt Clifford <mc15445@bristol.ac.uk>
 License: new BSD
@@ -10,16 +10,16 @@ import numpy as np
 
 def splitter(data_frame, col_names, col_to_split):
     '''
-    Splits off a column from the data frame. 
-    
+    Splits off a column from the data frame.
+
     Args:
         data_frame (np.ndarray): 2-dimensional array of data values
         col_names (list): List containing strings of the column names for data_frame
         col_to_split (str): The column to split off the the data frame
 
     Returns:
-        split_col (np.ndarray): Array containg column selected to be split from the data frame 
-    
+        split_col (np.ndarray): Array containg column selected to be split from the data frame
+
     Raises:
         Exception: If col_to_split is not contained in col_names
         Exception: If col_names does not contain unique column names
@@ -50,8 +50,8 @@ def splitter(data_frame, col_names, col_to_split):
 
 def apply_function(data_frame, col_names, col_to_split, func_to_apply, col_to_apply_func):
     '''
-    Applies function to the subgroups of a given column. 
-    
+    Applies function to the subgroups of a given column.
+
     Args:
         data_frame (np.ndarray): 2-dimensional array of data values
         col_names (list): List containing strings of the column names for data_frame

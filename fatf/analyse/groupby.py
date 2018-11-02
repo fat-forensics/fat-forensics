@@ -1,5 +1,5 @@
 ''' 
-Implimentation of pandas groupby function, which applies a function to subgroups of a given column in the dataset 
+Implimentation similar to pandas groupby function, which applies a function to subgroups of a given column in the dataset 
 
 Author: Matt Clifford <mc15445@bristol.ac.uk>
 License: new BSD
@@ -37,14 +37,14 @@ def splitter(data_frame, col_names, col_to_split):
                [4]])
 
     '''
-    col_bool = np.isin(col_names, col_to_split)     # boolean of the instances of col_to_split is
-    num_of_cols = np.where(col_bool == True)[0].size
+    col_bool: bool = np.isin(col_names, col_to_split)     # boolean of the instances of col_to_split is
+    num_of_cols: int = np.where(col_bool == True)[0].size
     if num_of_cols == 0:                            # if there are no columns with names col_to_split
         raise Exception('Column \'{0}\' is not in list of column names for the dataset'.format(col_to_split))
     elif num_of_cols > 1:                           # more than one instance of col_to_split
         raise Exception('Column names must be unique, there are {0} columns with the name \'{1}\''.format(num_of_cols, col_to_split))
-    split_ind = np.where(col_bool == True)[0]       # get index of specified column
-    split_col = data_frame[:, split_ind]            # split of desired column
+    split_ind: int = np.where(col_bool == True)[0]       # get index of specified column
+    split_col: float = data_frame[:, split_ind]            # split of desired column
     return split_col
 
 
@@ -73,10 +73,10 @@ def apply_function(data_frame, col_names, col_to_split, func_to_apply, col_to_ap
         (array([1, 2]), array([1.5, 4. ]))
 
     '''
-    split_col = splitter(data_frame, col_names, col_to_split)
-    unique_classes = np.unique(split_col)                       # get unique classes
-    class_buckets = [0] * (len(unique_classes))
-    func_buckets = [0] * (len(unique_classes))
+    split_col: float = splitter(data_frame, col_names, col_to_split)
+    unique_classes: float = np.unique(split_col)                       # get unique classes
+    class_buckets: float = [0.0] * (len(unique_classes))
+    func_buckets: float = [0.0] * (len(unique_classes))
     for single_class in unique_classes:
         # get indicies of where unique class are in main data_frame
         class_inds = np.where(split_col == single_class)[0]     # first array taken as split_col is nx1x1 dimensions

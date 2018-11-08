@@ -3,6 +3,12 @@
 # Set the default shell to /bin/bash (from /bin/sh) to support source command
 #SHELL := /bin/bash
 
+ifndef TRAVIS_PYTHON_VERSION
+	PYTHON_VERSION := $(shell python -V | grep -Eo '\d+.\d+.\d+')
+else
+	PYTHON_VERSION := $(TRAVIS_PYTHON_VERSION)
+endif
+
 # Get environment variables if _envar.sh exists
 -include _envar.sh
 
@@ -26,7 +32,7 @@ doc-build:
 	sphinx-build -b html ./doc/source ./doc/build
 
 test:
-	pytest
+	pytest --junit-xml=pytest_$(PYTHON_VERSION).xml
 
 code-coverage:
 	pytest --cov=./ --cov-report=term-missing --cov-report=xml:coverage.xml

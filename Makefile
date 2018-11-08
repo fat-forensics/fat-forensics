@@ -20,7 +20,7 @@ test:
 	pytest
 
 code-coverage:
-	pytest --cov=./ --cov-report xml
+	pytest --cov=./ --cov-report=xml:coverage.xml
 
 check-linting-pylint:
 	pylint fatf/

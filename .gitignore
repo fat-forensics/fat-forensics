@@ -1,5 +1,7 @@
 .DS_Store
 
+_envar.sh
+
 FAT_forensics.egg-info/
 *.pyc
 

@@ -4,7 +4,7 @@ dist: trusty
 
 language: python
 python:
-  - "2.7"
+  - "3.5"
   - "3.6"
   - "3.7-dev"
 
@@ -12,14 +12,15 @@ notifications:
   email: false
 
 install:
-  - make dev-dependencies  # Install python development dependencies
-  - make package
+  - make dependencies-dev  # Install python development dependencies
+  - make install
 
 script:
+  - make linting-pylint  # pylint fatf/
+  - make linting-flake8  # flake8 fatf/
   - make test  # pytest
-  - make check-linting-pylint  # pylint fatf/
-  - make check-linting-flake8  # flake8 fatf/
   - make code-coverage  # pytest --cov=./ --cov-report xml
+  - make doc-test  # pytest --doctest-glob='*.rst'
 
 after_success:
-  - codecov -t $CODECOV_TOKEN
+  - make deploy-code-coverage

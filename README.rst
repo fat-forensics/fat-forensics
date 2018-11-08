@@ -1,3 +1,16 @@
+.. -*- mode: rst -*-
+
+|Travis|_ |CircleCI|_ |Codecov|_
+
+.. |Travis| image:: https://travis-ci.com/So-Cool/fat-forensics.svg?token=yioD1jG6sBgeuDCZssKy&branch=dev
+.. _Travis: https://travis-ci.com/So-Cool/fat-forensics
+
+.. |CircleCI| image:: https://travis-ci.com/So-Cool/fat-forensics.svg?token=yioD1jG6sBgeuDCZssKy&branch=dev
+.. _CircleCI: https://blah.com
+
+.. |Codecov| image:: https://codecov.io/gh/So-Cool/fat-forensics/branch/dev/graph/badge.svg?token=IUrjejGCmy
+.. _Codecov: https://codecov.io/gh/So-Cool/fat-forensics
+
 ==========================================================================
 FAT-Forensics: Fairness, Accountability and Transparency forensics toolkit
 ==========================================================================

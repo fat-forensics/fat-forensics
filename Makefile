@@ -27,3 +27,6 @@ check-linting-pylint:
 
 check-linting-flake8:
 	flake8 fatf/
+
+render-readme:
+	pandoc -t html README.rst -o README.html

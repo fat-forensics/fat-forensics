@@ -6,13 +6,16 @@
 # Get environment variables if _envar.sh exists
 -include _envar.sh
 
-package:
+all: linting-pylint linting-flake8 test code-coverage doc-test
+# Do all the tests
+
+install:
 	pip install -e .
 
 dependencies:
 	pip install -r requirements.txt
 
-dev-dependencies:
+dependencies-dev:
 	pip install -r requirements-dev.txt
 
 doc-test:
@@ -26,17 +29,23 @@ test:
 	pytest
 
 code-coverage:
-	pytest --cov=./ --cov-report=xml:coverage.xml
+	pytest --cov=./ --cov-report=term-missing --cov-report=xml:coverage.xml
 
 deploy-code-coverage:
 # @ before the command suppresses printing it out, hence hides the token
+ifndef CODECOV_TOKEN
+	@echo 'CODECOV_TOKEN environment variable is NOT set'
+	$(error CODECOV_TOKEN is undefined)
+else
+	@echo 'codecov -t $$CODECOV_TOKEN -f coverage.xml'
 	@codecov -t $(CODECOV_TOKEN) -f coverage.xml
+endif
 
-check-linting-pylint:
+linting-pylint:
 	pylint fatf/
 
-check-linting-flake8:
+linting-flake8:
 	flake8 fatf/
 
-render-readme:
+readme:
 	pandoc -t html README.rst -o README.html

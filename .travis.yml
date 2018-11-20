@@ -52,6 +52,6 @@ script:
   - make doc-test
 
 deploy:
-  skip_cleanup: true
-  - provider: script
+  - skip_cleanup: true
+    provider: script
     script: 'python --version && echo $FATF_TEST_SCIPY $FATF_TEST_NUMPY'

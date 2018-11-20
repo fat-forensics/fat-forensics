@@ -29,16 +29,16 @@ dependencies:
 dependencies-dev:
 ifdef FATF_TEST_NUMPY
 ifeq ($(FATF_TEST_NUMPY),latest)
-	pip install numpy
+	pip install --only-binary=numpy --upgrade numpy
 else
-	pip install numpy==$(FATF_TEST_NUMPY)
+	pip install --only-binary=numpy numpy==$(FATF_TEST_NUMPY)
 endif
 endif
 ifdef FATF_TEST_SCIPY
 ifeq ($(FATF_TEST_SCIPY),latest)
-	pip install scipy
+	pip install --only-binary=scipy --upgrade scipy
 else
-	pip install scipy==$(FATF_TEST_SCIPY)
+	pip install --only-binary=scipy scipy==$(FATF_TEST_SCIPY)
 endif
 endif
 	pip install -r requirements-dev.txt

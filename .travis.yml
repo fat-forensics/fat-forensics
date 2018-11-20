@@ -53,6 +53,25 @@ script:
 jobs:
   include:
     - stage: Deploy Code Coverage
-      script: 'python --version && echo $FATF_TEST_SCIPY $FATF_TEST_NUMPY'
-    - stage: Deploy Documentation ReadTheDocs
-      script: 'python --version && echo $FATF_TEST_SCIPY $FATF_TEST_NUMPY'
+      install: true
+      script: make code-coverage
+      deploy:
+        provider: script
+        skip_cleanup: true
+        script: 'ls -la ./temp/'
+#        script: make deploy-code-coverage
+    - &deploy-documentation
+      stage: Deploy Documentation
+      name: ReadTheDocs
+      install: skip
+      script: skip
+      deploy:
+        provider: script
+        script: 'python --version && echo $FATF_TEST_SCIPY $FATF_TEST_NUMPY && echo "ReadTheDocs"'
+    - <<: *deploy-documentation
+      name: GitHub Pages Doc Repo
+      deploy:
+        script: 'python --version && echo "GitHub Pages"'
+
+#after_success:
+#  - make deploy-code-coverage

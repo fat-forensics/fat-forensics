@@ -58,7 +58,7 @@ def filter_dataset(X, targets, predictions, feature, feature_value):
     filtered_predictions = predictions[mask]
     return filtered_dataset, filtered_targets, filtered_predictions
 
-def split_dataset(X, targets, predictions, feature):
+def split_dataset(X, targets, predictions, feature, labels):
     """ Splits the data according to the protected feature provided.
     
     Description: Will split the data.
@@ -75,11 +75,11 @@ def split_dataset(X, targets, predictions, feature):
         NA 
         """
     splits = []
-    for label in set(X[feature]):
-        splits.append(
+    for label in labels:
+        splits.append((
                         label, 
                        filter_dataset(X, targets, predictions, feature, label)
-                       )
+                       ))
     return splits
 
 def perform_checks_on_split(X, targets, predictions, protected, checks, conditioned_field=None, condition=None):
@@ -109,7 +109,7 @@ def perform_checks_on_split(X, targets, predictions, protected, checks, conditio
         """
     if not conditioned_field:
         X, targets, predictions = filter_dataset(X, targets, predictions, conditioned_field, condition)
-    split_datasets = split_dataset(X, targets, predictions, protected)
+    split_datasets = split_dataset(X, targets, predictions, protected, [0, 1])
     aggregated_checks = dict()
     for item in split_datasets:
         field_val = item[0]

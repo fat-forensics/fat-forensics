@@ -27,18 +27,18 @@ dependencies:
 	pip install -r requirements.txt
 
 dependencies-dev:
-ifdef FATF_TEST_SCIPY
-ifeq ($(FATF_TEST_SCIPY),'latest')
-	pip install scipy
-else
-	pip install scipy==$(FATF_TEST_SCIPY)
-endif
-endif
 ifdef FATF_TEST_NUMPY
 ifeq ($(FATF_TEST_NUMPY),'latest')
 	pip install numpy
 else
 	pip install numpy==$(FATF_TEST_NUMPY)
+endif
+endif
+ifdef FATF_TEST_SCIPY
+ifeq ($(FATF_TEST_SCIPY),'latest')
+	pip install scipy
+else
+	pip install scipy==$(FATF_TEST_SCIPY)
 endif
 endif
 	pip install -r requirements-dev.txt

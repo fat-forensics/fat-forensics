@@ -1,6 +1,6 @@
 # Use container on EC2, other options available (venvs)[https://docs.travis-ci.com/user/reference/overview/]
-sudo: required
-dist: xenial
+sudo: false  # required
+dist: trusty  # xenial
 
 notifications:
   email: false
@@ -19,42 +19,27 @@ before_cache:
   - rm -f $HOME/.cache/pip/log/debug.log
 
 python:
+  - '3.7'
   - '3.6'
   - '3.5'
-  - '3.7'
   - '3.8-dev'
 
 env:
   global:
     - MAKEFLAGS='-j 2'  # This allows to parallelise make, e.g. make t1 t2
   matrix:
-    - FATF_TEST_SCIPY=0.13.3
-    - FATF_TEST_SCIPY=0.14.1
-    - FATF_TEST_SCIPY=0.15.1
-    - FATF_TEST_SCIPY=0.16.1
-    - FATF_TEST_SCIPY=0.17.1
-    - FATF_TEST_SCIPY=0.18.1
-    - FATF_TEST_SCIPY=0.19.1
-    - FATF_TEST_SCIPY=1.0.1
-    - FATF_TEST_SCIPY=1.1.0
-    - FATF_TEST_SCIPY=latest
-    - FATF_TEST_NUMPY=1.8.2
-    - FATF_TEST_NUMPY=1.9.3
-    - FATF_TEST_NUMPY=1.10.4
-    - FATF_TEST_NUMPY=1.11.3
-    - FATF_TEST_NUMPY=1.12.1
-    - FATF_TEST_NUMPY=1.13.3
-    - FATF_TEST_NUMPY=1.14.6
-    - FATF_TEST_NUMPY=1.15.4
-    - FATF_TEST_NUMPY=latest
+    - FATF_TEST_SCIPY=1.1.0   FATF_TEST_NUMPY=1.15.4
+    - FATF_TEST_SCIPY=1.0.1   FATF_TEST_NUMPY=1.14.6
+    - FATF_TEST_SCIPY=0.19.1  FATF_TEST_NUMPY=1.13.3
+    - FATF_TEST_SCIPY=0.18.1  FATF_TEST_NUMPY=1.12.1
+    - FATF_TEST_SCIPY=0.18.1  FATF_TEST_NUMPY=1.8.2
+    - FATF_TEST_SCIPY=latest  FATF_TEST_NUMPY=latest
 
 matrix:
   fast_finish: true
   allow_failures:
     - python: '3.8-dev'
-      env: FATF_TEST_SCIPY=latest
-    - python: '3.8-dev'
-      env: FATF_TEST_NUMPY=latest
+      env: FATF_TEST_SCIPY=latest  FATF_TEST_NUMPY=latest
 
 install:
   - make dependencies-dev  # Install python development dependencies
@@ -65,3 +50,8 @@ script:
   - make linting-flake8
   - make test-with-code-coverage
   - make doc-test
+
+deploy:
+  skip_cleanup: true
+  - provider: script
+    script: 'python --version && echo $FATF_TEST_SCIPY $FATF_TEST_NUMPY'

@@ -1,6 +1,5 @@
 # Use container on EC2, other options available (venvs)[https://docs.travis-ci.com/user/reference/overview/]
-sudo: false  # required
-dist: trusty  # xenial
+dist: xenial
 
 notifications:
   email: false
@@ -39,7 +38,7 @@ matrix:
   fast_finish: true
   allow_failures:
     - python: '3.8-dev'
-      env: FATF_TEST_SCIPY=latest  FATF_TEST_NUMPY=latest
+    - env: FATF_TEST_SCIPY=latest  FATF_TEST_NUMPY=latest
 
 install:
   - make dependencies-dev  # Install python development dependencies
@@ -51,7 +50,9 @@ script:
   - make test-with-code-coverage
   - make doc-test
 
-deploy:
-  - skip_cleanup: true
-    provider: script
-    script: 'python --version && echo $FATF_TEST_SCIPY $FATF_TEST_NUMPY'
+jobs:
+  include:
+    - stage: Deploy Code Coverage
+      script: 'python --version && echo $FATF_TEST_SCIPY $FATF_TEST_NUMPY'
+    - stage: Deploy Documentation ReadTheDocs
+      script: 'python --version && echo $FATF_TEST_SCIPY $FATF_TEST_NUMPY'

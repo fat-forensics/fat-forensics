@@ -8,17 +8,18 @@ License: new BSD
 
 import pytest
 import numpy as np
-from sklearn.linear_model import LogisticRegression
 
 from fatf.analyse.lime import Lime
 from fatf.dataset import Dataset
+from fatf.tests.predictor import KNN
+
 
 def test_plot():
     X = np.random.rand(10, 4)
     header = ['height', 'width', 'length', 'group']
-    output = [1, 2, 2, 0, 1, 1, 0, 1, 2, 0]
+    output = np.array([1, 2, 2, 0, 1, 1, 0, 1, 2, 0])
     class_names = ['excellent', 'good' ,'bad']
-    predictor = LogisticRegression()
+    predictor = KNN()
     predictor.fit(X, output)
     train = Dataset(X, output, header, class_names)
     l = Lime(train, predictor, categorical=['width'])

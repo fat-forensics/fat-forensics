@@ -9,7 +9,7 @@ import numpy as np
 # do i need to import Dataset class or not
 try:
     import lime
-    import lime.lime_tabular
+    from lime.lime_tabular import LimeTabularExplainer
 except ImportError as e:
     raise ImportError('Lime class requires LIME package to be installed. This can be installed by: '
         'pip install lime')
@@ -17,7 +17,7 @@ except ImportError as e:
 # with default options 
 
 
-class Lime():
+class Lime(object):
     '''
     Wrapper for package implemented in https://github.com/marcotcr/lime
     # implemented as a class so you can use the same lime object with multiple instances
@@ -36,8 +36,8 @@ class Lime():
             metric for use in scipy.spatial.distance.pdist. default: 'euclidean'
 
     Example:
-        >>>from sklearn.linear_model import LogisticRegression
-        >>>predictor = LogisticRegression()
+        >>>from fatf.tests.predictor import KNN
+        >>>predictor = KNN()
         >>>data = Dataset.from_csv('data.csv')
         >>>predictor.fit(data.X, data.target)
         >>>l = Lime(data, predictor, categorical=['gender'])
@@ -47,20 +47,22 @@ class Lime():
         ValueError: if categorical feature not in dataset.header
     '''
 
-    def __init__(self, dataset, predictor, categorical=None, num_samples=5000, 
-                 num_features=None, distance_metric='euclidean'):
+    def __init__(self, dataset, predictor, sampling_function=None, categorical=None, 
+                 num_samples=5000, num_features=None, distance_metric='euclidean'):
         self._dataset = dataset
         self.predictor = predictor
         self.num_features = num_features
         self.num_samples = num_samples
         self.distance_metric = distance_metric
+        self.sampling_function = sampling_function
         self._process_categorical(categorical)
         if not self.num_features:
             self.num_features = self.dataset.X.shape[1]
-        self.tabular_explainer = lime.lime_tabular.LimeTabularExplainer(
-            self.dataset.X, feature_names=self.dataset.header, 
-            categorical_features=self._categorical, class_names=self.dataset.class_names, 
-            discretize_continuous=True)
+        self.tabular_explainer = LimeExplainer(
+            self.dataset.X, sampling_function=self.sampling_function,
+            num_samples=self.num_samples, feature_names=self._dataset.header, 
+            categorical_features=self._categorical, 
+            class_names=self.dataset.class_names, discretize_continuous=True)
 
     def __str__(self):
         return str(self.as_dict)
@@ -69,16 +71,16 @@ class Lime():
     def dataset(self):
         return self._dataset
 
-    @dataset.setter
-    def dataset(self, dataset):
-        '''
-        Setter for dataset so we can reinitialise self.tabular_explainer  
-        '''
-        self._dataset = dataset
-        self.tabular_explainer = lime.lime_tabular.LimeTabularExplainer(
-            self._dataset.X, feature_names=self._dataset.header, 
-            categorical_features=self._categorical, class_names=self._dataset.class_names, 
-            discretize_continuous=True)
+    #@dataset.setter
+    #def dataset(self, dataset):
+    #    '''
+    #    Setter for dataset so we can reinitialise self.tabular_explainer  
+    #    '''
+    #    self._dataset = dataset
+    #    self.tabular_explainer = LimeExplainer(
+    #        self._dataset.X, feature_names=self._dataset.header, 
+    #        categorical_features=self._categorical, class_names=self._dataset.class_names, 
+    #        discretize_continuous=True)
 
     @property
     def categorical(self):
@@ -90,10 +92,11 @@ class Lime():
         Setter for categorical variable so we can reinitialise self.tabular_explainer  
         '''
         self._process_categorical(categorical)
-        self.tabular_explainer = lime.lime_tabular.LimeTabularExplainer(
-                self.dataset.X, feature_names=self._dataset.header, 
-                categorical_features=self._categorical, class_names=self.dataset.class_names, 
-                discretize_continuous=True)
+        self.tabular_explainer = LimeExplainer(
+                self.dataset.X, sampling_function=self.sampling_function,
+                num_samples=self.num_samples, feature_names=self._dataset.header, 
+                categorical_features=self._categorical, 
+                class_names=self.dataset.class_names, discretize_continuous=True)
 
     def _process_categorical(self, categorical):
         '''
@@ -235,3 +238,43 @@ class Lime():
     
     def as_html(self):
         return self._exp.as_html()
+
+
+class LimeExplainer(LimeTabularExplainer):
+    '''
+    Class that inherits from LimeTabularExplainer and overrides the 
+    __data_inverse method
+    '''
+
+    def __init__(self,
+                 training_data,
+                 sampling_function=None,
+                 num_samples=5000,
+                 mode="classification",
+                 training_labels=None,
+                 feature_names=None,
+                 categorical_features=None,
+                 categorical_names=None,
+                 kernel_width=None,
+                 verbose=False,
+                 class_names=None,
+                 feature_selection='auto',
+                 discretize_continuous=True,
+                 discretizer='quartile',
+                 sample_around_instance=False,
+                 random_state=None):
+        super().__init__(training_data, mode=mode, training_labels=training_labels,
+                       feature_names=feature_names, categorical_features=categorical_features,
+                        categorical_names=categorical_names, kernel_width=kernel_width,
+                        verbose=verbose, class_names=class_names,
+                        feature_selection=feature_selection, discretize_continuous=discretize_continuous,
+                        discretizer=discretizer, sample_around_instance=sample_around_instance,
+                        random_state=random_state)
+        self.sampling_function = sampling_function
+        self.num_samples = num_samples
+
+        def __data_inverse(self, data_row):
+            if not sampling_function:
+                return super().__data_inverse(data_row, self.num_samples)
+            else:
+                return self.sampling_function(data_row, num_samples)

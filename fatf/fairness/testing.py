@@ -5,9 +5,130 @@ Created on Tue Nov 20 14:36:09 2018
 @author: rp13102
 """
 from sklearn.linear_model import LogisticRegression
+import numpy as np
 
-from supp_data import generatetable
-from metrics import perform_checks_on_split, get_summary, counterfactual_fairness, individual_fairness
+from metrics import perform_checks_on_split, get_summary, counterfactual_fairness, individual_fairness, check_systemic_bias, check_sampling_bias, check_systematic_error
+
+testdata3 = np.array([('Heidi Mitchell', 'uboyd@hotmail.com', 74, 52, 0, '0011', 1, '03/06/2018', 1),
+       ('Tina Burns', 'stevenwheeler@williams.bi',  3, 86, 1, '0011', 0, '26/09/2017', 1),
+       ('Justin Brown', 'velasquezjake@gmail.com', 26, 56, 1, '0011', 1, '31/12/2015', 0),
+       ('Brent Parker', 'kennethsingh@strong-foley', 70, 57, 0, '0011', 1, '02/10/2011', 0),
+       ('Bryan Norton', 'erica36@hotmail.com', 48, 57, 0, '1100', 0, '09/09/2012', 1),
+       ('Ms. Erin Craig', 'ritterluke@gmail.com', 30, 98, 0, '1100', 1, '04/11/2006', 1),
+       ('Gerald Park', 'larrylee@hayes-brown.net', 41, 73, 1, '1100', 0, '15/12/2015', 0),],
+      dtype=[('name', '<U16'), ('email', '<U25'), ('age', '<i4'), ('weight', '<i4'), ('gender', '<i4'), ('zipcode', '<U6'), ('target', '<i4'), ('dob', '<U10'), ('prediction', '<i4')])
+
+def create_dataset():
+    list_of_dictionaries = get_data()
+
+    desired_keys = ['name',
+                    'data',
+                    'treatment',
+                    'distance_func'
+                    ]
+    
+    dts = []
+    treatments = {
+                'Protected': [],
+                'Feature': [],
+                'ToIgnore': [],
+                'Target': []
+                }
+    distance_funcs = {}
+    data = []
+    
+    
+    for dictionary in list_of_dictionaries:
+        current_dictionary_keys = dictionary.keys()
+        for key in desired_keys:
+            if key not in current_dictionary_keys:
+                raise ValueError('One of the provided dictionaries does not have the key: ' + str(key))
+        
+        field_name = dictionary['name']
+        field_col = dictionary['data']
+        if type(field_col) != np.ndarray:
+            raise TypeError(str(field_name) + ' data should be of type numpy.ndarray.')
+        
+        data.append(field_col)
+        
+        dts.append((field_name, field_col.dtype))
+        distance_funcs[field_name] = dictionary['distance_func']
+
+        field_treatment = dictionary['treatment']
+        
+        if field_treatment == 'Protected':
+            treatments['Protected'].append(field_name)
+        elif field_treatment == 'Feature':
+            treatments['Feature'].append(field_name)
+        elif field_treatment == 'Target':
+            treatments['Target'].append(field_name)
+        elif field_treatment == 'ToIgnore':
+            treatments['ToIgnore'].append(field_name)
+        else:
+            raise ValueError('Unknown treatment')
+            
+    N = data[0].shape[0]
+    if not np.all(column.shape[0] == N for column in data):
+        raise ValueError('Data provided is of different length.')
+        
+    dataset = np.array([item for item in zip(*data)], dtype=dts)
+    return dataset, treatments, distance_funcs
+
+def get_dictionary(field_name, field_data, field_treatment, field_distance_func):
+    dictionary =  {
+                'name': field_name,
+                'data': field_data,
+                'treatment': field_treatment,
+                'distance_func': field_distance_func
+                }  
+    
+    return dictionary
+
+def zipcode_dist(x, y):
+    n = len(x)
+    t = sum([item[0] == item[1] for item in zip(x, y)])
+    return t/n
+    
+def get_data():
+    age_dict = get_dictionary(field_name = 'Age', 
+                              field_data = testdata3['age'], 
+                              field_treatment = 'Feature', 
+                              field_distance_func = lambda x, y: abs(x - y)
+                              )
+    
+    weight_dict = get_dictionary(field_name = 'Weight', 
+                              field_data = testdata3['weight'], 
+                              field_treatment = 'Feature', 
+                              field_distance_func = lambda x, y: abs(x - y)
+                              )
+    
+    disease_dict = get_dictionary(field_name = 'Target', 
+                              field_data = testdata3['target'],
+                              field_treatment = 'Target', 
+                              field_distance_func = lambda x, y: x == y
+                              )
+
+
+   
+    zipcode_dict = get_dictionary(field_name = 'Zipcode', 
+                              field_data = testdata3['zipcode'], 
+                              field_treatment = 'Feature', 
+                              field_distance_func = zipcode_dist
+                              )
+    
+    gender_dict = get_dictionary(field_name = 'Gender', 
+                              field_data = testdata3['gender'], 
+                              field_treatment = 'Protected', 
+                              field_distance_func = lambda x, y: x == y
+                              )
+
+    prediction_dict = get_dictionary(field_name = 'Prediction', 
+                              field_data = testdata3['prediction'], 
+                              field_treatment = 'ToIgnore', 
+                              field_distance_func = None
+                              )
+    
+    return [age_dict, weight_dict, disease_dict, zipcode_dict, gender_dict, prediction_dict]
 
 def euc_dist(v0, v1):
     return np.linalg.norm(v0 - v1)**2
@@ -31,22 +152,31 @@ checks = {'accuracy': lambda x: sum(np.diag(x)) / np.sum(x),
           }
 
 
-testdata = generatetable()
+dataset, treatments, distance_funcs = create_dataset()
+pairs_bias = check_systemic_bias(dataset, treatments, distance_funcs)
 
-targets = testdata['target']
-predictions = testdata['prediction']
-X = remove_field(testdata, 'target')
-X = remove_field(testdata, 'predictions')
-
-
-aggregated_checks = perform_checks_on_split(X, targets, predictions, 'gender', checks, 'feature1', 0)
-summary = get_summary(aggregated_checks)
-
-
-model = LogisticRegression()
-cm = counterfactual_fairness(model, X, targets, 'gender')
-
-newx = np.array(X.tolist())
-model.fit(newx, y)
-predictions_proba = model.predict_proba(newx)
-fair_bool = individual_fairness(newx, predictions_proba, euc_dist, euc_dist)
+counts, weights = check_sampling_bias(dataset, treatments, ['Zipcode', 'Gender'], True)
+summary = check_systematic_error(dataset, treatments, ['Zipcode', 'Gender'], checks)
+# =============================================================================
+# 
+# #testdata = generatetable()
+# 
+# targets = dataset['Target']
+# predictions = dataset['Prediction']
+# X = remove_field(dataset, 'Target')
+# X = remove_field(X, 'Prediction')
+# 
+# aggregated_checks = perform_checks_on_split(X, targets, predictions, 'Gender', checks)
+# summary = get_summary(aggregated_checks)
+# 
+# X = remove_field(X, 'Zipcode')
+# model = LogisticRegression()
+# cm = counterfactual_fairness(model, X, targets, 'Gender')
+# 
+# newx = np.array(X.tolist())
+# model.fit(newx, targets)
+# predictions_proba = model.predict_proba(newx)
+# fair_bool = individual_fairness(newx, predictions_proba, euc_dist, euc_dist)
+# 
+# 
+# =============================================================================

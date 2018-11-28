@@ -8,8 +8,8 @@ Created on Tue Nov 20 15:35:03 2018
 import pytest
 import numpy as np
 
-from metrics import get_confusion_matrix, filter_dataset, split_dataset
-
+from metrics import get_confusion_matrix, filter_dataset, split_dataset, get_cross_product
+from metrics import get_mask, get_weights_costsensitivelearning, get_counts, apply_combination_filter
 input0 = [0, 0, 0, 1, 1, 1]
 input1 = [1, 1, 0, 1, 0, 1]
 
@@ -141,3 +141,109 @@ def test_split_dataset(input_data, feature, expected_splits):
         assert np.all(x_expected == x_output)
         assert np.all(targets_expected == targets_output)
         assert np.all(predictions_expected == predictions_output)
+
+input_data_crossproduct = np.array([('a', 'A', '0'),
+                        ('b', 'B', '1')],
+                        dtype=[('first', '<U1'), 
+                               ('second', '<U1'), 
+                               ('third', '<U1')]
+                        )  
+expected_crossproduct0 = [('a',), ('b',)]
+expected_crossproduct1 = [('a', 'A',), ('a', 'B',), ('b', 'A',), ('b', 'B',)]
+@pytest.mark.parametrize("input_data, features_to_check, expected_output",
+                         [(input_data_crossproduct, ['first'], expected_crossproduct0),
+                          (input_data_crossproduct, ['first', 'second'], expected_crossproduct1)])   
+def test_get_cross_product(input_data, features_to_check, expected_output):
+    output = get_cross_product(input_data, features_to_check)
+    assert set(output) == set(expected_output)
+
+input_data_mask0 = np.array([('a', 'A', 0),
+                               ('b', 'B', 1),
+                               ('a', 'B', 0),
+                               ('b', 'B', 1),
+                               ('a', 'A', 0),
+                               ('b', 'B', 1)],
+                            dtype=[('first', '<U1'), 
+                                   ('second', '<U1'), 
+                                   ('third', '<i4')]
+                            )  
+expected_output_mask0 = [True, False, True, False, True, False]
+expected_output_mask1 = [True, False, False, False, True, False]
+
+@pytest.mark.parametrize("input_dataset, features_to_check, combination, expected_output",
+                         [(input_data_mask0, ['first'], ('a',), expected_output_mask0),
+                          (input_data_mask0, ['first', 'second'], ('a', 'A', ), expected_output_mask1)])
+def test_get_mask(input_dataset, features_to_check, combination, expected_output):
+    output = get_mask(input_dataset, features_to_check, combination)
+    assert set(output) == set(expected_output)
+ 
+expected_weights0 = np.array([1, 1, 1, 1, 1, 1], dtype=float).reshape(-1, 1)
+expected_weights1 = np.array([2, 1, 1, 1, 2, 1], dtype=float).reshape(-1, 1)
+expected_weights2 = np.array([1.5, 1, 3, 1, 1.5, 1], dtype=float).reshape(-1, 1)
+
+@pytest.mark.parametrize("input_dataset, features_to_check, expected_weights", 
+                         [(input_data_mask0, ['first'], expected_weights0),
+                          (input_data_mask0, ['second'], expected_weights1),
+                          (input_data_mask0, ['first', 'second'], expected_weights2)])
+def test_get_weights_costsensitivelearning(input_dataset, features_to_check, expected_weights):
+    target_field = 'third'
+    cross_product = get_cross_product(input_dataset, features_to_check)
+    counts = get_counts(input_dataset, target_field, features_to_check, cross_product)
+    output_weights = get_weights_costsensitivelearning(input_dataset, features_to_check, counts)
+    assert np.all(output_weights == expected_weights)
+
+input_data_counts = np.array([('a', 'A', 0),
+                               ('b', 'B', 1),
+                               ('a', 'B', 0),
+                               ('b', 'B', 1),
+                               ('a', 'A', 0),
+                               ('b', 'B', 0)],
+                            dtype=[('first', '<U1'), 
+                                   ('second', '<U1'), 
+                                   ('third', '<i4')]
+                            ) 
+ 
+expected_counts0 = {('a',): {0: 3},
+                    ('b',): {0: 1, 1: 2}}
+
+expected_counts1 = {('a', 'A', ): {0: 2},
+                    ('a', 'B', ): {0: 1},
+                    ('b', 'B', ): {0: 1, 1: 2}                    
+                    }
+
+@pytest.mark.parametrize("input_dataset, features_to_check, expected_counts",
+                         [(input_data_counts, ['first'], expected_counts0),
+                          (input_data_counts, ['first', 'second'], expected_counts1)])
+def test_get_counts(input_dataset, features_to_check, expected_counts):
+    target_field = 'third'
+    cross_product = get_cross_product(input_dataset, features_to_check)
+    output_counts = get_counts(input_dataset, target_field, features_to_check, cross_product)
+    for key, val in output_counts.items():
+        assert dict(output_counts[key]) == expected_counts[key]
+
+input_data_apply = np.array([('a', 'A', 0, 1),
+                               ('b', 'B', 1, 1),
+                               ('a', 'B', 0, 0),
+                               ('b', 'B', 1, 0),
+                               ('a', 'A', 0, 0),
+                               ('b', 'B', 0, 1)],
+                            dtype=[('first', '<U1'), 
+                                   ('second', '<U1'), 
+                                   ('third', '<i4'),
+                                   ('fourth', '<i4')]
+                            ) 
+
+expected_apply0 = ([1, 0, 0],
+                   [0, 0, 0])
+
+expected_apply1 = ([1, 0],
+                   [0, 0])
+@pytest.mark.parametrize("input_dataset, features_to_check, combination, expected_output",
+                         [(input_data_apply, ['first'], ('a', ), expected_apply0),
+                          (input_data_apply, ['first', 'second'], ('a', 'A', ), expected_apply1)])        
+def test_apply_combination_filter(input_dataset, features_to_check, combination, expected_output):
+    target_field = 'third'
+    prediction_field = 'fourth'
+    output = apply_combination_filter(input_dataset, prediction_field, target_field, features_to_check, combination)
+    assert np.all(output[0] == expected_output[0])
+    assert np.all(output[1] == expected_output[1])

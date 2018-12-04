@@ -30,48 +30,76 @@ testdata = np.array([('Heidi Mitchell', 'uboyd@hotmail.com', 74, 52, 'female', '
        ('Susan Williams', 'smithjoshua@allen.com', 21, 42, 'male', '0203', 'lung', '15/11/2005')],
       dtype=[('name', '<U16'), ('email', '<U25'), ('age', '<i4'), ('weight', '<i4'), ('gender', '<U6'), ('zipcode', '<U6'), ('diagnosis', '<U6'), ('dob', '<U10')])
 
+testdata2 = np.array([('Heidi Mitchell', 'uboyd@hotmail.com', 74, 52, 'female', '1121', 'cancer', '03/06/2018'),
+       ('Tina Burns', 'stevenwheeler@williams.bi',  3, 86, 'female', '0323', 'hip', '26/09/2017'),
+       ('Justin Brown', 'velasquezjake@gmail.com', 26, 56, 'female', '0100', 'heart', '31/12/2015'),
+       ('Brent Parker', 'kennethsingh@strong-foley', 70, 57, 'male', '3131', 'heart', '02/10/2011'),
+       ('Bryan Norton', 'erica36@hotmail.com', 48, 57, 'male', '0301', 'hip', '09/09/2012'),
+       ('Ms. Erin Craig', 'ritterluke@gmail.com', 30, 98, 'male', '2223', 'cancer', '04/11/2006'),],
+      dtype=[('name', '<U16'), ('email', '<U25'), ('age', '<i4'), ('weight', '<i4'), ('gender', '<U6'), ('zipcode', '<U6'), ('diagnosis', '<U6'), ('dob', '<U10')])
+
 def describe_numeric(series):
-    numeric_fields = ['Count', 'Mean', 'Std', 'Min', 'Max', '25%', '50%', '75%']
-    numeric_dict = dict(zip(numeric_fields, np.zeros(len(numeric_fields))))
-    numeric_dict['Count'] = len(series)
-    numeric_dict['Mean'] = np.mean(series)
-    numeric_dict['Std'] = np.std(series)
-    numeric_dict['Max'] = np.max(series)
-    numeric_dict['Min'] = np.min(series)
+    numeric_dict = {}
+    numeric_dict['count'] = int(len(series))
+    numeric_dict['mean'] = np.mean(series)
+    numeric_dict['std'] = np.std(series)
+    numeric_dict['max'] = np.max(series)
+    numeric_dict['min'] = np.min(series)
     numeric_dict['25%'] = np.quantile(series, 0.25)
     numeric_dict['50%'] = np.quantile(series, 0.50)
     numeric_dict['75%'] = np.quantile(series, 0.75)
-    
+
     for key, value in numeric_dict.items():
-        numeric_dict[key] = format(value, '.2f')
+        if key != 'count':
+            numeric_dict[key] = format(value, '.2f')
     return numeric_dict
 
 def describe_categorical(series):
-    categorical_fields = ['Count', 'Count_Unique', 'Unique', 'Top', 'Freq', 'Hist']
-    categorical_dict = dict(zip(categorical_fields, np.zeros(len(categorical_fields))))
-    categorical_dict['Count'] = len(series)
-    categorical_dict['Count_Unique'] = len(set(series))
-    categorical_dict['Unique'] = list(set(series))
-    
+    categorical_dict = {}
+    categorical_dict['count'] = int(len(series))
+    categorical_dict['count_unique'] = len(set(series))
+    categorical_dict['unique'] = list(set(series))
+
     counter = Counter(series)
     top = counter.most_common()
-    categorical_dict['Top'] = top[0][0]
-    categorical_dict['Freq'] = top[0][1]
-    
-    categorical_dict['Hist'] = counter
-    
+    categorical_dict['most_common'] = top[0][0]
+    categorical_dict['most_common_count'] = top[0][1]
+
+    categorical_dict['hist'] = dict(counter)
+
     return categorical_dict
 
-def describe_dataset(dataset: np.ndarray, todescribe: list):
-    describe_dict = {}
-    for field_name, field_type in dataset.dtype.fields.items():
-        if field_name not in todescribe:
-            continue
-        if field_type[0] in ['int32']:
-            describe_dict[field_name] = describe_numeric(dataset[field_name])
-        else:
-            describe_dict[field_name] = describe_categorical(dataset[field_name])
-    return describe_dict
+def describe_dataset(dataset, todescribe, condition=None):
+    if condition is not None:
+        values_set = list(set(condition))
+        n_samples = condition.shape[0]
+        grand_dict = {}
+        for value in values_set:
+            mask = np.array(np.zeros(n_samples), dtype=bool)
+            t = np.where(condition == value)[0]
+            mask[t] = True
+            describe_dict = {}
+
+            for field_name, field_type in dataset.dtype.fields.items():
+                if field_name not in todescribe:
+                    continue
+                if field_type[0] in ['int32']:
+                    describe_dict[field_name] = describe_numeric(dataset[mask][field_name])
+                else:
+                    describe_dict[field_name] = describe_categorical(dataset[mask][field_name])
+            grand_dict[value] = describe_dict
+        return grand_dict
+    else:
+        describe_dict = {}
+        for field_name, field_type in dataset.dtype.fields.items():
+            if field_name not in todescribe:
+                continue
+            if field_type[0] in ['int32']:
+                describe_dict[field_name] = describe_numeric(dataset[field_name])
+            else:
+                describe_dict[field_name] = describe_categorical(dataset[field_name])
+        return describe_dict
 
 #list(testdata.dtype.fields.keys())
-a=describe_dataset(testdata, ['age', 'weight', 'gender', 'diagnosis'])
+condition = np.array(['m', 'm', 'm', 'f', 'f', 'f'])
+a=describe_dataset(testdata2, ['age', 'weight', 'gender', 'diagnosis'], condition)

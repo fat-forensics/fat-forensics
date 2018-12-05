@@ -270,9 +270,6 @@ def test_check_indices():
     assert(fuv.check_indices(array_all_numerical_structure, np.array(['ads', 'f', 'a', 'b'])) == False)
     assert(fuv.check_indices(array_all_numerical_structure, np.array([[1, 0], [0, 2]])) == False)
 
-if __name__ == '__main__':
-    test_check_indices()
-
 def test_check_model_functionality():
     class ClassPlain: pass
     class_plain = ClassPlain()

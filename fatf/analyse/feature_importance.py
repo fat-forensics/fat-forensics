@@ -1,31 +1,33 @@
 """
 Functions for calculating feature importance and 
 Individual Conditional Expectation (ICE)
-Author: Alex Hepburn <ah13558@bristol.ac.uk>
-License: new BSD
 """
 
-from typing import List, Dict
+# Author: Alex Hepburn <ah13558@bristol.ac.uk>
+# License: BSD Clause 3
+
+from typing import List, Dict, Union
 
 import numpy as np
 import scipy
 
-from fatf.tests.predictor import KNN
 
 
 def individual_conditional_expectation(
         X_train: np.ndarray, 
         model: object, 
-        feature: int,
+        feature: Union[int, str],
+        is_categorical: bool = False,
         steps: int = 100
 ) -> np.ndarray:
-    '''Calculate Individual Conditional Expectation for all classs for feature
+    """Calculate Individual Conditional Expectation for all classs for feature
 
     Args:
         X_train: np.ndarray containing training data of shape [n_samples, n_features]
         model: object which is fitted model containing functions fit(X, Y), predict(X)
             and predict_proba(X)
-        feature: int corresponding to column in X_train for feature to compute ICE
+        feature: int or str corresponding to column in X_train for feature to compute ICE
+        is_categorical: 
         steps: int how many steps to sample with between feature min and max. 
             Default: 100
 
@@ -35,7 +37,7 @@ def individual_conditional_expectation(
 
     Example:
         >>>
-    '''
+    """
     # Find n_classes without using attribute
     n_classes = model.predict_proba(X[0:1, :]).shape[1]
     ret = np.ndarray((X_train.shape[0], steps, n_classes))
@@ -85,14 +87,12 @@ def partial_depedence(
     pd = np.mean(ice[:, :, category], axis=0)
     return pd, values
 
-def plot_ICE(
-        ice: np.ndarray,
-        feature_name: str,
-        values: np.array,
-        category: int,
-        category_name: str = None
-) -> None:
-# return a figure without import matplotlib.pyplot outside function
+def plot_ICE(ice: np.ndarray,
+             feature_name: str,
+             values: np.array,
+             category: int,
+             category_name: str = '') -> plt.Figure:
+    # TODO: return plt.figure but if matplotlib not installed it will fail
     '''Plot individual conditional expectations for class
 
     Args:
@@ -163,21 +163,4 @@ def _generate_samples():
     return 0
 def _compute_importance():
     return 0
-
-if __name__ == '__main__':
-    knn = KNN(k=2)
-    X = np.array([
-        [1.2, 2, 3],
-        [2.3, 3, 4],
-        [10.3, 2, 4],
-        [4.0, 3, 5]
-    ], dtype=np.float32)
-    Y = np.array([0, 0, 1, 1])
-    #X = np.random.rand(100, 10)
-    #Y = np.random.randint(0,2,100)
-    knn.fit(X, Y)
-    ret, values = individual_conditional_expectation(X, knn, 0)
-    pd = partial_depedence(X, knn, 0, 0)
-    #plot_ICE(ret, 'feature 0', values, 0, 'Good')
-    imp = feature_importance(X, knn)
 

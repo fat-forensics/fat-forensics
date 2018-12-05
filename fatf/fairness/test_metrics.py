@@ -148,33 +148,57 @@ input_data_crossproduct = np.array([('a', 'A', '0'),
                                ('second', '<U1'), 
                                ('third', '<U1')]
                         )  
-expected_crossproduct0 = [('a',), ('b',)]
-expected_crossproduct1 = [('a', 'A',), ('a', 'B',), ('b', 'A',), ('b', 'B',)]
-@pytest.mark.parametrize("input_data, features_to_check, expected_output",
-                         [(input_data_crossproduct, ['first'], expected_crossproduct0),
-                          (input_data_crossproduct, ['first', 'second'], expected_crossproduct1)])   
-def test_get_cross_product(input_data, features_to_check, expected_output):
-    output = get_cross_product(input_data, features_to_check)
-    assert set(output) == set(expected_output)
 
-input_data_mask0 = np.array([('a', 'A', 0),
-                               ('b', 'B', 1),
-                               ('a', 'B', 0),
-                               ('b', 'B', 1),
-                               ('a', 'A', 0),
-                               ('b', 'B', 1)],
+input_data_crossproduct1 = np.array([('a', 'A', 0, 20),
+                               ('b', 'B', 1, 30),
+                               ('a', 'B', 0, 40),
+                               ('b', 'B', 1, 50),
+                               ('a', 'A', 0, 60),
+                               ('b', 'B', 1, 70)],
                             dtype=[('first', '<U1'), 
                                    ('second', '<U1'), 
-                                   ('third', '<i4')]
+                                   ('third', '<i4'),
+                                   ('age', '<i4')]
+                            ) 
+
+expected_crossproduct0 = [('a',), ('b',)]
+expected_crossproduct1 = [('a', 'A',), ('a', 'B',), ('b', 'A',), ('b', 'B',)]
+import math
+INF = math.inf
+expected_crossproduct2 = [((-INF, 25), ), ((25, 50), ), ((50, INF), )]
+expected_crossproduct3 = [('a', (-INF, 45), ), ('a', (45, INF), ), 
+                          ('b', (-INF, 45), ), ('b', (45, INF), )]
+@pytest.mark.parametrize("input_data, features_to_check, expected_output, boundaries",
+                         [(input_data_crossproduct, ['first'], expected_crossproduct0, {}),
+                          (input_data_crossproduct, ['first', 'second'], expected_crossproduct1, {}),
+                          (input_data_crossproduct1, ['age'], expected_crossproduct2, {'age': [25, 50]}),
+                          (input_data_crossproduct1, ['first', 'age'], expected_crossproduct3, {'age': [45]})])   
+def test_get_cross_product(input_data, features_to_check, expected_output, boundaries):
+    output = get_cross_product(input_data, features_to_check, boundaries)
+    assert set(output) == set(expected_output)
+
+input_data_mask0 = np.array([('a', 'A', 0, 20),
+                               ('b', 'B', 1, 30),
+                               ('a', 'B', 0, 40),
+                               ('b', 'B', 1, 50),
+                               ('a', 'A', 0, 60),
+                               ('b', 'B', 1, 70)],
+                            dtype=[('first', '<U1'), 
+                                   ('second', '<U1'), 
+                                   ('third', '<i4'),
+                                   ('age', '<i4')]
                             )  
 expected_output_mask0 = [True, False, True, False, True, False]
 expected_output_mask1 = [True, False, False, False, True, False]
-
-@pytest.mark.parametrize("input_dataset, features_to_check, combination, expected_output",
-                         [(input_data_mask0, ['first'], ('a',), expected_output_mask0),
-                          (input_data_mask0, ['first', 'second'], ('a', 'A', ), expected_output_mask1)])
-def test_get_mask(input_dataset, features_to_check, combination, expected_output):
-    output = get_mask(input_dataset, features_to_check, combination)
+expected_output_mask2 = [True, False, False, False, False, False]
+expected_output_mask3 = [True, False, True, False, False, False]
+@pytest.mark.parametrize("input_dataset, features_to_check, combination, expected_output, boundaries_for_numerical",
+                         [(input_data_mask0, ['first'], ('a',), expected_output_mask0, {}),
+                          (input_data_mask0, ['first', 'second'], ('a', 'A', ), expected_output_mask1, {}),
+                          (input_data_mask0, ['age'], ([15, 25], ), expected_output_mask2, {'age':[]}),
+                          (input_data_mask0, ['first', 'age'], ('a', [15, 45], ), expected_output_mask3, {'age':[]})])
+def test_get_mask(input_dataset, features_to_check, combination, expected_output, boundaries_for_numerical):
+    output = get_mask(input_dataset, features_to_check, combination, boundaries_for_numerical)
     assert set(output) == set(expected_output)
  
 expected_weights0 = np.array([1, 1, 1, 1, 1, 1], dtype=float).reshape(-1, 1)
@@ -187,20 +211,21 @@ expected_weights2 = np.array([1.5, 1, 3, 1, 1.5, 1], dtype=float).reshape(-1, 1)
                           (input_data_mask0, ['first', 'second'], expected_weights2)])
 def test_get_weights_costsensitivelearning(input_dataset, features_to_check, expected_weights):
     target_field = 'third'
-    cross_product = get_cross_product(input_dataset, features_to_check)
-    counts = get_counts(input_dataset, target_field, features_to_check, cross_product)
-    output_weights = get_weights_costsensitivelearning(input_dataset, features_to_check, counts)
+    cross_product = get_cross_product(input_dataset, features_to_check, {})
+    counts = get_counts(input_dataset, target_field, features_to_check, cross_product, {})
+    output_weights = get_weights_costsensitivelearning(input_dataset, features_to_check, counts, {})
     assert np.all(output_weights == expected_weights)
 
-input_data_counts = np.array([('a', 'A', 0),
-                               ('b', 'B', 1),
-                               ('a', 'B', 0),
-                               ('b', 'B', 1),
-                               ('a', 'A', 0),
-                               ('b', 'B', 0)],
+input_data_counts = np.array([('a', 'A', 0, 20),
+                               ('b', 'B', 1, 30),
+                               ('a', 'B', 0, 40),
+                               ('b', 'B', 1, 50),
+                               ('a', 'A', 0, 60),
+                               ('b', 'B', 0, 70)],
                             dtype=[('first', '<U1'), 
                                    ('second', '<U1'), 
-                                   ('third', '<i4')]
+                                   ('third', '<i4'),
+                                   ('age', '<i4')]
                             ) 
  
 expected_counts0 = {('a',): {0: 3},
@@ -217,7 +242,7 @@ expected_counts1 = {('a', 'A', ): {0: 2},
 def test_get_counts(input_dataset, features_to_check, expected_counts):
     target_field = 'third'
     cross_product = get_cross_product(input_dataset, features_to_check)
-    output_counts = get_counts(input_dataset, target_field, features_to_check, cross_product)
+    output_counts = get_counts(input_dataset, target_field, features_to_check, cross_product, {})
     for key, val in output_counts.items():
         assert dict(output_counts[key]) == expected_counts[key]
 
@@ -247,3 +272,4 @@ def test_apply_combination_filter(input_dataset, features_to_check, combination,
     output = apply_combination_filter(input_dataset, prediction_field, target_field, features_to_check, combination)
     assert np.all(output[0] == expected_output[0])
     assert np.all(output[1] == expected_output[1])
+

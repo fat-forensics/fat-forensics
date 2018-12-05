@@ -4,18 +4,28 @@ Created on Tue Nov 20 14:36:09 2018
 
 @author: rp13102
 """
+from __future__ import division
 from sklearn.linear_model import LogisticRegression
 import numpy as np
 
-from metrics import perform_checks_on_split, get_summary, counterfactual_fairness, individual_fairness, check_systemic_bias, check_sampling_bias, check_systematic_error
+#from metrics import perform_checks_on_split, get_summary, counterfactual_fairness, individual_fairness, check_systemic_bias, check_sampling_bias, check_systematic_error
+from metrics import FairnessChecks
 
-testdata3 = np.array([('Heidi Mitchell', 'uboyd@hotmail.com', 74, 52, 0, '0011', 1, '03/06/2018', 1),
+def remove_field(dataset, field):
+    field_names = list(dataset.dtype.names)
+    if field in field_names:
+        field_names.remove(field)
+    return dataset[field_names]
+    
+testdata3 = np.array([
+        ('Heidi Mitchell', 'uboyd@hotmail.com', 74, 52, 0, '0011', 1, '03/06/2018', 2),
        ('Tina Burns', 'stevenwheeler@williams.bi',  3, 86, 1, '0011', 0, '26/09/2017', 1),
-       ('Justin Brown', 'velasquezjake@gmail.com', 26, 56, 1, '0011', 1, '31/12/2015', 0),
+       ('Justin Brown', 'velasquezjake@gmail.com', 3, 86, 0, '0011', 2, '31/12/2015', 0),
        ('Brent Parker', 'kennethsingh@strong-foley', 70, 57, 0, '0011', 1, '02/10/2011', 0),
-       ('Bryan Norton', 'erica36@hotmail.com', 48, 57, 0, '1100', 0, '09/09/2012', 1),
-       ('Ms. Erin Craig', 'ritterluke@gmail.com', 30, 98, 0, '1100', 1, '04/11/2006', 1),
-       ('Gerald Park', 'larrylee@hayes-brown.net', 41, 73, 1, '1100', 0, '15/12/2015', 0),],
+       ('Bryan Norton', 'erica36@hotmail.com', 48, 57, 0, '1100', 0, '09/09/2012', 2),
+       ('Ms. Erin Craig', 'ritterluke@gmail.com', 30, 98, 0, '1100', 2, '04/11/2006', 1),
+       ('Gerald Park', 'larrylee@hayes-brown.net', 41, 73, 1, '1100', 0, '15/12/2015', 0),
+       ],
       dtype=[('name', '<U16'), ('email', '<U25'), ('age', '<i4'), ('weight', '<i4'), ('gender', '<i4'), ('zipcode', '<U6'), ('target', '<i4'), ('dob', '<U10'), ('prediction', '<i4')])
 
 def create_dataset():
@@ -87,7 +97,7 @@ def get_dictionary(field_name, field_data, field_treatment, field_distance_func)
 def zipcode_dist(x, y):
     n = len(x)
     t = sum([item[0] == item[1] for item in zip(x, y)])
-    return t/n
+    return 1 - t/n
     
 def get_data():
     age_dict = get_dictionary(field_name = 'Age', 
@@ -130,53 +140,62 @@ def get_data():
     
     return [age_dict, weight_dict, disease_dict, zipcode_dict, gender_dict, prediction_dict]
 
-def euc_dist(v0, v1):
-    return np.linalg.norm(v0 - v1)**2
+def get_boundaries(field, increments=5):
+    max_val = np.max(field)
+    min_val = np.min(field)
+    return np.linspace(min_val, max_val+1, increments)
 
-def remove_field(dataset, field):
-    field_names = list(dataset.dtype.names)
-    if field in field_names:
-        field_names.remove(field)
-    return dataset[field_names]
+#dataset, treatments, distance_funcs = create_dataset()
+#pairs_bias = check_systemic_bias(dataset, treatments, distance_funcs)
 
-checks = {'accuracy': lambda x: sum(np.diag(x)) / np.sum(x),
-          'true_positives': lambda x: x[0, 0],
-          'true_negatives': lambda x: x[1, 1],
-          'false_positives': lambda x: x[0, 1],
-          'false_negatives': lambda x: x[1, 0],
-          'true_positive_rate': lambda x: x[0, 0] / (x[0, 0] + x[0, 1]),
-          'true_negative_rate': lambda x: x[1, 1] / (x[1, 1] + x[1, 0]),
-          'false_positive_rate': lambda x: x[0, 1] / (x[0, 0] + x[0, 1]),
-          'false_negative_rate': lambda x: x[1, 1] / (x[1, 1] + x[1, 0]),
-          'treatment': lambda x: x[0, 1] / x[1, 0]
-          }
+features_to_check = ['Gender']
+
+mdl = FairnessChecks(dataset, 
+                     treatments['Protected'][0], 
+                     treatments['Feature'], 
+                     treatments['ToIgnore'], 
+                     treatments['Target'][0], 
+                     distance_funcs)
+
+c=mdl.check_systemic_bias()
+d=mdl.check_sampling_bias(features_to_check=features_to_check)
 
 
-dataset, treatments, distance_funcs = create_dataset()
-pairs_bias = check_systemic_bias(dataset, treatments, distance_funcs)
+features_to_check = ['Age', 'Gender']
+boundaries = {'Age': []}
+for key, value in boundaries.items():
+    if len(value) == 0:
+        boundaries[key] = get_boundaries(dataset[key])
+        
+e=mdl.check_sampling_bias(features_to_check=features_to_check, 
+                          return_weights = True, 
+                          boundaries_for_numerical = boundaries)
+f=mdl.check_systematic_error(features_to_check=['Gender'],
+                             requested_checks='all',
+                             boundaries_for_numerical=boundaries)
 
-counts, weights = check_sampling_bias(dataset, treatments, ['Zipcode', 'Gender'], True)
-summary = check_systematic_error(dataset, treatments, ['Zipcode', 'Gender'], checks)
-# =============================================================================
-# 
-# #testdata = generatetable()
-# 
-# targets = dataset['Target']
-# predictions = dataset['Prediction']
-# X = remove_field(dataset, 'Target')
-# X = remove_field(X, 'Prediction')
-# 
-# aggregated_checks = perform_checks_on_split(X, targets, predictions, 'Gender', checks)
-# summary = get_summary(aggregated_checks)
-# 
-# X = remove_field(X, 'Zipcode')
-# model = LogisticRegression()
-# cm = counterfactual_fairness(model, X, targets, 'Gender')
-# 
-# newx = np.array(X.tolist())
-# model.fit(newx, targets)
-# predictions_proba = model.predict_proba(newx)
-# fair_bool = individual_fairness(newx, predictions_proba, euc_dist, euc_dist)
-# 
-# 
-# =============================================================================
+aggregated_checks = mdl.perform_checks_on_split(protected = 'Gender', 
+                                                get_summary = True,
+                                                requested_checks=['accuracy'],
+                                                conditioned_field='Zipcode',
+                                                condition='1100')
+
+aggregated_checks2 = mdl.perform_checks_on_split(protected = 'Gender', 
+                                                get_summary = True,
+                                                requested_checks=['accuracy'])
+targets = dataset['Target']
+X = remove_field(dataset, 'Target')
+X = remove_field(X, 'Prediction')
+
+X = remove_field(X, 'Zipcode')
+
+model = LogisticRegression()
+
+newx = np.array(X.tolist())
+model.fit(newx, targets)
+
+
+cm = mdl.counterfactual_fairness(model, 'Gender', X, [0, 1, 2])
+
+
+g = mdl.individual_fairness(model, newx)

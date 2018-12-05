@@ -77,9 +77,8 @@ def is_numerical_array(array: np.ndarray) -> bool:
 
     return is_numerical
 
-def is_square_array(array: np.ndarray) -> bool:
-    """Determine whether a numpy array-like object has at most 2 dimensions,
-    i.e. is square.
+def is_2d_array(array: np.ndarray) -> bool:
+    """Determine whether a numpy array-like object has 2 dimensions.
 
     Parameters
     ----------
@@ -93,21 +92,21 @@ def is_square_array(array: np.ndarray) -> bool:
 
     Returns
     -------
-    is_square : bool
-        True if the array is square, False otherwise.
+    is_2d : bool
+        True if the array is 2-dimensional, False otherwise.
     """
     if not isinstance(array, np.ndarray):
         raise CustomValueError('The input should be a numpy array-like.')
 
     if is_numerical_array(array):
-        is_square = True if len(array.shape) == 2 else False
+        is_2d = True if len(array.shape) == 2 else False
     else:
         if len(array.dtype) == 0:
-            is_square = True if len(array.shape) == 2 else False
+            is_2d = True if len(array.shape) == 2 else False
         else:
-            is_square = True if len(array.shape) == 1 else False
+            is_2d = True if len(array.shape) == 1 else False
 
-    return is_square
+    return is_2d
 
 def check_array_type(array: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
     """Check whether a numpy array is purely numerical or a structured array
@@ -127,7 +126,7 @@ def check_array_type(array: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
     CustomValueError
         The input array is not a numpy array-like object.
     IncorrectShapeException
-        The input array is not 2-dimensional (square).
+        The input array is not 2-dimensional.
 
     Returns
     -------
@@ -141,7 +140,7 @@ def check_array_type(array: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
     if not isinstance(array, np.ndarray):
         raise CustomValueError('The input should be a numpy array-like.')
 
-    if not is_square_array(array):
+    if not is_2d_array(array):
         raise IncorrectShapeException('The input array should be '
                                       '2-dimensional.')
 

@@ -110,24 +110,24 @@ def test_is_numerical_array():
                 assert fuv.is_numerical_array(np.zeros((1,), dtype=dtype)) \
                         == True
 
-def test_is_square_array():
+def test_is_2d_array():
     # Test any object
     object_1 = None
     with pytest.raises(fatf.exceptions.CustomValueError):
-        fuv.is_square_array(object_1)
+        fuv.is_2d_array(object_1)
 
     # Test simple numerical and not numerical arrays
     for i in NUMERICAL_KINDS + NOT_NUMERICAL_KINDS:
         for j in [[[i] *2 ] * 2]:
             array = np.array(j)
-            assert fuv.is_square_array(array) == True
+            assert fuv.is_2d_array(array) == True
         for j in [i, [i], [i]*2, [[[i] *2 ] * 2] * 2]:
             array = np.array(j)
-            assert fuv.is_square_array(array) == False
+            assert fuv.is_2d_array(array) == False
 
     # Test complex numerical and not numerical arrays
-    assert fuv.is_square_array(NUMERICAL_NP_ARRAY) == True
-    assert fuv.is_square_array(NOT_NUMERICAL_NP_ARRAY) == True
+    assert fuv.is_2d_array(NUMERICAL_NP_ARRAY) == True
+    assert fuv.is_2d_array(NOT_NUMERICAL_NP_ARRAY) == True
 
     square_shapes = [(0,0), (0,1), (1,0), (1,1), (2,1), (2,2)]
     not_square_shapes = [(0,), (1,), (2,), (0,0,0), (1,0,0), (0,1,0), (0,0,1),
@@ -137,18 +137,18 @@ def test_is_square_array():
         for dtype in dtypes:
             for shape in square_shapes:
                 ones = np.ones(shape=shape, dtype=dtype)
-                assert fuv.is_square_array(ones) == True
+                assert fuv.is_2d_array(ones) == True
                 zeros = np.zeros(shape=shape, dtype=dtype)
-                assert fuv.is_square_array(zeros) == True
+                assert fuv.is_2d_array(zeros) == True
                 empty = np.empty(shape=shape, dtype=dtype)
-                assert fuv.is_square_array(empty) == True
+                assert fuv.is_2d_array(empty) == True
             for shape in not_square_shapes:
                 ones = np.ones(shape=shape, dtype=dtype)
-                assert fuv.is_square_array(ones) == False
+                assert fuv.is_2d_array(ones) == False
                 zeros = np.zeros(shape=shape, dtype=dtype)
-                assert fuv.is_square_array(zeros) == False
+                assert fuv.is_2d_array(zeros) == False
                 empty = np.empty(shape=shape, dtype=dtype)
-                assert fuv.is_square_array(empty) == False
+                assert fuv.is_2d_array(empty) == False
 
     complex_dtype = NOT_NUMERICAL_NP_ARRAY.dtype
     complex_square_shapes = [(0,), (1,), (2,)]
@@ -158,18 +158,18 @@ def test_is_square_array():
                                  (2,2,1)]
     for shape in complex_square_shapes:
         ones = np.ones(shape=shape, dtype=complex_dtype)
-        assert fuv.is_square_array(ones) == True
+        assert fuv.is_2d_array(ones) == True
         zeros = np.zeros(shape=shape, dtype=complex_dtype)
-        assert fuv.is_square_array(zeros) == True
+        assert fuv.is_2d_array(zeros) == True
         empty = np.empty(shape=shape, dtype=complex_dtype)
-        assert fuv.is_square_array(empty) == True
+        assert fuv.is_2d_array(empty) == True
     for shape in complex_not_square_shapes:
         ones = np.ones(shape=shape, dtype=complex_dtype)
-        assert fuv.is_square_array(ones) == False
+        assert fuv.is_2d_array(ones) == False
         zeros = np.zeros(shape=shape, dtype=complex_dtype)
-        assert fuv.is_square_array(zeros) == False
+        assert fuv.is_2d_array(zeros) == False
         empty = np.empty(shape=shape, dtype=complex_dtype)
-        assert fuv.is_square_array(empty) == False
+        assert fuv.is_2d_array(empty) == False
 
 def test_check_array_type():
     # Test any object

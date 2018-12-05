@@ -26,9 +26,8 @@ class CustomException(Exception):
     def __init__(self, message: str = '') -> None:
         """Inits CustomException with an empty message unless one is given."""
         self.message = message
-        # super().__init__(self.message)
 
-    def __str__(self) -> None:
+    def __str__(self) -> str:
         """Assigns message as a string representation of the exception."""
         return self.message
 
@@ -53,9 +52,8 @@ class CustomValueError(ValueError):
     def __init__(self, message: str = '') -> None:
         """Inits CustomValueError with an empty message unless one is given."""
         self.message = message
-        # super().__init__(self.message)
 
-    def __str__(self) -> None:
+    def __str__(self) -> str:
         """Assigns message as a string representation of the error."""
         return self.message
 

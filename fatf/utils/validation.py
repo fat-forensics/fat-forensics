@@ -10,6 +10,8 @@ import inspect
 import numpy as np
 import warnings
 
+from typing import Tuple
+
 from fatf.exceptions import (CustomValueError,
                              IncorrectShapeException)
 
@@ -107,7 +109,7 @@ def is_square_array(array: np.ndarray) -> bool:
 
     return is_square
 
-def check_array_type(array: np.ndarray) -> (np.ndarray, np.ndarray):
+def check_array_type(array: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
     """Check whether a numpy array is purely numerical or a structured array
     and return two lists: one with numerical indices and the other with
     categorical indices.
@@ -200,7 +202,6 @@ def check_model_functionality(model_object: object,
     is_functional = True
 
     methods = {
-        '__init__': 0,
         'fit': 2,
         'predict': 1
     }
@@ -216,13 +217,19 @@ def check_model_functionality(model_object: object,
                 )
         else:
             method_object = getattr(model_object, method)
-            param_n = len(inspect.signature(method_object).parameters)
-            if param_n < methods[method]:
+            required_param_n = 0
+            params = inspect.signature(method_object).parameters
+            for param in params:
+                if params[param].default is inspect._empty:
+                    required_param_n += 1
+            if required_param_n != methods[method]:
                 is_functional = False
                 message_strings.append(
-                        ('The \'{}\' method of the class has too few '
-                         'parameters ({}). It needs to have at least {}.'
-                        ).format(method, param_n, methods[method])
+                        ('The \'{}\' method of the class has incorrect number '
+                         '({}) of the required parameters. It needs to have '
+                         'exactly {} required parameters. Try using optional '
+                         'parameters if you require more functionality.'
+                        ).format(method, required_param_n, methods[method])
                     )
 
     if verbose and not is_functional:

@@ -245,9 +245,15 @@ def test_check_model_functionality():
     class ClassFit1(object):
         def fit(self, one): pass
     class_fit_1 = ClassFit1()
+    class ClassFit11(object):
+        def fit(self, one, two=2): pass
+    class_fit_11 = ClassFit11()
     class ClassFit2(object):
         def fit(self, one, two): pass
     class_fit_2 = ClassFit2()
+    class ClassFit21(object):
+        def fit(self, one, two, three=3): pass
+    class_fit_21 = ClassFit21()
     class ClassFit3(object):
         def fit(self, one, two, three): pass
     class_fit_3 = ClassFit3()
@@ -270,6 +276,11 @@ def test_check_model_functionality():
         def predict_proba(self, one, two): pass
     class_predict_proba_2 = ClassPredictProba2()
 
+    class ClassFit11Predict1(ClassFit11, ClassPredict1): pass
+    class_fit_11_predict_1 = ClassFit11Predict1()
+    class ClassFit21Predict1(ClassFit21, ClassPredict1): pass
+    class_fit_21_predict_1 = ClassFit21Predict1()
+
     class ClassFit1Predict2(ClassFit1, ClassPredict2):
         pass
     class_fit_1_predict_2 = ClassFit1Predict2()
@@ -290,6 +301,11 @@ def test_check_model_functionality():
                                          ClassPredictProba1):
         pass
     class_fit_2_predict_1_predict_proba_1 = ClassFit2Predict1PredictProba1()
+    class ClassFit2Predict1PredictProba0(ClassFit2,
+                                         ClassPredict1,
+                                         ClassPredictProba0):
+        pass
+    class_fit_2_predict_1_predict_proba_0 = ClassFit2Predict1PredictProba0()
 
     # Test verbose -- warning
     with pytest.warns(Warning) as w:
@@ -303,35 +319,64 @@ def test_check_model_functionality():
     assert fuv.check_model_functionality(class_plain, True, False) == False
     assert fuv.check_model_functionality(class_plain, True) == False
 
+    # Test optional arguments
+    assert fuv.check_model_functionality(class_fit_11_predict_1) == False
+    assert fuv.check_model_functionality(class_fit_21_predict_1) == True
+
     # Too few method parameters
     with pytest.warns(Warning) as w:
         assert fuv.check_model_functionality(class_fit_1_predict_2,
                 verbose=True) == False
     w_message = str(w[0].message)
-    m_message = ('The \'fit\' method of the class has too few parameters (1). '
-                 'It needs to have at least 2.')
-    assert w_message == m_message
+    m_message_1 = ('The \'fit\' method of the class has incorrect number '
+                   '(1) of the required parameters. It needs to have exactly'
+                   ' 2 required parameters. Try using optional '
+                   'parameters if you require more functionality.')
+    m_message_2 = ('The \'predict\' method of the class has incorrect number '
+                   '(2) of the required parameters. It needs to have exactly'
+                   ' 1 required parameters. Try using optional '
+                   'parameters if you require more functionality.')
+    assert (m_message_1 in w_message and
+            m_message_2 in w_message)
 
     with pytest.warns(Warning) as w:
         assert fuv.check_model_functionality(class_fit_3_predict_0,
                                              verbose=True) == False
     w_message = str(w[0].message)
-    m_message = ('The \'predict\' method of the class has too few parameters '
-                 '(0). It needs to have at least 1.')
-    assert w_message == m_message
+    m_message_1 = ('The \'fit\' method of the class has incorrect number '
+                   '(3) of the required parameters. It needs to have exactly'
+                   ' 2 required parameters. Try using optional '
+                   'parameters if you require more functionality.')
+    m_message_2 = ('The \'predict\' method of the class has incorrect number '
+                   '(0) of the required parameters. It needs to have exactly'
+                   ' 1 required parameters. Try using optional '
+                   'parameters if you require more functionality.')
+    assert (m_message_1 in w_message and
+            m_message_2 in w_message)
 
     with pytest.warns(Warning) as w:
         assert fuv.check_model_functionality(class_fit_3_predict_0,
                                              True,
                                              True) == False
     w_message = str(w[0].message)
-    m_message = ('The \'predict\' method of the class has too few parameters '
-                 '(0). It needs to have at least 1.')
-    assert (m_message in w_message and
+    m_message_1 = ('The \'fit\' method of the class has incorrect number '
+                   '(3) of the required parameters. It needs to have exactly'
+                   ' 2 required parameters. Try using optional '
+                   'parameters if you require more functionality.')
+    m_message_2 = ('The \'predict\' method of the class has incorrect number '
+                   '(0) of the required parameters. It needs to have exactly'
+                   ' 1 required parameters. Try using optional '
+                   'parameters if you require more functionality.')
+    assert (m_message_1 in w_message and
+            m_message_2 in w_message and
             'missing \'predict_proba\'' in w_message)
 
-    assert fuv.check_model_functionality(class_fit_3_predict_1_predict_proba_0)\
+    assert fuv.check_model_functionality(class_fit_2_predict_1_predict_proba_0)\
             == True
+    assert fuv.check_model_functionality(class_fit_2_predict_1_predict_proba_0,
+                                         True) == False
+    assert fuv.check_model_functionality(class_fit_3_predict_1_predict_proba_0)\
+            == False
     assert fuv.check_model_functionality(class_fit_3_predict_1_predict_proba_0,
                                          True) == False
 

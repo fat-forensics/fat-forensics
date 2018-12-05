@@ -195,8 +195,9 @@ def check_indices(array: np.array,
     indices_numerical = True if is_numerical_array(indices) else False
     numerical_indices, categorical_indices = check_array_type(array)
     array_numerical = np.array_equal(categorical_indices, np.array([]))
+    array_categorical = np.array_equal(numerical_indices, np.array([]))
     if indices_numerical:
-        if array_numerical:
+        if array_numerical or array_categorical:
             if len(array.dtype)==0:
                 if len(indices.shape) != 1:
                     # indices has more then one dim
@@ -211,7 +212,6 @@ def check_indices(array: np.array,
                 # indices is numerical array but array is structured
                 is_valid = False
         else:
-            # array of ints given for indices but array is structured
             is_valid = False
     else:
         # indices are given as strings - check if array is ndarray or 

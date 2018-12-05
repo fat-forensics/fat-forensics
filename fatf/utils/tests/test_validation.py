@@ -228,7 +228,7 @@ def test_check_array_type():
     assert np.array_equal(array_mixture_2_indices_numerical, i_n)
     assert np.array_equal(array_mixture_2_indices_categorical, i_c)
 
-def test_check_categorical_indices():
+def test_check_indices():
     array_all_numerical = np.ones((22,4))
     assert(fuv.check_indices(array_all_numerical, np.array([0, 1, 2, 3])) == True)
     assert(fuv.check_indices(array_all_numerical, np.array(['a', 'b'])) == False)
@@ -269,6 +269,9 @@ def test_check_categorical_indices():
     assert(fuv.check_indices(array_all_numerical_structure, np.array(['a', 'b', 0, 1])) == False)
     assert(fuv.check_indices(array_all_numerical_structure, np.array(['ads', 'f', 'a', 'b'])) == False)
     assert(fuv.check_indices(array_all_numerical_structure, np.array([[1, 0], [0, 2]])) == False)
+
+if __name__ == '__main__':
+    test_check_indices()
 
 def test_check_model_functionality():
     class ClassPlain: pass

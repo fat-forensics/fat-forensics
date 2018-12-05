@@ -169,6 +169,59 @@ def check_array_type(array: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
 
     return numerical_indices, categorical_indices
 
+def check_indices(array: np.array, 
+                  indices: np.array) -> bool:
+    """Check whether indices given in categorical_indices are valid indices for
+    array.
+
+    Parameters
+    ----------
+    array : np.array
+        The array to be checked.
+    categorical_indices : np.array
+        1-D array of indices corresponding to features in array
+    
+    Raises
+    ------
+
+    Returns
+    ----------
+    is_valid : bool
+        A Boolean variable that indicates whether the entries of categorical_indices
+        are valid indices in array 
+    """
+    is_valid = True
+
+    indices_numerical = True if is_numerical_array(indices) else False
+    numerical_indices, categorical_indices = check_array_type(array)
+    array_numerical = np.array_equal(categorical_indices, np.array([]))
+    if indices_numerical:
+        if array_numerical:
+            if len(array.dtype)==0:
+                if len(indices.shape) != 1:
+                    # indices has more then one dim
+                    is_valid = False
+                if np.any(indices < 0):
+                    # negative indices
+                    is_valid = False
+                if np.any(indices > array.shape[1] - 1):
+                    # indices bigger than number of features
+                    is_valid = False
+            else:
+                # indices is numerical array but array is structured
+                is_valid = False
+        else:
+            # array of ints given for indices but array is structured
+            is_valid = False
+    else:
+        # indices are given as strings - check if array is ndarray or 
+        # structured
+        if len(array.dtype)==0:
+            is_valid = False
+        elif not set(indices).issubset(set(array.dtype.names)):
+            is_valid = False
+    return is_valid
+
 def check_model_functionality(model_object: object,
                               require_probabilities: bool = False,
                               verbose: bool = False) -> bool:

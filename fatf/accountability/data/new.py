@@ -6,15 +6,32 @@ Created on Tue Dec  4 09:06:01 2018
 """
 import numpy as np
 from numpy.lib import recfunctions as rfn
-from collections import Counter
 from funcs import create_dataset
+import math
 
+def lca_realline(X, rounding=5):
+    X = list(map(int, X))
+    max_val = max(X)
+    min_val = min(X)
+    lb = math.floor(int(min_val/rounding)*rounding)
+    ub = math.ceil(int(max_val/rounding)*rounding)
+    lca = str(lb) + '-' + str(ub)
+    
+    return lca 
+
+def range_func_realline(X):
+    X = list(map(int, X))
+    max_val = max(X)
+    min_val = min(X)
+    return max_val - min_val
 
 def get_distr(inputlist):
-    count = Counter(inputlist)
+    unique, counts = np.unique(inputlist, return_counts=True)
+    count = dict(zip(unique, counts))
     s = sum(count.values())
     for key in count.keys():
         count[key] /= s
+
     return count
 
 def get_emd_fordistrs(distr1, distr2):
@@ -62,6 +79,7 @@ class BaseAnonymiser(object):
         self._sensitive_attributes = sensitive_attributes
         self.lca_funcs = lca_funcs
         self.range_funcs = range_funcs
+        self.check_funcs()
         self.n_samples = self.dataset.shape[0]
         self.check_input()
         
@@ -109,6 +127,29 @@ class BaseAnonymiser(object):
         if len(self.sensitive_attributes) > 1:
             self.concatenate_sensitive_attributes()
     
+    def check_funcs(self):
+        lca_keys = set(self.lca_funcs.keys())
+        range_keys = set(self.range_funcs.keys())
+        for field_name, field_type in self.dataset.dtype.fields.items():
+            if (field_name not in lca_keys or 
+                    self.lca_funcs[field_name] is None):
+                if field_type[0] == 'int32':
+                    self.lca_funcs[field_name] = lca_realline
+                
+            if (field_name not in range_keys or 
+                    self.range_funcs[field_name] is None):
+                if field_type[0] == 'int32':
+                    self.range_funcs[field_name] = range_func_realline
+                    
+            if field_name in self.quasi_identifiers:
+                if (field_name not in lca_keys or 
+                        self.lca_funcs[field_name] is None):
+                    raise ValueError('missing lca function for %s: ', field_name)
+                    
+                if (field_name not in range_keys or 
+                        self.range_funcs[field_name] is None):
+                    raise ValueError('missing range function for %s: ', field_name)
+                
     def initialise_clustering(self):
         cluster_assignments = np.array(-np.ones(self.n_samples), dtype='int32')
         idx = np.random.randint(self.n_samples, size=1)    
@@ -653,7 +694,10 @@ class TCloseness(BaseAnonymiser):
         return satisfied, emds
 
     def generalize(self):
-        self.base_counts = Counter(self.dataset[self.sensitive_attributes[0]])
+        #self.base_counts = Counter(self.dataset[self.sensitive_attributes[0]])
+        #unique, counts = np.unique(self.SA, return_counts=True)
+        #self.base_counts = dict(zip(unique, counts))
+        self.base_counts = self.SA
         self.base_distr = get_distr(self.base_counts)
     
         # If the formed clusters satisfy the t-closeness condition,
@@ -815,7 +859,7 @@ class TCloseness(BaseAnonymiser):
         if suppress:
             self.suppress()
 
-        self.base_counts = Counter(self.SA)
+        self.base_counts = self.SA
         self.base_distr = get_distr(self.base_counts)
         
         starting_size = len(set(self.SA))
@@ -855,17 +899,17 @@ class TCloseness(BaseAnonymiser):
         return data
     
     
-dataset, treatments, lca_funcs, distance_funcs, range_funcs = create_dataset()  
+#dataset, treatments, lca_funcs, distance_funcs, range_funcs = create_dataset()  
 #treatments['QI'].pop()
 #treatments['SA'].append('Gender')  
 mdl = TCloseness(dataset, treatments['I'], treatments['QI'], treatments['SA'], lca_funcs, range_funcs, 1) 
-d=mdl.apply_tcloseness(suppress=True)
 # =============================================================================
-# mdl = lDiversity(dataset, treatments, lca_funcs, range_funcs, 2)
-# a=mdl.apply_ldiversity()
-# =============================================================================
-# =============================================================================
+# d=mdl.apply_tcloseness(suppress=True)
+# 
+# mdl = LDiversity(dataset, treatments['I'], treatments['QI'], treatments['SA'], lca_funcs, range_funcs, 2)
+# a=mdl.apply_ldiversity(suppress=True)
+# 
 # mdl = KAnonymity(dataset, treatments['I'], treatments['QI'], treatments['SA'], lca_funcs, range_funcs, 2)
-# a=mdl.apply_kanonymity()
+# c=mdl.apply_kanonymity(suppress=True)
 # =============================================================================
     

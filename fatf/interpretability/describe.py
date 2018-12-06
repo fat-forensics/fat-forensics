@@ -7,6 +7,8 @@ Created on Thu Nov 15 09:33:43 2018
 import numpy as np
 from collections import Counter
 
+from fatf.utils.validation import check_array_type
+
 testdata = np.array([('Heidi Mitchell', 'uboyd@hotmail.com', 74, 52, 'female', '1121', 'cancer', '03/06/2018'),
        ('Tina Burns', 'stevenwheeler@williams.bi',  3, 86, 'female', '0323', 'hip', '26/09/2017'),
        ('Justin Brown', 'velasquezjake@gmail.com', 26, 56, 'female', '0100', 'heart', '31/12/2015'),
@@ -70,6 +72,7 @@ def describe_categorical(series):
     return categorical_dict
 
 def describe_dataset(dataset, todescribe, condition=None):
+    numerical_fields, categorical_fields = check_array_type(dataset)
     if condition is not None:
         values_set = list(set(condition))
         n_samples = condition.shape[0]
@@ -80,26 +83,23 @@ def describe_dataset(dataset, todescribe, condition=None):
             mask[t] = True
             describe_dict = {}
 
-            for field_name, field_type in dataset.dtype.fields.items():
+            for field_name in numerical_fields:
                 if field_name not in todescribe:
-                    continue
-                if field_type[0] in ['int32']:
                     describe_dict[field_name] = describe_numeric(dataset[mask][field_name])
-                else:
+            for field_name in categorical_fields:
+                if field_name not in todescribe:
                     describe_dict[field_name] = describe_categorical(dataset[mask][field_name])
             grand_dict[value] = describe_dict
         return grand_dict
     else:
         describe_dict = {}
-        for field_name, field_type in dataset.dtype.fields.items():
+        for field_name in numerical_fields:
             if field_name not in todescribe:
-                continue
-            if field_type[0] in ['int32']:
                 describe_dict[field_name] = describe_numeric(dataset[field_name])
-            else:
+        for field_name in categorical_fields:
+            if field_name not in todescribe:
                 describe_dict[field_name] = describe_categorical(dataset[field_name])
         return describe_dict
 
-#list(testdata.dtype.fields.keys())
 condition = np.array(['m', 'm', 'm', 'f', 'f', 'f'])
 a=describe_dataset(testdata2, ['age', 'weight', 'gender', 'diagnosis'], condition)

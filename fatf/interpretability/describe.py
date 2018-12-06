@@ -71,8 +71,10 @@ def describe_categorical(series):
 
     return categorical_dict
 
-def describe_dataset(dataset, todescribe, condition=None):
+def describe_dataset(dataset, todescribe='all', condition=None):
     numerical_fields, categorical_fields = check_array_type(dataset)
+    if todescribe == 'all':
+        todescribe = numerical_fields.tolist() + categorical_fields.tolist()
     if condition is not None:
         values_set = list(set(condition))
         n_samples = condition.shape[0]
@@ -84,22 +86,22 @@ def describe_dataset(dataset, todescribe, condition=None):
             describe_dict = {}
 
             for field_name in numerical_fields:
-                if field_name not in todescribe:
+                if field_name in todescribe:
                     describe_dict[field_name] = describe_numeric(dataset[mask][field_name])
             for field_name in categorical_fields:
-                if field_name not in todescribe:
+                if field_name in todescribe:
                     describe_dict[field_name] = describe_categorical(dataset[mask][field_name])
             grand_dict[value] = describe_dict
         return grand_dict
     else:
         describe_dict = {}
         for field_name in numerical_fields:
-            if field_name not in todescribe:
+            if field_name in todescribe:
                 describe_dict[field_name] = describe_numeric(dataset[field_name])
         for field_name in categorical_fields:
-            if field_name not in todescribe:
+            if field_name in todescribe:
                 describe_dict[field_name] = describe_categorical(dataset[field_name])
         return describe_dict
 
 condition = np.array(['m', 'm', 'm', 'f', 'f', 'f'])
-a=describe_dataset(testdata2, ['age', 'weight', 'gender', 'diagnosis'], condition)
+a=describe_dataset(testdata2, ['diagnosis'])

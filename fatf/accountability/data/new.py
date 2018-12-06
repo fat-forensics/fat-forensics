@@ -6,8 +6,9 @@ Created on Tue Dec  4 09:06:01 2018
 """
 import numpy as np
 from numpy.lib import recfunctions as rfn
-from funcs import create_dataset
 import math
+from testing import create_dataset
+from fatf.utils.validation import is_2d_array
 
 def lca_realline(X, rounding=5):
     X = list(map(int, X))
@@ -899,7 +900,7 @@ class TCloseness(BaseAnonymiser):
         return data
     
     
-#dataset, treatments, lca_funcs, distance_funcs, range_funcs = create_dataset()  
+dataset, treatments, lca_funcs, distance_funcs, range_funcs = create_dataset()  
 #treatments['QI'].pop()
 #treatments['SA'].append('Gender')  
 mdl = TCloseness(dataset, treatments['I'], treatments['QI'], treatments['SA'], lca_funcs, range_funcs, 1) 

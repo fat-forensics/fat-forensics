@@ -6,9 +6,77 @@ Created on Fri Nov  9 10:19:48 2018
 """
 import math
 import datetime
-
+import numpy as np
 
 from supp import testdata3
+
+
+def create_dataset():
+    list_of_dictionaries = get_data()
+
+    desired_keys = ['name',
+                    'data',
+                    'treatment',
+                    'lca_func',
+                    'range_func',
+                    'distance_func']
+    
+    dts = []
+    treatments = {
+                'I': [],
+                'SA': [],
+                'QI': []
+                }
+    distance_funcs = {}
+    lca_funcs = {}
+    data = []
+    
+    range_funcs = {}
+    
+    for dictionary in list_of_dictionaries:
+        current_dictionary_keys = dictionary.keys()
+        for key in desired_keys:
+            if key not in current_dictionary_keys:
+                raise ValueError('One of the provided dictionaries does not have the key: ' + str(key))
+        
+        field_name = dictionary['name']
+        field_col = dictionary['data']
+        if type(field_col) != np.ndarray:
+            raise TypeError(str(field_name) + ' data should be of type numpy.ndarray.')
+        
+        data.append(field_col)
+        
+        dts.append((field_name, field_col.dtype))
+        distance_funcs[field_name] = dictionary['distance_func']
+        
+        current_field_lca_func = dictionary['lca_func']
+        lca_funcs[field_name] = current_field_lca_func
+        
+        current_field_range_func = dictionary['range_func']
+        range_funcs[field_name] = current_field_range_func
+
+        field_treatment = dictionary['treatment']
+        
+        if field_treatment == 'I':
+            treatments['I'].append(field_name)
+        elif field_treatment == 'SA':
+            treatments['SA'].append(field_name)
+        elif field_treatment == 'QI':
+            treatments['QI'].append(field_name)
+            if not current_field_lca_func:
+                raise ValueError(str(field_name) + ' field requires an LCA function.')
+            if not current_field_range_func:
+                raise ValueError(str(field_name) + ' field requires a range function.')
+        else:
+            raise ValueError('Unknown treatment')
+            
+    N = data[0].shape[0]
+    if not np.all(column.shape[0] == N for column in data):
+        raise ValueError('Data provided is of different length.')
+        
+    dataset = np.array([item for item in zip(*data)], dtype=dts)
+    return dataset, treatments, lca_funcs, distance_funcs, range_funcs
+
 
 def check_interval(input_list, bounds):
     for item in input_list:

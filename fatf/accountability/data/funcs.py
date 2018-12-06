@@ -104,11 +104,11 @@ def create_dataset():
                 'SA': [],
                 'QI': []
                 }
-    distance_funcs = []
-    lca_funcs = []
+    distance_funcs = {}
+    lca_funcs = {}
     data = []
     
-    range_funcs = []
+    range_funcs = {}
     
     for dictionary in list_of_dictionaries:
         current_dictionary_keys = dictionary.keys()
@@ -124,13 +124,13 @@ def create_dataset():
         data.append(field_col)
         
         dts.append((field_name, field_col.dtype))
-        distance_funcs.append((field_name, dictionary['distance_func']))
+        distance_funcs[field_name] = dictionary['distance_func']
         
         current_field_lca_func = dictionary['lca_func']
-        lca_funcs.append((field_name, current_field_lca_func))
+        lca_funcs[field_name] = current_field_lca_func
         
         current_field_range_func = dictionary['range_func']
-        range_funcs.append((field_name, current_field_range_func))
+        range_funcs[field_name] = current_field_range_func
 
         field_treatment = dictionary['treatment']
         

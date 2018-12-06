@@ -7,6 +7,7 @@ from __future__ import division
 import numpy as np
 import itertools
 import math
+from fatf.utils.validation import check_array_type
 
 def euc_dist(v0, v1):
     return np.linalg.norm(v0 - v1)**2
@@ -145,16 +146,24 @@ def treatment_mc(cm, idx):
 class FairnessChecks(object):
     def __init__(self, 
                  dataset, 
+                 targets,
+                 distance_funcs,
                  protected,
-                 features,
-                 toignore,
-                 target,
-                 distance_funcs):
+                 toignore = [],
+                 ):
         self.dataset = dataset.copy(order='K')
-        self.protected = protected
-        self.features = features
-        self.toignore = toignore
-        self.target_field = target
+        self.protected_field = protected
+        numerical_features, categorical_features = check_array_type(self.dataset)
+        self.numerical_features = numerical_features.tolist()
+        self.categorical_features = categorical_features.tolist()
+        self.features = self.numerical_features + self.categorical_features
+        if toignore:
+            for item in toignore:
+                if item in self.numerical_features:
+                    self.numerical_features.pop(item)
+                elif item in self.categorical_features:
+                    self.categorical_features.pop(item)
+        self.targets = targets
         self.distance_funcs = distance_funcs
         self.check_funcs()
         self.checks = {'accuracy': lambda x: sum(np.diag(x)) / np.sum(x),
@@ -199,22 +208,21 @@ class FairnessChecks(object):
         self.__distance_funcs = distance_funcs
         
     @property
-    def target_field(self):
-        return self.__target_field
+    def targets(self):
+        return self.__targets
     
-    @target_field.setter
-    def target_field(self, target_field):
-        self.__target_field = target_field
+    @targets.setter
+    def targets(self, targets):
+        self.__targets = targets
     
     def check_funcs(self):
         distance_funcs_keys = set(self.distance_funcs.keys())
-        for field_name, field_type in self.dataset.dtype.fields.items():
-            if (field_name not in distance_funcs_keys or 
+        for field_name in self.numerical_features:
+            if (field_name not in distance_funcs_keys or
                     self.distance_funcs[field_name] is None):
-                if field_type[0] == 'int32':
-                    self.distance_funcs[field_name] = lambda x, y: np.abs(x-y)
-                
-            if field_name in self.features:
+                self.distance_funcs[field_name] = lambda x, y: np.abs(x-y)
+        
+            if field_name in self.categorical_features:
                 if (field_name not in distance_funcs_keys or 
                         self.distance_funcs[field_name] is None):
                     raise ValueError('missing distance function for %s: ', field_name)
@@ -241,17 +249,16 @@ class FairnessChecks(object):
             NA
         """
         n_samples = self.dataset.shape[0]
-        protected = self.dataset[self.protected]
-        target = self.dataset[self.target_field]
+        protected = self.dataset[self.protected_field]
         distance_list = []
         for i in range(n_samples):
             v0 = self.dataset[i]
             protected0 = protected[i]
-            target0 = target[i]
+            target0 = self.targets[i]
             for j in range(i):
                 v1 = self.dataset[j]
                 protected1 = protected[j]
-                target1 = target[j]
+                target1 = self.targets[j]
                 dist = self._apply_distance_funcs(v0, v1)
     
                 same_protected = protected0 == protected1
@@ -352,7 +359,7 @@ class FairnessChecks(object):
         counts_dict = {}
         for combination in cross_product:
             mask = self._get_mask(self.dataset, self.features_to_check, combination, boundaries_for_numerical)
-            unique, counts = np.unique(self.dataset[mask][self.target_field], return_counts = True)
+            unique, counts = np.unique(self.targets[mask], return_counts = True)
             hist = dict(zip(unique, counts))
             if len(hist) != 0:
                 counts_dict[combination] =  hist
@@ -420,6 +427,7 @@ class FairnessChecks(object):
         return bins
     
     def check_systematic_error(self, 
+                               predictions,
                                requested_checks='all',
                                features_to_check=[], 
                                boundaries_for_numerical={}):
@@ -443,8 +451,9 @@ class FairnessChecks(object):
         Raises:
             NA
             """
+        self.predictions = predictions
         multiclass = False
-        classes_list = list(set(self.dataset['Target']))
+        classes_list = list(set(self.targets))
         if len(classes_list) > 2:
             multiclass = True
             
@@ -484,11 +493,9 @@ class FairnessChecks(object):
         return summary
     
     def _apply_combination_filter(self, prediction_field, combination, boundaries_for_numerical):
-        predictions = self.dataset[prediction_field]
-        targets = self.dataset[self.target_field]
         mask = self._get_mask(self.dataset, self.features_to_check, combination, boundaries_for_numerical)
-        filtered_predictions = predictions[mask]
-        filtered_targets = targets[mask]
+        filtered_predictions = self.predictions[mask]
+        filtered_targets = self.targets[mask]
         return filtered_predictions, filtered_targets
 
     def _get_confusion_matrix(self, target, prediction, labels):
@@ -517,7 +524,6 @@ class FairnessChecks(object):
         return cm #, normalize(cm, axis=1, norm='l1')
 
     def perform_checks_on_split(self, 
-                                protected, 
                                 requested_checks='all',
                                 get_summary=False,
                                 conditioned_field=None, 
@@ -547,7 +553,7 @@ class FairnessChecks(object):
             NA
             """
         multiclass = False
-        classes_list = list(set(self.dataset['Target']))
+        classes_list = list(set(self.targets))
         if len(classes_list) > 2:
             multiclass = True
             
@@ -556,15 +562,15 @@ class FairnessChecks(object):
                 requested_checks = self.checks_multiclass.keys()
             else:
                 requested_checks = self.checks.keys()
-                
-        targets = self.dataset['Target']
-        predictions = self.dataset['Prediction']
-        X = self._remove_field(self.dataset, 'Target')
-        X = self._remove_field(X, 'Prediction')
-
+        
+        dataset = self.dataset.copy(order='K')
+        targets = self.targets.copy(order='K')
+        predictions = self.predictions.copy(order='K')
+        
         if conditioned_field is not None:
-            X, targets, predictions = self._filter_dataset(X, targets, predictions, conditioned_field, condition)
-        split_datasets = self._split_dataset(X, targets, predictions, protected, [0, 1])
+            dataset, targets, predictions = \
+                    self._filter_dataset(conditioned_field, condition)
+        split_datasets = self._split_dataset(dataset, targets, predictions, self.protected_field, [0, 1])
         aggregated_checks = dict()
         for item in split_datasets:
             field_val = item[0]
@@ -589,7 +595,7 @@ class FairnessChecks(object):
         else:
             return self.aggregated_checks
 
-    def _filter_dataset(self, X, targets, predictions, feature, feature_value):
+    def _filter_dataset(self, feature, feature_value):
         """ Filters the data according to the feature provided.
     
         Description: Will filter the data.
@@ -606,13 +612,13 @@ class FairnessChecks(object):
         Raises:
             NA
             """
-        n = X.shape[0]
+        n = self.dataset.shape[0]
         mask = np.zeros(n, dtype=bool)
-        pos = np.where(X[feature] == feature_value)[0]
+        pos = np.where(self.dataset[feature] == feature_value)[0]
         mask[pos] = True
-        filtered_dataset = X[mask]
-        filtered_targets = targets[mask]
-        filtered_predictions = predictions[mask]
+        filtered_dataset = self.dataset[mask]
+        filtered_targets = self.targets[mask]
+        filtered_predictions = self.predictions[mask]
         return filtered_dataset, filtered_targets, filtered_predictions
 
     def _remove_field(self, dataset, field):
@@ -641,7 +647,7 @@ class FairnessChecks(object):
         for label in labels:
             splits.append((
                             label,
-                           self._filter_dataset(X, targets, predictions, feature, label)
+                           self._filter_dataset(feature, label)
                            ))
         return splits
     

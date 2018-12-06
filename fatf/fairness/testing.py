@@ -145,19 +145,25 @@ def get_boundaries(field, increments=5):
     min_val = np.min(field)
     return np.linspace(min_val, max_val+1, increments)
 
-#dataset, treatments, distance_funcs = create_dataset()
-#pairs_bias = check_systemic_bias(dataset, treatments, distance_funcs)
+dataset, treatments, distance_funcs = create_dataset()
+targets = dataset['Target']
+predictions = dataset['Prediction']
+dataset = remove_field(dataset, 'Target')
+dataset = remove_field(dataset, 'Prediction')
+
 
 features_to_check = ['Gender']
 
 mdl = FairnessChecks(dataset, 
-                     treatments['Protected'][0], 
-                     treatments['Feature'], 
-                     treatments['ToIgnore'], 
-                     treatments['Target'][0], 
-                     distance_funcs)
+                     targets,
+                     distance_funcs,
+                     protected = treatments['Protected'][0],
+                     toignore = treatments['ToIgnore']
+                     )
 
 c=mdl.check_systemic_bias()
+
+
 d=mdl.check_sampling_bias(features_to_check=features_to_check)
 
 
@@ -170,24 +176,23 @@ for key, value in boundaries.items():
 e=mdl.check_sampling_bias(features_to_check=features_to_check, 
                           return_weights = True, 
                           boundaries_for_numerical = boundaries)
-f=mdl.check_systematic_error(features_to_check=['Gender'],
+
+f=mdl.check_systematic_error(predictions = predictions,
+                             features_to_check=['Gender'],
                              requested_checks='all',
                              boundaries_for_numerical=boundaries)
 
-aggregated_checks = mdl.perform_checks_on_split(protected = 'Gender', 
+aggregated_checks = mdl.perform_checks_on_split(
                                                 get_summary = True,
                                                 requested_checks=['accuracy'],
                                                 conditioned_field='Zipcode',
                                                 condition='1100')
 
-aggregated_checks2 = mdl.perform_checks_on_split(protected = 'Gender', 
+aggregated_checks2 = mdl.perform_checks_on_split(
                                                 get_summary = True,
                                                 requested_checks=['accuracy'])
-targets = dataset['Target']
-X = remove_field(dataset, 'Target')
-X = remove_field(X, 'Prediction')
 
-X = remove_field(X, 'Zipcode')
+X = remove_field(dataset, 'Zipcode')
 
 model = LogisticRegression()
 
@@ -199,3 +204,4 @@ cm = mdl.counterfactual_fairness(model, 'Gender', X, [0, 1, 2])
 
 
 g = mdl.individual_fairness(model, newx)
+

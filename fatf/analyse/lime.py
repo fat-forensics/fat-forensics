@@ -11,9 +11,11 @@ import logging
 
 import numpy as np 
 
-from fatf.utils import validation as val
-from fatf.exceptions import *
-
+from fatf.utils.validation import (check_array_type, is_2d_array, 
+                                   check_model_functionality,
+                                   check_indices)
+from fatf.exceptions import (MissingImplementationException, CustomValueError,
+                            IncompatibleModelException, IncorrectShapeException)
 try:
     import lime
     from lime.lime_tabular import LimeTabularExplainer
@@ -29,7 +31,9 @@ except ImportError as e:
         'Matplotlib is not installed. You will not be able to use plot_lime function. To use' 
         'please install matplotlib by: pip install matplotlib')
 
+_NUMPY_NUMERICAL_KINDS_LIST = ['b', 'u', 'i', 'f', 'c']
 
+#TODO: purely numerical for stuctured arrrays (log warning cast into most common type)
 class Lime(object):
     """Wrapper for Lime tabular explainer
     
@@ -79,18 +83,20 @@ class Lime(object):
                 feature_names: List[str] = None,
                 num_samples: int = 5000,
                 num_features: int = 0, 
-                distance_metric: str = 'euclidean') -> None:
+                distance_metric: str = 'euclidean',
+                random_state: int = None) -> None:
         self._check_input(X, model, categorical_indices, class_names, feature_names)
-        self._X = X
+        self._X, self._categorical = self._process_X_indices(X, categorical_indices)
+        self._common_type = self._X.dtype
         self.model = model
-        self._num_classes = model.predict_proba(X[0:1, :]).shape[1]
+        self._num_classes = model.predict_proba(self._X[0:1, :]).shape[1]
         self.num_features = num_features
         self.num_samples = num_samples
         self.distance_metric = distance_metric
         self.class_names = class_names
-        self._categorical = categorical_indices
         self.feature_names = feature_names
         self._model = model
+        self.random_state = random_state
         if not self.num_features:
             self.num_features = self._X.shape[1]
         self.tabular_explainer = LimeTabularExplainer(
@@ -99,7 +105,8 @@ class Lime(object):
             categorical_features=self._categorical, 
             class_names=self.class_names, 
             discretize_continuous=True,
-            sample_around_instance=True)
+            sample_around_instance=True,
+            random_state = random_state)
 
     def __str__(self) -> str:
         return str(self.as_dict)
@@ -111,7 +118,7 @@ class Lime(object):
                            feature_names: List[str],
                            check_x: bool = True,
                            check_model: bool = True,
-                           check_indices: bool = True,
+                           check_categorical_indices: bool = True,
                            check_feature_names: bool = True,
                            check_class_names: bool = True):
         """Check input data and model is valid for LIME algorithm
@@ -136,8 +143,8 @@ class Lime(object):
             If true then X will be checked. Defaults to True
         check_model : boolean
             If true then model will be checked. Defaults to True
-        check_indices : boolean
-            If true then indices will be checked. Defaults to True
+        check_categorical_indices : boolean
+            If true then categorical_indices will be checked. Defaults to True
         check_feature_names : boolean
             If true then feature names will be checked. Defaults to True
         check_class_names : boolean
@@ -162,26 +169,27 @@ class Lime(object):
             has been trained with
         """
         if check_x:
-            numerical_ind, categorical_ind = val.check_array_type(X)
+            numerical_ind, categorical_ind = check_array_type(X)
             if not np.array_equal(categorical_ind, np.array([])):
                 raise MissingImplementationException(
-                    'LIME not implemented for structured numpy arrays. X must be np.ndarray '
-                    'of purely numerical values.')
-            if not val.is_2d_array(X):
+                    'LIME not implemented for non-numerical arrays.')
+            if not is_2d_array(X):
                 raise IncorrectShapeException('X must be 2-D array.')
         if check_model:
-            if not val.check_model_functionality(model, True):
+            if not check_model_functionality(model, True):
                 raise IncompatibleModelException(
                     'LIME requires model object to have method predict_proba() in order to '
                     'work')
-        if check_indices:
+        if check_categorical_indices:
             if not np.array_equal(categorical_indices, np.array([])):
-                if not val.check_indices(X, categorical_indices):
+                if not check_indices(X, categorical_indices):
                     raise CustomValueError(
                         'Indices given in categorical_indices not valid for input array X')
+        # need numerical version of X for use in model.predict_proba
+        X, _ = self._process_X_indices(X, categorical_indices)
         if check_feature_names:
             if feature_names is not None:
-                if len(feature_names) != X.shape[1]:
+                if len(feature_names) != numerical_ind.shape[0]:
                     raise CustomValueError(
                         'Number of feature names given does not correspond to input array')
         if check_class_names:
@@ -190,33 +198,52 @@ class Lime(object):
                     raise CustomValueError(
                         'Number of class names given does not correspond to model')
 
-    @property
-    def categorical_indices(self) -> List[int]:
-        return self._categorical
+    def _process_X_indices(self, X:np.array, categorical_indices: np.array) -> (np.ndarray, np.array):
+        """Function that processes input array X into ndarray if user gives
+        a structured array and categorical_indices into an array of integers
 
-    @categorical_indices.setter
-    def categorical_indices(self, categorical: np.array) -> None:
-        """
-        Setter for categorical variable so we can reinitialise self.tabular_explainer  
-        """
-        self._check_input(self._X, self.model, categorical, None, None,
-                          check_x=False, check_model=False, check_feature_names=False,
-                          check_class_names=False)
-        self._categorical = categorical
-        self.tabular_explainer = LimeTabularExplainer(
-            self._X, 
-            feature_names=self.feature_names, 
-            categorical_features=self._categorical, 
-            class_names=self.class_names, 
-            discretize_continuous=True,
-            sample_around_instance=True)
+        Args
+        ----
+        X: np.array
+            The data to be used
 
-    def explain_instance(self, x: np.ndarray, labels: np.array = np.array([])) -> Dict[str, Tuple[str, float]]:
+        categorical_indices: np.array
+            Indices specified by user to be categorical variables
+
+        Returns
+        ----
+        X_ndarray: np.ndarray
+            X parsed as ndarray to all one numerical value
+        categorical_indicies_numerical: np.ndarray
+            Indices specified by user to be categorical converted into numerical
+            indices
+        """
+
+        if len(X.dtype) != 0:
+            common_type = bool
+            type_index = 0
+            for name in X.dtype.names:
+                i = _NUMPY_NUMERICAL_KINDS_LIST.index(X.dtype[name].kind)
+                if i > type_index:
+                    type_index = i
+                    common_type = X.dtype[name]
+            new_dtypes = [(name, common_type) for name in X.dtype.names]
+            X_ndarray = X.copy().astype(new_dtypes).view(common_type).reshape(X.shape + (-1,))
+            logging.warning('Structured array was converted to ndarray for use in LIME algorithm. '
+                            'The values were convered to type %s.' %common_type)
+            categorical_indices_numerical = np.array([X.dtype.names.index(a) 
+                                                      for a in list(categorical_indices)])
+        else:
+            X_ndarray = X
+            categorical_indices_numerical = categorical_indices
+        return X_ndarray, categorical_indices_numerical
+
+    def explain_instance(self, instance: np.array, labels: np.array = np.array([])) -> Dict[str, Tuple[str, float]]:
         """Uses LIME tabular_explainer to explain instance
 
         Args
         ----
-        x: np.array
+        instance: np.array
             Instance to explain
         labels: np.array 
             of int labels to explain decisions for. If empty, then all labels
@@ -233,6 +260,11 @@ class Lime(object):
             Dictionary where key is class_name corresponding to labels and values are
             (string, float) tuples that are the feature and importance.
         """
+        if len(instance.dtype) != 0:
+            new_dtypes = [(name, self._common_type) for name in instance.dtype.names]
+            x = instance.copy().astype(new_dtypes).view(self._common_type)
+        else:
+            x = instance
         if not np.array_equal(labels, np.array([])):
             if np.any(labels > self._num_classes):
                 raise CustomValueError('Class %d not in dataset specified'%l)
@@ -256,17 +288,22 @@ class Lime(object):
             'show_notebook function not yet implemented')
         #self._exp.show_in_notebook(predict_proba=True)
 
-# TODO: how to do type check with plt = None when matplotlib is not installed
 def plot_lime(lime_explained: Dict[str, List[tuple]]) -> plt.Figure:
-    '''
-    Figures to display explainer
+    """Figures to display explainer
 
-    Args:
-        lime_explained: Dictionary returned from Lime.explain_instance. 
+    Args
+    ----
+    lime_explained: Dictionary returned from Lime.explain_instance. 
 
-    Returns: Figure from matplotlib where it is split into as many subplots as there are 
-        possible labels in Dataset.
-    '''
+    Returns
+    ----
+    Figure from matplotlib where it is split into as many subplots as there are 
+    possible labels in Dataset.
+
+    Raises
+    ----
+    ImportError: Matplotlib not installed
+    """
     if not plt:
         raise ImportError('Matplotlib is not installed. You will not be able to use plot_lime ' 
                           'function. To use please install matplotlib by: pip install ' 

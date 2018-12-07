@@ -42,10 +42,17 @@ class Explainer(object):
         else:
             set0 = set(feature_ranges.keys())
             set1 = set(self.dataset.dtype.names)
+            diff = list(set1.difference(set0))
+            for ftr in set1:
+                if (ftr not in self.categorical_features and
+                    ftr not in diff ):
+                    if len(feature_ranges[ftr].keys()) != 2:
+                        if ftr not in diff:
+                            diff.append(ftr)
             if not np.all(set0 == set1):
                 self.feature_ranges = feature_ranges
-                self.get_feature_ranges(tocomplete = list(set1.difference(set0)))
-                
+                self.get_feature_ranges(tocomplete = diff)
+            
         self.max_comb = max_comb
         if not stepsizes:
             self.stepsizes = {}
@@ -87,8 +94,18 @@ class Explainer(object):
             features_to_complete = tocomplete
         for field_name in features_to_complete:
             if field_name not in self.categorical_features:
-                self.feature_ranges[field_name] = (min(self.dataset[field_name]),
-                                              max(self.dataset[field_name]))
+                try:
+                    min_val = self.feature_ranges[field_name]['min']
+                except:
+                    min_val = min(self.dataset[field_name])
+                
+                try:
+                    max_val = self.feature_ranges[field_name]['max']
+                except:
+                    max_val = max(self.dataset[field_name])
+                    
+                self.feature_ranges[field_name] = {'min':min_val, 
+                                                   'max': max_val}
             else:
                 self.feature_ranges[field_name] = np.unique(self.dataset[field_name])
     
@@ -100,11 +117,11 @@ class Explainer(object):
         list_of_values = []
         for ftr in ftr_combination:
             if ftr not in self.categorical_features:
-                s0 = np.arange(self.feature_ranges[ftr][0], 
+                s0 = np.arange(self.feature_ranges[ftr]['min'], 
                                self.instance[ftr]-self.stepsizes[ftr], 
                                self.stepsizes[ftr])
                 s1 = np.arange(self.instance[ftr] + self.stepsizes[ftr], 
-                               self.feature_ranges[ftr][1], 
+                               self.feature_ranges[ftr]['max'], 
                                self.stepsizes[ftr])
                 combined = combine_lists(s0, s1)
                 list_of_values.append(combined)
@@ -142,6 +159,7 @@ class Explainer(object):
                 scores = []
                 ftr_combination = [self.ftrs[item] for item in ftr_combination_indices]
                 value_combinations = self.get_value_combinations(ftr_combination)
+                
                 for value_combination in value_combinations:
                     test_instance = self.instance.copy(order='K')
                     self.modify_instance(test_instance, 
@@ -150,8 +168,9 @@ class Explainer(object):
                     pred = self.model.predict(np.array(test_instance.tolist(), dtype=float).reshape(1, -1))
                     if pred[0] == self.target_class:
                         scores.append((test_instance, self.dist(self.instance, test_instance)))
-                        if self.monotone:
-                            break
+                        #TODO: work on this
+                        #if self.monotone:
+                         #   break
                 try:
                     best = np.argmin([item[1] for item in scores])
                     all_scores.append(scores[best])

@@ -43,20 +43,25 @@ model.fit(newx, targets)
 categorical_features = ['Gender']
 
 del distance_funcs['Target']
+
+
+
+#cost_calc = CostObject(distance_funcs)
+dataset.astype(dtype=[('Age', '<f4'), ('Weight', '<f4'), ('Gender', '<f4')])
 x0 = dataset[0]
 print(x0)
 
 feature_ranges = {
-                    'Age': (x0['Age']-20, x0['Age'] + 10),
+                    'Age': {'max': x0['Age']
+                            },
                   'Gender': np.array([x0['Gender']])
                   }
 
 stepsizes = {
-            'Age': 0.25,
-            #'Weight': 0.50
+            'Age': 1,
+            'Weight': 1
             }
 
-#cost_calc = CostObject(distance_funcs)
 
 mdl = Explainer(model, 
                 categorical_features, 

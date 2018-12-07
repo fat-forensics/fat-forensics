@@ -103,5 +103,6 @@ def describe_dataset(dataset, todescribe='all', condition=None):
                 describe_dict[field_name] = describe_categorical(dataset[field_name])
         return describe_dict
 
+
 condition = np.array(['m', 'm', 'm', 'f', 'f', 'f'])
-a=describe_dataset(testdata2, ['diagnosis'])
+a=describe_dataset(testdata2, todescribe='all')

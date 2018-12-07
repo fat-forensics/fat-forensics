@@ -80,7 +80,7 @@ def create_dataset():
 
 def check_interval(input_list, bounds):
     for item in input_list:
-        if (item < bounds[0] or item > bounds[1]):
+        if (item < bounds[0] or item > bounds[1] + 1):
             return False
     return True
 
@@ -124,7 +124,7 @@ def get_depthoftree_dob(attribute):
     
     days_bounds = [(1, 10),
                    (11, 20),
-                   (21, 31)]
+                   (21, 32)]
     
     months_bounds = [(1, 3),
                     (4, 6),
@@ -165,7 +165,7 @@ def get_lca_dates(dates_list):
     
     days_bounds = [(1, 10),
                    (11, 20),
-                   (21, 31)]
+                   (21, 32)]
     
     months_bounds = [(1, 3),
                     (4, 6),
@@ -191,8 +191,9 @@ def get_lca_dates(dates_list):
                     if check_interval(days, bounds):
                         day = str(bounds[0]) + '-' + str(bounds[1])
                         return generate_date(years[0], months[0], day)
+                    return generate_date(years[0], months[0])
             else:
-                return generate_date(years[0], months[0], days[0])
+                return generate_date(years[0], months[0])
 
 def get_depthoftree_zipcode(attribute):
     p = len(attribute[0])
@@ -289,3 +290,15 @@ def get_data():
     
     return [name_dict, age_dict, weight_dict, disease_dict, dob_dict, zipcode_dict, gender_dict, email_dict]
 
+from new import TCloseness, LDiversity, KAnonymity  
+dataset, treatments, lca_funcs, distance_funcs, range_funcs = create_dataset()  
+#treatments['QI'].pop()
+#treatments['SA'].append('Gender')  
+mdl = TCloseness(dataset, treatments['I'], treatments['QI'], treatments['SA'], lca_funcs, range_funcs, 1) 
+d=mdl.apply_tcloseness(suppress=True)
+
+mdl = LDiversity(dataset, treatments['I'], treatments['QI'], treatments['SA'], lca_funcs, range_funcs, 2)
+a=mdl.apply_ldiversity(suppress=True)
+
+mdl = KAnonymity(dataset, treatments['I'], treatments['QI'], treatments['SA'], lca_funcs, range_funcs, 2)
+c=mdl.apply_kanonymity(suppress=True)

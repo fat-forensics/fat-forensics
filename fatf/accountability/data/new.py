@@ -7,8 +7,7 @@ Created on Tue Dec  4 09:06:01 2018
 import numpy as np
 from numpy.lib import recfunctions as rfn
 import math
-from testing import create_dataset
-from fatf.utils.validation import is_2d_array
+from fatf.utils.validation import check_array_type
 
 def lca_realline(X, rounding=5):
     X = list(map(int, X))
@@ -57,14 +56,7 @@ def get_emd_forlists(list1, list2):
     return get_emd_fordistrs(count1, count2)
 
 
-def change_numerical_to_str(data):
-    dt = []
-    for attr, attr_type in data.dtype.fields.items():
-        if attr_type[0] == 'int32':
-            dt.append((attr, np.dtype('<U6')))
-        else:
-            dt.append((attr, attr_type[0]))  
-    return data.astype(dt) 
+
 
 class BaseAnonymiser(object):
     def __init__(self, 
@@ -74,6 +66,12 @@ class BaseAnonymiser(object):
                  sensitive_attributes,
                  lca_funcs,
                  range_funcs):
+        
+        numerical_features, categorical_features = check_array_type(dataset)
+        self.numerucal_features = numerical_features.tolist()
+        self.categorical_features = categorical_features.tolist()
+        self.features = self.numerucal_features + self.categorical_features
+        
         self._dataset = dataset.copy(order='K')
         self._quasi_identifiers = quasi_identifiers
         self._attributes_to_suppress = identifiers
@@ -84,11 +82,11 @@ class BaseAnonymiser(object):
         self.n_samples = self.dataset.shape[0]
         self.check_input()
         
-        self.SA = self.dataset[self.sensitive_attributes[0]] 
-
         #TODO: potential issue with concat
         if len(self.sensitive_attributes) > 1:
             self.concatenate_sensitive_attributes()
+
+        self.SA = self.dataset[self.sensitive_attributes[0]] 
 
     @property
     def cluster_assigments(self):
@@ -123,7 +121,6 @@ class BaseAnonymiser(object):
     @sensitive_attributes.setter
     def sensitive_attributes(self, sensitive_attributes):
         self._sensitive_attributes = sensitive_attributes
-        self.check_input()
         self.SA = self.dataset[self.sensitive_attributes[0]] 
         if len(self.sensitive_attributes) > 1:
             self.concatenate_sensitive_attributes()
@@ -131,15 +128,15 @@ class BaseAnonymiser(object):
     def check_funcs(self):
         lca_keys = set(self.lca_funcs.keys())
         range_keys = set(self.range_funcs.keys())
-        for field_name, field_type in self.dataset.dtype.fields.items():
+        for field_name in self.features:
             if (field_name not in lca_keys or 
                     self.lca_funcs[field_name] is None):
-                if field_type[0] == 'int32':
+                if field_name in self.numerucal_features:
                     self.lca_funcs[field_name] = lca_realline
                 
             if (field_name not in range_keys or 
                     self.range_funcs[field_name] is None):
-                if field_type[0] == 'int32':
+                if field_name in self.numerucal_features:
                     self.range_funcs[field_name] = range_func_realline
                     
             if field_name in self.quasi_identifiers:
@@ -150,7 +147,14 @@ class BaseAnonymiser(object):
                 if (field_name not in range_keys or 
                         self.range_funcs[field_name] is None):
                     raise ValueError('missing range function for %s: ', field_name)
-                
+    
+    def change_numerical_to_str(self, data):
+        for attr in self.numerucal_features:
+            t = data[attr]
+            data = rfn.drop_fields(data, attr)
+            data = rfn.append_fields(data, attr, t, dtypes='<U9', usemask=False)
+        return data
+            
     def initialise_clustering(self):
         cluster_assignments = np.array(-np.ones(self.n_samples), dtype='int32')
         idx = np.random.randint(self.n_samples, size=1)    
@@ -243,7 +247,7 @@ class BaseAnonymiser(object):
                 filter_list.append(False)
         return dataset[filter_list]
     
-    def concatenate_sensitive_attributes(self, newfield_name = None, newfield_type = '<U30'):
+    def concatenate_sensitive_attributes(self, newfield_name = None, newfield_type = '<U16'):
         """ Combines sensitive attributes in the case of them being more than one.
         
         Description: Cross product between the sensitive attributes.
@@ -268,7 +272,6 @@ class BaseAnonymiser(object):
         else:
             if type(newfield_name) != str:
                 newfield_name = str(newfield_name)
-       
         self._dataset = rfn.append_fields(self.dataset, newfield_name, newcolumn, dtypes=newfield_type).data
         self._dataset = rfn.drop_fields(self.dataset, self.sensitive_attributes)
         self.sensitive_attributes = [newfield_name]
@@ -359,7 +362,7 @@ class BaseAnonymiser(object):
         """
         ###
         #TODO: alternative is to have two columns for min and max.
-        data = change_numerical_to_str(self.dataset)
+        data = self.change_numerical_to_str(self.dataset)
         ###
         for cluster in set(self.cluster_assignments):
             filtered_data = data[self.cluster_assignments == cluster]
@@ -370,8 +373,8 @@ class BaseAnonymiser(object):
     
         #as an option for the future, to append an extra column holding
         #the cluster assignments
-        #newdata = rfn.append_fields(data, 'cluster', self.cluster_assignments).data
-        return data
+        newdata = rfn.append_fields(data, 'cluster', self.cluster_assignments).data
+        return newdata
     
     def get_lowest_common_ancestor(self, data):
         """ Computes the lowest common ancestor (LCA) for the given dataset.
@@ -488,7 +491,7 @@ class BaseAnonymiser(object):
         if not self.quasi_identifiers:
             raise ValueError('No Quasi-Identifiers Provided')
 
-        attributes = self.dataset.dtype.fields.keys()
+        attributes = self.features
         for attr in self.sensitive_attributes:
             if attr not in attributes:
                 raise NameError(str(attr) + ' in Sensitive Attributes, not found in the dataset')
@@ -899,18 +902,5 @@ class TCloseness(BaseAnonymiser):
     
         return data
     
-    
-dataset, treatments, lca_funcs, distance_funcs, range_funcs = create_dataset()  
-#treatments['QI'].pop()
-#treatments['SA'].append('Gender')  
-mdl = TCloseness(dataset, treatments['I'], treatments['QI'], treatments['SA'], lca_funcs, range_funcs, 1) 
-# =============================================================================
-# d=mdl.apply_tcloseness(suppress=True)
-# 
-# mdl = LDiversity(dataset, treatments['I'], treatments['QI'], treatments['SA'], lca_funcs, range_funcs, 2)
-# a=mdl.apply_ldiversity(suppress=True)
-# 
-# mdl = KAnonymity(dataset, treatments['I'], treatments['QI'], treatments['SA'], lca_funcs, range_funcs, 2)
-# c=mdl.apply_kanonymity(suppress=True)
-# =============================================================================
+
     

@@ -152,6 +152,11 @@ class FairnessChecks(object):
                  toignore = [],
                  ):
         self.dataset = dataset.copy(order='K')
+        self.structured_bool = True
+        if len(self.dataset.dtype) == 0:
+            self.structured_bool = False
+
+            
         self.protected_field = protected
         numerical_features, categorical_features = check_array_type(self.dataset)
         self.numerical_features = numerical_features.tolist()
@@ -227,7 +232,7 @@ class FairnessChecks(object):
                         self.distance_funcs[field_name] is None):
                     raise ValueError('missing distance function for %s: ', field_name)
 
-    def check_systemic_bias(self, threshold = 0):
+    def check_systemic_bias(self, threshold = 0.1):
         """ Checks for systemic bias in the dataset.
     
         Description: Will check if similar instances, that differ only on the
@@ -249,7 +254,10 @@ class FairnessChecks(object):
             NA
         """
         n_samples = self.dataset.shape[0]
-        protected = self.dataset[self.protected_field]
+        if self.structured_bool:
+            protected = self.dataset[self.protected_field]
+        else:
+            protected = self.dataset[:, self.protected_field].astype(int)
         distance_list = []
         for i in range(n_samples):
             v0 = self.dataset[i]
@@ -259,7 +267,7 @@ class FairnessChecks(object):
                 v1 = self.dataset[j]
                 protected1 = protected[j]
                 target1 = self.targets[j]
-                dist = self._apply_distance_funcs(v0, v1)
+                dist = self._apply_distance_funcs(v0, v1, toignore=[self.protected_field])
     
                 same_protected = protected0 == protected1
                 same_target = target0 == target1
@@ -269,14 +277,15 @@ class FairnessChecks(object):
                     distance_list.append((dist, (i,j)))
         return distance_list
 
-    def _apply_distance_funcs(self, v0, v1):
+    def _apply_distance_funcs(self, v0, v1, toignore = []):
         """
         Computes the distance between two instances, based on the distance functions
         provided by the user.
         """
         dist = 0
         for feature in self.features:
-            dist += self.distance_funcs[feature](v0[feature], v1[feature])
+            if feature not in toignore:
+                dist += self.distance_funcs[feature](v0[feature], v1[feature])
         return dist
 
     def check_sampling_bias(self, 
@@ -312,7 +321,6 @@ class FairnessChecks(object):
         counts = {}
         cross_product = self._get_cross_product(boundaries_for_numerical)
         counts = self._get_counts(cross_product, boundaries_for_numerical)
-    
         if not return_weights:
             return counts
         else:
@@ -377,7 +385,10 @@ class FairnessChecks(object):
                except:
                    raise ValueError("No bins provided for numerical field")
             else:
-                features_dict[feature] = set(self.dataset[feature])
+                if self.structured_bool:
+                    features_dict[feature] = set(self.dataset[feature])
+                else:
+                    features_dict[feature] = set(self.dataset[:, feature])
         cross_product = list(itertools.product(*features_dict.values()))
         return cross_product
     
@@ -403,7 +414,10 @@ class FairnessChecks(object):
         mask = np.array(np.zeros(n_samples), dtype=bool)
         list_of_sets = []
         for idx, feature in enumerate(features_to_check):
-            field = dataset[feature]
+            if self.structured_bool:
+                field = dataset[feature]
+            else:
+                field = dataset[:, feature]
             if feature in boundaries_for_numerical.keys():
                 pos = np.intersect1d(np.where(field >= combination[idx][0])[0],
                                      np.where(field < combination[idx][1])[0])
@@ -570,12 +584,26 @@ class FairnessChecks(object):
         if conditioned_field is not None:
             dataset, targets, predictions = \
                     self._filter_dataset(conditioned_field, condition)
+        
         split_datasets = self._split_dataset(dataset, targets, predictions, self.protected_field, [0, 1])
+# =============================================================================
+#         print('\n')
+#         print(split_datasets[0])
+#         print('\n')
+#         print(split_datasets[1])
+# =============================================================================
         aggregated_checks = dict()
         for item in split_datasets:
             field_val = item[0]
             X = item[1][0]; targets = item[1][1]; predictions = item[1][2]
             conf_mat = self._get_confusion_matrix(targets, predictions, classes_list)
+# =============================================================================
+#             print('\n')
+#             print(targets)
+#             print(predictions)
+#             print(classes_list)
+#             print(conf_mat)
+# =============================================================================
             checks_dict = {}
   
             if multiclass:
@@ -614,7 +642,10 @@ class FairnessChecks(object):
             """
         n = self.dataset.shape[0]
         mask = np.zeros(n, dtype=bool)
-        pos = np.where(self.dataset[feature] == feature_value)[0]
+        if self.structured_bool:
+            pos = np.where(self.dataset[feature] == feature_value)[0]
+        else:
+            pos = np.where(self.dataset[:, feature] == feature_value)[0]
         mask[pos] = True
         filtered_dataset = self.dataset[mask]
         filtered_targets = self.targets[mask]
@@ -677,12 +708,15 @@ class FairnessChecks(object):
                 summary[key] = 'Equal'
             else:
                 summary[key] = 'Not Equal'
-        n_tpr = negatives_checks['true_positive_rate']
-        p_tpr = positives_checks['true_positive_rate']
-        if n_tpr == 0:
-            summary['true_positive_rate_ratio'] = p_tpr
-        else:
-            summary['true_positive_rate_ratio'] = p_tpr / n_tpr
+        try:           
+            n_tpr = negatives_checks['true_positive_rate']
+            p_tpr = positives_checks['true_positive_rate']
+            if n_tpr == 0:
+                summary['true_positive_rate_ratio'] = p_tpr
+            else:
+                summary['true_positive_rate_ratio'] = p_tpr / n_tpr
+        except:
+            pass
     
         return summary
     

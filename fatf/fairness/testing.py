@@ -18,15 +18,17 @@ def remove_field(dataset, field):
     return dataset[field_names]
     
 testdata3 = np.array([
-        ('Heidi Mitchell', 'uboyd@hotmail.com', 74, 52, 0, '0011', 1, '03/06/2018', 2),
+        ('Heidi Mitchell', 'uboyd@hotmail.com', 74, 52, 0, '0011', 1, '03/06/2018', 0),
        ('Tina Burns', 'stevenwheeler@williams.bi',  3, 86, 1, '0011', 0, '26/09/2017', 1),
-       ('Justin Brown', 'velasquezjake@gmail.com', 3, 86, 0, '0011', 2, '31/12/2015', 0),
+       ('Justin Brown', 'velasquezjake@gmail.com', 3, 86, 0, '0011', 1, '31/12/2015', 0),
        ('Brent Parker', 'kennethsingh@strong-foley', 70, 57, 0, '0011', 1, '02/10/2011', 0),
-       ('Bryan Norton', 'erica36@hotmail.com', 48, 57, 0, '1100', 0, '09/09/2012', 2),
-       ('Ms. Erin Craig', 'ritterluke@gmail.com', 30, 98, 0, '1100', 2, '04/11/2006', 1),
+       ('Bryan Norton', 'erica36@hotmail.com', 48, 57, 0, '1100', 0, '09/09/2012', 1),
+       ('Ms. Erin Craig', 'ritterluke@gmail.com', 30, 98, 0, '1100', 0, '04/11/2006', 1),
        ('Gerald Park', 'larrylee@hayes-brown.net', 41, 73, 1, '1100', 0, '15/12/2015', 0),
        ],
-      dtype=[('name', '<U16'), ('email', '<U25'), ('age', '<i4'), ('weight', '<i4'), ('gender', '<i4'), ('zipcode', '<U6'), ('target', '<i4'), ('dob', '<U10'), ('prediction', '<i4')])
+      dtype=[('name', '<U16'), ('email', '<U25'), ('age', '<i4'), 
+             ('weight', '<i4'), ('gender', '<i4'), ('zipcode', '<U6'), 
+             ('target', '<i4'), ('dob', '<U10'), ('prediction', '<i4')])
 
 def create_dataset():
     list_of_dictionaries = get_data()
@@ -151,7 +153,6 @@ predictions = dataset['Prediction']
 dataset = remove_field(dataset, 'Target')
 dataset = remove_field(dataset, 'Prediction')
 
-
 features_to_check = ['Gender']
 
 mdl = FairnessChecks(dataset, 
@@ -182,11 +183,13 @@ f=mdl.check_systematic_error(predictions = predictions,
                              requested_checks='all',
                              boundaries_for_numerical=boundaries)
 
+
+print('-----')
 aggregated_checks = mdl.perform_checks_on_split(
                                                 get_summary = True,
                                                 requested_checks=['accuracy'],
                                                 conditioned_field='Zipcode',
-                                                condition='1100')
+                                                condition='0011')
 
 aggregated_checks2 = mdl.perform_checks_on_split(
                                                 get_summary = True,
@@ -205,3 +208,66 @@ cm = mdl.counterfactual_fairness(model, 'Gender', X, [0, 1, 2])
 
 g = mdl.individual_fairness(model, newx)
 
+
+#####################################
+######################################
+####################################
+
+dataset_ = dataset.copy(order = 'K')
+dataset_['Zipcode'][:4] = 0
+dataset_['Zipcode'][4:] = 1
+features_to_check = [3]
+dataset_=dataset_.copy(order='K').astype(dtype=[(name, '<f4') for name in dataset.dtype.names]).view('<f4').reshape(dataset.shape + (-1,))
+
+
+mdl = FairnessChecks(dataset_, 
+                     targets,
+                     distance_funcs,
+                     protected = 3,#treatments['Protected'][0],
+                     toignore = treatments['ToIgnore']
+                     )
+
+c2=mdl.check_systemic_bias()
+
+
+d2=mdl.check_sampling_bias(features_to_check=features_to_check)
+
+
+features_to_check = [0, 3]
+boundaries = {0: []}
+for key, value in boundaries.items():
+    if len(value) == 0:
+        boundaries[key] = get_boundaries(dataset_[:, key])
+        
+e2=mdl.check_sampling_bias(features_to_check=features_to_check, 
+                          return_weights = True, 
+                          boundaries_for_numerical = boundaries)
+
+f2=mdl.check_systematic_error(predictions = predictions,
+                             features_to_check=[3],
+                             requested_checks='all',
+                             boundaries_for_numerical=boundaries)
+
+
+aggregated_checks2b = mdl.perform_checks_on_split(
+                                                get_summary = True,
+                                                requested_checks=['accuracy'])
+
+
+aggregated_checksb = mdl.perform_checks_on_split(
+                                                get_summary = True,
+                                                requested_checks=['accuracy'],
+                                                conditioned_field=2,
+                                                condition=0)
+
+X = dataset_
+model = LogisticRegression()
+
+newx = np.array(X.tolist())
+model.fit(newx, targets)
+
+
+cm = mdl.counterfactual_fairness(model, 3, X, [0, 1])
+
+
+g = mdl.individual_fairness(model, newx)

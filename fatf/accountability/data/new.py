@@ -64,8 +64,8 @@ class BaseAnonymiser(object):
                  identifiers,
                  quasi_identifiers,
                  sensitive_attributes,
-                 lca_funcs,
-                 range_funcs):
+                 lca_funcs = {},
+                 range_funcs = {}):
         
         numerical_features, categorical_features = check_array_type(dataset)
         self.numerucal_features = numerical_features.tolist()
@@ -126,18 +126,25 @@ class BaseAnonymiser(object):
             self.concatenate_sensitive_attributes()
     
     def check_funcs(self):
+        if not self.lca_funcs:
+            self.lca_funcs = dict(zip(self.features, [None]*len(self.features)))
         lca_keys = set(self.lca_funcs.keys())
+        if not self.range_funcs:   
+            self.range_funcs = dict(zip(self.features, [None]*len(self.features)))
+            
         range_keys = set(self.range_funcs.keys())
         for field_name in self.features:
             if (field_name not in lca_keys or 
                     self.lca_funcs[field_name] is None):
                 if field_name in self.numerucal_features:
                     self.lca_funcs[field_name] = lca_realline
-                
+                    lca_keys.add(field_name)
+                    
             if (field_name not in range_keys or 
                     self.range_funcs[field_name] is None):
                 if field_name in self.numerucal_features:
                     self.range_funcs[field_name] = range_func_realline
+                    range_keys.add(field_name)
                     
             if field_name in self.quasi_identifiers:
                 if (field_name not in lca_keys or 
@@ -654,8 +661,8 @@ class TCloseness(BaseAnonymiser):
              identifiers,
              quasi_identifiers,
              sensitive_attributes,
-             lca_funcs,
-             range_funcs,
+             lca_funcs = {},
+             range_funcs = {},
              t=None):
         super().__init__(
                            dataset,

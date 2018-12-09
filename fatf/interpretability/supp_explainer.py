@@ -1,7 +1,7 @@
 import numpy as np
 
 testdata3 = np.array([
-        ('Heidi Mitchell', 'uboyd@hotmail.com', 74, 52, 0, '0011', 1, '03/06/2018', 1),
+        ('Heidi Mitchell', 'uboyd@hotmail.com', 35, 52, 0, '0011', 1, '03/06/2018', 1),
        ('Tina Burns', 'stevenwheeler@williams.bi',  3, 86, 1, '0011', 0, '26/09/2017', 1),
        ('Justin Brown', 'velasquezjake@gmail.com', 3, 86, 2, '0011', 1, '31/12/2015', 0),
        ('Brent Parker', 'kennethsingh@strong-foley', 70, 57, 0, '0011', 1, '02/10/2011', 0),
@@ -114,7 +114,7 @@ def get_data():
     gender_dict = get_dictionary(field_name = 'Gender', 
                               field_data = testdata3['gender'], 
                               field_treatment = 'Protected', 
-                              field_distance_func = lambda x, y: x == y
+                              field_distance_func = lambda x, y: int(x != y)
                               )
 
     prediction_dict = get_dictionary(field_name = 'Prediction', 

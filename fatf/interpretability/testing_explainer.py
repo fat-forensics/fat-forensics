@@ -50,7 +50,7 @@ del distance_funcs['Target']
 dataset.astype(dtype=[('Age', '<f4'), ('Weight', '<f4'), ('Gender', '<f4')])
 x0 = dataset[0]
 print(x0)
-
+pred = model.predict(np.array(x0.tolist(), dtype=float).reshape(1, -1))
 feature_ranges = {
                     'Age': {'max': x0['Age']
                             },
@@ -58,8 +58,8 @@ feature_ranges = {
                   }
 
 stepsizes = {
-            'Age': 1,
-            'Weight': 1
+            'Age': 0.10,
+            'Weight': 0.10
             }
 
 
@@ -74,8 +74,11 @@ mdl = Explainer(model,
                 )
 
 target_class = 0
+import time
+start = time.time()
 c=mdl.generate_counterfactual(x0,
                             target_class
                             )
-
+end = time.time()
+print(end - start)
 

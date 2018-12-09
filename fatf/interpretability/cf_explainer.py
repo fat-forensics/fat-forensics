@@ -1,34 +1,53 @@
-# -*- coding: utf-8 -*-
 """
-Created on Wed Dec  5 11:48:46 2018
+The :mod:`fatf.path.to.the.file.in.the.module` module implements a counterfactual explainer.
+"""
 
-@author: rp13102
-"""
+# Author: Rafael Poyiadzi <rp13102@bristol.ac.uk>
+# License: BSD 3 clause
 import numpy as np
 import itertools
 
-def combine_lists(list1, list2):
-    lists = [list1, list2]
-    list_lengths = [len(list1), len(list2)]
-    sorted_lengths = np.argsort(np.array(list_lengths))
-    min_val = list_lengths[sorted_lengths[0]]
-    longest_list = lists[sorted_lengths[1]]
+def combine_arrays(array1: np.array, array2: np.array) -> list:
+    """Will combine two numpy arrays in an incremental manner.
+
+    Form a list out of the elements of two numpy arrays. For example:
+    array1 = np.array([1,2,3]) and array2 = np.array([4,5,6,7,8]), the output
+    will be [1,4,2,5,3,6,7,8].
+
+    Parameters
+    ----------
+    array1 : numpy array.
+    array2 : numpy array
+
+    Raises
+    ------
+    NA
+
+    Returns
+    -------
+    List with ordered merge of the two arrays.
+    """
+    arrays = [array1, array2]
+    array_lengths = [len(array1), len(array2)]
+    sorted_lengths = np.argsort(np.array(array_lengths))
+    min_val = array_lengths[sorted_lengths[0]]
+    longest_list = arrays[sorted_lengths[1]]
     newlist = []
     for i in range(min_val):
-        newlist.append(lists[0][i])
-        newlist.append(lists[1][i])
+        newlist.append(arrays[0][i])
+        newlist.append(arrays[1][i])
         
     return newlist + longest_list[min_val:].tolist()
 
 class Explainer(object):
     def __init__(self, 
                  model,
-                 categorical_features,
-                 dataset,
+                 categorical_features: list,
+                 dataset: np.ndarray,
                  monotone = False,
                  stepsizes = None,
                  max_comb = 2,
-                 feature_ranges={},
+                 feature_ranges=None,
                  dist_funcs=None):
         
         self.model = model
@@ -118,12 +137,13 @@ class Explainer(object):
         for ftr in ftr_combination:
             if ftr not in self.categorical_features:
                 s0 = np.arange(self.feature_ranges[ftr]['min'], 
-                               self.instance[ftr]-self.stepsizes[ftr], 
+                               self.instance[ftr], 
                                self.stepsizes[ftr])
                 s1 = np.arange(self.instance[ftr] + self.stepsizes[ftr], 
                                self.feature_ranges[ftr]['max'], 
                                self.stepsizes[ftr])
-                combined = combine_lists(s0, s1)
+                combined = combine_arrays(s0[::-1], s1)
+
                 list_of_values.append(combined)
             else:
                 list_of_values.append(self.feature_ranges[ftr])
@@ -144,8 +164,8 @@ class Explainer(object):
             print('\n')
             
     def generate_counterfactual(self, 
-                                instance,
-                                target_class
+                                instance: np.void,
+                                target_class: int
                                 ):
         self.target_class = target_class
         self.instance = instance.copy(order='K')
@@ -159,7 +179,6 @@ class Explainer(object):
                 scores = []
                 ftr_combination = [self.ftrs[item] for item in ftr_combination_indices]
                 value_combinations = self.get_value_combinations(ftr_combination)
-                
                 for value_combination in value_combinations:
                     test_instance = self.instance.copy(order='K')
                     self.modify_instance(test_instance, 
@@ -169,8 +188,9 @@ class Explainer(object):
                     if pred[0] == self.target_class:
                         scores.append((test_instance, self.dist(self.instance, test_instance)))
                         #TODO: work on this
-                        #if self.monotone:
-                         #   break
+                        #only works for checking 1 variable atm
+                        if self.monotone:
+                            break
                 try:
                     best = np.argmin([item[1] for item in scores])
                     all_scores.append(scores[best])

@@ -236,26 +236,24 @@ class FairnessChecks(object):
                         self.distance_funcs[field_name] is None):
                     raise ValueError('missing distance function for %s: ', field_name)
 
-    def check_systemic_bias(self, threshold: int = 0.1) -> list:
+    def check_systemic_bias(self, threshold: float = 0.1) -> list:
         """ Checks for systemic bias in the dataset.
     
-        Description: Will check if similar instances, that differ only on the
-                    protected attribute have been treated differently. Treated
-                    refers to the 'target' of the instance.
+        Will check if similar instances, that differ only on the
+        protected attribute have been treated differently. Treated
+        refers to the 'target' of the instance.
     
-        Args:
-            dataset: Structured Numpy Array containing the features.
-            treatments: Dictionary of Lists. Keys are: 'Protected', 'Feature',
-                        'Target', 'ToIgnore'.
-            distance_funcs: Dictionary of functions. One for each field that is
-                            categorized as 'Feature'.
-            threshold: Float value for what counts as similar. Default to 0.
+        Parameters
+        ----------       
+        threshold: Float 
+            value for what counts as similar. Default to 0.1.
     
-        Returns: List of pairs of instances that are similar but have been treated
+        Returns 
+        -------
+        distance_list: list
+            List of pairs of instances that are similar but have been treated
                 differently.
-    
-        Raises:
-            NA
+
         """
         n_samples = self.dataset.shape[0]
         if self.structured_bool:
@@ -281,7 +279,10 @@ class FairnessChecks(object):
                     distance_list.append((dist, (i,j)))
         return distance_list
 
-    def _apply_distance_funcs(self, v0: np.ndarray, v1: np.ndarray, toignore: list = None) -> int:
+    def _apply_distance_funcs(self, 
+                              v0: np.ndarray, 
+                              v1: np.ndarray, 
+                              toignore: list = None) -> int:
         """
         Computes the distance between two instances, based on the distance functions
         provided by the user.
@@ -298,24 +299,26 @@ class FairnessChecks(object):
                             boundaries_for_numerical: dict = None) -> (dict, np.ndarray):
         """ Checks for sampling bias in the dataset.
     
-        Description: Will check if the different sub-populations defined by the
-                    features_to_check have similar representation (sample size).
-                    *Only for Categorical data*.
+        Will check if the different sub-populations defined by the
+        features_to_check have similar representation (sample size).
     
-        Args:
-            dataset: Structured Numpy Array containing the features.
-            treatments: Dictionary of Lists. Keys are: 'Protected', 'Feature',
-                        'Target', 'ToIgnore'.
-            features_to_check: List of Strings, for which features to consider
-                                the sub-populations.
-            return_weights: Boolean, on whether to return weights to be used for
-                            cost-sensitive learning.
+        Parameters
+        ----------          
+        features_to_check: List of Strings
+            for which features to consider the sub-populations.
+        return_weights: Boolean
+            on whether to return weights to be used for cost-sensitive learning.
+        boundaries_for_numerical: Dict of List of tuples
+            defining the bins of numerical data.
     
-        Returns: Counts of data for each sub-population defined by the cross-product
+        Returns
+        -------
+            counts: dict
+                of data for each sub-population defined by the cross-product
                 of the provided features.
-    
-        Raises:
-            NA
+            weights: Optional, np.ndarray
+                weights to be used for cost-sensitive learning.
+
             """
         if not boundaries_for_numerical:
             boundaries_for_numerical = {}
@@ -339,21 +342,23 @@ class FairnessChecks(object):
                                            boundaries_for_numerical: dict) -> np.ndarray:
         """ Computed weights to be used for cost-sensitive learning.
     
-        Description: Computes weights for each instance to be used for cost-sensitive
-                    learning. The weights correspond are inversely proportional
-                    to the number of occurences of the given combination.
+        Computes weights for each instance to be used for cost-sensitive
+        learning. The weights correspond are inversely proportional
+        to the number of occurences of the given combination.
     
-        Args:
-            dataset: Structured Numpy Array containing the features.
-            features_to_check: List of Strings, for which features to consider
-                                the sub-populations.
-            counts: Dictionary of the combinations of the features_to_check
-                    (cross-product) with their number of occurences.
-    
-        Returns: Numpy Array of weights, one for each instance.
-    
-        Raises:
-            NA
+        Parameters
+        ----------
+        counts: Dictionary 
+            of the combinations of the features_to_check (cross-product) with 
+            their number of occurences.
+        boundaries_for_numerical: Dict of List of tuples
+            defining the bins of numerical data.        
+        
+        Returns
+        -------
+        weights: np.array 
+            of weights, one for each instance.
+
             """
 
         n_samples = self.dataset.shape[0]
@@ -415,20 +420,26 @@ class FairnessChecks(object):
                   boundaries_for_numerical: dict = None) -> np.ndarray:
         """ Gets a filtering mask for the combination of features provided.
     
-        Description: Will return a filtering a mask for the dataset based
-                    on the features and specific values provided.
+        Will return a filtering a mask for the dataset based
+        on the features and specific values provided.
     
-        Args:
-            dataset: Structured Numpy Array containing the features.
-            features_to_check: List of Strings, for which features to consider
-                                the sub-populations.
-            combination: Tuple of feature values to be used to filted the dataset.
-    
-        Returns: Numpy Array, mask corresponding to the locations that match the
+        Parameters
+        ----------
+        dataset: Structured Numpy Array 
+            containing the features.
+        features_to_check: List of Strings
+            for which features to consider the sub-populations.
+        combination: Tuple 
+            of feature values to be used to filted the dataset.
+        boundaries_for_numerical: Dict of List of tuples
+            defining the bins of numerical data.
+                                
+        Returns
+        -------
+        mask: np.array 
+            mask corresponding to the locations that match the
                 combination of feature values provided.
-    
-        Raises:
-            NA
+
             """
         if not boundaries_for_numerical:
             boundaries_for_numerical = {}
@@ -470,23 +481,27 @@ class FairnessChecks(object):
                                boundaries_for_numerical: dict = None) -> dict:
         """ Checks for systematic error in the dataset.
     
-        Description: Will check if the different sub-populations defined by the
-                    features_to_check have similar behaviour under the model.
+        Will check if the different sub-populations defined by the
+        features_to_check have similar behaviour under the model.
     
-        Args:
-            dataset: Structured Numpy Array containing the features.
-            treatments: Dictionary of Lists. Keys are: 'Protected', 'Feature',
-                        'Target', 'ToIgnore'.
-            features_to_check: List of Strings, for which features to consider
-                                the sub-populations.
-            checks: Dictionary of Functions, to be applied on the confusion-matrix.
-                    Default to None. If None, returns the confusion matrix.
+        Parameters
+        ----------
+        predictions: np.ndarray
+            Predictionas of a model, built using the data provided.
+        requested_checks: list of strings
+            Corresponding to which checks to perform
+        features_to_check: List of Strings
+            for which features to consider the sub-populations.
+        boundaries_for_numerical: Dict of List of tuples
+            defining the bins of numerical data.
+
+        Returns
+        -------
+        summary: dict
+            Dictionary of confusion matrices for each sub-population, 
+            if checks==None, else, Dictionary of Dictionaries, 
+            one for each sub-population.
     
-        Returns: Dictionary of confusion matrices for each sub-population, if checks==None,
-                else, Dictionary of Dictionaries, one for each sub-population.
-    
-        Raises:
-            NA
             """
         if not boundaries_for_numerical:
             boundaries_for_numerical = {}
@@ -544,18 +559,22 @@ class FairnessChecks(object):
                               labels: list) -> np.matrix:
         """ Confusion matrix.
     
-        Description: Confusion matrix.
+        Confusion matrix.
     
-        Args:
-            targets: Numpy Array containing the (true) targets.
-            predictions: Numpy Array containing the predictions.
-            labels: List of the labels. Important for the order of the
-                    confusion matrix.
+        Parameters
+        ----------
+        targets: np.array
+            containing the (true) targets.
+        predictions: np.array 
+            containing the predictions.
+        labels: List 
+            of the labels. Important for the order of the confusion matrix.
     
-        Returns: Confusion matrix.
-    
-        Raises:
-            NA
+        Returns
+        -------
+        cm: np.matrix
+            Confusion matrix.
+
             """
         n = len(labels)
         cm = np.matrix(np.zeros(n**2), dtype=int).reshape(n, n)
@@ -573,27 +592,29 @@ class FairnessChecks(object):
                                 condition=None):
         """ Performs a series of checks on the desired splits of the dataset
     
-        Description: A function that will split the dataset according to the
-                    protected field, and then perform a series of checks.
+        A function that will split the dataset according to the
+        protected field, and then perform a series of checks.
     
-        Args:
-            X: Structured Numpy Array containing the features.
-            targets: Numpy Array containing the (true) targets.
-            predictions: Numpy Array containing the predictions.
-            protected: String for the name of the protected feature.
-            checks: Dictionary with keys the names of the checks, and values
-                    functions to be applied on the confusion matrix.
-            conditioned_field: String for the name of the feature to
-                            condition on. Default = None --> we consider
-                            the whole dataset
-            condition: String for the name of the value to
-                            condition on. Default = None --> we consider
-                            the whole dataset
+        Parameters
+        ----------
+        requested_checks: list of strings
+            Corresponding to which checks to perform
+        get_summary: bool
+            whether to provide a comparison
+        conditioned_field: String 
+            for the name of the feature to condition on. 
+            Default = None --> we consider the whole dataset
+        condition: String/Int 
+            for the name of the value to condition on. 
+            Default = None --> we consider the whole dataset
     
-        Returns: The checks applied to the confusion matrices of the sub-populations.
+        Returns
+        -------
+        aggregated_checks: dict
+            The checks applied to the confusion matrices of the sub-populations.
+        summary: Optional, dict
+            Comparison of the sub-populations
     
-        Raises:
-            NA
             """
         
         multiclass = False
@@ -616,24 +637,13 @@ class FairnessChecks(object):
                     self._filter_dataset(conditioned_field, condition)
         
         split_datasets = self._split_dataset(self.protected_field, [0, 1])
-# =============================================================================
-#         print('\n')
-#         print(split_datasets[0])
-#         print('\n')
-#         print(split_datasets[1])
-# =============================================================================
+
         aggregated_checks = dict()
         for item in split_datasets:
             field_val = item[0]
             X = item[1][0]; targets = item[1][1]; predictions = item[1][2]
             conf_mat = self._get_confusion_matrix(targets, predictions, classes_list)
-# =============================================================================
-#             print('\n')
-#             print(targets)
-#             print(predictions)
-#             print(classes_list)
-#             print(conf_mat)
-# =============================================================================
+
             checks_dict = {}
   
             if multiclass:
@@ -658,19 +668,22 @@ class FairnessChecks(object):
                         feature_value) -> (np.ndarray, np.ndarray, np.ndarray):
         """ Filters the data according to the feature provided.
     
-        Description: Will filter the data.
+        Will filter the data.
     
-        Args:
-            X: Structured Numpy Array containing the features.
-            targets: Numpy Array containing the (true) targets.
-            predictions: Numpy Array containing the predictions.
-            feature: String for the name of the protected feature to filter on.
-            feature_value: The value of the protected feature to filter on.
+        Parameters
+        ----------
+        feature: String 
+            for the name of the protected feature to filter on.
+        feature_value: String/Int
+                The value of the protected feature to filter on.
     
-        Returns: Filtered data, according to the protected feature.
-    
-        Raises:
-            NA
+        Returns
+        -------
+        filtered_dataset: np.ndarray
+        filtered_targets: np.ndarray
+        filtered_predictions: np.ndarray
+            Filtered data, according to the protected feature.
+
             """
         n = self.dataset.shape[0]
         mask = np.zeros(n, dtype=bool)
@@ -697,18 +710,20 @@ class FairnessChecks(object):
                        labels: list) -> list:
         """ Splits the data according to the protected feature provided.
     
-        Description: Will split the data.
+        Will split the data.
     
-        Args:
-            X: Structured Numpy Array containing the features.
-            targets: Numpy Array containing the (true) targets.
-            predictions: Numpy Array containing the predictions.
-            feature: String for the name of the protected feature to split on.
-    
-        Returns: List of spit data, according to the protected feature.
-    
-        Raises:
-            NA
+        Parameters
+        ----------
+        feature: string 
+            for the name of the protected feature to split on.
+        labels: list
+            the order with which to return the splits
+            
+        Returns
+        -------
+        splits: list
+            List of spit data, according to the protected feature.
+ 
             """
         splits = []
         for label in labels:
@@ -763,22 +778,31 @@ class FairnessChecks(object):
                                 unique_targets: list) -> np.matrix:
         """ Checks counterfactual fairness of the model.
     
-        Description: Will flip the protected attribute and generate new predictions,
-                    to check the model's dependence on the protected feature.
+        Will flip the protected attribute and generate new predictions,
+        to check the model's dependence on the protected feature.
     
-        Args:
-            model: The model trained. Should have .fit(X, y) and .predict(X) (that
-                    returns the actual predictions, i.e. {0, 1})
-                    functionality.
-            X: Structured Numpy Array containing the features.
-            targets: Numpy Array containing the (true) targets.
-            protected: String for the name of the protected feature.
+        Parameters
+        ----------
+        model: Object
+            *trained* model to be used for generating predictions
+        protected: str
+            name of protected field
+        xtest_: np.ndarray 
+            containing the test data.
+        unique_targets: list
+            containing the unique targets, to be used to order the 
+            confusion matrix.
     
-        Returns: Confusion matrix between the predictions before and after the
+        Returns
+        -------
+        conf_mat: np.matrix
+            Confusion matrix between the predictions before and after the
                 flipping the protected feature
     
-        Raises:
-            NA
+        Raises
+        ------
+        TypeError
+            If the model provided does not have the necessary functionality.
             """
         is_functional = check_model_functionality(test_model)
         if not is_functional:
@@ -801,22 +825,29 @@ class FairnessChecks(object):
                             predictions_distance_func: FunctionType = euc_dist) -> bool:
         """ Checks individual fairness -- 'Fairness through awareness'.
     
-        Description: Will check whether similar instances get similar predictions.
+        Will check whether similar instances get similar predictions.
     
-        Args:
-            X: Structured Numpy Array containing the features.
-            predictions_proba: Numpy Array containing the prediction probabilities,
-                                for both classes.
-            X_distance_func: Function to be used to compute distance between
-                            instances.
-            predictions_distance_func: Function to be used to compute distance between
-                            predictions.
+        Parameters
+        ----------
+        model: Object
+            *trained* model to be used for generating predictions
+        X: np.ndarray 
+            containing the design matrix.
+        X_distance_func: Function 
+            to be used to compute distance between instances.
+        predictions_distance_func: Function 
+            to be used to compute distance between predictions.
     
-        Returns: Will check whether 'fairness through awareness holds'
+        Returns
+        -------
+        bool
+            Will check whether 'fairness through awareness holds'
                 d_X(x_i, x_j) <= d_f(f(x_i), f(x_j))
     
-        Raises:
-            NA
+        Raises
+        ------
+        TypeError
+            If the model provided does not have necessary functionality.
             """
         is_functional = check_model_functionality(model)
         if not is_functional:

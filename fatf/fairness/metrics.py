@@ -334,7 +334,9 @@ class FairnessChecks(object):
             weights = self._get_weights_costsensitivelearning(counts, boundaries_for_numerical)
             return counts, weights
 
-    def _get_weights_costsensitivelearning(self, counts: dict, boundaries_for_numerical: dict) -> np.ndarray:
+    def _get_weights_costsensitivelearning(self, 
+                                           counts: dict, 
+                                           boundaries_for_numerical: dict) -> np.ndarray:
         """ Computed weights to be used for cost-sensitive learning.
     
         Description: Computes weights for each instance to be used for cost-sensitive
@@ -368,7 +370,9 @@ class FairnessChecks(object):
         weights /= min_weight
         return weights
     
-    def _get_counts(self, cross_product: list, boundaries_for_numerical: dict) -> dict:
+    def _get_counts(self, 
+                    cross_product: list, 
+                    boundaries_for_numerical: dict) -> dict:
         """
         Applies the mask on the target_field of the dataset to get the counts.
         """
@@ -381,7 +385,8 @@ class FairnessChecks(object):
                 counts_dict[combination] =  hist
         return counts_dict
     
-    def _get_cross_product(self, boundaries_for_numerical: dict = None) -> list:
+    def _get_cross_product(self, 
+                           boundaries_for_numerical: dict = None) -> list:
         """
         Cross-product of features.
         """
@@ -403,8 +408,11 @@ class FairnessChecks(object):
         cross_product = list(itertools.product(*features_dict.values()))
         return cross_product
     
-    def _get_mask(self, dataset: np.ndarray, features_to_check: list, 
-                  combination: tuple, boundaries_for_numerical: dict = None) -> np.ndarray:
+    def _get_mask(self, 
+                  dataset: np.ndarray, 
+                  features_to_check: list, 
+                  combination: tuple, 
+                  boundaries_for_numerical: dict = None) -> np.ndarray:
         """ Gets a filtering mask for the combination of features provided.
     
         Description: Will return a filtering a mask for the dataset based
@@ -442,7 +450,8 @@ class FairnessChecks(object):
         mask[intersection_indices] = True
         return mask
     
-    def _get_bins(self, boundaries: list) -> list:
+    def _get_bins(self, 
+                  boundaries: list) -> list:
         """
     	Produces bins, given a set of boundaries.
         Example: boundaries = [20, 40, 60]
@@ -644,7 +653,9 @@ class FairnessChecks(object):
         else:
             return self.aggregated_checks
 
-    def _filter_dataset(self, feature: str, feature_value) -> (np.ndarray, np.ndarray, np.ndarray):
+    def _filter_dataset(self, 
+                        feature: str, 
+                        feature_value) -> (np.ndarray, np.ndarray, np.ndarray):
         """ Filters the data according to the feature provided.
     
         Description: Will filter the data.
@@ -673,13 +684,17 @@ class FairnessChecks(object):
         filtered_predictions = self.predictions[mask]
         return filtered_dataset, filtered_targets, filtered_predictions
 
-    def _remove_field(self, dataset: np.ndarray, field: str) -> np.ndarray:
+    def _remove_field(self, 
+                      dataset: np.ndarray, 
+                      field: str) -> np.ndarray:
         field_names = list(dataset.dtype.names)
         if field in field_names:
             field_names.remove(field)
         return dataset[field_names]
     
-    def _split_dataset(self, feature: str, labels: list) -> list:
+    def _split_dataset(self, 
+                       feature: str, 
+                       labels: list) -> list:
         """ Splits the data according to the protected feature provided.
     
         Description: Will split the data.

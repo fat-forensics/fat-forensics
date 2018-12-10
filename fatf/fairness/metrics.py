@@ -1,8 +1,11 @@
 """
-Created on Tue Nov 20 12:45:58 2018
-
-@author: rp13102
+The :mod:`fatf.fairness.metrics` module holds the object to be used for 
+performing fairness checks.
 """
+
+# Author: Rafael Poyiadzis <rp13102@bristol.ac.uk>
+# License: BSD 3 clause
+
 from __future__ import division
 import numpy as np
 import itertools
@@ -145,10 +148,10 @@ def treatment_mc(cm, idx):
 
 class FairnessChecks(object):
     def __init__(self, 
-                 dataset, 
-                 targets,
-                 distance_funcs,
-                 protected,
+                 dataset: np.ndarray, 
+                 targets: np.array,
+                 distance_funcs: dict,
+                 protected: str,
                  toignore = [],
                  ):
         self.dataset = dataset.copy(order='K')
@@ -232,7 +235,7 @@ class FairnessChecks(object):
                         self.distance_funcs[field_name] is None):
                     raise ValueError('missing distance function for %s: ', field_name)
 
-    def check_systemic_bias(self, threshold = 0.1):
+    def check_systemic_bias(self, threshold: int = 0.1) -> list:
         """ Checks for systemic bias in the dataset.
     
         Description: Will check if similar instances, that differ only on the
@@ -277,7 +280,7 @@ class FairnessChecks(object):
                     distance_list.append((dist, (i,j)))
         return distance_list
 
-    def _apply_distance_funcs(self, v0, v1, toignore = []):
+    def _apply_distance_funcs(self, v0, v1, toignore: list = None) -> int:
         """
         Computes the distance between two instances, based on the distance functions
         provided by the user.
@@ -289,9 +292,9 @@ class FairnessChecks(object):
         return dist
 
     def check_sampling_bias(self, 
-                            features_to_check=[], 
+                            features_to_check: list = None, 
                             return_weights=False, 
-                            boundaries_for_numerical={}):
+                            boundaries_for_numerical: dict = None) -> (dict, np.ndarray):
         """ Checks for sampling bias in the dataset.
     
         Description: Will check if the different sub-populations defined by the
@@ -313,6 +316,9 @@ class FairnessChecks(object):
         Raises:
             NA
             """
+        if not boundaries_for_numerical:
+            boundaries_for_numerical = {}
+            
         if len(features_to_check) == 0:
             if self.features_to_check is None:
                 raise ValueError('no features to check provided')
@@ -327,7 +333,7 @@ class FairnessChecks(object):
             weights = self._get_weights_costsensitivelearning(counts, boundaries_for_numerical)
             return counts, weights
 
-    def _get_weights_costsensitivelearning(self, counts, boundaries_for_numerical):
+    def _get_weights_costsensitivelearning(self, counts: dict, boundaries_for_numerical: dict) -> np.ndarray:
         """ Computed weights to be used for cost-sensitive learning.
     
         Description: Computes weights for each instance to be used for cost-sensitive
@@ -346,6 +352,7 @@ class FairnessChecks(object):
         Raises:
             NA
             """
+
         n_samples = self.dataset.shape[0]
         cumulative = sum([sum(item.values()) for item in counts.values()])
         comb_weights = {}
@@ -360,7 +367,7 @@ class FairnessChecks(object):
         weights /= min_weight
         return weights
     
-    def _get_counts(self, cross_product, boundaries_for_numerical):
+    def _get_counts(self, cross_product: list, boundaries_for_numerical: dict) -> dict:
         """
         Applies the mask on the target_field of the dataset to get the counts.
         """
@@ -373,10 +380,13 @@ class FairnessChecks(object):
                 counts_dict[combination] =  hist
         return counts_dict
     
-    def _get_cross_product(self, boundaries_for_numerical={}):
+    def _get_cross_product(self, boundaries_for_numerical: dict = None) -> list:
         """
         Cross-product of features.
         """
+        if not boundaries_for_numerical:
+            boundaries_for_numerical = {}
+            
         features_dict = {}
         for feature in self.features_to_check:
             if feature in boundaries_for_numerical.keys():
@@ -392,7 +402,8 @@ class FairnessChecks(object):
         cross_product = list(itertools.product(*features_dict.values()))
         return cross_product
     
-    def _get_mask(self, dataset, features_to_check, combination, boundaries_for_numerical={}):
+    def _get_mask(self, dataset: np.ndarray, features_to_check: list, 
+                  combination: tuple, boundaries_for_numerical: dict = None) -> np.ndarray:
         """ Gets a filtering mask for the combination of features provided.
     
         Description: Will return a filtering a mask for the dataset based
@@ -410,6 +421,8 @@ class FairnessChecks(object):
         Raises:
             NA
             """
+        if not boundaries_for_numerical:
+            boundaries_for_numerical = {}
         n_samples = dataset.shape[0]
         mask = np.array(np.zeros(n_samples), dtype=bool)
         list_of_sets = []
@@ -428,7 +441,7 @@ class FairnessChecks(object):
         mask[intersection_indices] = True
         return mask
     
-    def _get_bins(self, boundaries):
+    def _get_bins(self, boundaries: list) -> list:
         """
     	Produces bins, given a set of boundaries.
         Example: boundaries = [20, 40, 60]
@@ -441,10 +454,10 @@ class FairnessChecks(object):
         return bins
     
     def check_systematic_error(self, 
-                               predictions,
-                               requested_checks='all',
-                               features_to_check=[], 
-                               boundaries_for_numerical={}):
+                               predictions: np.ndarray,
+                               requested_checks: list = None,
+                               features_to_check: list = None, 
+                               boundaries_for_numerical: dict = None) -> dict:
         """ Checks for systematic error in the dataset.
     
         Description: Will check if the different sub-populations defined by the
@@ -465,13 +478,15 @@ class FairnessChecks(object):
         Raises:
             NA
             """
+        if not boundaries_for_numerical:
+            boundaries_for_numerical = {}
         self.predictions = predictions
         multiclass = False
         classes_list = list(set(self.targets))
         if len(classes_list) > 2:
             multiclass = True
             
-        if requested_checks == 'all':
+        if not requested_checks:
             if multiclass:
                 requested_checks = self.checks_multiclass.keys()
             else:
@@ -486,8 +501,7 @@ class FairnessChecks(object):
         summary = {}
         for combination in cross_product:
             filtered_predictions, filtered_targets = \
-                self._apply_combination_filter('Prediction',
-                                         combination, boundaries_for_numerical)
+                self._apply_combination_filter(combination, boundaries_for_numerical)
             conf_mat = self._get_confusion_matrix(filtered_targets, 
                                                   filtered_predictions, 
                                                   classes_list)
@@ -506,13 +520,13 @@ class FairnessChecks(object):
                         summary[combination][item] = self.checks[item](conf_mat)
         return summary
     
-    def _apply_combination_filter(self, prediction_field, combination, boundaries_for_numerical):
+    def _apply_combination_filter(self, combination: tuple, boundaries_for_numerical: dict) -> (np.ndarray, np.ndarray):
         mask = self._get_mask(self.dataset, self.features_to_check, combination, boundaries_for_numerical)
         filtered_predictions = self.predictions[mask]
         filtered_targets = self.targets[mask]
         return filtered_predictions, filtered_targets
 
-    def _get_confusion_matrix(self, target, prediction, labels):
+    def _get_confusion_matrix(self, target: np.ndarray, prediction: np.ndarray, labels: list) -> np.matrix:
         """ Confusion matrix.
     
         Description: Confusion matrix.
@@ -538,9 +552,9 @@ class FairnessChecks(object):
         return cm #, normalize(cm, axis=1, norm='l1')
 
     def perform_checks_on_split(self, 
-                                requested_checks='all',
-                                get_summary=False,
-                                conditioned_field=None, 
+                                requested_checks: list = None,
+                                get_summary: bool = False,
+                                conditioned_field: str = None, 
                                 condition=None):
         """ Performs a series of checks on the desired splits of the dataset
     
@@ -566,12 +580,13 @@ class FairnessChecks(object):
         Raises:
             NA
             """
+        
         multiclass = False
         classes_list = list(set(self.targets))
         if len(classes_list) > 2:
             multiclass = True
             
-        if requested_checks == 'all':
+        if not requested_checks:
             if multiclass:
                 requested_checks = self.checks_multiclass.keys()
             else:
@@ -640,6 +655,7 @@ class FairnessChecks(object):
         Raises:
             NA
             """
+        print(type(feature), type(feature_value))
         n = self.dataset.shape[0]
         mask = np.zeros(n, dtype=bool)
         if self.structured_bool:

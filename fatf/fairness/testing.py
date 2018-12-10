@@ -148,7 +148,7 @@ def get_boundaries(field, increments=5):
     return np.linspace(min_val, max_val+1, increments)
 
 dataset, treatments, distance_funcs = create_dataset()
-targets = dataset['Target']
+targets = np.array(dataset['Target'])
 predictions = dataset['Prediction']
 dataset = remove_field(dataset, 'Target')
 dataset = remove_field(dataset, 'Prediction')
@@ -180,14 +180,11 @@ e=mdl.check_sampling_bias(features_to_check=features_to_check,
 
 f=mdl.check_systematic_error(predictions = predictions,
                              features_to_check=['Gender'],
-                             requested_checks='all',
                              boundaries_for_numerical=boundaries)
 
 
-print('-----')
 aggregated_checks = mdl.perform_checks_on_split(
                                                 get_summary = True,
-                                                requested_checks=['accuracy'],
                                                 conditioned_field='Zipcode',
                                                 condition='0011')
 
@@ -213,61 +210,65 @@ g = mdl.individual_fairness(model, newx)
 ######################################
 ####################################
 
-dataset_ = dataset.copy(order = 'K')
-dataset_['Zipcode'][:4] = 0
-dataset_['Zipcode'][4:] = 1
-features_to_check = [3]
-dataset_=dataset_.copy(order='K').astype(dtype=[(name, '<f4') for name in dataset.dtype.names]).view('<f4').reshape(dataset.shape + (-1,))
-
-
-mdl = FairnessChecks(dataset_, 
-                     targets,
-                     distance_funcs,
-                     protected = 3,#treatments['Protected'][0],
-                     toignore = treatments['ToIgnore']
-                     )
-
-c2=mdl.check_systemic_bias()
-
-
-d2=mdl.check_sampling_bias(features_to_check=features_to_check)
-
-
-features_to_check = [0, 3]
-boundaries = {0: []}
-for key, value in boundaries.items():
-    if len(value) == 0:
-        boundaries[key] = get_boundaries(dataset_[:, key])
-        
-e2=mdl.check_sampling_bias(features_to_check=features_to_check, 
-                          return_weights = True, 
-                          boundaries_for_numerical = boundaries)
-
-f2=mdl.check_systematic_error(predictions = predictions,
-                             features_to_check=[3],
-                             requested_checks='all',
-                             boundaries_for_numerical=boundaries)
-
-
-aggregated_checks2b = mdl.perform_checks_on_split(
-                                                get_summary = True,
-                                                requested_checks=['accuracy'])
-
-
-aggregated_checksb = mdl.perform_checks_on_split(
-                                                get_summary = True,
-                                                requested_checks=['accuracy'],
-                                                conditioned_field=2,
-                                                condition=0)
-
-X = dataset_
-model = LogisticRegression()
-
-newx = np.array(X.tolist())
-model.fit(newx, targets)
-
-
-cm = mdl.counterfactual_fairness(model, 3, X, [0, 1])
-
-
-g = mdl.individual_fairness(model, newx)
+# =============================================================================
+# dataset_ = dataset.copy(order = 'K')
+# dataset_['Zipcode'][:4] = 0
+# dataset_['Zipcode'][4:] = 1
+# features_to_check = [3]
+# dataset_=dataset_.copy(order='K').astype(dtype=[(name, '<f4') for name in dataset.dtype.names]).view('<f4').reshape(dataset.shape + (-1,))
+# 
+# 
+# mdl = FairnessChecks(dataset_, 
+#                      targets,
+#                      distance_funcs,
+#                      protected = 3,#treatments['Protected'][0],
+#                      toignore = treatments['ToIgnore']
+#                      )
+# 
+# c2=mdl.check_systemic_bias()
+# 
+# 
+# d2=mdl.check_sampling_bias(features_to_check=features_to_check)
+# 
+# 
+# features_to_check = [0, 3]
+# boundaries = {0: []}
+# for key, value in boundaries.items():
+#     if len(value) == 0:
+#         boundaries[key] = get_boundaries(dataset_[:, key])
+#         
+# e2=mdl.check_sampling_bias(features_to_check=features_to_check, 
+#                           return_weights = True, 
+#                           boundaries_for_numerical = boundaries)
+# 
+# f2=mdl.check_systematic_error(predictions = predictions,
+#                              features_to_check=[3],
+#                              requested_checks='all',
+#                              boundaries_for_numerical=boundaries)
+# 
+# 
+# aggregated_checks2b = mdl.perform_checks_on_split(
+#                                                 get_summary = True,
+#                                                 requested_checks=['accuracy'])
+# 
+# 
+# aggregated_checksb = mdl.perform_checks_on_split(
+#                                                 get_summary = True,
+#                                                 requested_checks=['accuracy'],
+#                                                 conditioned_field=2,
+#                                                 condition=0)
+# 
+# X = dataset_
+# model = LogisticRegression()
+# 
+# newx = np.array(X.tolist())
+# model.fit(newx, targets)
+# 
+# 
+# cm = mdl.counterfactual_fairness(model, 3, X, [0, 1])
+# 
+# 
+# g = mdl.individual_fairness(model, newx)
+# 
+# 
+# =============================================================================

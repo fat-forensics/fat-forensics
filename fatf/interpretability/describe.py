@@ -42,7 +42,38 @@ def describe_categorical(series: np.ndarray):
 
 def describe_dataset(dataset: np.ndarray, 
                      todescribe: Optional[list] = None, 
-                     condition: Optional[np.array] = None):
+                     condition: Optional[np.array] = None) -> dict:
+    """Will provide a description of the desired fields of the dataset.
+
+    Parameters
+    ----------
+    dataset : np.ndarray
+        The dataset to be described.
+    todescribe : Optional[list]
+        A list of field names to be described. If none, then all will be
+        described.
+    condition : np.array
+        Values used to provide conditional descriptions.
+        
+    Raises
+    ------
+    ValueError
+        Dimensions of dataset and condition do not match.
+
+    Returns
+    -------
+    If condition not provided:
+        describe_dict : dict
+            Dictionary of dictionaries. At first level keys correspond to fields
+            that were described, and at second level you have key, value pairs
+            for the statistics evaluated.
+    Else:
+        grand_dict : dict
+            Dictionary of dictionaries of dictionaries. First level corresponds to 
+            keys corresponding to the unique values in the condition array. The rest
+            two levels correspond to a describe_dict.
+    
+    """
     check = is_2d_array(dataset)
     if not check:
         raise TypeError('Input should be 2-Dimensional')

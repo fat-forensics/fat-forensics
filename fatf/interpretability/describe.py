@@ -6,6 +6,7 @@ The :mod:`fatf.path.to.the.file.in.the.module` module implements description fun
 # License: BSD 3 clause
 import numpy as np
 from fatf.utils.validation import check_array_type, is_2d_array
+from typing import Optional
 
 def describe_numeric(series: np.ndarray):
     numeric_dict = {
@@ -21,7 +22,7 @@ def describe_numeric(series: np.ndarray):
 
     for key, value in numeric_dict.items():
         if key != 'count':
-            numeric_dict[key] = format(value, '.2f')
+            numeric_dict[key] = value #format(value, '.2f')
     return numeric_dict
 
 def describe_categorical(series: np.ndarray):
@@ -39,7 +40,9 @@ def describe_categorical(series: np.ndarray):
 
     return categorical_dict
 
-def describe_dataset(dataset: np.ndarray, todescribe=[], condition=None):
+def describe_dataset(dataset: np.ndarray, 
+                     todescribe: Optional[list] = None, 
+                     condition: Optional[np.array] = None):
     check = is_2d_array(dataset)
     if not check:
         raise TypeError('Input should be 2-Dimensional')

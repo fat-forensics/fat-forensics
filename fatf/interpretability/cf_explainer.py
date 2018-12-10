@@ -6,8 +6,10 @@ The :mod:`fatf.path.to.the.file.in.the.module` module implements a counterfactua
 # License: BSD 3 clause
 import numpy as np
 import itertools
+from typing import Optional
 
-def combine_arrays(array1: np.array, array2: np.array) -> list:
+def combine_arrays(array1: np.array, 
+                   array2: np.array) -> list:
     """Will combine two numpy arrays in an incremental manner.
 
     Form a list out of the elements of two numpy arrays. For example:
@@ -44,11 +46,11 @@ class Explainer(object):
                  model: object,
                  categorical_features: list,
                  dataset: np.ndarray,
-                 monotone = False,
-                 stepsizes = None,
-                 max_comb: int = 2,
-                 feature_ranges: dict = None,
-                 dist_funcs: dict = None):
+                 monotone: Optional[str] = False,
+                 stepsizes: Optional[int] = None,
+                 max_comb: Optional[int] = 2,
+                 feature_ranges: Optional[dict] = None,
+                 dist_funcs: Optional[dict] = None):
         
         self.model = model
         self.monotone = monotone
@@ -98,14 +100,17 @@ class Explainer(object):
         else:
             self.dist_funcs = dist_funcs
     
-    def dist(self, v0, v1):
+    def dist(self, 
+             v0: np.ndarray, 
+             v1: np.ndarray) -> int:
         dist = 0
         features = v0.dtype.names
         for feature in features:
             dist += self.dist_funcs[feature](v0[feature], v1[feature])
         return dist  
       
-    def get_feature_ranges(self, tocomplete = []):
+    def get_feature_ranges(self, 
+                           tocomplete: Optional[list] = None):
         if not tocomplete:
             features_to_complete = self.dataset.dtype.names
             self.feature_ranges = {}
@@ -128,11 +133,15 @@ class Explainer(object):
             else:
                 self.feature_ranges[field_name] = np.unique(self.dataset[field_name])
     
-    def modify_instance(self, x, ftrs, vals):
+    def modify_instance(self, 
+                        x: np.ndarray, 
+                        ftrs: list, 
+                        vals: list):
         for idx, ftr in enumerate(ftrs):
             x[ftr] = vals[idx]
     
-    def get_value_combinations(self, ftr_combination):
+    def get_value_combinations(self, 
+                               ftr_combination: tuple) -> list:
         list_of_values = []
         for ftr in ftr_combination:
             if ftr not in self.categorical_features:
@@ -154,7 +163,8 @@ class Explainer(object):
                 list_of_values.append(t)
         return itertools.product(*list_of_values)
     
-    def pretty_print(self, all_scores):
+    def pretty_print(self, 
+                     all_scores: list):
         order = np.argsort([item[1] for item in all_scores])
         for idx in order:
             instance = all_scores[idx][0]
@@ -169,7 +179,7 @@ class Explainer(object):
             print('\n')
             
     def generate_counterfactual(self, 
-                                instance: np.void,
+                                instance: np.ndarray,
                                 target_class: int
                                 ):
         self.target_class = target_class

@@ -10,7 +10,7 @@ from __future__ import division
 import numpy as np
 import itertools
 import math
-from fatf.utils.validation import check_array_type
+from fatf.utils.validation import check_array_type, check_model_functionality
 from types import FunctionType
 
 def euc_dist(v0: np.ndarray, v1: np.ndarray) -> float:
@@ -780,7 +780,10 @@ class FairnessChecks(object):
         Raises:
             NA
             """
-
+        is_functional = check_model_functionality(test_model)
+        if not is_functional:
+            raise TypeError('Model provided is not proper')
+            
         xtest = xtest_.copy(order='K')
         original_predictions = test_model.predict(np.array(xtest.tolist()))
         xtest[protected] = [int(not item) for item in xtest[protected]]
@@ -815,6 +818,10 @@ class FairnessChecks(object):
         Raises:
             NA
             """
+        is_functional = check_model_functionality(model)
+        if not is_functional:
+            raise TypeError('Model provided is not proper')
+            
         n = X.shape[0]
         X_distance_mat = get_distance_mat(X, X_distance_func)
         predictions_proba = model.predict_proba(X)

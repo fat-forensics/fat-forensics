@@ -39,7 +39,7 @@ def describe_categorical(series: np.ndarray):
 
     return categorical_dict
 
-def describe_dataset(dataset: np.ndarray, todescribe='all', condition=None):
+def describe_dataset(dataset: np.ndarray, todescribe=[], condition=None):
     check = is_2d_array(dataset)
     if not check:
         raise TypeError('Input should be 2-Dimensional')
@@ -48,7 +48,7 @@ def describe_dataset(dataset: np.ndarray, todescribe='all', condition=None):
         structured_bool = False
         
     numerical_fields, categorical_fields = check_array_type(dataset)
-    if todescribe == 'all':
+    if not todescribe:
         todescribe = numerical_fields.tolist() + categorical_fields.tolist()
     if condition is not None:
         values_set = list(set(condition))

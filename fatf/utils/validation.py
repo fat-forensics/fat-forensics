@@ -77,6 +77,37 @@ def is_numerical_array(array: np.ndarray) -> bool:
 
     return is_numerical
 
+def is_1d_array(array: np.ndarray) -> bool:
+    """Determine whether a numpy array-like object has 1 dimensions.
+
+    Parameters
+    ----------
+    array : np.ndarray
+        The array to be checked.
+
+    Raises
+    ------
+    CustomValueError
+        The input array is not a numpy array-like object.
+
+    Returns
+    -------
+    is_1d : bool
+        True if the array is 2-dimensional, False otherwise.
+    """
+    if not isinstance(array, np.ndarray):
+        raise CustomValueError('The input should be a numpy array-like.')
+    
+    if is_structured(array):
+        is_1d = True if array.shape[0] == 1 else False
+    else:
+        if len(array.dtype) == 0:
+            is_1d = True if len(array.shape) == 1 else False
+        else:
+            is_1d = True if len(array.shape) == 0 else False
+    
+    return is_1d
+
 def is_2d_array(array: np.ndarray) -> bool:
     """Determine whether a numpy array-like object has 2 dimensions.
 
@@ -107,6 +138,22 @@ def is_2d_array(array: np.ndarray) -> bool:
             is_2d = True if len(array.shape) == 1 else False
 
     return is_2d
+
+def is_structured(array: np.ndarray) -> bool:
+    """Determine whether a numpy array-like object is a structured array
+    i.e. contains more than one datatype
+
+    Args
+    ----
+    array : np.ndarray
+        The array to be checked.
+
+    Returns
+    ----
+    is_structured : bool
+        True if the array is a structured array, False otherwise
+    """
+    return True if len(array.dtype) !=0 else False
 
 def check_array_type(array: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
     """Check whether a numpy array is purely numerical or a structured array
@@ -143,10 +190,13 @@ def check_array_type(array: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
     if not is_2d_array(array):
         raise IncorrectShapeException('The input array should be '
                                       '2-dimensional.')
-
-    if is_numerical_array(array):
-        numerical_indices = np.array(range(array.shape[1]))
-        categorical_indices = np.empty((0,))
+    if not is_structured(array):
+        if is_numerical_array(array):
+            numerical_indices = np.array(range(array.shape[1]))
+            categorical_indices = np.empty((0,), dtype='i8')
+        else:
+            numerical_indices = np.empty((0,), dtype='i8')
+            categorical_indices = np.array(range(array.shape[1]))
     else:
         if len(array.dtype) == 0:
             # If it's not numerical and it's of a single type, all the columns
@@ -169,57 +219,54 @@ def check_array_type(array: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
 
     return numerical_indices, categorical_indices
 
-def check_indices(array: np.array, 
-                  indices: np.array) -> bool:
-    """Check whether indices given in categorical_indices are valid indices for
+def check_indices(array: np.ndarray,
+                  indices: np.ndarray) -> np.ndarray:
+    """Check if indices are valid and return a list of indices that are not found
+    in the array
+
+    Args
+    ----
+    array : np.ndarray
+        The array to be checked
+    indices : np.ndarray
+        1-D array of indices corresponding to features in array
+    
+    Returns
+    ----
+    invalid_indices : np.ndarray
+        Array of indices that are not found in array
+    """
+    if not is_1d_array(indices):
+        invalid_ind = indices
+    else:
+        numerical_indices, categorical_indices = check_array_type(array)
+        valid_indices = np.hstack([numerical_indices, categorical_indices])
+        #TODO: np.in1d raises internal numpy FutureWarning, not sure how to get around it
+        invalid_ind = indices[~np.in1d(indices, valid_indices)]
+    return invalid_ind
+
+def check_valid_indices(array: np.array, 
+                        indices: np.array) -> bool:
+    """Check whether indices given in indices are valid indices for
     array.
 
-    Parameters
-    ----------
+    Args
+    ----
     array : np.array
         The array to be checked.
     categorical_indices : np.array
         1-D array of indices corresponding to features in array
-    
-    Raises
-    ------
 
     Returns
-    ----------
+    ----
     is_valid : bool
-        A Boolean variable that indicates whether the entries of categorical_indices
+        A Boolean variable that indicates whether the entries of indices
         are valid indices in array 
     """
     is_valid = True
-
-    indices_numerical = True if is_numerical_array(indices) else False
-    numerical_indices, categorical_indices = check_array_type(array)
-    array_numerical = np.array_equal(categorical_indices, np.array([]))
-    array_categorical = np.array_equal(numerical_indices, np.array([]))
-    if indices_numerical:
-        if array_numerical or array_categorical:
-            if len(array.dtype)==0:
-                if len(indices.shape) != 1:
-                    # indices has more then one dim
-                    is_valid = False
-                if np.any(indices < 0):
-                    # negative indices
-                    is_valid = False
-                if np.any(indices > array.shape[1] - 1):
-                    # indices bigger than number of features
-                    is_valid = False
-            else:
-                # indices is numerical array but array is structured
-                is_valid = False
-        else:
-            is_valid = False
-    else:
-        # indices are given as strings - check if array is ndarray or 
-        # structured
-        if len(array.dtype)==0:
-            is_valid = False
-        elif not set(indices).issubset(set(array.dtype.names)):
-            is_valid = False
+    invalid_indices = check_indices(array, indices)
+    if not np.array_equal(invalid_indices, np.array([], dtype=indices.dtype)):
+        is_valid = False
     return is_valid
 
 def check_model_functionality(model_object: object,

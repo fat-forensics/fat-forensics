@@ -171,6 +171,36 @@ def test_is_2d_array():
         empty = np.empty(shape=shape, dtype=complex_dtype)
         assert fuv.is_2d_array(empty) == False
 
+def test_is_1d_array():
+    array_1d = np.array([0, 1, 2])
+    array_1d_str = np.array(['a', 'b', 'c'])
+    array_1d_struct = np.array([('1', 0)], dtype=[('a', 'U1'), ('b', 'i8')])
+    array_2d_struct = np.array([('1', 0), ('2', 1)], dtype=[('a', 'U1'), ('b', 'i8')])
+    array_2d = np.ones((22, 4))
+    arrays = [array_1d, array_1d_str, array_1d_struct, array_2d_struct, array_2d]
+    results = [True, True, True, False, False]
+    for array, result in zip(arrays, results):
+        assert(fuv.is_1d_array(array) == result)
+
+def test_is_structured():
+    array_all_numerical_structured = np.ones((22,),
+                                             dtype=[('a', 'f'),
+                                                    ('b', 'f'),
+                                                    ('c', int),
+                                                    ('d', int)])
+    array_all_numerical = np.ones((22,4))
+    array_mixture = np.ones((22,),
+                             dtype=[('a', 'U4'),
+                                    ('b', 'f'),
+                                    ('c', 'U4'),
+                                    ('d', int)])
+    array_all_categorical = np.ones((22,4), dtype='U4')
+    results = [True, False, True, False]
+    arrays = [array_all_numerical_structured, array_all_numerical, array_mixture,
+              array_all_categorical]
+    for array, res in zip(arrays, results):
+        assert(fuv.is_structured(array) == res)
+
 def test_check_array_type():
     # Test any object
     object_1 = None
@@ -229,46 +259,64 @@ def test_check_array_type():
     assert np.array_equal(array_mixture_2_indices_categorical, i_c)
 
 def test_check_indices():
+    inputs = [np.array([0, 1, 2]), 
+              np.array(['a', 'b', 'c']),
+              np.array(['a', 'b', 'z']),
+              np.array([0, 2, 6]),
+              np.array([('a', 0)], dtype=[('a', 'U4'), ('b', 'int')]),
+              np.array([-1, 0, 1]),
+              np.array([[1, 0], [0, 2]])]
+    non_structured_outputs = [np.array([], dtype=np.int64),
+                              np.array(['a', 'b', 'c']),
+                              np.array(['a', 'b', 'z']),
+                              np.array([6]),
+                              np.array([('a', 0)], dtype=[('a', 'U4'), ('b', 'int')]),
+                              np.array([-1]),
+                              np.array([[1, 0], [0, 2]])]
+    structured_outputs = [np.array([0, 1, 2], dtype=np.int64),
+                          np.array([], dtype='U1'),
+                          np.array(['z']),
+                          np.array([0, 2, 6]),
+                          np.array([('a', 0)], dtype=[('a', 'U4'), ('b', 'int')]),
+                          np.array([-1, 0, 1]),
+                          np.array([[1, 0], [0, 2]])]
+    non_structured_valid_outputs = [True, False, False, False, False, False, False]
+    structured_valid_outputs = [False, True, False, False, False, False, False]
     array_all_numerical = np.ones((22,4))
-    assert(fuv.check_indices(array_all_numerical, np.array([0, 1, 2, 3])) == True)
-    assert(fuv.check_indices(array_all_numerical, np.array(['a', 'b'])) == False)
-    assert(fuv.check_indices(array_all_numerical, np.array([0, 1, 2, 6])) == False)
-    assert(fuv.check_indices(array_all_numerical, np.array(['a', 'b', 0, 1])) == False)
-    assert(fuv.check_indices(array_all_numerical, np.array([-1, 0, 1, 2])) == False)
-    assert(fuv.check_indices(array_all_numerical, np.array([[1, 0], [0, 2]])) == False)
-    
+    for input_array, output, valid in zip(inputs, non_structured_outputs, 
+                                          non_structured_valid_outputs):
+        assert(np.array_equal(fuv.check_indices(array_all_numerical, input_array), 
+                              output))
+        assert(fuv.check_valid_indices(array_all_numerical, input_array) == valid)
 
     array_all_categorical = np.ones((22,4), dtype='U4')
-    assert(fuv.check_indices(array_all_categorical, np.array([0, 1, 2, 3])) == True)
-    assert(fuv.check_indices(array_all_categorical, np.array(['a', 'b'])) == False)
-    assert(fuv.check_indices(array_all_categorical, np.array([0, 1, 2, 6])) == False)
-    assert(fuv.check_indices(array_all_categorical, np.array(['a', 'b', 0, 1])) == False)
-    assert(fuv.check_indices(array_all_categorical, np.array([-1, 0, 1, 2])) == False)
-    assert(fuv.check_indices(array_all_numerical, np.array([[1, 0], [0, 2]])) == False)
+    for input_array, output, valid in zip(inputs, non_structured_outputs,
+                                          non_structured_valid_outputs):
+        assert(np.array_equal(fuv.check_indices(array_all_categorical, input_array), 
+                              output))
+        assert(fuv.check_valid_indices(array_all_categorical, input_array) == valid)
 
     array_mixture = np.ones((22,),
                               dtype=[('a', 'U4'),
                                      ('b', 'f'),
                                      ('c', 'U4'),
-                                     ('d', int)]
-                             )
-    assert(fuv.check_indices(array_mixture, np.array(['a', 'b', 'c', 'd'])) == True)
-    assert(fuv.check_indices(array_mixture, np.array([0, 1, 2, 3])) == False)
-    assert(fuv.check_indices(array_mixture, np.array(['a', 'b', 0, 1])) == False)
-    assert(fuv.check_indices(array_mixture, np.array(['ads', 'f', 'a', 'b'])) == False)
-    assert(fuv.check_indices(array_mixture, np.array([[1, 0], [0, 2]])) == False)
-    
-    array_all_numerical_structure = np.ones((22,),
+                                     ('d', int)])
+    for input_array, output, valid in zip(inputs, structured_outputs, 
+                                          structured_valid_outputs):
+        assert(np.array_equal(fuv.check_indices(array_mixture, input_array), output))
+        assert(fuv.check_valid_indices(array_mixture, input_array) == valid)
+
+    array_all_numerical_structured = np.ones((22,),
                                             dtype=[('a', 'f'),
                                                    ('b', 'f'),
                                                    ('c', int),
-                                                   ('d', int)]
-                                           )
-    assert(fuv.check_indices(array_all_numerical_structure, np.array(['a', 'b', 'c', 'd'])) == True)
-    assert(fuv.check_indices(array_all_numerical_structure, np.array([0, 1, 2, 3])) == False)
-    assert(fuv.check_indices(array_all_numerical_structure, np.array(['a', 'b', 0, 1])) == False)
-    assert(fuv.check_indices(array_all_numerical_structure, np.array(['ads', 'f', 'a', 'b'])) == False)
-    assert(fuv.check_indices(array_all_numerical_structure, np.array([[1, 0], [0, 2]])) == False)
+                                                   ('d', int)])
+    for input_array, output, valid in zip(inputs, structured_outputs,
+                                          structured_valid_outputs):
+        assert(np.array_equal(fuv.check_indices(array_all_numerical_structured, input_array), 
+                              output))
+        assert(fuv.check_valid_indices(array_all_numerical_structured, input_array)
+               == valid)
 
 def test_check_model_functionality():
     class ClassPlain: pass

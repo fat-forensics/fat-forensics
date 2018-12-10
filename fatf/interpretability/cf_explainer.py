@@ -105,8 +105,8 @@ class Explainer(object):
             dist += self.dist_funcs[feature](v0[feature], v1[feature])
         return dist  
       
-    def get_feature_ranges(self, tocomplete = 'all'):
-        if tocomplete == 'all':
+    def get_feature_ranges(self, tocomplete = []):
+        if not tocomplete:
             features_to_complete = self.dataset.dtype.names
             self.feature_ranges = {}
         else:
@@ -197,3 +197,4 @@ class Explainer(object):
                 except:
                     pass
         return self.pretty_print(all_scores)
+    

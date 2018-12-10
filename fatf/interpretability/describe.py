@@ -56,6 +56,9 @@ def describe_dataset(dataset: np.ndarray,
     if condition is not None:
         values_set = list(set(condition))
         n_samples = condition.shape[0]
+        if n_samples != dataset.shape[0]:
+            raise ValueError('Dimension of condition does not match dimension of dataset')
+            
         grand_dict = {}
         for value in values_set:
             mask = np.array(np.zeros(n_samples), dtype=bool)

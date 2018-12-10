@@ -26,12 +26,11 @@ testdata = np.array([('Heidi Mitchell', 'uboyd@hotmail.com', 74, 52, 'female', '
 
 testdata2 = np.array([('Heidi Mitchell', 'uboyd@hotmail.com', 74, 52, 'female', '1121', 'cancer', '03/06/2018'),
        ('Tina Burns', 'stevenwheeler@williams.bi',  3, 86, 'female', '0323', 'hip', '26/09/2017'),
-       ('Justin Brown', 'velasquezjake@gmail.com', 26, 56, 'female', '0100', 'heart', '31/12/2015'),
-       ('Brent Parker', 'kennethsingh@strong-foley', 70, 57, 'male', '3131', 'heart', '02/10/2011'),
        ('Bryan Norton', 'erica36@hotmail.com', 48, 57, 'male', '0301', 'hip', '09/09/2012'),
        ('Ms. Erin Craig', 'ritterluke@gmail.com', 30, 98, 'male', '2223', 'cancer', '04/11/2006'),],
       dtype=[('name', '<U16'), ('email', '<U25'), ('age', '<i4'), 
              ('weight', '<i4'), ('gender', '<U6'), ('zipcode', '<U6'), 
              ('diagnosis', '<U6'), ('dob', '<U10')])
 
-a=describe_dataset(testdata2, todescribe=['age'], condition=np.array(['f', 'f', 'f', 'm', 'm', 'm']))
+a=describe_dataset(testdata2, todescribe=['age'], condition=np.array(['f', 'f', 'm', 'm']))
+a=describe_dataset(testdata2, todescribe=['age'])

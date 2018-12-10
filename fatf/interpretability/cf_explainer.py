@@ -41,14 +41,14 @@ def combine_arrays(array1: np.array, array2: np.array) -> list:
 
 class Explainer(object):
     def __init__(self, 
-                 model,
+                 model: object,
                  categorical_features: list,
                  dataset: np.ndarray,
                  monotone = False,
                  stepsizes = None,
-                 max_comb = 2,
-                 feature_ranges=None,
-                 dist_funcs=None):
+                 max_comb: int = 2,
+                 feature_ranges: dict = None,
+                 dist_funcs: dict = None):
         
         self.model = model
         self.monotone = monotone
@@ -136,17 +136,22 @@ class Explainer(object):
         list_of_values = []
         for ftr in ftr_combination:
             if ftr not in self.categorical_features:
+                
                 s0 = np.arange(self.feature_ranges[ftr]['min'], 
                                self.instance[ftr], 
                                self.stepsizes[ftr])
+                
                 s1 = np.arange(self.instance[ftr] + self.stepsizes[ftr], 
                                self.feature_ranges[ftr]['max'], 
                                self.stepsizes[ftr])
+
                 combined = combine_arrays(s0[::-1], s1)
 
                 list_of_values.append(combined)
             else:
-                list_of_values.append(self.feature_ranges[ftr])
+                t = self.feature_ranges[ftr].tolist()
+                t.pop(t.index(self.instance[ftr]))
+                list_of_values.append(t)
         return itertools.product(*list_of_values)
     
     def pretty_print(self, all_scores):
@@ -174,7 +179,6 @@ class Explainer(object):
         all_scores = []
         for n in range(1, self.max_comb+1):            
             ftr_combinations = list(itertools.combinations(ftrs_indices, n))
-            
             for ftr_combination_indices in ftr_combinations:
                 scores = []
                 ftr_combination = [self.ftrs[item] for item in ftr_combination_indices]

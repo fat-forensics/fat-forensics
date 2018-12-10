@@ -7,7 +7,7 @@ Created on Wed Dec  5 11:52:13 2018
 import numpy as np
 from cf_explainer import Explainer
 from sklearn.linear_model import LogisticRegression
-from supp_explainer import create_dataset
+from supp_explainer import create_dataset, remove_field
 
 class CostObject(object):
     def __init__(self, distance_funcs):
@@ -24,11 +24,7 @@ class CostObject(object):
             dist += distance_funcs[feature](v0[feature], v1[feature])
         return dist
 
-def remove_field(dataset, field):
-    field_names = list(dataset.dtype.names)
-    if field in field_names:
-        field_names.remove(field)
-    return dataset[field_names]
+
 
 dataset, treatments, distance_funcs = create_dataset()
 targets = dataset['Target']
@@ -40,26 +36,26 @@ newx = dataset.copy(order='K')
 newx = np.array(newx.tolist())
 model.fit(newx, targets)
 
-categorical_features = ['Gender']
+categorical_features = ['job_type']
 
 del distance_funcs['Target']
 
 
 
 #cost_calc = CostObject(distance_funcs)
-dataset.astype(dtype=[('Age', '<f4'), ('Weight', '<f4'), ('Gender', '<f4')])
+dataset.astype(dtype=[('Age', '<f4'), ('Weight', '<f4'), ('job_type', '<f4')])
 x0 = dataset[0]
 print(x0)
 pred = model.predict(np.array(x0.tolist(), dtype=float).reshape(1, -1))
 feature_ranges = {
-                    'Age': {'max': x0['Age']
-                            },
-                  'Gender': np.array([x0['Gender']])
+                    'Age': {'max': x0['Age'] + 10,
+                            'min': x0['Age'] - 10},
+                  'job_type': np.array([x0['job_type']])
                   }
 
 stepsizes = {
-            'Age': 0.10,
-            'Weight': 0.10
+            'Age': 0.50,
+            'Weight': 0.50
             }
 
 

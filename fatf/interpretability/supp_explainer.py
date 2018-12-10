@@ -1,7 +1,7 @@
 import numpy as np
 
 testdata3 = np.array([
-        ('Heidi Mitchell', 'uboyd@hotmail.com', 35, 52, 0, '0011', 1, '03/06/2018', 1),
+        ('Heidi Mitchell', 'uboyd@hotmail.com', 35, 52, 2, '0011', 1, '03/06/2018', 1),
        ('Tina Burns', 'stevenwheeler@williams.bi',  3, 86, 1, '0011', 0, '26/09/2017', 1),
        ('Justin Brown', 'velasquezjake@gmail.com', 3, 86, 2, '0011', 1, '31/12/2015', 0),
        ('Brent Parker', 'kennethsingh@strong-foley', 70, 57, 0, '0011', 1, '02/10/2011', 0),
@@ -10,8 +10,14 @@ testdata3 = np.array([
        ('Gerald Park', 'larrylee@hayes-brown.net', 41, 73, 1, '1100', 0, '15/12/2015', 0),
        ],
       dtype=[('name', '<U16'), ('email', '<U25'), ('age', '<f4'), 
-             ('weight', '<f4'), ('gender', '<i4'), ('zipcode', '<U6'), 
+             ('weight', '<f4'), ('job_type', '<i4'), ('zipcode', '<U6'), 
              ('target', '<i4'), ('dob', '<U10'), ('prediction', '<i4')])
+
+def remove_field(dataset, field):
+    field_names = list(dataset.dtype.names)
+    if field in field_names:
+        field_names.remove(field)
+    return dataset[field_names]
 
 def create_dataset():
     list_of_dictionaries = get_data()
@@ -111,8 +117,8 @@ def get_data():
                               field_distance_func = zipcode_dist
                               )
     
-    gender_dict = get_dictionary(field_name = 'Gender', 
-                              field_data = testdata3['gender'], 
+    job_type_dict = get_dictionary(field_name = 'job_type', 
+                              field_data = testdata3['job_type'], 
                               field_treatment = 'Protected', 
                               field_distance_func = lambda x, y: int(x != y)
                               )
@@ -123,4 +129,4 @@ def get_data():
                               field_distance_func = None
                               )
     
-    return [age_dict, weight_dict, disease_dict, gender_dict]
+    return [age_dict, weight_dict, disease_dict, job_type_dict]

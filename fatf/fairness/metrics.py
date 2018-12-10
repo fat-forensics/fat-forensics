@@ -11,12 +11,13 @@ import numpy as np
 import itertools
 import math
 from fatf.utils.validation import check_array_type
+from types import FunctionType
 
-def euc_dist(v0, v1):
+def euc_dist(v0: np.ndarray, v1: np.ndarray) -> float:
     return np.linalg.norm(v0 - v1)**2
 
 
-def get_distance_mat(mat, func):
+def get_distance_mat(mat: np.ndarray, func: FunctionType) -> np.matrix:
     n = mat.shape[0]
     D = np.matrix(np.zeros(n**2).reshape(n, n))
     for i in range(n):
@@ -53,7 +54,7 @@ def get_distance_mat(mat, func):
 # =============================================================================
 
 
-def get_bins_inf(boundaries):
+def get_bins_inf(boundaries: list) -> list:
     """
 	Produces bins, given a set of boundaries.
     Example: boundaries = [20, 40]
@@ -152,7 +153,7 @@ class FairnessChecks(object):
                  targets: np.array,
                  distance_funcs: dict,
                  protected: str,
-                 toignore = [],
+                 toignore: list = None,
                  ):
         self.dataset = dataset.copy(order='K')
         self.structured_bool = True
@@ -280,7 +281,7 @@ class FairnessChecks(object):
                     distance_list.append((dist, (i,j)))
         return distance_list
 
-    def _apply_distance_funcs(self, v0, v1, toignore: list = None) -> int:
+    def _apply_distance_funcs(self, v0: np.ndarray, v1: np.ndarray, toignore: list = None) -> int:
         """
         Computes the distance between two instances, based on the distance functions
         provided by the user.
@@ -520,13 +521,18 @@ class FairnessChecks(object):
                         summary[combination][item] = self.checks[item](conf_mat)
         return summary
     
-    def _apply_combination_filter(self, combination: tuple, boundaries_for_numerical: dict) -> (np.ndarray, np.ndarray):
+    def _apply_combination_filter(self, 
+                                  combination: tuple, 
+                                  boundaries_for_numerical: dict) -> (np.ndarray, np.ndarray):
         mask = self._get_mask(self.dataset, self.features_to_check, combination, boundaries_for_numerical)
         filtered_predictions = self.predictions[mask]
         filtered_targets = self.targets[mask]
         return filtered_predictions, filtered_targets
 
-    def _get_confusion_matrix(self, target: np.ndarray, prediction: np.ndarray, labels: list) -> np.matrix:
+    def _get_confusion_matrix(self, 
+                              target: np.ndarray, 
+                              prediction: np.ndarray, 
+                              labels: list) -> np.matrix:
         """ Confusion matrix.
     
         Description: Confusion matrix.
@@ -600,7 +606,7 @@ class FairnessChecks(object):
             dataset, targets, predictions = \
                     self._filter_dataset(conditioned_field, condition)
         
-        split_datasets = self._split_dataset(dataset, targets, predictions, self.protected_field, [0, 1])
+        split_datasets = self._split_dataset(self.protected_field, [0, 1])
 # =============================================================================
 #         print('\n')
 #         print(split_datasets[0])
@@ -638,7 +644,7 @@ class FairnessChecks(object):
         else:
             return self.aggregated_checks
 
-    def _filter_dataset(self, feature, feature_value):
+    def _filter_dataset(self, feature: str, feature_value) -> (np.ndarray, np.ndarray, np.ndarray):
         """ Filters the data according to the feature provided.
     
         Description: Will filter the data.
@@ -655,7 +661,6 @@ class FairnessChecks(object):
         Raises:
             NA
             """
-        print(type(feature), type(feature_value))
         n = self.dataset.shape[0]
         mask = np.zeros(n, dtype=bool)
         if self.structured_bool:
@@ -668,13 +673,13 @@ class FairnessChecks(object):
         filtered_predictions = self.predictions[mask]
         return filtered_dataset, filtered_targets, filtered_predictions
 
-    def _remove_field(self, dataset, field):
+    def _remove_field(self, dataset: np.ndarray, field: str) -> np.ndarray:
         field_names = list(dataset.dtype.names)
         if field in field_names:
             field_names.remove(field)
         return dataset[field_names]
     
-    def _split_dataset(self, X, targets, predictions, feature, labels):
+    def _split_dataset(self, feature: str, labels: list) -> list:
         """ Splits the data according to the protected feature provided.
     
         Description: Will split the data.
@@ -698,7 +703,7 @@ class FairnessChecks(object):
                            ))
         return splits
     
-    def _get_summary(self):
+    def _get_summary(self) -> dict:
         """ Compares the checks on the subpopulations.
     
         Description: A function that will compare the checks on the subpopulations,
@@ -736,7 +741,11 @@ class FairnessChecks(object):
     
         return summary
     
-    def counterfactual_fairness(self, test_model, protected, xtest_, unique_targets):
+    def counterfactual_fairness(self, 
+                                test_model: object, 
+                                protected: str, 
+                                xtest_: np.ndarray, 
+                                unique_targets: list) -> np.matrix:
         """ Checks counterfactual fairness of the model.
     
         Description: Will flip the protected attribute and generate new predictions,
@@ -768,10 +777,10 @@ class FairnessChecks(object):
         return conf_mat
 
     def individual_fairness(self, 
-                            model, 
-                            X, 
-                            X_distance_func=euc_dist, 
-                            predictions_distance_func=euc_dist):
+                            model: object, 
+                            X: np.ndarray, 
+                            X_distance_func: FunctionType = euc_dist, 
+                            predictions_distance_func: FunctionType = euc_dist) -> bool:
         """ Checks individual fairness -- 'Fairness through awareness'.
     
         Description: Will check whether similar instances get similar predictions.

@@ -10,6 +10,11 @@ import numpy as np
 
 from supp import testdata3
 
+def remove_field(dataset, field):
+    field_names = list(dataset.dtype.names)
+    if field in field_names:
+        field_names.remove(field)
+    return dataset[field_names]
 
 def create_dataset():
     list_of_dictionaries = get_data()

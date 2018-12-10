@@ -1,9 +1,11 @@
-# -*- coding: utf-8 -*-
 """
-Created on Tue Dec  4 09:06:01 2018
+The :mod:`fatf.accountability.data` module holds the objects and relevant
+functions for anonymising datasets.
+"""
 
-@author: rp13102
-"""
+# Author: Rafael Poyiadzis <rp13102@bristol.ac.uk>
+# License: BSD 3 clause
+
 import numpy as np
 from numpy.lib import recfunctions as rfn
 import math

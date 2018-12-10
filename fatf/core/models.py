@@ -1,8 +1,9 @@
 """
-K-NN Classifier to use in training
-Author: Alex Hepburn <ah13558@bristol.ac.uk>
-License: new BSD
+The :mod:`fatf.core.models` has some basic classification models for basic use.
 """
+
+# Author: Alex Hepburn <ah13558@bristol.ac.uk>
+# License: new BSD
 
 from collections import Counter
 from typing import List
@@ -12,11 +13,16 @@ from scipy.spatial import distance
 
 
 class KNN(object):
-    '''K-nearest-neighbour classifier for testing purposes only
-    Attributes:
-        k: int of how many nearest neighbours to use
-        _X_train: np.ndarray containing training data
-        _Y_train: np.array containing training labels
+    '''K-nearest-neighbour classifier
+
+    Attributes
+    ----
+    k : int 
+        How many nearest neighbours to use
+    _X_train : np.ndarray 
+        Containing training data
+    _Y_train : np.array 
+        Containing training labels
     '''
 
     def __init__(self, k: int = 1) -> None:

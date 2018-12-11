@@ -714,6 +714,50 @@ class TCloseness(BaseAnonymiser):
         
         return data
     
+    def swap_instances_2(self):
+        """ Swaps instances between a cluster and the pool of unlabelled instances.
+        
+        Description: Find the best possible swap of instances between the given
+                    cluster and the pool of unlabelled instances. It iterates
+                    over all possible swaps to find the one that reduces EMD the most.
+                       
+        Args: 
+            data: Structured Numpy Array dataset.
+            sensitive_attribute: String for the name of the attribute to be
+                                protected.
+            base_distr: The distribution of the sensitive_attribute in the whole
+                        dataset.
+            cluster_assignments: List of cluster assignments
+            t: The maximum allowed Earth Mover's Distance (EMD) distance allowed
+                between each equivalence class' distribution of sensitive_attribute
+                and the overall distribution of the sensitive_attribute.
+            
+        Returns: cluster_assignments: List with updated cluster_assignments, with a lower
+                                    t-distance.
+        
+        Raises:
+            NA 
+            """
+        cluster_counter = int(max(self.cluster_assignments))
+        scores = []
+        for internal_idx, internal_val in enumerate(self.cluster_assignments):
+            if internal_val == cluster_counter:
+                for external_idx, external_val in enumerate(self.cluster_assignments):
+                    if external_val == -1:
+                        self.cluster_assignments[internal_idx] = -1
+                        self.cluster_assignments[external_idx] = cluster_counter
+                        new_distr = get_distr(self.SA[np.where(self.cluster_assignments == cluster_counter)[0]])
+                        new_emd = get_emd_fordistrs(new_distr, self.base_distr)
+                        
+                        scores.append((internal_idx, external_idx, new_emd))
+                        
+                        self.cluster_assignments[internal_idx] = cluster_counter
+                        self.cluster_assignments[external_idx] = -1
+        best = np.argmin([item[2] for item in scores])
+        internal, external = scores[best][0], scores[best][1]
+        self.cluster_assignments[internal] = -1
+        self.cluster_assignments[external] = cluster_counter
+
     def swap_instances(self):
         """ Swaps instances between a cluster and the pool of unlabelled instances.
         
@@ -871,18 +915,22 @@ class TCloseness(BaseAnonymiser):
             satisfied = emd <= self.t
     
             if not satisfied:
-                self.swap_instances()
-                #cluster_assignments = swap_instances_(SA, base_distr, cluster_assignments, cluster_counter, t)
+                #self.swap_instances()
+                self.swap_instances_2()
             positions_of_unclustered = np.where(self.cluster_assignments == -1)[0]
             cluster_counter += 1
             
         satisfied, emds = self.check_tcloseness()
         self.assign_extras_tcloseness(emds)
-        
+        print(emds)
+        print('\n')
         data = self.get_equivalence_classes()
         satisfied, emds = self.check_tcloseness()
+        print(emds)
+        print('\n')
         if not satisfied:
             self.generalize()
+        #print(self.emds)
         return data
     
 

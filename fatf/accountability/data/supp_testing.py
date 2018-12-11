@@ -459,6 +459,7 @@ from new import TCloseness, LDiversity, KAnonymity
 dataset, treatments, lca_funcs, distance_funcs, range_funcs = create_dataset()  
 #treatments['QI'].pop()
 #treatments['SA'].append('Gender')  
+del lca_funcs['Age']
 mdl0 = TCloseness(dataset, treatments['I'], treatments['QI'], treatments['SA'], 
                  lca_funcs=lca_funcs, range_funcs=range_funcs, t=0.30) 
 d=mdl0.apply_tcloseness_2(suppress=True)

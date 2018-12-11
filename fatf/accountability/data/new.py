@@ -10,26 +10,30 @@ import numpy as np
 from numpy.lib import recfunctions as rfn
 import math
 from fatf.utils.validation import check_array_type
-from typing import Optional
+from typing import Optional, List, Dict, Union, Tuple, Callable
+import mypy
 
-def lca_realline(X: list, 
-                 rounding: Optional[int] = 5) -> str:
+
+def lca_realline(X: np.ndarray,
+                 rounding: Optional[int]) -> str:
+    if not rounding:
+        rounding = 5
     X = list(map(int, X))
     max_val = max(X)
     min_val = min(X)
     lb = math.floor(int(min_val/rounding)*rounding)
     ub = math.ceil(int(max_val/rounding)*rounding)
     lca = str(lb) + '-' + str(ub)
-    
-    return lca 
 
-def range_func_realline(X: list) -> int:
+    return lca
+
+def range_func_realline(X: List[int]) -> int:
     X = list(map(int, X))
     max_val = max(X)
     min_val = min(X)
     return max_val - min_val
 
-def get_distr(inputlist: list) -> dict:
+def get_distr(inputlist: List[int]) -> dict:
     unique, counts = np.unique(inputlist, return_counts=True)
     count = dict(zip(unique, counts))
     s = sum(count.values())
@@ -38,10 +42,10 @@ def get_distr(inputlist: list) -> dict:
 
     return count
 
-def get_emd_fordistrs(distr1: dict, 
-                      distr2: dict) -> float:
+def get_emd_fordistrs(distr1: Dict[str, float],
+                      distr2: Dict[str, float]) -> float:
     union_set = set(distr1.keys()).union(distr2.keys())
-    emd = 0
+    emd = 0.0
     for item in union_set:
         try:
             val1 = distr1[item]
@@ -49,145 +53,150 @@ def get_emd_fordistrs(distr1: dict,
                 val2 = distr2[item]
                 emd += np.abs(val1 - val2)
             except:
-                emd += val1 
+                emd += val1
         except:
             emd += distr2[item]
     return emd
-            
-def get_emd_forlists(list1: list, 
+
+def get_emd_forlists(list1: list,
                      list2: list) -> float:
     count1 = get_distr(list1)
     count2 = get_distr(list2)
-    
+
     return get_emd_fordistrs(count1, count2)
 
 
-
-
 class BaseAnonymiser(object):
-    def __init__(self, 
-                 dataset: np.ndarray, 
+    def __init__(self,
+                 dataset: np.ndarray,
                  identifiers: list,
                  quasi_identifiers: list,
                  sensitive_attributes: list,
-                 lca_funcs: Optional[dict] = None,
-                 range_funcs: Optional[dict] = None):
-        
+                 lca_funcs: Optional[Dict[str, Callable]] = None,
+                 range_funcs: Optional[Dict[str, Callable]] = None) -> None:
+
         numerical_features, categorical_features = check_array_type(dataset)
         self.numerucal_features = numerical_features.tolist()
         self.categorical_features = categorical_features.tolist()
         self.features = self.numerucal_features + self.categorical_features
-        
+
         self._dataset = dataset.copy(order='K')
         self._quasi_identifiers = quasi_identifiers
         self._attributes_to_suppress = identifiers
         self._sensitive_attributes = sensitive_attributes
-        self.lca_funcs = lca_funcs
-        self.range_funcs = range_funcs
+        if not lca_funcs:
+            
+            self.lca_funcs: Dict[str, Callable] = {}
+        else:
+            self.lca_funcs = lca_funcs
+        if not range_funcs:
+            self.range_funcs: Dict[str, Callable] = {}
+        else:
+            self.range_funcs = range_funcs
         self.check_funcs()
         self.n_samples = self.dataset.shape[0]
         self.check_input()
-        
+
         #TODO: potential issue with concat
         if len(self.sensitive_attributes) > 1:
             self.concatenate_sensitive_attributes()
 
-        self.SA = self.dataset[self.sensitive_attributes[0]] 
+        self.SA = self.dataset[self.sensitive_attributes[0]]
 
     @property
     def cluster_assignments(self):
         return self._cluster_assignments
-    
+
     @cluster_assignments.setter
     def cluster_assignments(self, cluster_assignments):
         self._cluster_assignments = cluster_assignments
     @property
     def dataset(self):
         return self._dataset
-    
+
     @property
     def quasi_identifiers(self):
         return self._quasi_identifiers
-    
+
     @quasi_identifiers.setter
     def quasi_identifiers(self, quasi_identifiers):
         self._quasi_identifiers = quasi_identifiers
         self.check_input()
-        
+
     @property
     def attributes_to_suppress(self):
         return self._attributes_to_suppress
-    
+
     @attributes_to_suppress.setter
     def attributes_to_suppress(self, attributes_to_suppress):
         self._attributes_to_suppress = attributes_to_suppress
         self.check_input()
-        
+
     @property
     def sensitive_attributes(self):
         return self._sensitive_attributes
-    
+
     @sensitive_attributes.setter
     def sensitive_attributes(self, sensitive_attributes):
         self._sensitive_attributes = sensitive_attributes
-        self.SA = self.dataset[self.sensitive_attributes[0]] 
+        self.SA = self.dataset[self.sensitive_attributes[0]]
         if len(self.sensitive_attributes) > 1:
             self.concatenate_sensitive_attributes()
-    
+
     def check_funcs(self):
         if not self.lca_funcs:
             self.lca_funcs = dict(zip(self.features, [None]*len(self.features)))
         lca_keys = set(self.lca_funcs.keys())
-        if not self.range_funcs:   
+        if not self.range_funcs:
             self.range_funcs = dict(zip(self.features, [None]*len(self.features)))
-            
+
         range_keys = set(self.range_funcs.keys())
         for field_name in self.features:
-            if (field_name not in lca_keys or 
+            if (field_name not in lca_keys or
                     self.lca_funcs[field_name] is None):
                 if field_name in self.numerucal_features:
                     self.lca_funcs[field_name] = lca_realline
                     lca_keys.add(field_name)
-                    
-            if (field_name not in range_keys or 
+
+            if (field_name not in range_keys or
                     self.range_funcs[field_name] is None):
                 if field_name in self.numerucal_features:
                     self.range_funcs[field_name] = range_func_realline
                     range_keys.add(field_name)
-                    
+
             if field_name in self.quasi_identifiers:
-                if (field_name not in lca_keys or 
+                if (field_name not in lca_keys or
                         self.lca_funcs[field_name] is None):
                     raise ValueError('missing lca function for %s: ', field_name)
-                    
-                if (field_name not in range_keys or 
+
+                if (field_name not in range_keys or
                         self.range_funcs[field_name] is None):
                     raise ValueError('missing range function for %s: ', field_name)
-    
+
     def change_numerical_to_str(self, data: np.ndarray) -> np.ndarray:
         for attr in self.numerucal_features:
             t = data[attr]
             data = rfn.drop_fields(data, attr)
             data = rfn.append_fields(data, attr, t, dtypes='<U9', usemask=False)
         return data
-            
+
     def initialise_clustering(self) -> np.array:
         cluster_assignments = np.array(-np.ones(self.n_samples), dtype='int32')
-        idx = np.random.randint(self.n_samples, size=1)    
+        idx = np.random.randint(self.n_samples, size=1)
         cluster_assignments[idx] = 0
         return cluster_assignments
-        
+
     def get_total_information_loss(self, dataset: np.ndarray) -> float:
         """ Calculates the total information loss for the current clustering.
-        
+
         Function that will calculate the total information loss,
         for the current clustering, based on the 'features' provided.
-        
+
         Parameters
         ----------
-        dataset: np.ndarray 
+        dataset: np.ndarray
             dataset to be anonymized.
-            
+
         Returns
         -------
         total_information_loss: float
@@ -196,8 +205,8 @@ class BaseAnonymiser(object):
         """
         unique_clusters = list(set(self.cluster_assignments))
         full_dataset_ranges = self.get_feature_ranges(dataset)
-    
-        total_information_loss = 0
+
+        total_information_loss = 0.0
         for cluster in unique_clusters:
             if cluster == -1:
                 continue
@@ -205,37 +214,37 @@ class BaseAnonymiser(object):
             total_information_loss += self.get_information_loss(filtered_dataset, full_dataset_ranges)
         return total_information_loss
 
-    def get_information_loss(self, 
-                             dataset: np.ndarray, 
-                             full_dataset_ranges: dict) -> float:
+    def get_information_loss(self,
+                             dataset: np.ndarray,
+                             full_dataset_ranges: Dict[str, Union[str, int, float]]) -> float:
         """ Calculates the information loss for the current cluster.
-        
+
         Function that will calculate the total information loss,
-        for the current clustering, based on the 'features' provided. 
-        For continuous variables, it is the range of the variable in the 
-        cluster (MAX - MIN) divided by the range in the full dataset, 
-        multiplied by the size of the cluster. For categorical it is 
+        for the current clustering, based on the 'features' provided.
+        For continuous variables, it is the range of the variable in the
+        cluster (MAX - MIN) divided by the range in the full dataset,
+        multiplied by the size of the cluster. For categorical it is
         the ratio of the heights of the trees, multiplied by the size
         of the cluster.
-        
+
         Parameters
         ----------
-        dataset: np.ndarray 
+        dataset: np.ndarray
             dataset to be anonymized.
         full_dataset_ranges: dict
             the range of the features for the whole datasset.
-        
+
         Returns
         ------
-        information_loss: float       
+        information_loss: float
             The information loss for the current cluster.
-        
+
         """
         dataset_length = dataset.shape[0]
-        information_loss = 0
+        information_loss = 0.0
         for attr_name, attr_range_func in self.range_funcs.items():
             if attr_name in self.quasi_identifiers:
-                attr_range = attr_range_func(dataset[attr_name])            
+                attr_range = attr_range_func(dataset[attr_name])
                 information_loss += attr_range / full_dataset_ranges[attr_name]
         information_loss = dataset_length * information_loss
         return information_loss
@@ -249,8 +258,8 @@ class BaseAnonymiser(object):
             if attr_name in self.quasi_identifiers:
                 ranges[attr_name] = attr_range_func(dataset[attr_name])
         return ranges
-     
-    def filter_dataset(self, dataset: np.ndarray, 
+
+    def filter_dataset(self, dataset: np.ndarray,
                        filters: list) -> np.ndarray:
         """
         Returns the entries of the dataset for the specific clusters.
@@ -262,14 +271,14 @@ class BaseAnonymiser(object):
             else:
                 filter_list.append(False)
         return dataset[filter_list]
-    
-    def concatenate_sensitive_attributes(self, 
-                                         newfield_name: Optional[str] = None, 
+
+    def concatenate_sensitive_attributes(self,
+                                         newfield_name: Optional[str] = None,
                                          newfield_type: Optional[str] = '<U16'):
         """ Combines sensitive attributes in the case of them being more than one.
-        
+
         Cross product between the sensitive attributes.
-        
+
         Parameters
         ----------
         newfield_name: Optional, str
@@ -277,7 +286,7 @@ class BaseAnonymiser(object):
             is the concatenation of the two.
         newfield_type: Optional, str to provide the dtype of the newfield. Default
                             is '<U30'.
-                            
+
             """
         newcolumn = np.array(list(map(lambda x: x[0] + '-' + x[1], self.dataset[self.sensitive_attributes])))
         if not newfield_name:
@@ -288,33 +297,33 @@ class BaseAnonymiser(object):
         self._dataset = rfn.append_fields(self.dataset, newfield_name, newcolumn, dtypes=newfield_type).data
         self._dataset = rfn.drop_fields(self.dataset, self.sensitive_attributes)
         self.sensitive_attributes = [newfield_name]
-    
+
     def suppress(self):
         """ Suppression function
-        
+
         Will suppress all the values in 'dataset' under,
         the fields provided in 'attributes_to_suppress'.
-        
+
         Raises
         ------
         TypeError when the attributes to be provided are not strings.
         """
-            
+
         for item in self.attributes_to_suppress:
             if type(item) is not str:
                 raise TypeError('attributes_to_suppress should be of type "str" ')
-                
+
         for attr in self.attributes_to_suppress:
             self.dataset[attr] = '*'
-    
+
     def assign_extras(self):
         """ Function to alocate the remaining datapoints to existing clusters.
-        
+
         After the main clusters have been formed, this function will
-        alocate the remaining datapoints to them. For example, in 
+        alocate the remaining datapoints to them. For example, in
         k-anonymity this function will be called when the remaining instances
-        are fewer than k. For l-diversity it will be called when the 
-        remaining distinct elements for the Sensitive Attribute are 
+        are fewer than k. For l-diversity it will be called when the
+        remaining distinct elements for the Sensitive Attribute are
         fewer than l.
 
         """
@@ -326,18 +335,18 @@ class BaseAnonymiser(object):
                 scores = []
                 for cluster in range(cluster_counter+1):
                     self.cluster_assignments[idx] = cluster
-                    scores.append((idx, 
+                    scores.append((idx,
                                    self.get_total_information_loss(self.dataset)))
                     self.cluster_assignments[idx] = -1
                 best = scores[np.argmin(np.array([item[1] for item in scores]))][0]
                 self.cluster_assignments[best] = cluster
-    
+
     def get_equivalence_classes(self) -> np.ndarray:
         """ Function that will form the equivalence class (EQ) for each cluster.
-        
+
         For each of the clusters and for each of the features provided,
         will compute the EQ using the lca_funcs provided by the user.
-        
+
         Returns
         -------
         newdata: np.ndarray
@@ -354,60 +363,60 @@ class BaseAnonymiser(object):
             for key, value in equivalence_class.items():
                 filtered_data[key] = '{}'.format(value)
             data[self.cluster_assignments == cluster] = filtered_data
-    
+
         #as an option for the future, to append an extra column holding
         #the cluster assignments
         newdata = rfn.append_fields(data, 'cluster', self.cluster_assignments).data
         return newdata
-    
+
     def get_lowest_common_ancestor(self, data: np.ndarray) -> dict:
         """ Computes the lowest common ancestor (LCA) for the given dataset.
-        
+
         A function that will compute the LCA for the given dataset
-        
+
         Parameters
         ----------
-        data: np.ndarray 
+        data: np.ndarray
             for which the LCA is desired.
 
         Returns
         equivalence_class: dict
             The lowest common ancestor of the dataset, across all features.
-        
+
             """
         equivalence_class = {}
         for attr_name, attr_lca_func in self.lca_funcs.items():
             if attr_name in self.quasi_identifiers:
                 equivalence_class[attr_name] = attr_lca_func(data[attr_name])
-    
+
         return equivalence_class
 
     def clustering(self, parameter: int):
         """ Cluster for l-diversity.
-        
-        Function that will cluster the data in clusters where 
-        each cluster has at least l distinct entries in the 
+
+        Function that will cluster the data in clusters where
+        each cluster has at least l distinct entries in the
         sensitive_attribute. The algorithm is an extension
-        of the algorithm presented in the paper 
+        of the algorithm presented in the paper
         'Efficient k-Anonymization Using Clustering Techniques'
         that deals with k-anonymity.
-        
+
         Parameters
         ----------
         parameter: int
             The minimum number of distinct entries in each cluster,
             for the sensitive_attribute
 
-        """    
+        """
         self.cluster_assignments = self.initialise_clustering()
-        
+
         positions_of_unclustered = np.where(self.cluster_assignments == -1)[0]
         cluster_counter = 0
-        
+
         # The algorithm will first form clusters where each one has at least
         # l distinct entries in the sensitive_attribute feature, and then
         # assign the extras to the existing clusters.
-        
+
         # A cluster assignment of -1 implies not assigned to a cluster yet.
         while len(set(self.SA[positions_of_unclustered])) >= parameter:
             while sum(self.cluster_assignments == cluster_counter) < parameter:
@@ -421,44 +430,44 @@ class BaseAnonymiser(object):
                         self.cluster_assignments[idx] = -1
                 best = scores[np.argmin(np.array([item[1] for item in scores]))][0]
                 self.cluster_assignments[best] = cluster_counter
-    
+
             cluster_counter += 1
             positions_of_unclustered = np.where(self.cluster_assignments == -1)[0]
-            
+
         self.assign_extras()
-        
+
     def check_input(self):
         """ Cheking whether the input is right.
-        
+
         """
-                   
+
         if type(self.dataset) is not np.ndarray:
             raise TypeError('data needs to be of type "np.ndarray" ')
-            
+
         if type(self.quasi_identifiers) is not list:
             raise TypeError('quasi_identifiers needs to be of type "list" ')
-        
+
         if type(self.sensitive_attributes) is not list:
             raise TypeError('sensitive_attributes needs to be of type "list" ')
-            
+
         if type(self.attributes_to_suppress) is not list:
             raise TypeError('attributes_to_suppress needs to be of type "list" ')
-    
+
         for item in self.quasi_identifiers:
             if type(item) is not str:
                 raise TypeError('quasi_identifiers should be of type "string" ')
-        
+
         for item in self.sensitive_attributes:
             if type(item) is not str:
                 raise TypeError('sensitive_attributes should be of type "string" ')
-                
+
         for item in self.attributes_to_suppress:
             if type(item) is not str:
                 raise TypeError('attributes_to_suppress should be of type "string" ')
-                
+
         if not self.sensitive_attributes:
             raise ValueError('No Sensitive Attributes Provided')
-        
+
         if not self.quasi_identifiers:
             raise ValueError('No Quasi-Identifiers Provided')
 
@@ -466,24 +475,24 @@ class BaseAnonymiser(object):
         for attr in self.sensitive_attributes:
             if attr not in attributes:
                 raise NameError(str(attr) + ' in Sensitive Attributes, not found in the dataset')
-        
+
         for attr in self.quasi_identifiers:
             if attr not in attributes:
                 raise NameError(str(attr) + ' in Quasi-Identifiers, not found in the dataset')
-            
+
         for attr in self.attributes_to_suppress:
             if attr not in attributes:
                 raise NameError(str(attr) + ' in attributes to suppresss, not found in the dataset')
- 
+
 class KAnonymity(BaseAnonymiser):
-    def __init__(self, 
+    def __init__(self,
                  dataset: np.ndarray,
                  identifiers: list,
                  quasi_identifiers: list,
                  sensitive_attributes: list,
                  lca_funcs: Optional[dict] = None,
                  range_funcs: Optional[dict] = None,
-                 k: Optional[int] = None):
+                 k: Optional[int] = None) -> None:
         super().__init__(
                          dataset,
                          identifiers,
@@ -492,11 +501,11 @@ class KAnonymity(BaseAnonymiser):
                          lca_funcs,
                          range_funcs)
         self.k = k
-        
+
     @property
     def k(self):
         return self._k
-    
+
     @k.setter
     def k(self, k):
         if k <= 0:
@@ -505,23 +514,23 @@ class KAnonymity(BaseAnonymiser):
             raise ValueError("k needs to be smaller than the size of the dataset")
         else:
             self._k = k
-            
+
     def clustering(self):
         """ Cluster for k-anonymity.
-        
-        Function that will cluster the data in clusters of 
-        size at least k. The algorithm follows from paper 
+
+        Function that will cluster the data in clusters of
+        size at least k. The algorithm follows from paper
         'Efficient k-Anonymization Using Clustering Techniques'.
-        
+
         The algorithm will first form clusters of size k with an objective,
-        of minimizing Information Loss, and then assign the leftover to the 
+        of minimizing Information Loss, and then assign the leftover to the
         existing clusters.
-        
+
         """
         self.cluster_assignments = self.initialise_clustering()
         cluster_counter = 0
-        
-        
+
+
         # A cluster assignment of -1 implies not assigned to a cluster yet.
         while sum(self.cluster_assignments == -1) > self.k:
             while sum(self.cluster_assignments == cluster_counter) < self.k:
@@ -529,20 +538,20 @@ class KAnonymity(BaseAnonymiser):
                 for idx, val in enumerate(self.cluster_assignments):
                     if val == -1:
                         self.cluster_assignments[idx] = cluster_counter
-                        scores.append((idx, 
+                        scores.append((idx,
                                        self.get_total_information_loss(self.dataset)))
                         self.cluster_assignments[idx] = -1
                 best = scores[np.argmin(np.array([item[1] for item in scores]))][0]
                 self.cluster_assignments[best] = cluster_counter
             cluster_counter += 1
-         
+
         # Stop forming new clusters, since now we have fewer than k elements left,
         # and start adding them to existing clusters, by trying to minimize
         # information loss again.
         self.assign_extras()
-    
-    
-    def apply_kanonymity(self, 
+
+
+    def apply_kanonymity(self,
                          suppress: Optional[bool] = False,
                          k: Optional[int] = None):
         if k is None:
@@ -555,19 +564,19 @@ class KAnonymity(BaseAnonymiser):
             self.suppress()
         self.clustering()
         data = self.get_equivalence_classes()
-        
+
         return data
-    
+
 
 class LDiversity(BaseAnonymiser):
-    def __init__(self, 
+    def __init__(self,
                  dataset: np.ndarray,
                  identifiers: list,
                  quasi_identifiers: list,
                  sensitive_attributes: list,
                  lca_funcs: Optional[dict] = None,
                  range_funcs: Optional[dict] = None,
-                 l: Optional[int] = None):
+                 l: Optional[int] = None) -> None:
         super().__init__(
                            dataset,
                            identifiers,
@@ -576,11 +585,11 @@ class LDiversity(BaseAnonymiser):
                            lca_funcs,
                            range_funcs)
         self.l = l
-    
+
     @property
     def l(self):
         return self._l
-    
+
     @l.setter
     def l(self, l):
         if l <= 0:
@@ -589,8 +598,8 @@ class LDiversity(BaseAnonymiser):
             raise ValueError("l needs to be smaller than the number of features")
         else:
             self._l = l
-            
-    def apply_ldiversity(self, 
+
+    def apply_ldiversity(self,
                          suppress: Optional[bool] = False,
                          l: Optional[bool] = None):
         if l is None:
@@ -603,18 +612,18 @@ class LDiversity(BaseAnonymiser):
             self.suppress()
         self.clustering(self.l)
         data = self.get_equivalence_classes()
-        
+
         return data
-    
+
 class TCloseness(BaseAnonymiser):
-    def __init__(self, 
+    def __init__(self,
              dataset: np.ndarray,
              identifiers: list,
              quasi_identifiers: list,
              sensitive_attributes: list,
              lca_funcs: Optional[dict] = None,
              range_funcs: Optional[dict] = None,
-             t: Optional[float] = None):
+             t: Optional[float] = None) -> None:
         super().__init__(
                            dataset,
                            identifiers,
@@ -623,25 +632,25 @@ class TCloseness(BaseAnonymiser):
                            lca_funcs,
                            range_funcs)
         self.t = t
-    
+
     @property
     def t(self):
         return self._t
-    
+
     @t.setter
     def t(self, t):
         if t <= 0:
             raise ValueError("k needs to be positive")
         else:
             self._t = t
-            
+
     def merge_clusters(self, clusters_tobe_merged: list):
         newcluster = int(np.max(self.cluster_assignments) + 1)
         for idx, val in enumerate(self.cluster_assignments):
             if int(val) in list(map(int, clusters_tobe_merged)):
                 self.cluster_assignments[idx] = newcluster
 
-    def check_tcloseness(self) -> (bool, list):
+    def check_tcloseness(self) -> Tuple[bool, list]:
         """
         Check whether the t-closeness condition is satisfied, for all the clusters.
         """
@@ -658,11 +667,11 @@ class TCloseness(BaseAnonymiser):
     def generalize(self):
         self.base_counts = self.SA
         self.base_distr = get_distr(self.base_counts)
-    
+
         # If the formed clusters satisfy the t-closeness condition,
         # then proceed to form the equivalence classes.
         satisfied, emds = self.check_tcloseness()
-        
+
         # While the t-closeness condition has not been met, start merging clusters
         # until it is satisfied.
         # ** EMD(P, Q) <= max{EMD(P0, Q), EMD(P1, Q)} **
@@ -670,7 +679,7 @@ class TCloseness(BaseAnonymiser):
         # clusters and P is the distribution of sensitive attribute when the
         # two clusters are merged. Q is the distribution of the sensitive attribute
         # on the full dataset.
-        
+
         # The procedure is to find the cluster that has the highest EMD to Q
         # and then find a second cluster which is the closest to the first
         # and merge them.
@@ -693,10 +702,10 @@ class TCloseness(BaseAnonymiser):
             clusters_tobe_merged = [furthest_cluster, closest_cluster]
             self.merge_clusters(clusters_tobe_merged)
             satisfied, emds = self.check_tcloseness()
-        
+
         self.emds = emds
-        
-    def apply_tcloseness(self, 
+
+    def apply_tcloseness(self,
                          suppress: Optional[bool] = False,
                          t: Optional[float] = None) -> np.ndarray:
         if t is None:
@@ -711,33 +720,17 @@ class TCloseness(BaseAnonymiser):
         self.clustering(starting_size)
         self.generalize()
         data = self.get_equivalence_classes()
-        
+
         return data
-    
+
     def swap_instances_2(self):
         """ Swaps instances between a cluster and the pool of unlabelled instances.
-        
-        Description: Find the best possible swap of instances between the given
-                    cluster and the pool of unlabelled instances. It iterates
-                    over all possible swaps to find the one that reduces EMD the most.
-                       
-        Args: 
-            data: Structured Numpy Array dataset.
-            sensitive_attribute: String for the name of the attribute to be
-                                protected.
-            base_distr: The distribution of the sensitive_attribute in the whole
-                        dataset.
-            cluster_assignments: List of cluster assignments
-            t: The maximum allowed Earth Mover's Distance (EMD) distance allowed
-                between each equivalence class' distribution of sensitive_attribute
-                and the overall distribution of the sensitive_attribute.
-            
-        Returns: cluster_assignments: List with updated cluster_assignments, with a lower
-                                    t-distance.
-        
-        Raises:
-            NA 
-            """
+
+        Find the best possible swap of instances between the given
+        cluster and the pool of unlabelled instances. It iterates
+        over all possible swaps to find the one that reduces EMD the most.
+
+        """
         cluster_counter = int(max(self.cluster_assignments))
         scores = []
         for internal_idx, internal_val in enumerate(self.cluster_assignments):
@@ -748,9 +741,9 @@ class TCloseness(BaseAnonymiser):
                         self.cluster_assignments[external_idx] = cluster_counter
                         new_distr = get_distr(self.SA[np.where(self.cluster_assignments == cluster_counter)[0]])
                         new_emd = get_emd_fordistrs(new_distr, self.base_distr)
-                        
+
                         scores.append((internal_idx, external_idx, new_emd))
-                        
+
                         self.cluster_assignments[internal_idx] = cluster_counter
                         self.cluster_assignments[external_idx] = -1
         best = np.argmin([item[2] for item in scores])
@@ -760,9 +753,9 @@ class TCloseness(BaseAnonymiser):
 
     def swap_instances(self):
         """ Swaps instances between a cluster and the pool of unlabelled instances.
-        
+
         Find the best possible swap of instances between the given
-        cluster and the pool of unlabelled instances. It first selects 
+        cluster and the pool of unlabelled instances. It first selects
         the instance who reduces the information loss within the cluster
         and then finds the best replacement with respect to reducing
         the EMD to the base distribution.
@@ -770,20 +763,20 @@ class TCloseness(BaseAnonymiser):
             """
         cluster_counter = int(max(self.cluster_assignments))
         scores = []
-        
+
         full_dataset_ranges = self.get_feature_ranges(self.dataset)
-        
+
         for idx, val in enumerate(self.cluster_assignments):
             if val == cluster_counter:
                 self.cluster_assignments[idx] = -1
                 filtered_dataset = self.filter_dataset(self.dataset, [cluster_counter])
-                scores.append((idx, 
+                scores.append((idx,
                                self.get_information_loss(filtered_dataset,
                                                          full_dataset_ranges)))
                 self.cluster_assignments[idx] = cluster_counter
-                
+
         best_internal = scores[np.argmax([item[1] for item in scores])][0]
-        
+
         scores = []
         for external_idx, external_val in enumerate(self.cluster_assignments):
             if external_val == -1:
@@ -791,18 +784,18 @@ class TCloseness(BaseAnonymiser):
                 self.cluster_assignments[external_idx] = cluster_counter
                 new_distr = get_distr(self.SA[np.where(self.cluster_assignments == cluster_counter)[0]])
                 new_emd = get_emd_fordistrs(new_distr, self.base_distr)
-                
+
                 scores.append((external_idx, new_emd))
-                
+
                 self.cluster_assignments[best_internal] = cluster_counter
                 self.cluster_assignments[external_idx] = -1
         best = np.argmin([item[1] for item in scores])
         best_external = scores[best][0]
-        
+
         self.cluster_assignments[best_internal] = -1
         self.cluster_assignments[best_external] = cluster_counter
 
-    def get_priority_list(self, 
+    def get_priority_list(self,
                           emds: list,
                           cluster_counter: int) -> list:
         priority_list = []
@@ -813,16 +806,16 @@ class TCloseness(BaseAnonymiser):
         if not priority_list:
             priority_list = list(range(cluster_counter+1))
         return priority_list
-    
+
     def assign_extras_tcloseness(self,
                                  emds: list):
         """ Function to alocate the remaining datapoints to existing clusters.
-        
+
         After the main clusters have been formed, this function will
-        alocate the remaining datapoints to them. For example, in 
+        alocate the remaining datapoints to them. For example, in
         k-anonymity this function will be called when the remaining instances
-        are fewer than k. For l-diversity it will be called when the 
-        remaining distinct elements for the Sensitive Attribute are 
+        are fewer than k. For l-diversity it will be called when the
+        remaining distinct elements for the Sensitive Attribute are
         fewer than l.
 
         """
@@ -836,50 +829,50 @@ class TCloseness(BaseAnonymiser):
                 scores = []
                 for cluster in priority_list:
                     self.cluster_assignments[idx] = cluster
-                    
+
                     satisfied, emds = self.check_tcloseness()
-                    
-                    scores.append((idx, 
+
+                    scores.append((idx,
                                    sum([item[1] for item in emds])))
                     self.cluster_assignments[idx] = -1
                 best = scores[np.argmin(np.array([item[1] for item in scores]))][0]
                 self.cluster_assignments[best] = cluster
                 satisfied, emds = self.check_tcloseness()
-                                 
-    def apply_tcloseness_2(self, 
+
+    def apply_tcloseness_2(self,
                            suppress: Optional[bool] = False,
                            t: Optional[float] = None):
         """ Cluster and generalize for t-diversity.
-        
+
         Function that will call clustering and generalization
         functions for t-closeness. The algorithm will first form
         one cluster and then keep swapping instances with the
         set of unlabelled instances until the first cluster satisfies
         t-closeness. It then continues by forming the second cluster
         and so on and so forth.
-                    
+
         Does not guarantee t-closeness in its current form.
-        
+
         Parameters
         ----------
-            
+
         t: float
-            The minimum allowed distance between the distribution of the 
+            The minimum allowed distance between the distribution of the
             sensitive attribute in each equivalence class and the distribution
-            of the attribute in the full dataset, as calculated by the 
+            of the attribute in the full dataset, as calculated by the
             Earth Movers Distance (EMD).
-            
+
         Returns
         ------
         data: np.ndarray
             A dataset that satisfies t-closeness.
-        
+
         Raises
         ------
         ValueError
             if not t is provided.
             """
-            
+
         if t == None:
             if self.t == None:
                 raise ValueError("no t provided")
@@ -891,47 +884,44 @@ class TCloseness(BaseAnonymiser):
 
         self.base_counts = self.SA
         self.base_distr = get_distr(self.base_counts)
-        
+
         starting_size = len(set(self.SA))
-        
+
         self.cluster_assignments = self.initialise_clustering()
-        
+
         cluster_counter = 0
         positions_of_unclustered = np.where(self.cluster_assignments == -1)[0]
-    
+
         while len(positions_of_unclustered) > starting_size:
             while len(np.where(self.cluster_assignments == cluster_counter)[0]) < starting_size:
                 scores = []
                 for idx, val in enumerate(self.cluster_assignments):
                     if val == -1:
                         self.cluster_assignments[idx] = cluster_counter
-                        scores.append((idx, 
+                        scores.append((idx,
                                        self.get_total_information_loss(self.dataset)))
                         self.cluster_assignments[idx] = -1
                 best = scores[np.argmin(np.array([item[1] for item in scores]))][0]
                 self.cluster_assignments[best] = cluster_counter
-            new_distr = get_distr(self.SA[np.where(self.cluster_assignments == cluster_counter)[0]])    
+            new_distr = get_distr(self.SA[np.where(self.cluster_assignments == cluster_counter)[0]])
             emd = get_emd_fordistrs(new_distr, self.base_distr)
             satisfied = emd <= self.t
-    
+
             if not satisfied:
                 #self.swap_instances()
                 self.swap_instances_2()
             positions_of_unclustered = np.where(self.cluster_assignments == -1)[0]
             cluster_counter += 1
-            
+
         satisfied, emds = self.check_tcloseness()
         self.assign_extras_tcloseness(emds)
-        print(emds)
-        print('\n')
+        #print(emds)
+        #print('\n')
         data = self.get_equivalence_classes()
         satisfied, emds = self.check_tcloseness()
-        print(emds)
-        print('\n')
+        #print(emds)
+        #print('\n')
         if not satisfied:
             self.generalize()
         #print(self.emds)
         return data
-    
-
-    

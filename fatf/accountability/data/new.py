@@ -693,7 +693,9 @@ class TCloseness(BaseAnonymiser):
             clusters_tobe_merged = [furthest_cluster, closest_cluster]
             self.merge_clusters(clusters_tobe_merged)
             satisfied, emds = self.check_tcloseness()
-           
+        
+        self.emds = emds
+        
     def apply_tcloseness(self, 
                          suppress: Optional[bool] = False,
                          t: Optional[float] = None) -> np.ndarray:
@@ -756,6 +758,50 @@ class TCloseness(BaseAnonymiser):
         self.cluster_assignments[best_internal] = -1
         self.cluster_assignments[best_external] = cluster_counter
 
+    def get_priority_list(self, 
+                          emds: list,
+                          cluster_counter: int) -> list:
+        priority_list = []
+        for cluster, emd in emds:
+            if emd > self.t:
+                if cluster != -1:
+                    priority_list.append(cluster)
+        if not priority_list:
+            priority_list = list(range(cluster_counter+1))
+        return priority_list
+    
+    def assign_extras_tcloseness(self,
+                                 emds: list):
+        """ Function to alocate the remaining datapoints to existing clusters.
+        
+        After the main clusters have been formed, this function will
+        alocate the remaining datapoints to them. For example, in 
+        k-anonymity this function will be called when the remaining instances
+        are fewer than k. For l-diversity it will be called when the 
+        remaining distinct elements for the Sensitive Attribute are 
+        fewer than l.
+
+        """
+        cluster_counter = int(max(self.cluster_assignments))
+        while sum(self.cluster_assignments == -1) > 0:
+            for idx, val in enumerate(self.cluster_assignments):
+                priority_list = self.get_priority_list(emds, cluster_counter)
+
+                if val != -1:
+                    continue
+                scores = []
+                for cluster in priority_list:
+                    self.cluster_assignments[idx] = cluster
+                    
+                    satisfied, emds = self.check_tcloseness()
+                    
+                    scores.append((idx, 
+                                   sum([item[1] for item in emds])))
+                    self.cluster_assignments[idx] = -1
+                best = scores[np.argmin(np.array([item[1] for item in scores]))][0]
+                self.cluster_assignments[best] = cluster
+                satisfied, emds = self.check_tcloseness()
+                                 
     def apply_tcloseness_2(self, 
                            suppress: Optional[bool] = False,
                            t: Optional[float] = None):
@@ -831,11 +877,12 @@ class TCloseness(BaseAnonymiser):
             cluster_counter += 1
             
         satisfied, emds = self.check_tcloseness()
-        self.assign_extras()
-    
+        self.assign_extras_tcloseness(emds)
+        
         data = self.get_equivalence_classes()
         satisfied, emds = self.check_tcloseness()
-    
+        if not satisfied:
+            self.generalize()
         return data
     
 

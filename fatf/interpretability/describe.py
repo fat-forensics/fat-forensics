@@ -6,7 +6,7 @@ The :mod:`fatf.path.to.the.file.in.the.module` module implements description fun
 # License: BSD 3 clause
 import numpy as np
 from fatf.utils.validation import check_array_type, is_2d_array
-from typing import Optional
+from typing import Optional, List, Union
 
 def describe_numeric(series: np.ndarray):
     numeric_dict = {
@@ -41,7 +41,7 @@ def describe_categorical(series: np.ndarray):
     return categorical_dict
 
 def describe_dataset(dataset: np.ndarray, 
-                     todescribe: Optional[list] = None, 
+                     todescribe: Optional[List[str]] = None, 
                      condition: Optional[np.array] = None) -> dict:
     """Will provide a description of the desired fields of the dataset.
 

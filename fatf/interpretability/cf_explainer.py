@@ -6,10 +6,10 @@ The :mod:`fatf.path.to.the.file.in.the.module` module implements a counterfactua
 # License: BSD 3 clause
 import numpy as np
 import itertools
-from typing import Optional
+from typing import Optional, List, Any, Union, Dict, Callable, Tuple
 
 def combine_arrays(array1: np.array, 
-                   array2: np.array) -> list:
+                   array2: np.array) -> List[int]:
     """Will combine two numpy arrays in an incremental manner.
 
     Form a list out of the elements of two numpy arrays. For example:
@@ -43,13 +43,13 @@ def combine_arrays(array1: np.array,
 
 class Explainer(object):
     def __init__(self, 
-                 model: object,
-                 categorical_features: list,
+                 model: Any,
+                 categorical_features: List[Union[str, int]],
                  dataset: np.ndarray,
-                 monotone: Optional[str] = False,
-                 stepsizes: Optional[int] = None,
+                 monotone: Optional[bool] = False,
+                 stepsizes: Optional[Dict[Union[int, str], Union[int, np.ndarray]]] = None,
                  max_comb: Optional[int] = 2,
-                 feature_ranges: Optional[dict] = None,
+                 feature_ranges: Optional[Dict[Union[int, str], Any]] = None,
                  dist_funcs: Optional[dict] = None):
         
         self.model = model
@@ -74,9 +74,9 @@ class Explainer(object):
                 self.feature_ranges = feature_ranges
                 self.get_feature_ranges(tocomplete = diff)
             
-        self.max_comb = max_comb
+        self.max_comb: int = max_comb
         if not stepsizes:
-            self.stepsizes = {}
+            self.stepsizes: Dict[Union[str, int], Union[int, np.ndarray]] = {}
             for ftr in self.dataset.dtype.names:
                 if ftr not in self.categorical_features:
                     self.stepsizes[ftr] = default_stepsize
@@ -91,7 +91,7 @@ class Explainer(object):
             self.stepsizes = stepsizes
 
         if not dist_funcs:
-            self.dist_funcs = {}
+            self.dist_funcs: Dict[Union[str ,int], Callable[[np.ndarray, np.ndarray], float]] = {}
             for ftr in self.dataset.dtype.names:
                 if ftr not in self.categorical_features:
                     self.dist_funcs[ftr] = lambda x, y: np.abs(x - y)
@@ -102,8 +102,8 @@ class Explainer(object):
     
     def dist(self, 
              v0: np.ndarray, 
-             v1: np.ndarray) -> int:
-        dist = 0
+             v1: np.ndarray) -> float:
+        dist = 0.0
         features = v0.dtype.names
         for feature in features:
             dist += self.dist_funcs[feature](v0[feature], v1[feature])
@@ -135,13 +135,13 @@ class Explainer(object):
     
     def modify_instance(self, 
                         x: np.ndarray, 
-                        ftrs: list, 
-                        vals: list):
+                        ftrs: List[Union[str, int]], 
+                        vals: Tuple[Any]):
         for idx, ftr in enumerate(ftrs):
             x[ftr] = vals[idx]
     
     def get_value_combinations(self, 
-                               ftr_combination: tuple) -> list:
+                               ftr_combination: List[Union[str, int]]) -> List[tuple]:
         list_of_values = []
         for ftr in ftr_combination:
             if ftr not in self.categorical_features:
@@ -161,7 +161,7 @@ class Explainer(object):
                 t = self.feature_ranges[ftr].tolist()
                 t.pop(t.index(self.instance[ftr]))
                 list_of_values.append(t)
-        return itertools.product(*list_of_values)
+        return list(itertools.product(*list_of_values))
     
     def pretty_print(self, 
                      all_scores: list):
@@ -181,7 +181,7 @@ class Explainer(object):
     def generate_counterfactual(self, 
                                 instance: np.ndarray,
                                 target_class: int
-                                ):
+                                ) -> Callable[[list], None]:
         self.target_class = target_class
         self.instance = instance.copy(order='K')
         self.ftrs = instance.dtype.names

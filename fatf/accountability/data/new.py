@@ -12,7 +12,8 @@ import math
 from fatf.utils.validation import check_array_type
 from typing import Optional
 
-def lca_realline(X, rounding=5):
+def lca_realline(X: list, 
+                 rounding: Optional[int] = 5) -> str:
     X = list(map(int, X))
     max_val = max(X)
     min_val = min(X)
@@ -22,13 +23,13 @@ def lca_realline(X, rounding=5):
     
     return lca 
 
-def range_func_realline(X):
+def range_func_realline(X: list) -> int:
     X = list(map(int, X))
     max_val = max(X)
     min_val = min(X)
     return max_val - min_val
 
-def get_distr(inputlist):
+def get_distr(inputlist: list) -> dict:
     unique, counts = np.unique(inputlist, return_counts=True)
     count = dict(zip(unique, counts))
     s = sum(count.values())
@@ -37,7 +38,8 @@ def get_distr(inputlist):
 
     return count
 
-def get_emd_fordistrs(distr1, distr2):
+def get_emd_fordistrs(distr1: dict, 
+                      distr2: dict) -> float:
     union_set = set(distr1.keys()).union(distr2.keys())
     emd = 0
     for item in union_set:
@@ -52,7 +54,8 @@ def get_emd_fordistrs(distr1, distr2):
             emd += distr2[item]
     return emd
             
-def get_emd_forlists(list1, list2):
+def get_emd_forlists(list1: list, 
+                     list2: list) -> float:
     count1 = get_distr(list1)
     count2 = get_distr(list2)
     
@@ -92,9 +95,12 @@ class BaseAnonymiser(object):
         self.SA = self.dataset[self.sensitive_attributes[0]] 
 
     @property
-    def cluster_assigments(self):
-        return self.cluster_assignments
+    def cluster_assignments(self):
+        return self._cluster_assignments
     
+    @cluster_assignments.setter
+    def cluster_assignments(self, cluster_assignments):
+        self._cluster_assignments = cluster_assignments
     @property
     def dataset(self):
         return self._dataset
@@ -244,7 +250,8 @@ class BaseAnonymiser(object):
                 ranges[attr_name] = attr_range_func(dataset[attr_name])
         return ranges
      
-    def filter_dataset(self, dataset, filters):
+    def filter_dataset(self, dataset: np.ndarray, 
+                       filters: list) -> np.ndarray:
         """
         Returns the entries of the dataset for the specific clusters.
         """
@@ -649,9 +656,6 @@ class TCloseness(BaseAnonymiser):
         return satisfied, emds
 
     def generalize(self):
-        #self.base_counts = Counter(self.dataset[self.sensitive_attributes[0]])
-        #unique, counts = np.unique(self.SA, return_counts=True)
-        #self.base_counts = dict(zip(unique, counts))
         self.base_counts = self.SA
         self.base_distr = get_distr(self.base_counts)
     

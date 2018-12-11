@@ -28,10 +28,8 @@ except ImportError as e:
         'Matplotlib is not installed. You will not be able to use plot_ICE function. To use' 
         'please install matplotlib by: pip install matplotlib')
 
-#TODO: possibly turn into a class
-
 def _check_input(
-    X: np.array, 
+    X: np.ndarray, 
     model: object, 
     feature: Union[int, str],
     is_categorical: bool = False,
@@ -48,10 +46,12 @@ def _check_input(
                 'partial dependence and individal conditional expectiations requires '
                 'model object to have method predict_proba().')
     if check_feature:
-        f = np.array([feature], dtype=None)
-        if not check_indices(X, f):
+        print(feature)
+        f = np.array([feature], dtype=type(feature))
+        invalid_indices = check_indices(X, f)
+        if not np.array_equal(invalid_indices, np.array([], dtype=f.dtype)):
             raise CustomValueError(
-                'Feature given not valid for input array X')
+                'Invalid features %s given' %str(invalid_indices))
     
 
 def _interpolate_array(
@@ -59,7 +59,7 @@ def _interpolate_array(
     feature: int,
     is_categorical: bool,
     steps: int
-) -> np.array:
+) -> np.ndarray:
     """Generate array which has interpolated between maximum and minimum
     for feature for every datapoint taking a normal np.ndarray
 
@@ -91,17 +91,17 @@ def _interpolate_array(
     return X_sampled, values
 
 def _interpolate_structured_array(
-    X: np.array,
+    X: np.ndarray,
     feature: str,
     is_categorical: bool,
     steps: int
-) -> Tuple[np.array, np.array]:
+) -> Tuple[np.ndarray, np.ndarray]:
     """Generate array which has interpolated between maximum and minimum
-    for feature for every datapoint taking a structured np.array
+    for feature for every datapoint taking a structured np.ndarray
 
     Args
     ----
-    X: np.array
+    X: np.ndarray
         Data matrix structured array indexed with strings
     feature: str
         Corresponding to column in X to interpolate for
@@ -113,10 +113,10 @@ def _interpolate_structured_array(
 
     Return
     ----
-    X_sampled: np.array (structured array)
+    X_sampled: np.ndarray (structured array)
         Structured array with shape (n_samples, steps, n_features) with 
         the dataset repeated with different values of for each point
-    values: np.array
+    values: np.ndarray
         Array of values that have been interpolated between the maximum and
         minimum for the feature specified.
 
@@ -146,12 +146,12 @@ def _interpolate_structured_array(
 
 
 def individual_conditional_expectation(
-        X: np.array, 
+        X: np.ndarray, 
         model: object, 
         feature: Union[int, str],
         is_categorical: bool = False,
         steps: int = 100
-) -> Tuple[np.ndarray, np.array]:
+) -> Tuple[np.ndarray, np.ndarray]:
     """Calculate Individual Conditional Expectation for all class for feature
     specified.
 
@@ -256,7 +256,7 @@ def partial_dependence(
 
 def plot_ICE(ice: np.ndarray,
              feature_name: str,
-             values: np.array,
+             values: np.ndarray,
              category: int,
              category_name: str = '') -> plt.Figure:
     # TODO: return plt.figure but if matplotlib not installed it will fail

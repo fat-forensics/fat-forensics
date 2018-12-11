@@ -10,6 +10,7 @@ import numpy as np
 from numpy.lib import recfunctions as rfn
 import math
 from fatf.utils.validation import check_array_type
+from typing import Optional
 
 def lca_realline(X, rounding=5):
     X = list(map(int, X))
@@ -62,12 +63,12 @@ def get_emd_forlists(list1, list2):
 
 class BaseAnonymiser(object):
     def __init__(self, 
-                 dataset, 
-                 identifiers,
-                 quasi_identifiers,
-                 sensitive_attributes,
-                 lca_funcs = {},
-                 range_funcs = {}):
+                 dataset: np.ndarray, 
+                 identifiers: list,
+                 quasi_identifiers: list,
+                 sensitive_attributes: list,
+                 lca_funcs: Optional[dict] = None,
+                 range_funcs: Optional[dict] = None):
         
         numerical_features, categorical_features = check_array_type(dataset)
         self.numerucal_features = numerical_features.tolist()
@@ -157,38 +158,35 @@ class BaseAnonymiser(object):
                         self.range_funcs[field_name] is None):
                     raise ValueError('missing range function for %s: ', field_name)
     
-    def change_numerical_to_str(self, data):
+    def change_numerical_to_str(self, data: np.ndarray) -> np.ndarray:
         for attr in self.numerucal_features:
             t = data[attr]
             data = rfn.drop_fields(data, attr)
             data = rfn.append_fields(data, attr, t, dtypes='<U9', usemask=False)
         return data
             
-    def initialise_clustering(self):
+    def initialise_clustering(self) -> np.array:
         cluster_assignments = np.array(-np.ones(self.n_samples), dtype='int32')
         idx = np.random.randint(self.n_samples, size=1)    
         cluster_assignments[idx] = 0
         return cluster_assignments
         
-    def get_total_information_loss(self, dataset):
+    def get_total_information_loss(self, dataset: np.ndarray) -> float:
         """ Calculates the total information loss for the current clustering.
         
-        Description: Function that will calculate the total information loss,
-                    for the current clustering, based on the 'features' provided.
+        Function that will calculate the total information loss,
+        for the current clustering, based on the 'features' provided.
         
-        Args: 
-            dataset: Structured Numpy Array dataset to be anonymized.
-            features: List of features that will be used to calculate information loss.
-            range_funcs: List of functions, one per feature, to be used to calculate
-                        the range of each feature. For continuous, it is of the form
-                        'MAX - MIN', while for categorical it is the height of the
-                        tree.
-            clustering_assignments: List of clustering assignments
+        Parameters
+        ----------
+        dataset: np.ndarray 
+            dataset to be anonymized.
             
-        Returns: The total information loss for the current clustering.
-        
-        Raises:
-            NA 
+        Returns
+        -------
+        total_information_loss: float
+            The total information loss for the current clustering.
+
         """
         unique_clusters = list(set(self.cluster_assignments))
         full_dataset_ranges = self.get_feature_ranges(dataset)
@@ -201,30 +199,31 @@ class BaseAnonymiser(object):
             total_information_loss += self.get_information_loss(filtered_dataset, full_dataset_ranges)
         return total_information_loss
 
-    def get_information_loss(self, dataset, full_dataset_ranges):
+    def get_information_loss(self, 
+                             dataset: np.ndarray, 
+                             full_dataset_ranges: dict) -> float:
         """ Calculates the information loss for the current cluster.
         
-        Description: Function that will calculate the total information loss,
-                    for the current clustering, based on the 'features' provided. 
-                    For continuous variables, it is the range of the variable in the 
-                    cluster (MAX - MIN) divided by the range in the full dataset, 
-                    multiplied by the size of the cluster. For categorical it is 
-                    the ratio of the heights of the trees, multiplied by the size
-                    of the cluster.
+        Function that will calculate the total information loss,
+        for the current clustering, based on the 'features' provided. 
+        For continuous variables, it is the range of the variable in the 
+        cluster (MAX - MIN) divided by the range in the full dataset, 
+        multiplied by the size of the cluster. For categorical it is 
+        the ratio of the heights of the trees, multiplied by the size
+        of the cluster.
         
-        Args: 
-            dataset: Structured Numpy Array dataset to be anonymized.
-            features: List of features that will be used to calculate information loss.
-            range_funcs: List of functions, one per feature, to be used to calculate
-                        the range of each feature. For continuous, it is of the form
-                        'MAX - MIN', while for categorical it is the height of the
-                        tree.
-            clustering_assignments: List of clustering assignments
-            
-        Returns: The information loss for the current cluster.
+        Parameters
+        ----------
+        dataset: np.ndarray 
+            dataset to be anonymized.
+        full_dataset_ranges: dict
+            the range of the features for the whole datasset.
         
-        Raises:
-            NA 
+        Returns
+        ------
+        information_loss: float       
+            The information loss for the current cluster.
+        
         """
         dataset_length = dataset.shape[0]
         information_loss = 0
@@ -232,7 +231,8 @@ class BaseAnonymiser(object):
             if attr_name in self.quasi_identifiers:
                 attr_range = attr_range_func(dataset[attr_name])            
                 information_loss += attr_range / full_dataset_ranges[attr_name]
-        return int(dataset_length*information_loss)
+        information_loss = dataset_length * information_loss
+        return information_loss
 
     def get_feature_ranges(self, dataset):
         """
@@ -256,24 +256,21 @@ class BaseAnonymiser(object):
                 filter_list.append(False)
         return dataset[filter_list]
     
-    def concatenate_sensitive_attributes(self, newfield_name = None, newfield_type = '<U16'):
+    def concatenate_sensitive_attributes(self, 
+                                         newfield_name: Optional[str] = None, 
+                                         newfield_type: Optional[str] = '<U16'):
         """ Combines sensitive attributes in the case of them being more than one.
         
-        Description: Cross product between the sensitive attributes.
+        Cross product between the sensitive attributes.
         
-        Args: 
-            dataset: Structured Numpy Array dataset to be anonymized.
-            sensitive_attributes: List of strings representing the attributes to be combined.
-            newfield_name: Option to provide the name of the new field. Default
-                            is the concatenation of the two.
-            newfield_type: Option to provide the dtype of the newfield. Default
+        Parameters
+        ----------
+        newfield_name: Optional, str
+            Option to provide the name of the new field. Default
+            is the concatenation of the two.
+        newfield_type: Optional, str to provide the dtype of the newfield. Default
                             is '<U30'.
                             
-        Returns: The dataset provided but with the previous fields removed,
-                and a new field - their combinarion - being included.
-        
-        Raises:
-            NA
             """
         newcolumn = np.array(list(map(lambda x: x[0] + '-' + x[1], self.dataset[self.sensitive_attributes])))
         if not newfield_name:
@@ -288,24 +285,14 @@ class BaseAnonymiser(object):
     def suppress(self):
         """ Suppression function
         
-        Description: Will suppress all the values in 'dataset' under,
-                    the fields provided in 'attributes_to_suppress'.
+        Will suppress all the values in 'dataset' under,
+        the fields provided in 'attributes_to_suppress'.
         
-        Args: 
-            dataset: Structured Numpy Array dataset to be anonymized.
-            attributes_to_suppress: List of strings representing attributes,
-                                    to be suppressed.
+        Raises
+        ------
+        TypeError when the attributes to be provided are not strings.
+        """
             
-        Returns: The dataset provided but with the fields specified suppressed.
-        
-        Raises:
-            ValueError when no attributes to be suppressed are provided.
-            TypeError when the attributes to be provided are not strings.
-            """
-            
-        if not self.attributes_to_suppress:
-            raise ValueError('No attributes_to_suppress have been provided')
-        
         for item in self.attributes_to_suppress:
             if type(item) is not str:
                 raise TypeError('attributes_to_suppress should be of type "str" ')
@@ -316,26 +303,13 @@ class BaseAnonymiser(object):
     def assign_extras(self):
         """ Function to alocate the remaining datapoints to existing clusters.
         
-        Description: After the main clusters have been formed, this function will
-                    alocate the remaining datapoints to them. For example, in 
-                    k-anonymity this function will be called when the remaining instances
-                    are fewer than k. For l-diversity it will be called when the 
-                    remaining distinct elements for the Sensitive Attribute are 
-                    fewer than l.
-        
-        Args: 
-            dataset: Structured Numpy Array dataset to be anonymized.
-            features: List of features that will be used to calculate information loss.
-            range_funcs: List of functions, one per feature, to be used to calculate
-                        the range of each feature. For continuous, it is of the form
-                        'MAX - MIN', while for categorical it is the height of the
-                        tree.
-            clustering_assignments: List of clustering assignments
-            
-        Returns: Finalized cluster assignments.
-        
-        Raises:
-            NA 
+        After the main clusters have been formed, this function will
+        alocate the remaining datapoints to them. For example, in 
+        k-anonymity this function will be called when the remaining instances
+        are fewer than k. For l-diversity it will be called when the 
+        remaining distinct elements for the Sensitive Attribute are 
+        fewer than l.
+
         """
         cluster_counter = int(max(self.cluster_assignments))
         while sum(self.cluster_assignments == -1) > 0:
@@ -351,23 +325,17 @@ class BaseAnonymiser(object):
                 best = scores[np.argmin(np.array([item[1] for item in scores]))][0]
                 self.cluster_assignments[best] = cluster
     
-    def get_equivalence_classes(self):
+    def get_equivalence_classes(self) -> np.ndarray:
         """ Function that will form the equivalence class (EQ) for each cluster.
         
-        Description: For each of the clusters and for each of the features provided,
-                    will compute the EQ using the lca_funcs provided by the user.
+        For each of the clusters and for each of the features provided,
+        will compute the EQ using the lca_funcs provided by the user.
         
-        Args: 
-            data: Structured Numpy Array dataset to be anonymized.
-            features: List of features that will be used to calculate information loss.
-            lca_funcs: List of functions, one per feature, to be used to compute the
-                        lowest common ancestor for each cluster for each feature.
-            clustering_assignments: List of clustering assignments
-            
-        Returns: The Equivalence class of each cluster.
-        
-        Raises:
-            NA 
+        Returns
+        -------
+        newdata: np.ndarray
+            The Equivalence class of each cluster.
+
         """
         ###
         #TODO: alternative is to have two columns for min and max.
@@ -385,22 +353,20 @@ class BaseAnonymiser(object):
         newdata = rfn.append_fields(data, 'cluster', self.cluster_assignments).data
         return newdata
     
-    def get_lowest_common_ancestor(self, data):
+    def get_lowest_common_ancestor(self, data: np.ndarray) -> dict:
         """ Computes the lowest common ancestor (LCA) for the given dataset.
         
-        Description: A function that will compute the LCA for the given dataset
+        A function that will compute the LCA for the given dataset
         
-        Args: 
-            data: Structured Numpy Array for which the LCA is desired.
-            features: List of attributes to be used when clustering.
-            lca_funcs: List of user provided functions - one for each
-                        'QI' to be used to compute the lower common ancestor
-                        for a group of points.
-            
-        Returns: The lowest common ancestor of the dataset, across all features.
+        Parameters
+        ----------
+        data: np.ndarray 
+            for which the LCA is desired.
+
+        Returns
+        equivalence_class: dict
+            The lowest common ancestor of the dataset, across all features.
         
-        Raises:
-            NA 
             """
         equivalence_class = {}
         for attr_name, attr_lca_func in self.lca_funcs.items():
@@ -409,27 +375,22 @@ class BaseAnonymiser(object):
     
         return equivalence_class
 
-    def clustering(self, parameter):
+    def clustering(self, parameter: int):
         """ Cluster for l-diversity.
         
-        Description: Function that will cluster the data in clusters where 
-                    each cluster has at least l distinct entries in the 
-                    sensitive_attribute. The algorithm is an extension
-                    of the algorithm presented in the paper 
-                    'Efficient k-Anonymization Using Clustering Techniques'
-                    that deals with k-anonymity.
+        Function that will cluster the data in clusters where 
+        each cluster has at least l distinct entries in the 
+        sensitive_attribute. The algorithm is an extension
+        of the algorithm presented in the paper 
+        'Efficient k-Anonymization Using Clustering Techniques'
+        that deals with k-anonymity.
         
-        Args: 
-            data: Structured Numpy Array dataset to be anonymized.
-            sensitive_attribute: String for the name of the attribute to be 
-                                protected
-            l: The minimum number of distinct entries in each cluster,
-                for the sensitive_attribute
-            
-        Returns: Clustering assignments for the data provided.
-        
-        Raises:
-            NA 
+        Parameters
+        ----------
+        parameter: int
+            The minimum number of distinct entries in each cluster,
+            for the sensitive_attribute
+
         """    
         self.cluster_assignments = self.initialise_clustering()
         
@@ -462,12 +423,6 @@ class BaseAnonymiser(object):
     def check_input(self):
         """ Cheking whether the input is right.
         
-        Description: Checks the input.
-        
-        Args: ...
-        
-        Raises:
-            
         """
                    
         if type(self.dataset) is not np.ndarray:
@@ -515,13 +470,13 @@ class BaseAnonymiser(object):
  
 class KAnonymity(BaseAnonymiser):
     def __init__(self, 
-                 dataset,
-                 identifiers,
-                 quasi_identifiers,
-                 sensitive_attributes,
-                 lca_funcs,
-                 range_funcs,
-                 k=None):
+                 dataset: np.ndarray,
+                 identifiers: list,
+                 quasi_identifiers: list,
+                 sensitive_attributes: list,
+                 lca_funcs: Optional[dict] = None,
+                 range_funcs: Optional[dict] = None,
+                 k: Optional[int] = None):
         super().__init__(
                          dataset,
                          identifiers,
@@ -547,31 +502,18 @@ class KAnonymity(BaseAnonymiser):
     def clustering(self):
         """ Cluster for k-anonymity.
         
-        Description: Function that will cluster the data in clusters of 
-                    size at least k. The algorithm follows from paper 
-                    'Efficient k-Anonymization Using Clustering Techniques'.
+        Function that will cluster the data in clusters of 
+        size at least k. The algorithm follows from paper 
+        'Efficient k-Anonymization Using Clustering Techniques'.
         
-        Args: 
-            data: Structured Numpy Array dataset to be anonymized.
-            features: List of attributes to be used when clustering.
-            range_funcs: List of user provided functions - one for each 'QI' 
-                        to be used to calculate the range of a feature in
-                        a group of points. For continuous variables, it is the 
-                        range of the variable in the group (MAX - MIN) and for 
-                        categorical it is the height of the tree.
-            k: The minimum size of the equivalence classes.
-            
-        Returns: Clustering assignments for the data provided, where each
-                cluster is at least of size k.
+        The algorithm will first form clusters of size k with an objective,
+        of minimizing Information Loss, and then assign the leftover to the 
+        existing clusters.
         
-        Raises:
-            NA 
         """
         self.cluster_assignments = self.initialise_clustering()
         cluster_counter = 0
-        # The algorithm will first form clusters of size k with an objective,
-        # of minimizing Information Loss, and then assign the leftover to the 
-        # existing clusters.
+        
         
         # A cluster assignment of -1 implies not assigned to a cluster yet.
         while sum(self.cluster_assignments == -1) > self.k:
@@ -594,8 +536,8 @@ class KAnonymity(BaseAnonymiser):
     
     
     def apply_kanonymity(self, 
-                         suppress=False,
-                         k=None):
+                         suppress: Optional[bool] = False,
+                         k: Optional[int] = None):
         if k is None:
             if self.k is None:
                 raise ValueError("no k provided")
@@ -612,13 +554,13 @@ class KAnonymity(BaseAnonymiser):
 
 class LDiversity(BaseAnonymiser):
     def __init__(self, 
-                 dataset,
-                 identifiers,
-                 quasi_identifiers,
-                 sensitive_attributes,
-                 lca_funcs,
-                 range_funcs,
-                 l=None):
+                 dataset: np.ndarray,
+                 identifiers: list,
+                 quasi_identifiers: list,
+                 sensitive_attributes: list,
+                 lca_funcs: Optional[dict] = None,
+                 range_funcs: Optional[dict] = None,
+                 l: Optional[int] = None):
         super().__init__(
                            dataset,
                            identifiers,
@@ -642,8 +584,8 @@ class LDiversity(BaseAnonymiser):
             self._l = l
             
     def apply_ldiversity(self, 
-                         suppress=False,
-                         l=None):
+                         suppress: Optional[bool] = False,
+                         l: Optional[bool] = None):
         if l is None:
             if self.l is None:
                 raise ValueError("no l provided")
@@ -659,13 +601,13 @@ class LDiversity(BaseAnonymiser):
     
 class TCloseness(BaseAnonymiser):
     def __init__(self, 
-             dataset,
-             identifiers,
-             quasi_identifiers,
-             sensitive_attributes,
-             lca_funcs = {},
-             range_funcs = {},
-             t=None):
+             dataset: np.ndarray,
+             identifiers: list,
+             quasi_identifiers: list,
+             sensitive_attributes: list,
+             lca_funcs: Optional[dict] = None,
+             range_funcs: Optional[dict] = None,
+             t: Optional[float] = None):
         super().__init__(
                            dataset,
                            identifiers,
@@ -686,13 +628,13 @@ class TCloseness(BaseAnonymiser):
         else:
             self._t = t
             
-    def merge_clusters(self, clusters_tobe_merged):
+    def merge_clusters(self, clusters_tobe_merged: list):
         newcluster = int(np.max(self.cluster_assignments) + 1)
         for idx, val in enumerate(self.cluster_assignments):
             if int(val) in list(map(int, clusters_tobe_merged)):
                 self.cluster_assignments[idx] = newcluster
 
-    def check_tcloseness(self):
+    def check_tcloseness(self) -> (bool, list):
         """
         Check whether the t-closeness condition is satisfied, for all the clusters.
         """
@@ -749,8 +691,8 @@ class TCloseness(BaseAnonymiser):
             satisfied, emds = self.check_tcloseness()
            
     def apply_tcloseness(self, 
-                         suppress=False,
-                         t=None):
+                         suppress: Optional[bool] = False,
+                         t: Optional[float] = None) -> np.ndarray:
         if t is None:
             if self.t is None:
                 raise ValueError("no t provided")
@@ -769,28 +711,12 @@ class TCloseness(BaseAnonymiser):
     def swap_instances(self):
         """ Swaps instances between a cluster and the pool of unlabelled instances.
         
-        Description: Find the best possible swap of instances between the given
-                    cluster and the pool of unlabelled instances. It first selects 
-                    the instance who reduces the information loss within the cluster
-                    and then finds the best replacement with respect to reducing
-                    the EMD to the base distribution.
-                       
-        Args: 
-            data: Structured Numpy Array dataset.
-            sensitive_attribute: String for the name of the attribute to be
-                                protected.
-            base_distr: The distribution of the sensitive_attribute in the whole
-                        dataset.
-            cluster_assignments: List of cluster assignments
-            t: The maximum allowed Earth Mover's Distance (EMD) distance allowed
-                between each equivalence class' distribution of sensitive_attribute
-                and the overall distribution of the sensitive_attribute.
-            
-        Returns: cluster_assignments: List with updated cluster_assignments, with a 
-                                    lower EMD to the base distribution.
-        
-        Raises:
-            NA 
+        Find the best possible swap of instances between the given
+        cluster and the pool of unlabelled instances. It first selects 
+        the instance who reduces the information loss within the cluster
+        and then finds the best replacement with respect to reducing
+        the EMD to the base distribution.
+
             """
         cluster_counter = int(max(self.cluster_assignments))
         scores = []
@@ -827,40 +753,37 @@ class TCloseness(BaseAnonymiser):
         self.cluster_assignments[best_external] = cluster_counter
 
     def apply_tcloseness_2(self, 
-                           suppress=False,
-                           t=None):
+                           suppress: Optional[bool] = False,
+                           t: Optional[float] = None):
         """ Cluster and generalize for t-diversity.
         
-        Description: Function that will call clustering and generalization
-                    functions for t-closeness. The algorithm will first form
-                    one cluster and then keep swapping instances with the
-                    set of unlabelled instances until the first cluster satisfies
-                    t-closeness. It then continues by forming the second cluster
-                    and so on and so forth.
+        Function that will call clustering and generalization
+        functions for t-closeness. The algorithm will first form
+        one cluster and then keep swapping instances with the
+        set of unlabelled instances until the first cluster satisfies
+        t-closeness. It then continues by forming the second cluster
+        and so on and so forth.
                     
-                    Does not guarantee t-closeness in its current form.
+        Does not guarantee t-closeness in its current form.
         
-        Args: 
-            data: Structured Numpy Array dataset to be anonymized.
-            features: List of attributes to be used when clustering.
-            lca_funcs: List of user provided functions - one for each
-                        'QI' to be used to compute the lower common ancestor
-                        for a group of points.
-            range_funcs: List of user provided functions - one for each 'QI' 
-                        to be used to calculate the range of a feature in
-                        a group of points. For continuous variables, it is the 
-                        range of the variable in the group (MAX - MIN) and for 
-                        categorical it is the height of the tree.
-            sensitive_attribute: The name (string) of the attribute to be protected.
-            t: The minimum allowed distance between the distribution of the 
-                sensitive attribute in each equivalence class and the distribution
-                of the attribute in the full dataset, as calculated by the 
-                Earth Movers Distance (EMD).
+        Parameters
+        ----------
             
-        Returns: A dataset that satisfies t-closeness.
+        t: float
+            The minimum allowed distance between the distribution of the 
+            sensitive attribute in each equivalence class and the distribution
+            of the attribute in the full dataset, as calculated by the 
+            Earth Movers Distance (EMD).
+            
+        Returns
+        ------
+        data: np.ndarray
+            A dataset that satisfies t-closeness.
         
-        Raises:
-            NA 
+        Raises
+        ------
+        ValueError
+            if not t is provided.
             """
             
         if t == None:

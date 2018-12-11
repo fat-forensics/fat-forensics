@@ -299,14 +299,16 @@ from new import TCloseness, LDiversity, KAnonymity
 dataset, treatments, lca_funcs, distance_funcs, range_funcs = create_dataset()  
 #treatments['QI'].pop()
 #treatments['SA'].append('Gender')  
-mdl = TCloseness(dataset, treatments['I'], treatments['QI'], treatments['SA'], 
-                 lca_funcs=lca_funcs, range_funcs=range_funcs, t=1) 
-d=mdl.apply_tcloseness(suppress=True)
-
-mdl = LDiversity(dataset, treatments['I'], treatments['QI'], treatments['SA'], 
-                 lca_funcs=lca_funcs, range_funcs=range_funcs, l=2)
-a=mdl.apply_ldiversity(suppress=True)
-
+# =============================================================================
+# mdl = TCloseness(dataset, treatments['I'], treatments['QI'], treatments['SA'], 
+#                  lca_funcs=lca_funcs, range_funcs=range_funcs, t=1) 
+# d=mdl.apply_tcloseness(suppress=True)
+# 
+# mdl = LDiversity(dataset, treatments['I'], treatments['QI'], treatments['SA'], 
+#                  lca_funcs=lca_funcs, range_funcs=range_funcs, l=2)
+# a=mdl.apply_ldiversity(suppress=True)
+# 
+# =============================================================================
 mdl = KAnonymity(dataset, treatments['I'], treatments['QI'], treatments['SA'], 
-                 lca_funcs=lca_funcs, range_funcs=range_funcs, k=2)
+                  k=2)
 c=mdl.apply_kanonymity(suppress=True)

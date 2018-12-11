@@ -28,7 +28,13 @@ class CustomException(Exception):
         self.message = message
 
     def __str__(self) -> str:
-        """Assigns message as a string representation of the exception."""
+        """Assigns message as a string representation of the exception.
+
+        Returns
+        -------
+        self.message : str
+            Exception message.
+        """
         return self.message
 
 
@@ -54,7 +60,13 @@ class CustomValueError(ValueError):
         self.message = message
 
     def __str__(self) -> str:
-        """Assigns message as a string representation of the error."""
+        """Assigns message as a string representation of the error.
+
+        Returns
+        -------
+        self.message : str
+            Exception message.
+        """
         return self.message
 
 
@@ -135,6 +147,65 @@ class IncompatibleModelException(CustomException):
             self.message = (
                     'This is a default message.\n'
                     'This model is incompatible with the desired functionality.'
+                    )
+        else:
+            self.message = message
+
+
+class PrefittedModelException(CustomException):
+    """Exception raised when a machine learning model has already been trained
+    and the functionality requires an untrained model.
+
+    This is usually raised if the model is tried to be fitted again.
+
+    Args
+    ----
+    message : str, optional
+        A string with the exception message. Defaults to '' (empty string).
+
+    Attributes
+    ----------
+    message : str
+        A string holding the exception message.
+    """
+
+    def __init__(self, message: str = '') -> None:
+        """Inits PrefittedModelException with an empty message unless one is
+        given."""
+        if not message:
+            self.message = (
+                    'This is a default message.\n'
+                    'This model has already been fitted.'
+                    )
+        else:
+            self.message = message
+
+
+class UnfittedModelException(CustomException):
+    """Exception raised when a machine learning is untrained and the
+    functionality requires a fitted model.
+
+    This is usually raised if the model is not fitted and predict or
+    predict_proba methods are called.
+
+    Args
+    ----
+    message : str, optional
+        A string with the exception message. Defaults to '' (empty string).
+
+    Attributes
+    ----------
+    message : str
+        A string holding the exception message.
+    """
+
+    def __init__(self, message: str = '') -> None:
+        """Inits UnfittedModelException with an empty message unless one is
+        given."""
+        if not message:
+            self.message = (
+                    'This is a default message.\n'
+                    'This model is not fitted.'
                     )
         else:
             self.message = message

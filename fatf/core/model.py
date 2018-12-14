@@ -13,9 +13,17 @@ from fatf.exceptions import (
     CustomValueError,
     MissingImplementationException,
     PrefittedModelException,
-    UnfittedModelException
+    UnfittedModelException,
+    IncorrectShapeException
 )
 from fatf.utils.distance import euclidean_vector_distance
+from fatf.utils.validation import is_2d_array, check_array_type
+
+# if scikit is avaiable use scikit knn and log warning
+# initialising KNN - raise warning if they have categorical features 
+    # - naive hamming distance
+# rename KNN for structured - FAT_KNN to use with categorical features
+
 
 class Model(abc.ABC):
     """An abstract Model class with required fit and predict methods and an
@@ -40,7 +48,6 @@ class Model(abc.ABC):
         ----
         X : np.ndarray
             A 2-dimensional numpy array with data used to fit the model.
-
         y : np.ndarray
             A 1-dimensional numpy array with labels used to fit the model.
         """
@@ -48,7 +55,6 @@ class Model(abc.ABC):
     @abc.abstractmethod
     def predict(self, X: np.ndarray) -> None:
         """Predicts new data points using this model.
-
         Args
         ----
         X : np.ndarray
@@ -57,12 +63,10 @@ class Model(abc.ABC):
 
     def predict_proba(self, X: np.ndarray) -> None:
         """Predicts probabilities of new data points using this model.
-
         Args
         ----
         X : np.ndarray
             A 2-dimensional numpy array with data to predict probabilities for.
-
         Raises
         ------
         MissingImplementationException
@@ -83,7 +87,6 @@ class KNN(Model):
     ------
     CustomValueError
         Raised when the k parameter is not a positive integer.
-
     PrefittedModelException
         Raised when trying to fit a model that has already been fitted. Usually
         when calling the fit method for the second time. Try using the clear
@@ -97,19 +100,14 @@ class KNN(Model):
     ----------
     _k : int
         The number of neighbours used to make a prediction.
-
     _X : np.ndarray
         The KNN training data.
-
     _y : np.ndarray
         The KNN training labels.
-
     _X_n : int
         The number of data points in the training set.
-
     _unique_y : np.ndarray
         An array with unique labels in the training labels set.
-
     _is_fitted : bool
         A Boolean variable indicating whether the model is fitted.
     """
@@ -138,7 +136,6 @@ class KNN(Model):
         ----
         X : np.ndarray
             The KNN training data.
-
         y : np.ndarray
             The KNN training labels.
 
@@ -152,10 +149,14 @@ class KNN(Model):
         if self._is_fitted:
             raise PrefittedModelException('This model has already been fitted.')
         else:
+            if np.array_equal(X, np.array([], dtype=X.dtype)):
+                raise CustomValueError('Cannot fit model to empty array.')
+            if not is_2d_array(X):
+                raise IncorrectShapeException('X must be 2-D array.')
+            if X.shape[0] != y.shape[0]:
+                raise IncorrectShapeException('Number of samples in X must be same ' 
+                                              'as number of labels in y.')
             # TODO: Check for square and numerical (complex and simple) array
-            # TODO: If empty array raise an error
-            # TODO: Compare if the number of labels is the same as the number of
-            # data points
 
             self._X = X
             self._y = y
@@ -206,10 +207,11 @@ class KNN(Model):
         """
         if not self._is_fitted:
             raise UnfittedModelException('This model has not been fitted yet.')
-
-        # TODO: Check for square and numerical (complex and simple) array
-        # TODO: Check for size of the array -- if no data points return an empty
-        # array
+        if np.array_equal(X, np.array([], dtype=X.dtype)):
+            return np.array([], dtype=self._y.dtype)
+        if not is_2d_array(X):
+            #TODO: does this work if user wants to predict one value
+            raise IncorrectShapeException('X must be 2-D array.')
 
         predictions = np.array((0,))
 
@@ -230,3 +232,51 @@ class KNN(Model):
             predictions = np.array([majority_label] * X.shape[0])
 
         return predictions
+
+    def predict_proba(self, X: np.ndarray) -> np.ndarray:
+        """Predicts new instances with fitted model returning probablities
+        corresponding to each instance belonging to each class.sum
+        Args
+        ----
+        X : np.ndarray
+            The data to be predicted.
+        Raises
+        ------
+        UnfittedModelException
+            Raised when trying to predict data when the model has not been
+            fitted yet. Try using the fit method to fit the model first.
+        IncorrectShapeException
+            X is not a 2-D array.
+        CustomValueError
+            X has different dtype to the data that the model was fitted to.
+        Returns
+        -------
+        probabilities : np.ndarray
+            Probabilities for each instance belonging to each class.
+        """
+        if not self._is_fitted:
+            raise UnfittedModelException('This model has not been fitted yet.')
+        if np.array_equal(X, np.array([], dtype=X.dtype)):
+            return np.array([], dtype=self._y.dtype)
+        if not is_2d_array(X):
+            #TODO: does this work if user wants to predict one value
+            raise IncorrectShapeException('X must be 2-D array.')
+        
+        probabilities = np.array((0,))
+
+        if self._k < self._X_n:
+            distances = euclidean_vector_distance(X, self._X)
+            knn = np.argpartition(distances, self._k)
+            probabilities = []
+            for row in knn:
+                close_labels = self._y[row[:self._k]]
+                values, counts = np.unique(close_labels, return_counts=True)
+                zeros = np.zeros((self._unique_y.shape[0],))
+                zeros[values] = counts / np.sum(counts)
+                probabilities.append(zeros)
+            probabilities = np.array(probabilities)
+        else:
+            label_prob = self._unique_y_counts / np.sum(self._unique_y_counts)
+            probabilities = np.tile(label_prob, (X.shape[0], 1))
+
+        return probabilities

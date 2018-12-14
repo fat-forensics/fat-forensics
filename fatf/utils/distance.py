@@ -10,7 +10,6 @@ import numpy as np
 
 def euclidean_distance(x: np.ndarray, y: np.ndarray) -> float:
     """Calculates the Euclidean distance between two data points.
-
     Args
     ----
     x : np.ndarray
@@ -18,11 +17,6 @@ def euclidean_distance(x: np.ndarray, y: np.ndarray) -> float:
 
     y : np.ndarray
         The second data point.
-
-    Returns
-    -------
-    distance : float
-        Euclidean distance between the two data points.
     """
     distance = np.linalg.norm(x - y)
     return distance
@@ -35,14 +29,8 @@ def euclidean_point_distance(y: np.ndarray, X: np.ndarray) -> np.ndarray:
     ----
     y : np.ndarray
         A data point.
-
     X : np.ndarray
         An array of data points.
-
-    Returns
-    -------
-    distances : np.array
-        A point-wise Euclidean distance between a data point and an array of
         data points.
     """
     distances = np.apply_along_axis(euclidean_distance, 1, X, y)
@@ -56,7 +44,6 @@ def euclidean_vector_distance(X: np.ndarray, Y: np.ndarray) -> np.ndarray:
     ----
     X : np.ndarray
         An array of data points.
-
     Y : np.ndarray
         An array of data points.
 

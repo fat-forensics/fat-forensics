@@ -8,15 +8,12 @@ classes used across FAT-Forensics.
 
 class CustomException(Exception):
     """Base class for exceptions in this module.
-
     This custom exception inherits form Python's Exception and allows to
     define an optional custom message.
-
     Args
     ----
     message : str, optional
         A string with the exception message. Defaults to '' (empty string).
-
     Attributes
     ----------
     message : str
@@ -40,15 +37,12 @@ class CustomException(Exception):
 
 class CustomValueError(ValueError):
     """Base class for value errors in this module.
-
     This custom error inherits form Python's ValueError and allows to
     define an optional custom message.
-
     Args
     ----
     message : str, optional
         A string with the exception message. Defaults to '' (empty string).
-
     Attributes
     ----------
     message : str

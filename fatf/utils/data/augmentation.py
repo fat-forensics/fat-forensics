@@ -15,7 +15,7 @@ class Mixup(object):
     def __init__(self,
                  dataset: np.ndarray,
                  y: np.array,
-                 beta_parameters: Optional[List[int]] = None):
+                 beta_parameters: Optional[List[Union[int, float]]] = None):
         self.numerical_indices, self.categorical_indices = check_array_type(dataset)
         self.dataset = dataset.copy(order = 'K')
         if len(self.dataset.dtype) == 0:
@@ -30,7 +30,7 @@ class Mixup(object):
         self.check_beta_parameters(beta_parameters)
         
     @property
-    def beta_parameters(self):
+    def beta_parameters(self) -> List[Union[int, float]]:
         return self._beta_parameters
     
     @beta_parameters.setter
@@ -41,14 +41,13 @@ class Mixup(object):
     def check_beta_parameters(self, 
                               beta_parameters: List[Union[int, float]]):
         if not beta_parameters:
-            self._beta_parameters = [2, 5]
+            self._beta_parameters: List[Union[int, float]] = [2, 5]
         elif len(beta_parameters) != 2:
             raise ValueError('Need two parameters for beta distribution')
         elif not np.all([type(item) in [int, float] for item in beta_parameters]):
-            if not np.all([item > 0 for item in beta_parameters]):
-                raise ValueError('Beta parameters need to be positive')
-            else:
-                raise TypeError('Beta parameters need to be int or float')
+            raise TypeError('Beta parameters need to be int or float')
+        elif not np.all([item > 0 for item in beta_parameters]):
+            raise ValueError('Beta parameters need to be positive')
         else:
             self._beta_parameters = beta_parameters
             

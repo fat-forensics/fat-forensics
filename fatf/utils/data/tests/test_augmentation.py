@@ -27,16 +27,49 @@ input_y = y[:2]
 test_instance_0 = testdata[1]
 test_y_0 = y[1]
 
-expected_output_0 = (np.array([[10, 10]]), 1)
+expected_output_0 = [np.array([[63, 57]]), np.array([[0.15201248595867722]])]
+
+input_dataset_1 = testdata_struct[:2]
+input_y = y[:2]
+
+test_instance_1 = testdata_struct[1]
+test_y_1 = y[1]
+
+expected_output_1 = [np.array([(63, 57)], dtype=[('Age', '<i4'), ('Weight', '<i4')]), 
+                     np.array([[0.15201248595867722]])]
+
 
 @pytest.mark.parametrize("input_dataset, input_y, test_instance, test_y, expected_output",
-                         [(input_dataset_0, input_y, test_instance_0, test_y_0, expected_output_0)])
+                         [(input_dataset_0, input_y, test_instance_0, test_y_0, expected_output_0),
+                          (input_dataset_1, input_y, test_instance_1, test_y_1, expected_output_1)])
 def test_sample(input_dataset, input_y, test_instance, test_y, expected_output):
     mdl = Mixup(input_dataset,
                 input_y)
     N = 1
+    np.random.seed(42)
     output = mdl.sample(test_instance,
                         N)
+    print(output)
     assert np.all(output[0] == expected_output[0])
-    assert output[1] == expected_output[1]
+    assert np.all(output[1] == expected_output[1])
+
+@pytest.mark.parametrize("input_dataset, input_y",
+                         [(input_dataset_0, input_y)])   
+def test_beta_parameters(input_dataset, input_y):
+    with pytest.raises(ValueError) as excinfo:          
+        mdl = Mixup(input_dataset,
+                    input_y,
+                    beta_parameters=[1])
+    assert str(excinfo.value) == 'Need two parameters for beta distribution' 
+
+    with pytest.raises(ValueError) as excinfo:          
+        mdl = Mixup(input_dataset,
+                    input_y,
+                    beta_parameters=[-1, 1])
+    assert str(excinfo.value) == 'Beta parameters need to be positive' 
     
+    with pytest.raises(TypeError) as excinfo:          
+        mdl = Mixup(input_dataset,
+                    input_y,
+                    beta_parameters=['a', 1])
+    assert str(excinfo.value) == 'Beta parameters need to be int or float'

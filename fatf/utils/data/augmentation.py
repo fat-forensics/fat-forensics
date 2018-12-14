@@ -45,7 +45,10 @@ class Mixup(object):
         elif len(beta_parameters) != 2:
             raise ValueError('Need two parameters for beta distribution')
         elif not np.all([type(item) in [int, float] for item in beta_parameters]):
-            raise TypeError('Beta parameters need to be int or float')
+            if not np.all([item > 0 for item in beta_parameters]):
+                raise ValueError('Beta parameters need to be positive')
+            else:
+                raise TypeError('Beta parameters need to be int or float')
         else:
             self._beta_parameters = beta_parameters
             

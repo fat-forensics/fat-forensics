@@ -8,15 +8,12 @@ classes used across FAT-Forensics.
 
 class CustomException(Exception):
     """Base class for exceptions in this module.
-
     This custom exception inherits form Python's Exception and allows to
     define an optional custom message.
-
     Args
     ----
     message : str, optional
         A string with the exception message. Defaults to '' (empty string).
-
     Attributes
     ----------
     message : str
@@ -28,21 +25,23 @@ class CustomException(Exception):
         self.message = message
 
     def __str__(self) -> str:
-        """Assigns message as a string representation of the exception."""
+        """Assigns message as a string representation of the exception.
+        Returns
+        -------
+        self.message : str
+            Exception message.
+        """
         return self.message
 
 
 class CustomValueError(ValueError):
     """Base class for value errors in this module.
-
     This custom error inherits form Python's ValueError and allows to
     define an optional custom message.
-
     Args
     ----
     message : str, optional
         A string with the exception message. Defaults to '' (empty string).
-
     Attributes
     ----------
     message : str
@@ -54,18 +53,21 @@ class CustomValueError(ValueError):
         self.message = message
 
     def __str__(self) -> str:
-        """Assigns message as a string representation of the error."""
+        """Assigns message as a string representation of the error.
+        Returns
+        -------
+        self.message : str
+            Exception message.
+        """
         return self.message
 
 
 class MissingImplementationException(CustomException):
     """Exception raised for unimplemented functionality.
-
     Args
     ----
     message : str, optional
         A string with the exception message. Defaults to '' (empty string).
-
     Attributes
     ----------
     message : str
@@ -86,12 +88,10 @@ class MissingImplementationException(CustomException):
 
 class IncorrectShapeException(CustomException):
     """Exception raised when the shape of an array is not what is expected.
-
     Args
     ----
     message : str, optional
         A string with the exception message. Defaults to '' (empty string).
-
     Attributes
     ----------
     message : str
@@ -113,15 +113,12 @@ class IncorrectShapeException(CustomException):
 class IncompatibleModelException(CustomException):
     """Exception raised when a machine learning model is incompatible with the
     functionality of a function or a method.
-
     This is usually raise if the model lacks fit, predict and, optionally,
     predict_proba methods.
-
     Args
     ----
     message : str, optional
         A string with the exception message. Defaults to '' (empty string).
-
     Attributes
     ----------
     message : str
@@ -135,6 +132,59 @@ class IncompatibleModelException(CustomException):
             self.message = (
                     'This is a default message.\n'
                     'This model is incompatible with the desired functionality.'
+                    )
+        else:
+            self.message = message
+
+
+class PrefittedModelException(CustomException):
+    """Exception raised when a machine learning model has already been trained
+    and the functionality requires an untrained model.
+    This is usually raised if the model is tried to be fitted again.
+    Args
+    ----
+    message : str, optional
+        A string with the exception message. Defaults to '' (empty string).
+    Attributes
+    ----------
+    message : str
+        A string holding the exception message.
+    """
+
+    def __init__(self, message: str = '') -> None:
+        """Inits PrefittedModelException with an empty message unless one is
+        given."""
+        if not message:
+            self.message = (
+                    'This is a default message.\n'
+                    'This model has already been fitted.'
+                    )
+        else:
+            self.message = message
+
+
+class UnfittedModelException(CustomException):
+    """Exception raised when a machine learning is untrained and the
+    functionality requires a fitted model.
+    This is usually raised if the model is not fitted and predict or
+    predict_proba methods are called.
+    Args
+    ----
+    message : str, optional
+        A string with the exception message. Defaults to '' (empty string).
+    Attributes
+    ----------
+    message : str
+        A string holding the exception message.
+    """
+
+    def __init__(self, message: str = '') -> None:
+        """Inits UnfittedModelException with an empty message unless one is
+        given."""
+        if not message:
+            self.message = (
+                    'This is a default message.\n'
+                    'This model is not fitted.'
                     )
         else:
             self.message = message

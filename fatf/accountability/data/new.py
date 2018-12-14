@@ -485,21 +485,11 @@ class BaseAnonymiser(object):
                 raise NameError(str(attr) + ' in attributes to suppresss, not found in the dataset')
 
 class KAnonymity(BaseAnonymiser):
-    def __init__(self,
-                 dataset: np.ndarray,
-                 identifiers: list,
-                 quasi_identifiers: list,
-                 sensitive_attributes: list,
-                 lca_funcs: Optional[dict] = None,
-                 range_funcs: Optional[dict] = None,
-                 k: Optional[int] = None) -> None:
-        BaseAnonymiser.__init__(self,
-                                     dataset,
-                                     identifiers,
-                                     quasi_identifiers,
-                                     sensitive_attributes,
-                                     lca_funcs,
-                                     range_funcs)
+    def __init__(self, 
+                 *args, 
+                 k: Optional[int] = None, 
+                 **kwargs) -> None:
+        super(KAnonymity, self).__init__(*args, **kwargs)
         self.k = k
 
     @property
@@ -569,21 +559,11 @@ class KAnonymity(BaseAnonymiser):
 
 
 class LDiversity(BaseAnonymiser):
-    def __init__(self,
-                 dataset: np.ndarray,
-                 identifiers: list,
-                 quasi_identifiers: list,
-                 sensitive_attributes: list,
-                 lca_funcs: Optional[dict] = None,
-                 range_funcs: Optional[dict] = None,
-                 l: Optional[int] = None) -> None:
-        super().__init__(
-                           dataset,
-                           identifiers,
-                           quasi_identifiers,
-                           sensitive_attributes,
-                           lca_funcs,
-                           range_funcs)
+    def __init__(self, 
+                 *args, 
+                 l: Optional[int] = None, 
+                 **kwargs) -> None:
+        super(LDiversity, self).__init__(*args, **kwargs)
         self.l = l
 
     @property
@@ -616,21 +596,11 @@ class LDiversity(BaseAnonymiser):
         return data
 
 class TCloseness(BaseAnonymiser):
-    def __init__(self,
-             dataset: np.ndarray,
-             identifiers: list,
-             quasi_identifiers: list,
-             sensitive_attributes: list,
-             lca_funcs: Optional[dict] = None,
-             range_funcs: Optional[dict] = None,
-             t: Optional[float] = None) -> None:
-        super().__init__(
-                           dataset,
-                           identifiers,
-                           quasi_identifiers,
-                           sensitive_attributes,
-                           lca_funcs,
-                           range_funcs)
+    def __init__(self, 
+                 *args, 
+                 t: Optional[float] = None, 
+                 **kwargs) -> None:
+        super(TCloseness, self).__init__(*args, **kwargs)
         self.t = t
 
     @property

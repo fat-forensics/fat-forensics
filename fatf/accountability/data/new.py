@@ -84,11 +84,11 @@ class BaseAnonymiser(object):
         self._quasi_identifiers = quasi_identifiers
         self._attributes_to_suppress = identifiers
         self._sensitive_attributes = sensitive_attributes
-        if not lca_funcs:
-            
+        if not lca_funcs:            
             self.lca_funcs: Dict[str, Callable] = {}
         else:
             self.lca_funcs = lca_funcs
+            
         if not range_funcs:
             self.range_funcs: Dict[str, Callable] = {}
         else:
@@ -493,13 +493,13 @@ class KAnonymity(BaseAnonymiser):
                  lca_funcs: Optional[dict] = None,
                  range_funcs: Optional[dict] = None,
                  k: Optional[int] = None) -> None:
-        super().__init__(
-                         dataset,
-                         identifiers,
-                         quasi_identifiers,
-                         sensitive_attributes,
-                         lca_funcs,
-                         range_funcs)
+        BaseAnonymiser.__init__(self,
+                                     dataset,
+                                     identifiers,
+                                     quasi_identifiers,
+                                     sensitive_attributes,
+                                     lca_funcs,
+                                     range_funcs)
         self.k = k
 
     @property

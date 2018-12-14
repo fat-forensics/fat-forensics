@@ -1,9 +1,10 @@
-# -*- coding: utf-8 -*-
 """
-Created on Fri Dec 14 15:28:24 2018
+The :mod:`fatf.utils.data.augmentation` module holds the object and
+functions relevant to performing Mixup data generation.
+"""
 
-@author: rp13102
-"""
+# Author: Rafael Poyiadzi <rp13102@bristol.ac.uk>
+# License: BSD 3 clause
 
 import numpy as np
 import mypy
@@ -12,10 +13,17 @@ from fatf.exceptions import CustomValueError
 from typing import Optional, List, Union
 
 class Mixup(object):
+    """Object to perform data generation following the Mixup method.
+
+    For a specific point, select points frm the dataset at random, then draw
+    samples frm Beta distribution, and form new points according to the convex
+    combinations of the points.
+    """
     def __init__(self,
                  dataset: np.ndarray,
                  y: np.array,
-                 beta_parameters: Optional[List[Union[int, float]]] = None):
+                 beta_parameters: Optional[List[Union[int, float]]] = None,
+                 balanced: Optional[bool] = False):
         self.numerical_indices, self.categorical_indices = check_array_type(dataset)
         self.dataset = dataset.copy(order = 'K')
         if len(self.dataset.dtype) == 0:
@@ -25,6 +33,10 @@ class Mixup(object):
             
         self.n_samples = self.dataset.shape[0]
         self.y = y.copy(order = 'K')
+        if balanced:
+            self.balanced = balanced
+            self.n_positives = sum(y == 1)
+            self.n_negatives = sum(y == 0)
         if self.dataset.shape[0] != self.y.shape[0]:
             raise ValueError('Input structures are not of equal length')
         self.check_beta_parameters(beta_parameters)
@@ -69,6 +81,7 @@ class Mixup(object):
         random_indices = np.random.choice(self.n_samples, 
                                           self.n_draws, 
                                           replace=replacement)
+        
         random_draws_lambda = np.random.beta(self.beta_parameters[0],
                                              self.beta_parameters[1],
                                              self.n_draws)

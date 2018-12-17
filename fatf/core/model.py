@@ -7,6 +7,7 @@ for FAT-Forensics testing and examples.
 # License: BSD 3 clause
 
 import abc
+import warnings
 import numpy as np
 
 from fatf.exceptions import (
@@ -16,13 +17,17 @@ from fatf.exceptions import (
     UnfittedModelException,
     IncorrectShapeException
 )
-from fatf.utils.distance import euclidean_vector_distance
-from fatf.utils.validation import is_2d_array, check_array_type
+from fatf.utils.distance import (euclidean_vector_distance, 
+                                 hamming_vector_distance)
+from fatf.utils.validation import is_2d_array, check_array_type, is_structured
 
-# if scikit is avaiable use scikit knn and log warning
-# initialising KNN - raise warning if they have categorical features 
-    # - naive hamming distance
-# rename KNN for structured - FAT_KNN to use with categorical features
+try:
+    from sklearn.neighbors import KNeighborsClassifier
+    KNN = KNeighborsClassifier
+    warnings.warn('sklearn KNeighborsClassifier can be accessed by '
+                  'fatf.core.model.KNN', category=Warning)
+except ImportError as e:
+    pass
 
 
 class Model(abc.ABC):
@@ -75,7 +80,7 @@ class Model(abc.ABC):
         raise MissingImplementationException()
 
 
-class KNN(Model):
+class FAT_KNN(Model):
     """A K-Nearest Neighbours model that uses Euclidean distance.
 
     Args
@@ -128,6 +133,9 @@ class KNN(Model):
         self._unique_y = np.ndarray((0,))
         self._unique_y_counts = np.ndarray((0,))
         self._is_fitted = False
+        self._categorical_indices = np.ndarray((0,))
+        self._numerical_indices = np.ndarray((0,))
+        self._is_structured = False
 
     def fit(self, X: np.ndarray, y: np.ndarray) -> None:
         """Fit the model.
@@ -156,8 +164,9 @@ class KNN(Model):
             if X.shape[0] != y.shape[0]:
                 raise IncorrectShapeException('Number of samples in X must be same ' 
                                               'as number of labels in y.')
-            # TODO: Check for square and numerical (complex and simple) array
-
+            self._numerical_indices, self._categorical_indices = \
+                check_array_type(X)
+            self._is_structured = is_structured(X)
             self._X = X
             self._y = y
             self._unique_y, self._unique_y_counts = np.unique(
@@ -185,6 +194,38 @@ class KNN(Model):
             self._unique_y = np.ndarray((0,))
             self._unique_y_counts = np.ndarray((0,))
             self._is_fitted = False
+            self._categorical_indices = np.ndarray((0,))
+            self._numerical_indices = np.ndarray((0,))
+            self._is_structured = False
+
+    def _get_distances(self, X_test) -> np.ndarray:
+        """Gets distances for combined numerical and categorical features
+        """
+        #TODO: how to combine numerical and categorical (perhaps normalise them)
+        categorical_distances = np.zeros(())
+        numerical_distances = np.zeros(())
+        if self._is_structured:
+            if not np.array_equal(self._categorical_indices, np.array([])):
+                categorical_distances = hamming_vector_distance(
+                    X_test[self._categorical_indices], 
+                    self._X[self._categorical_indices])
+            if not np.array_equal(self._numerical_indices, np.array([])):
+                numerical_distances = euclidean_vector_distance(
+                    X_test[self._numerical_indices],
+                    self._X[self._numerical_indices]
+                )
+        else:
+            if not np.array_equal(self._categorical_indices, np.array([])):
+                categorical_distances = hamming_vector_distance(
+                    X_test[:, self._categorical_indices], 
+                    self._X[:, self._categorical_indices])
+            if not np.array_equal(self._numerical_indices, np.array([])):
+                numerical_distances = euclidean_vector_distance(
+                    X_test[:, self._numerical_indices],
+                    self._X[:, self._numerical_indices]
+                )
+        distances = categorical_distances + numerical_distances
+        return distances
 
     def predict(self, X: np.ndarray) -> np.ndarray:
         """Predict new instances with the fitted model.
@@ -216,7 +257,7 @@ class KNN(Model):
         predictions = np.array((0,))
 
         if self._k < self._X_n:
-            distances = euclidean_vector_distance(X, self._X)
+            distances = self._get_distances(X)
             knn = np.argpartition(distances, self._k)
             predictions = []
             for row in knn:
@@ -265,7 +306,7 @@ class KNN(Model):
         probabilities = np.array((0,))
 
         if self._k < self._X_n:
-            distances = euclidean_vector_distance(X, self._X)
+            distances = self._get_distances(X)
             knn = np.argpartition(distances, self._k)
             probabilities = []
             for row in knn:

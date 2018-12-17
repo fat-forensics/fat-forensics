@@ -24,6 +24,10 @@ class Mixup(object):
                  y: np.array,
                  beta_parameters: Optional[List[Union[int, float]]] = None,
                  balanced: Optional[bool] = False):
+        
+        # TODO: think about this parameter
+        self.threshold = 0.50
+        
         self.numerical_indices, self.categorical_indices = check_array_type(dataset)
         self.dataset = dataset.copy(order = 'K')
         if len(self.dataset.dtype) == 0:
@@ -33,10 +37,8 @@ class Mixup(object):
             
         self.n_samples = self.dataset.shape[0]
         self.y = y.copy(order = 'K')
-        if balanced:
-            self.balanced = balanced
-            self.n_positives = sum(y == 1)
-            self.n_negatives = sum(y == 0)
+        self.balanced = balanced
+
         if self.dataset.shape[0] != self.y.shape[0]:
             raise ValueError('Input structures are not of equal length')
         self.check_beta_parameters(beta_parameters)
@@ -78,9 +80,24 @@ class Mixup(object):
         
         self.subject_instance = subject_instance
         self.subject_y = subject_y
-        random_indices = np.random.choice(self.n_samples, 
-                                          self.n_draws, 
-                                          replace=replacement)
+        if not self.balanced:
+            random_indices = np.random.choice(self.n_samples, 
+                                              self.n_draws, 
+                                              replace=replacement)
+        elif self.n_draws > 10:
+            unique, counts = np.unique(self.y, return_counts = True)
+            total = sum(counts)
+            random_indices = []
+            for clss, count in zip(unique, counts):
+                pos = np.where(self.y == clss)[0]
+                n_tosample = int((count / total) * self.n_draws)
+                random_indices_clss = np.random.choice(pos,
+                                                       n_tosample,
+                                                       replace=replacement)
+                random_indices.extend(random_indices_clss)
+            random_indices = np.array(random_indices)
+        else:
+            raise ValueError('Please consider a higher value for N')
         
         random_draws_lambda = np.random.beta(self.beta_parameters[0],
                                              self.beta_parameters[1],
@@ -89,13 +106,23 @@ class Mixup(object):
             sampled_x = np.empty((self.n_draws, ), dtype=self.dataset.dtype)
         else:
             sampled_x = np.zeros((self.n_draws, self.dataset.shape[1]), dtype=self.dataset.dtype)
-        sampled_y = np.array(np.zeros(self.n_draws)).reshape(-1, 1)
+        
+        if len(self.y.shape) == 1:
+            sampled_y = np.zeros(self.n_draws).reshape(-1, 1)
+        else:
+            n_classes = self.y.shape[1]
+            sampled_y = np.zeros((self.n_draws, n_classes)).reshape(-1, n_classes)
         for i in range(self.n_draws):
             l = random_draws_lambda[i]
             random_draw_x = self.dataset[random_indices[i]]
             for ftr in self.numerical_indices:
                 sampled_x[i][ftr] = (1 - l) * random_draw_x[ftr] \
                                     + l * self.subject_instance[ftr]
+            for ftr in self.categorical_indices:
+                if l <= self.threshold:
+                    sampled_x[i][ftr] = self.subject_instance[ftr]
+                else:
+                    sampled_x[i][ftr] = random_draw_x[ftr]
             sampled_y[i] = (1 - l) * self.y[random_indices[i]] \
                                 + l * self.subject_y
         return sampled_x, sampled_y

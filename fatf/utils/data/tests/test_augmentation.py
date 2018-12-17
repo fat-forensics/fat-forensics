@@ -49,10 +49,26 @@ def test_sample(input_dataset, input_y, test_instance, test_y, expected_output):
     np.random.seed(42)
     output = mdl.sample(test_instance,
                         N)
-    print(output)
     assert np.all(output[0] == expected_output[0])
     assert np.all(output[1] == expected_output[1])
 
+input_t = np.vstack((input_y, 1-input_y))
+test_t_0 = input_t[0]
+test_instance_2cl_0 = input_dataset_0[0]
+expected_output_0 = (np.array([[26, 74]]), np.array([[0.67033678, 0.32966322]]))
+@pytest.mark.parametrize("input_dataset, input_t, test_instance, test_y, expected_output",
+                         [(input_dataset_0, input_t, test_instance_2cl_0, test_t_0, expected_output_0)])
+def test_sample_2classes(input_dataset, input_t, test_instance, test_y, expected_output):
+    mdl = Mixup(input_dataset,
+                input_t)
+    np.random.seed(99)
+    output = mdl.sample(test_instance,
+                        test_y,
+                        1)
+    print(output)
+    assert np.all(output[0] == expected_output[0])
+    assert np.all(output[1] == expected_output[1])
+    
 @pytest.mark.parametrize("input_dataset, input_y",
                          [(input_dataset_0, input_y)])   
 def test_beta_parameters(input_dataset, input_y):

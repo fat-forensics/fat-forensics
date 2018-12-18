@@ -10,6 +10,9 @@ import numpy as np
 from typing import Optional, Union, Callable
 from fatf.utils.validation import check_array_type
 
+def test_func():
+    return 5
+
 class DensityCheck(object):
     """Class for doing density check in the provided dataset.
 

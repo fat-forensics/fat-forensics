@@ -12,6 +12,8 @@ import pytest
 import fatf
 import fatf.utils.testing.warnings
 
+from fatf.utils.testing.warnings import EMPTY_RE
+
 
 @pytest.mark.parametrize('error_type,error_class',
                          [('Import', ImportWarning),
@@ -34,8 +36,8 @@ def test_warnings_emission1(error_type, error_class):
     # Is it being displayed?
     assert fatf.utils.testing.warnings.is_warning_class_displayed(error_class)
 
-    for warning_filter in warnings.filters:
-        warning_matches_module = warning_filter[3]
+    for fltr in warnings.filters:
+        warning_matches_module = EMPTY_RE if fltr[3] is None else fltr[3]
         if warning_matches_module is not None:
             assert 'fatf' not in warning_matches_module.pattern
 
@@ -65,8 +67,8 @@ def test_warnings_emission2():
 
     assert len(warnings.filters) == \
         len(fatf.utils.testing.warnings.DEFAULT_WARNINGS) + 2
-    for warning_filter in warnings.filters[:2]:
-        warning_matches_module = warning_filter[3]
+    for fltr in warnings.filters[:2]:
+        warning_matches_module = EMPTY_RE if fltr[3] is None else fltr[3]
         if warning_matches_module is not None:
             assert 'fatf' in warning_matches_module.pattern
 

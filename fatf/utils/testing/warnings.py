@@ -55,10 +55,10 @@ def is_warning_class_displayed(warning_class: Warning,
     # Filters for which warnings are displayed
     allowed_warning_filters = ['default', 'error', 'always', 'module', 'once']
 
-    for active_filter in warnings.filters:  # type: ignore
-        active_warning_filter = active_filter[0]
-        active_warning_class = active_filter[2]
-        active_warning_module = active_filter[3] or EMPTY_RE
+    for fltr in warnings.filters:  # type: ignore
+        active_warning_filter = fltr[0]
+        active_warning_class = fltr[2]
+        active_warning_module = EMPTY_RE if fltr[3] is None else fltr[3]
         if (issubclass(warning_class, active_warning_class) and  # type: ignore
                 active_warning_module.match(warning_module)):
             if active_warning_filter in allowed_warning_filters:

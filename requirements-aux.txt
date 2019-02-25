@@ -1,0 +1,2 @@
+jupyterlab
+scikit-learn==0.19.2

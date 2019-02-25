@@ -59,36 +59,17 @@ matrix:
 
 install:
   - make dependencies-dev  # Install python development dependencies
+#  - pip install lime matplotlib scikit-learn
 #  - make install-dev
 
 script:
   - make linting-pylint
   - make linting-flake8
-  - make test-with-code-coverage
-  - make doc-test
-
-jobs:
-  include:
-    - stage: Deploy Code Coverage
-      install: true
-      script: make code-coverage
-      deploy:
-        provider: script
-        skip_cleanup: true
-        script: 'ls -la ./temp/'
-#        script: make deploy-code-coverage
-    - &deploy-documentation
-      stage: Deploy Documentation
-      name: ReadTheDocs
-      install: skip
-      script: skip
-      deploy:
-        provider: script
-        script: 'python --version && echo $FATF_TEST_SCIPY $FATF_TEST_NUMPY && echo "ReadTheDocs"'
-    - <<: *deploy-documentation
-      name: GitHub Pages Doc Repo
-      deploy:
-        script: 'python --version && echo "GitHub Pages"'
-
-#after_success:
-#  - make deploy-code-coverage
+  - make linting-yapf
+  - make check-types
+  - make test-with-code-coverage 
+#  - make test-notebooks
+#  - make test-docs
+  - make docs-linkcheck
+  - make docs-coverage
+  - make docs-html

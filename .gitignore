@@ -2,11 +2,21 @@
 
 _envar.sh
 
-FAT_forensics.egg-info/
+*.egg-info/
+FAT-forensics-*
+build/*
+dist/*
 *.pyc
 
 *__pycache__
 .pytest_cache
 .coverage
+.mypy_cache
 
-temp
+.ipynb_checkpoints
+#*.ipynb
+
+docs/_build
+docs/_resources
+
+temp/*

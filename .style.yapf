@@ -1,0 +1,5 @@
+[style]
+based_on_style = pep8
+align_closing_bracket_with_visual_indent = 1
+column_limit = 79
+dedent_closing_brackets = 0

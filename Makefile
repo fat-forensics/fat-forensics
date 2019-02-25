@@ -1,4 +1,4 @@
-# makefile to simplify repetitive build commands
+# Makefile simplifying repetitive dev commands
 
 # Set the default shell to /bin/bash (from /bin/sh) to support source command
 #SHELL := /bin/bash
@@ -14,8 +14,25 @@ endif
 # Get environment variables if _envar.sh exists
 -include _envar.sh
 
-# Do all the tests
-all: linting-pylint linting-flake8 test-with-code-coverage doc-test
+.PHONY: all install install-dev dependencies dependencies-dev docs-html \
+	docs-html-coverage docs-linkcheck docs-coverage test-docs test-notebooks \
+	test code-coverage test-with-code-coverage deploy-code-coverage \
+	linting-pylint linting-flake8 linting-yapf check-types build readme-gen \
+	readme-preview validate-travis
+
+all: \
+	test-with-code-coverage \
+	test-notebooks \
+	test-docs \
+	\
+	docs-html \
+	docs-linkcheck \
+	docs-coverage \
+	\
+	check-types \
+	linting-pylint \
+	linting-flake8 \
+	linting-yapf
 
 install:
 	pip install -e .
@@ -41,31 +58,83 @@ else
 	pip install --only-binary=scipy scipy==$(FATF_TEST_SCIPY)
 endif
 endif
+	pip install -r requirements.txt
 	pip install -r requirements-dev.txt
 
-doc-test:
-	pytest --doctest-glob='*.rst'
+#docs: Makefile
+#	$(MAKE) -C docs $(filter-out $@,$(MAKECMDGOALS))
+#	exit 0
 
-doc-build:
-	sphinx-apidoc \
-		-o \
-			doc/source/ \
-			fatf/ fatf/tests/ \
-			fatf/transform/tests \
-			fatf/metrics/tests/ \
-			fatf/analyse/tests
-	sphinx-build -b html doc temp/doc
+# Catch-all unmatched targets -> do nothing (silently)
+# This is needed for docs target as any argument for that command will be just
+# another target for make. It makes it dangerous as `make docs all` will
+# additionally execute all target for this make as well.
+#%:
+#	@:
+
+# Check docs: references (-n -- nit-picky mode -- generates warnings for all
+# missing references) and linkage (-W changes all warnings into errors meaning
+# unlinked sources will cause the build to fail.)
+docs-html:
+	sphinx-build -M html docs docs/_build -nW -w docs/_build/nit-picky-html.txt
+	cat docs/_build/nit-picky-html.txt
+#	$(MAKE) -C docs html
+
+docs-linkcheck:
+	sphinx-build -M linkcheck docs docs/_build
+	cat docs/_build/linkcheck/output.txt
+#	$(MAKE) -C docs linkcheck
+
+docs-coverage:
+	sphinx-build -M coverage docs docs/_build
+	cat docs/_build/coverage/python.txt
+#	$(MAKE) -C docs html -b coverage  # Build html with docstring coverage report
+#	$(MAKE) -C docs coverage
+
+docs-doctest:
+	sphinx-build -M doctest docs docs/_build
+#	$(MAKE) -C docs doctest
+
+docs-clean:
+	sphinx-build -M clean docs docs/_build
+
+# Do doctests only: https://github.com/pytest-dev/pytest/issues/4726
+# Given that this is work-in-progress feature use docs-doctest instead
+# (`-k 'not test_ and not Test'` is used as a hack -- no doctests in functions
+# starting with `test_` and classes starting with `Test` will be found.)
+test-docs:
+	pytest \
+		--doctest-glob='*.txt' \
+		--doctest-glob='*.rst' \
+		--doctest-modules \
+		--ignore=docs/_build/ \
+		-k 'not test_ and not Test' \
+		docs/ \
+		fatf/
+
+test-notebooks:
+	pytest \
+		--nbval \
+		examples/
 
 test:
-	pytest --junit-xml=temp/pytest_$(PYTHON_VERSION).xml
+	pytest \
+		--junit-xml=temp/pytest_$(PYTHON_VERSION).xml \
+		fatf/
 
 code-coverage:
-	pytest --cov=./ --cov-report=term-missing --cov-report=xml:temp/coverage.xml
+	pytest \
+		--cov-report=term-missing \
+		--cov-report=xml:temp/coverage_$(PYTHON_VERSION).xml \
+		--cov=fatf \
+		fatf/
 
 test-with-code-coverage:
 	pytest \
-		--junit-xml=temp/pytest_$(PYTHON_VERSION).xml --cov=./ \
-		--cov-report=term-missing --cov-report=xml:temp/coverage.xml
+		--junit-xml=temp/pytest_$(PYTHON_VERSION).xml \
+		--cov-report=term-missing \
+		--cov-report=xml:temp/coverage_$(PYTHON_VERSION).xml \
+		--cov=fatf fatf/
 
 deploy-code-coverage:
 # @ before the command suppresses printing it out, hence hides the token
@@ -74,8 +143,8 @@ ifndef CODECOV_TOKEN
 	@echo 'CODECOV_TOKEN environment variable is NOT set'
 	$(error CODECOV_TOKEN is undefined)
 else
-	@echo 'codecov -t $$CODECOV_TOKEN -f temp/coverage.xml'
-#	@codecov -t $(CODECOV_TOKEN) -f temp/coverage.xml
+	@echo 'codecov -t $$CODECOV_TOKEN -f temp/coverage_$(PYTHON_VERSION).xml'
+#	@codecov -t $(CODECOV_TOKEN) -f temp/coverage_$(PYTHON_VERSION).xml
 endif
 else
 	@echo 'Code coverage can only be submitted from a branch of the upstream repo'
@@ -83,13 +152,30 @@ else
 endif
 
 linting-pylint:
-	pylint fatf/
+	pylint --rcfile=.pylintrc fatf/
 
 linting-flake8:
-	flake8 fatf/
+	flake8 --config=.flake8 fatf/
 
-readme:
+linting-yapf:
+	yapf --style .style.yapf -p -r -d -vv fatf/
+
+check-types:
+	mypy --config-file=.mypy.ini fatf/
+
+build:
+	python3 setup.py sdist bdist_wheel
+
+readme-gen:
 	pandoc -t html README.rst -o temp/README.html
+
+readme-preview:
+	restview README.rst
 
 validate-travis:
 	travis lint .travis.yml
+
+validate-sphinx-conf:
+	pylint --rcfile=.pylintrc -d invalid-name docs/conf.py
+	flake8 --config=.flake8 docs/conf.py
+	yapf --style .style.yapf -p -r -d -vv docs/conf.py

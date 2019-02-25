@@ -76,16 +76,19 @@ endif
 # missing references) and linkage (-W changes all warnings into errors meaning
 # unlinked sources will cause the build to fail.)
 docs-html:
+	mkdir -p docs/_build
 	sphinx-build -M html docs docs/_build -nW -w docs/_build/nit-picky-html.txt
 	cat docs/_build/nit-picky-html.txt
 #	$(MAKE) -C docs html
 
 docs-linkcheck:
+	mkdir -p docs/_build/linkcheck
 	sphinx-build -M linkcheck docs docs/_build
 	cat docs/_build/linkcheck/output.txt
 #	$(MAKE) -C docs linkcheck
 
 docs-coverage:
+	mkdir -p docs/_build/coverage
 	sphinx-build -M coverage docs docs/_build
 	cat docs/_build/coverage/python.txt
 #	$(MAKE) -C docs html -b coverage  # Build html with docstring coverage report

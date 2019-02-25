@@ -77,6 +77,7 @@ endif
 # unlinked sources will cause the build to fail.)
 docs-html:
 	mkdir -p docs/_build
+	mkdir -p docs/_static
 	sphinx-build -M html docs docs/_build -nW -w docs/_build/nit-picky-html.txt
 	cat docs/_build/nit-picky-html.txt
 #	$(MAKE) -C docs html

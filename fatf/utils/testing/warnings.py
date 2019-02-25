@@ -4,8 +4,10 @@ Functions to help test the code against warning generation.
 # Author: Kacper Sokol <k.sokol@bristol.ac.uk>
 # License: new BSD
 
-from typing import Optional
+import re
 import warnings
+
+from typing import Optional
 
 # The default list (reversed, since they are appended) of warning filters as of
 # Puthon 3.7
@@ -14,6 +16,8 @@ DEFAULT_WARNINGS = [('ignore', None, ResourceWarning, '', 0),
                     ('ignore', '', PendingDeprecationWarning, '', 0),
                     ('ignore', None, DeprecationWarning, '', 0),
                     ('default', None, DeprecationWarning, '__main__', 0)]
+
+EMPTY_RE = re.compile('', re.IGNORECASE)
 
 
 def set_default_warning_filters() -> None:
@@ -54,7 +58,7 @@ def is_warning_class_displayed(warning_class: Warning,
     for active_filter in warnings.filters:  # type: ignore
         active_warning_filter = active_filter[0]
         active_warning_class = active_filter[2]
-        active_warning_module = active_filter[3]
+        active_warning_module = active_filter[3] or EMPTY_RE
         if (issubclass(warning_class, active_warning_class) and  # type: ignore
                 active_warning_module.match(warning_module)):
             if active_warning_filter in allowed_warning_filters:

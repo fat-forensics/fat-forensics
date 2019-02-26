@@ -18,7 +18,7 @@ endif
 	docs-html-coverage docs-linkcheck docs-coverage test-docs test-notebooks \
 	test code-coverage test-with-code-coverage deploy-code-coverage \
 	linting-pylint linting-flake8 linting-yapf check-types build readme-gen \
-	readme-preview validate-travis
+	readme-preview validate-travis validate-sphinx-conf find-flags
 
 all: \
 	test-with-code-coverage \
@@ -53,9 +53,11 @@ endif
 endif
 ifdef FATF_TEST_SCIPY
 ifeq ($(FATF_TEST_SCIPY),latest)
-	pip install --only-binary=scipy --upgrade scipy
+#	pip install --only-binary=scipy --upgrade scipy
+	pip install --upgrade scipy
 else
-	pip install --only-binary=scipy scipy==$(FATF_TEST_SCIPY)
+#	pip install --only-binary=scipy scipy==$(FATF_TEST_SCIPY)
+	pip install scipy==$(FATF_TEST_SCIPY)
 endif
 endif
 	pip install -r requirements.txt

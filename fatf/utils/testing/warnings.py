@@ -21,16 +21,19 @@ EMPTY_RE = re.compile('')
 
 EMPTY_RE_I = re.compile('', re.IGNORECASE)
 
+RX_COMPILE_TYPE = type(re.compile(''))
+
 
 def handle_warnings_filter_pattern(
-        warning_filter_pattern: Union[None, str, re.Pattern],  # type: ignore
-        ignore_case: bool = False) -> re.Pattern:  # type: ignore
+        warning_filter_pattern: Union[None, str,  # type: ignore
+                                      RX_COMPILE_TYPE],
+        ignore_case: bool = False) -> RX_COMPILE_TYPE:  # type: ignore
     """
     Convert a warning filter module pattern into a regular expression pattern.
 
     Parameters
     ----------
-    warning_filter_pattern : Union[None, str, re.Pattern]
+    warning_filter_pattern : Union[None, str, re.compile]
         A warning class to be checked.
     ignore_case : bool
         Should re.IGNORECASE flag be compiled into the module pattern.
@@ -40,15 +43,15 @@ def handle_warnings_filter_pattern(
     ------
     TypeError
         The warning_filter_pattern input variable is neither of the following
-        types: string, re.Pattern or None.
+        types: string, re.compile or None.
     ValueError
-        The warning_filter_pattern input variable is a re.Pattern and its
+        The warning_filter_pattern input variable is a re.compile and its
         status of re.IGNORECASE flag does not agree with the requirement
         specified by the ignore_case input variable.
 
     Returns
     -------
-    filter_module_regex : re.Pattern
+    filter_module_regex : re.compile
         A regular expression pattern corresponding to the input warning filter
         module pattern.
     """
@@ -64,7 +67,7 @@ def handle_warnings_filter_pattern(
                                              re.IGNORECASE)
         else:
             filter_module_regex = re.compile(warning_filter_pattern)
-    elif isinstance(warning_filter_pattern, re.Pattern):  # type: ignore
+    elif isinstance(warning_filter_pattern, RX_COMPILE_TYPE):  # type: ignore
         ignore_case_error_message = (
             'The input regular expression should {neg} be compiled with '
             're.IGNORECASE flag -- it is imposed by the '
@@ -123,7 +126,7 @@ def is_warning_class_displayed(warning_class: Warning,
     for fltr in warnings.filters:  # type: ignore
         active_warning_filter = fltr[0]
         active_warning_class = fltr[2]
-        active_warning_module = handle_warnings_filter_pattern(
+        active_warning_module = handle_warnings_filter_pattern(  # type: ignore
             fltr[3], ignore_case=False)
         if (issubclass(warning_class, active_warning_class) and  # type: ignore
                 active_warning_module.match(warning_module)):

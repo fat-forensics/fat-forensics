@@ -38,7 +38,7 @@ def test_handle_warnings_filter_pattern():
     assert my_re_pattern_i == handle_warnings_filter_pattern(
         my_str_pattern, ignore_case=True)
 
-    # Test re.Pattern
+    # Test re.compile return type
     assert my_re_pattern == \
         handle_warnings_filter_pattern(my_re_pattern, ignore_case=False)
 

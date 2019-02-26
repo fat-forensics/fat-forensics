@@ -183,3 +183,9 @@ validate-sphinx-conf:
 	pylint --rcfile=.pylintrc -d invalid-name docs/conf.py
 	flake8 --config=.flake8 docs/conf.py
 	yapf --style .style.yapf -p -r -d -vv docs/conf.py
+
+find-flags:
+	ag "# yapf" .
+	ag "# pylint" .
+	ag "# type" .
+	ag "TODO" .

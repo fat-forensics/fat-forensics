@@ -7,7 +7,7 @@ Functions to help test the code against warning generation.
 import re
 import warnings
 
-from typing import Optional
+from typing import Optional, Union
 
 # The default list (reversed, since they are appended) of warning filters as of
 # Puthon 3.7
@@ -17,7 +17,72 @@ DEFAULT_WARNINGS = [('ignore', None, ResourceWarning, '', 0),
                     ('ignore', None, DeprecationWarning, '', 0),
                     ('default', None, DeprecationWarning, '__main__', 0)]
 
-EMPTY_RE = re.compile('', re.IGNORECASE)
+EMPTY_RE = re.compile('')
+
+EMPTY_RE_I = re.compile('', re.IGNORECASE)
+
+
+def handle_warnings_filter_pattern(
+        warning_filter_pattern: Union[None, str, re.Pattern],  # type: ignore
+        ignore_case: bool = False) -> re.Pattern:  # type: ignore
+    """
+    Convert a warning filter module pattern into a regular expression pattern.
+
+    Parameters
+    ----------
+    warning_filter_pattern : Union[None, str, re.Pattern]
+        A warning class to be checked.
+    ignore_case : bool
+        Should re.IGNORECASE flag be compiled into the module pattern.
+        Defaults to ``False``.
+
+    Raises
+    ------
+    TypeError
+        The warning_filter_pattern input variable is neither of the following
+        types: string, re.Pattern or None.
+    ValueError
+        The warning_filter_pattern input variable is a re.Pattern and its
+        status of re.IGNORECASE flag does not agree with the requirement
+        specified by the ignore_case input variable.
+
+    Returns
+    -------
+    filter_module_regex : re.Pattern
+        A regular expression pattern corresponding to the input warning filter
+        module pattern.
+    """
+    filter_module_regex = None
+    if warning_filter_pattern is None:
+        if ignore_case:
+            filter_module_regex = EMPTY_RE_I
+        else:
+            filter_module_regex = EMPTY_RE
+    elif isinstance(warning_filter_pattern, str):
+        if ignore_case:
+            filter_module_regex = re.compile(warning_filter_pattern,
+                                             re.IGNORECASE)
+        else:
+            filter_module_regex = re.compile(warning_filter_pattern)
+    elif isinstance(warning_filter_pattern, re.Pattern):  # type: ignore
+        ignore_case_error_message = (
+            'The input regular expression should {neg} be compiled with '
+            're.IGNORECASE flag -- it is imposed by the '
+            'warning_filter_pattern input variable.')
+        ignore_case_compiled = warning_filter_pattern.flags & 2
+        if ignore_case_compiled and ignore_case:
+            filter_module_regex = warning_filter_pattern
+        elif not ignore_case_compiled and not ignore_case:
+            filter_module_regex = warning_filter_pattern
+        elif ignore_case_compiled:
+            raise ValueError(ignore_case_error_message.format(neg='not'))
+        else:
+            raise ValueError(ignore_case_error_message.format(neg=''))
+    else:
+        raise TypeError(
+            'The warning filter module pattern should be either a string, a '
+            'regular expression pattern or a None type.')
+    return filter_module_regex
 
 
 def set_default_warning_filters() -> None:
@@ -39,14 +104,14 @@ def is_warning_class_displayed(warning_class: Warning,
     ----------
     warning_class : Warning
         A warning class to be checked.
+    warning_module : str
+        The module string from which the warning is emitted. If not given, this
+        defaults to ``fatf.dummy``.
 
     Returns
     -------
     is_displayed : bool
         True if the warning class will be displayed, False otherwise.
-    warning_module : str
-        The module string from which the warning is emitted. If not given, this
-        defaults to ``fatf.dummy``.
     """
     if warning_module is None:
         warning_module = 'fatf.dummy'
@@ -58,7 +123,8 @@ def is_warning_class_displayed(warning_class: Warning,
     for fltr in warnings.filters:  # type: ignore
         active_warning_filter = fltr[0]
         active_warning_class = fltr[2]
-        active_warning_module = EMPTY_RE if fltr[3] is None else fltr[3]
+        active_warning_module = handle_warnings_filter_pattern(
+            fltr[3], ignore_case=False)
         if (issubclass(warning_class, active_warning_class) and  # type: ignore
                 active_warning_module.match(warning_module)):
             if active_warning_filter in allowed_warning_filters:

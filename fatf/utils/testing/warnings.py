@@ -7,7 +7,7 @@ Functions to help test the code against warning generation.
 import re
 import warnings
 
-from typing import Optional, Union
+from typing import Optional, Pattern, Union
 
 # The default list (reversed, since they are appended) of warning filters as of
 # Puthon 3.7
@@ -21,13 +21,10 @@ EMPTY_RE = re.compile('')
 
 EMPTY_RE_I = re.compile('', re.IGNORECASE)
 
-RX_COMPILE_TYPE = type(re.compile(''))
-
 
 def handle_warnings_filter_pattern(
-        warning_filter_pattern: Union[None, str,  # type: ignore
-                                      RX_COMPILE_TYPE],
-        ignore_case: bool = False) -> RX_COMPILE_TYPE:  # type: ignore
+        warning_filter_pattern: Union[None, str, Pattern],
+        ignore_case: bool = False) -> Pattern:
     """
     Convert a warning filter module pattern into a regular expression pattern.
 
@@ -67,7 +64,7 @@ def handle_warnings_filter_pattern(
                                              re.IGNORECASE)
         else:
             filter_module_regex = re.compile(warning_filter_pattern)
-    elif isinstance(warning_filter_pattern, RX_COMPILE_TYPE):  # type: ignore
+    elif isinstance(warning_filter_pattern, Pattern):
         ignore_case_error_message = (
             'The input regular expression should {neg} be compiled with '
             're.IGNORECASE flag -- it is imposed by the '
@@ -126,7 +123,7 @@ def is_warning_class_displayed(warning_class: Warning,
     for fltr in warnings.filters:  # type: ignore
         active_warning_filter = fltr[0]
         active_warning_class = fltr[2]
-        active_warning_module = handle_warnings_filter_pattern(  # type: ignore
+        active_warning_module = handle_warnings_filter_pattern(
             fltr[3], ignore_case=False)
         if (issubclass(warning_class, active_warning_class) and  # type: ignore
                 active_warning_module.match(warning_module)):

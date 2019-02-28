@@ -166,6 +166,7 @@ linting-flake8:
 linting-yapf:
 	yapf --style .style.yapf -p -r -d -vv fatf/
 
+# TODO(kacper): Consider `pytype` when it allows to ignore with glob patterns
 check-types:
 	mypy --config-file=.mypy.ini fatf/
 
@@ -187,7 +188,7 @@ validate-sphinx-conf:
 	yapf --style .style.yapf -p -r -d -vv docs/conf.py
 
 find-flags:
-	ag "# yapf" .
-	ag "# pylint" .
-	ag "# type" .
-	ag "TODO" .
+	ag "# yapf" fatf || true
+	ag "# pylint" fatf || true
+	ag "# type" fatf || true
+	ag "TODO" . || true

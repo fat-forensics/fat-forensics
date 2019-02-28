@@ -10,10 +10,7 @@ import warnings
 import pytest
 
 import fatf
-
-from fatf.utils.testing.warnings import (
-    DEFAULT_WARNINGS, handle_warnings_filter_pattern,
-    is_warning_class_displayed, set_default_warning_filters)
+import fatf.utils.testing.warnings as testing_w
 
 
 @pytest.mark.parametrize('error_type,error_class',
@@ -35,10 +32,10 @@ def test_warnings_emission1(error_type, error_class):
     # Check that the message matches
     assert record[0].message.args[0] == message
     # Is it being displayed?
-    assert is_warning_class_displayed(error_class)
+    assert testing_w.is_warning_class_displayed(error_class)
 
     for fltr in warnings.filters:
-        warning_matches_module = handle_warnings_filter_pattern(
+        warning_matches_module = testing_w.handle_warnings_filter_pattern(
             fltr[3], ignore_case=False)
         if warning_matches_module is not None:
             assert 'fatf' not in warning_matches_module.pattern
@@ -61,15 +58,14 @@ def test_warnings_emission2():
         # Check that the message matches
         assert record[0].message.args[0] == message
         # Is it being displayed?
-        assert displayed == \
-            is_warning_class_displayed(error_class)
+        assert displayed == testing_w.is_warning_class_displayed(error_class)
 
-    set_default_warning_filters()
+    testing_w.set_default_warning_filters()
     fatf.setup_warning_filters()
 
-    assert len(warnings.filters) == len(DEFAULT_WARNINGS) + 2
+    assert len(warnings.filters) == len(testing_w.DEFAULT_WARNINGS) + 2
     for fltr in warnings.filters[:2]:
-        warning_matches_module = handle_warnings_filter_pattern(
+        warning_matches_module = testing_w.handle_warnings_filter_pattern(
             fltr[3], ignore_case=False)
         if warning_matches_module is not None:
             assert 'fatf' in warning_matches_module.pattern
@@ -90,7 +86,7 @@ def test_warnings_emission3(caplog):
     results in :data:`sys.warnoptions` list not being empty.
     """
     sys.warnoptions = ['default']
-    set_default_warning_filters()
+    testing_w.set_default_warning_filters()
 
     fatf.setup_warning_filters()
 

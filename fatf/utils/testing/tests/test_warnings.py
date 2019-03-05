@@ -1,5 +1,5 @@
 """
-Test helper functions for testing warning filters.
+Tests helper functions for testing warning filters.
 """
 # Author: Kacper Sokol <k.sokol@bristol.ac.uk>
 # License: new BSD
@@ -14,8 +14,9 @@ import fatf.utils.testing.warnings as testing_w
 
 def test_handle_warnings_filter_pattern():
     """
-    Test checking and conversion of message and module patterns in a warning
-    filter.
+    Tests conversion and validation of patterns in a warning filter.
+
+    Message and module parts of a warning filter are checked.
     """
 
     def assert_correct_pattern(error, error_message, pattern, ignore_case):
@@ -103,7 +104,7 @@ def test_handle_warnings_filter_pattern():
 
 def test_set_default_warning_filters():
     """
-    Test setting up default filters.
+    Tests setting up default filters.
     """
     testing_w.set_default_warning_filters()
 
@@ -134,8 +135,11 @@ def test_set_default_warning_filters():
 
 def test_is_warning_class_displayed():
     """
-    Test a function that checks whether a particular warning class is displayed
-    based on the available warning filters.
+    Tests a function responsible for checking warning filters setup.
+
+    This function tests whether a function responsible for checking whether a
+    particular warning class is displayed based on the available warning
+    filters behaves as expected.
     """
     # No warning filters -> display
     warnings.resetwarnings()

@@ -1,5 +1,5 @@
 """
-Functions to help test the code against warning generation.
+Defines functions to help test the code against warning generation.
 """
 # Author: Kacper Sokol <k.sokol@bristol.ac.uk>
 # License: new BSD
@@ -26,29 +26,29 @@ def handle_warnings_filter_pattern(
         warning_filter_pattern: Union[None, str, Pattern],
         ignore_case: bool = False) -> Pattern:
     """
-    Convert a warning filter module pattern into a regular expression pattern.
+    Converts a warning filter module pattern into a regular expression pattern.
 
     Parameters
     ----------
-    warning_filter_pattern : Union[None, str, re.compile]
+    warning_filter_pattern : Union[None, str, Pattern]
         A warning class to be checked.
     ignore_case : bool
-        Should re.IGNORECASE flag be compiled into the module pattern.
+        Should ``re.IGNORECASE`` flag be compiled into the module pattern?
         Defaults to ``False``.
 
     Raises
     ------
     TypeError
-        The warning_filter_pattern input variable is neither of the following
-        types: string, re.compile or None.
+        The ``warning_filter_pattern`` input variable is neither of the
+        following types: string, Pattern (``re.compile``) or None.
     ValueError
-        The warning_filter_pattern input variable is a re.compile and its
-        status of re.IGNORECASE flag does not agree with the requirement
-        specified by the ignore_case input variable.
+        The ``warning_filter_pattern`` input variable is a Pattern but its
+        status of ``re.IGNORECASE`` flag does not agree with the requirement
+        specified by the ``ignore_case`` input variable.
 
     Returns
     -------
-    filter_module_regex : re.compile
+    filter_module_regex : Pattern
         A regular expression pattern corresponding to the input warning filter
         module pattern.
     """
@@ -87,7 +87,7 @@ def handle_warnings_filter_pattern(
 
 def set_default_warning_filters() -> None:
     """
-    Set the warning filters to default (as of Python 3.7).
+    Sets the warning filters to default values (as of Python 3.7).
     """
     warnings.resetwarnings()
     for warning in DEFAULT_WARNINGS:
@@ -98,7 +98,7 @@ def set_default_warning_filters() -> None:
 def is_warning_class_displayed(warning_class: Warning,
                                warning_module: Optional[str] = None) -> bool:
     """
-    Check whether a warning of a given class will be shown to the user.
+    Checks whether a warning of a given class will be shown to the user.
 
     Parameters
     ----------

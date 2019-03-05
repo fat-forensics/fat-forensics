@@ -1,5 +1,5 @@
 """
-Test random number generator seeding.
+Tests random number generator seeding.
 """
 # Author: Kacper Sokol <k.sokol@bristol.ac.uk>
 # License: new BSD
@@ -14,7 +14,7 @@ import fatf
 
 def test_random_seed(caplog):
     """
-    Test random number generator seeding when the seed is random.
+    Tests random number generator seeding when the seed is random.
     """
     fatf.setup_random_seed()
     seed = np.random.get_state()[1][0]
@@ -37,8 +37,7 @@ def test_random_seed(caplog):
 
 def test_osvar_seed(caplog):
     """
-    Test random number generator seeding when the seed is given as a system
-    environment variable.
+    Tests random number generator seeding with a system environment variable.
     """
     seed_int = 42
     seed_int_random = 2147483648

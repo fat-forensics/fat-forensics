@@ -109,7 +109,7 @@ docs-clean:
 # (`-k 'not test_ and not Test'` is used as a hack -- no doctests in functions
 # starting with `test_` and classes starting with `Test` will be found.)
 test-docs:
-	pytest \
+	PYTEST_IN_PROGRESS='true' pytest \
 		--doctest-glob='*.txt' \
 		--doctest-glob='*.rst' \
 		--doctest-modules \
@@ -119,24 +119,24 @@ test-docs:
 		fatf/
 
 test-notebooks:
-	pytest \
+	PYTEST_IN_PROGRESS='true' pytest \
 		--nbval \
 		examples/
 
 test:
-	pytest \
+	PYTEST_IN_PROGRESS='true' pytest \
 		--junit-xml=temp/pytest_$(PYTHON_VERSION).xml \
 		fatf/
 
 code-coverage:
-	pytest \
+	PYTEST_IN_PROGRESS='true' pytest \
 		--cov-report=term-missing \
 		--cov-report=xml:temp/coverage_$(PYTHON_VERSION).xml \
 		--cov=fatf \
 		fatf/
 
 test-with-code-coverage:
-	pytest \
+	PYTEST_IN_PROGRESS='true' pytest \
 		--junit-xml=temp/pytest_$(PYTHON_VERSION).xml \
 		--cov-report=term-missing \
 		--cov-report=xml:temp/coverage_$(PYTHON_VERSION).xml \
@@ -191,4 +191,5 @@ find-flags:
 	ag "# yapf" fatf || true
 	ag "# pylint" fatf || true
 	ag "# type" fatf || true
+	ag "# pragma" fatf || true
 	ag "TODO" . || true

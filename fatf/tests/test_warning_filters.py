@@ -1,5 +1,5 @@
 """
-Test warning filter settings.
+Tests warning filter settings.
 """
 # Author: Kacper Sokol <k.sokol@bristol.ac.uk>
 # License: new BSD
@@ -19,7 +19,9 @@ import fatf.utils.testing.warnings as testing_w
                           ('Pending deprecation', PendingDeprecationWarning)])
 def test_warnings_emission1(error_type, error_class):
     """
-    Test whether :class:`ImportWarning`, :class:`DeprecationWarning` and
+    Tests warning emission for pytest runtime.
+
+    Tests whether :class:`ImportWarning`, :class:`DeprecationWarning` and
     :class:`PendingDeprecationWarning` warnings are printed. This test is
     executed with ``pytest`` warning filters (cf. ``pytest.ini``).
     """
@@ -43,7 +45,9 @@ def test_warnings_emission1(error_type, error_class):
 
 def test_warnings_emission2():
     """
-    Test whether :class:`ImportWarning` and :class:`DeprecationWarning`
+    Tests warning emission for fatf runtime.
+
+    Tests whether :class:`ImportWarning` and :class:`DeprecationWarning`
     warnings are printed. This test is executed with warning filters defined in
     :func:`fatf.setup_warning_filters`.
     """
@@ -80,7 +84,9 @@ def test_warnings_emission2():
 
 def test_warnings_emission3(caplog):
     """
-    Check whether external warning filters are respected. These are supplied
+    Tests warning emission for global warning filter settings.
+
+    Checks whether external warning filters are respected. These are supplied
     either via command line flag (e.g. ``python -Wdefault``) or system variable
     (e.g. ``PYTHONWARNINGS="default" python``). Using either of these two
     results in :data:`sys.warnoptions` list not being empty.

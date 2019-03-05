@@ -11,6 +11,7 @@ intelligence systems.
 # License: new BSD
 
 import logging
+import os
 import re
 import sys
 import warnings
@@ -34,6 +35,8 @@ logger.setLevel(logging.INFO)
 
 def setup_warning_filters():
     """
+    Sets up desired warning filters.
+
     If the warning filters are not specified on the command line or via
     the system variable make sure that :class:`DeprecationWarning` and
     :class:`ImportWarning` raised by this this package always get printed.
@@ -59,7 +62,8 @@ def setup_warning_filters():
         logger.info('External warning filters are being used.')
 
 
-setup_warning_filters()
+if 'PYTEST_IN_PROGRESS' not in os.environ:
+    setup_warning_filters()  # pragma: no cover
 
 # Set the current package version
 __version__ = '0.0.0'
@@ -68,6 +72,8 @@ __version__ = '0.0.0'
 # This function is tested in fatf.tests.test_rngs_seeding
 def setup_random_seed():
     """
+    Sets up Python's and numpy's random seed.
+
     Fixture for the tests to assure globally controllable seeding of random
     number generators in both Python (:func:`random.seed`) and ``numpy``
     (:func:`numpy.random.seed`). The seed is taken either from ``FATF_SEED``
@@ -75,7 +81,6 @@ def setup_random_seed():
     0--2147483647.
     """
     import numpy as np
-    import os
     import random
 
     # It could have been provided in the environment

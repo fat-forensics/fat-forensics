@@ -3,6 +3,7 @@
 # Copyright (C) 2018 Kacper Sokol <k.sokol@bristol.ac.uk>
 # License: new BSD
 
+import re
 from setuptools import (find_packages,
                         setup)
 
@@ -19,6 +20,21 @@ def dependencies_from_file(file_path):
                 required.append(l_c)
     return required
 
+def get_dependency_version(dependency, list_of_dependencies):
+    matched_dependencies = []
+
+    reformatted_dependency = dependency.lower().strip()
+    for dep in list_of_dependencies:
+        dependency_version = re.split('~=|==|!=|<=|>=|<|>|===', dep)
+        if dependency_version[0].lower().strip() == reformatted_dependency:
+            matched_dependencies.append(dep)
+
+    if not matched_dependencies:
+        raise NameError(('{} dependency could not be found in the list of '
+                         'dependencies.').format(dependency))
+
+    return matched_dependencies
+
 DISTNAME = 'FAT-forensics'
 PACKAGE_NAME = 'fatf'
 VERSION = fatf.__version__
@@ -33,16 +49,20 @@ DOWNLOAD_URL = 'https://pypi.org/project/{}/#files'.format(DISTNAME)
 LICENSE = 'new BSD'
 PACKAGES = find_packages(exclude=['*.tests', '*.tests.*', 'tests.*', 'tests'])
 INSTALL_REQUIRES = dependencies_from_file('requirements.txt')
-EXTRAS_REQUIRES_PLOT = ['matplotlib']
-EXTRAS_REQUIRES_LIME = ['lime']
-EXTRAS_REQUIRES_DEV = dependencies_from_file('requirements-dev.txt')
 EXTRAS_REQUIRES_AUX = dependencies_from_file('requirements-aux.txt')
+EXTRAS_REQUIRES_DEV = dependencies_from_file('requirements-dev.txt')
+EXTRAS_REQUIRES_VIS = [
+    get_dependency_version('matplotlib', EXTRAS_REQUIRES_AUX)]
+EXTRAS_REQUIRES_LIME = [
+    get_dependency_version('lime', EXTRAS_REQUIRES_AUX)]
+EXTRAS_REQUIRES_ML = [
+    get_dependency_version('scikit-learn', EXTRAS_REQUIRES_AUX)]
 EXTRAS_REQUIRE = {
-        'all': EXTRAS_REQUIRES_PLOT+EXTRAS_REQUIRES_LIME+EXTRAS_REQUIRES_AUX,
-        'plot': EXTRAS_REQUIRES_PLOT,
+        'all': EXTRAS_REQUIRES_AUX,
+        'dev': EXTRAS_REQUIRES_DEV,
         'lime': EXTRAS_REQUIRES_LIME,
-        'aux': EXTRAS_REQUIRES_AUX,
-        'dev': EXTRAS_REQUIRES_DEV
+        'ml': EXTRAS_REQUIRES_ML,
+        'vis': EXTRAS_REQUIRES_VIS,
         }
 # Python 3.5 and up but not commited to Python 4 support yet
 PYTHON_REQUIRES = '~=3.5'

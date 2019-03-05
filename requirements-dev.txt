@@ -2,6 +2,7 @@ codecov==2.0.15
 flake8==3.5.0
 mypy==0.641
 nbval==0.9.1
+numpydoc==0.8.0
 pylint==2.1.1
 pytest==3.9.1
 pytest-cov==2.6.0

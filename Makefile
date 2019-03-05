@@ -14,11 +14,12 @@ endif
 # Get environment variables if _envar.sh exists
 -include _envar.sh
 
-.PHONY: all install install-dev dependencies dependencies-dev docs-html \
-	docs-html-coverage docs-linkcheck docs-coverage test-docs test-notebooks \
-	test code-coverage test-with-code-coverage deploy-code-coverage \
-	linting-pylint linting-flake8 linting-yapf check-types build readme-gen \
-	readme-preview validate-travis validate-sphinx-conf find-flags
+.PHONY: all install install-sans-dep install-dev dependencies \
+	dependencies-dev docs-html docs-html-coverage docs-linkcheck docs-coverage \
+	test-docs test-notebooks test code-coverage test-with-code-coverage \
+	deploy-code-coverage linting-pylint linting-flake8 linting-yapf check-types \
+	build readme-gen readme-preview validate-travis validate-sphinx-conf \
+	find-flags
 
 all: \
 	test-with-code-coverage \
@@ -35,7 +36,10 @@ all: \
 	linting-yapf
 
 install:
-	pip install -e .
+	pip install .
+
+install-sans-dep:
+	pip install --no-deps .
 
 install-dev:
 	pip install --no-deps -e .
@@ -158,6 +162,7 @@ else
 endif
 
 linting-pylint:
+# pylint may misbehave when the package under testing is installed as editable!
 	pylint --rcfile=.pylintrc fatf/
 
 linting-flake8:

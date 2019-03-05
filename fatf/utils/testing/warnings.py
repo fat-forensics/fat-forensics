@@ -125,8 +125,8 @@ def is_warning_class_displayed(warning_class: Warning,
         active_warning_class = fltr[2]
         active_warning_module = handle_warnings_filter_pattern(
             fltr[3], ignore_case=False)
-        if (issubclass(warning_class, active_warning_class) and  # type: ignore
-                active_warning_module.match(warning_module)):
+        if (issubclass(warning_class, active_warning_class)  # type: ignore
+                and active_warning_module.match(warning_module)):
             if active_warning_filter in allowed_warning_filters:
                 is_displayed = True
                 break

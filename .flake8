@@ -1,6 +1,7 @@
 [flake8]
 # Ignore errors or warning (separated with ,)
 ignore =
+  W503
 
 # Ignore certain files
 exclude =

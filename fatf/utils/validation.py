@@ -50,7 +50,7 @@ def is_numerical_dtype(dtype: np.dtype) -> bool:
     if not isinstance(dtype, np.dtype):
         raise TypeError('The input should be a numpy dtype object.')
 
-    is_numerical = True if dtype.kind in _NUMPY_NUMERICAL_KINDS else False
+    is_numerical = dtype.kind in _NUMPY_NUMERICAL_KINDS
 
     return is_numerical
 
@@ -109,12 +109,12 @@ def is_2d_array(array: np.ndarray) -> bool:
         raise TypeError('The input should be a numpy array-like.')
 
     if is_numerical_array(array):
-        is_2d = True if len(array.shape) == 2 else False
+        is_2d = len(array.shape) == 2
     else:
         if array.dtype.names:
-            is_2d = True if len(array.shape) == 1 else False
+            is_2d = len(array.shape) == 1
         else:
-            is_2d = True if len(array.shape) == 2 else False
+            is_2d = len(array.shape) == 2
 
     return is_2d
 

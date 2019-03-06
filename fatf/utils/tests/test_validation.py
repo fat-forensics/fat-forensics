@@ -26,6 +26,9 @@ NOT_NUMERICAL_NP_ARRAY = np.array([
     (False, 'f')], dtype=[('numerical', 'c8'),
                           ('categorical', 'U1')])  # yapf: disable
 
+NP_VER = [int(i) for i in np.version.version.split('.')]
+NP_VER_TYPEERROR_MSG = 'a bytes-like object is required, not \'int\''
+
 
 def test_is_numerical_dtype():
     """
@@ -73,6 +76,7 @@ def test_is_numerical_array():
     """
     Tests :func:`fatf.utils.validation.is_numerical_array` function.
     """
+    # pylint: disable=too-many-branches
     # Test any object
     object_1 = None
     with pytest.raises(TypeError):
@@ -112,9 +116,15 @@ def test_is_numerical_array():
                     assert fuv.is_numerical_array(
                         np.empty((1, ), dtype=dtype)) is False
                     assert fuv.is_numerical_array(
-                        np.ones((1, ), dtype=dtype)) is False
-                    assert fuv.is_numerical_array(
                         np.zeros((1, ), dtype=dtype)) is False
+                    if (dtype is np.void and NP_VER[0] < 2
+                            and NP_VER[1] < 14):  # pragma: no cover
+                        with pytest.raises(TypeError) as exin:
+                            fuv.is_numerical_array(np.ones((1, ), dtype=dtype))
+                        assert str(exin.value) == NP_VER_TYPEERROR_MSG
+                    else:
+                        assert fuv.is_numerical_array(
+                            np.ones((1, ), dtype=dtype)) is False
         else:
             for dtype in dtypes:
                 assert fuv.is_numerical_array(
@@ -130,6 +140,7 @@ def test_is_2d_array():
     """
     Tests :func:`fatf.utils.validation.is_2d_array` function.
     """
+    # pylint: disable=too-many-branches
     # Test any object
     with pytest.raises(TypeError):
         fuv.is_2d_array(None)
@@ -152,15 +163,27 @@ def test_is_2d_array():
     for _, dtypes in np.sctypes.items():
         for dtype in dtypes:
             for shape in square_shapes:
-                ones = np.ones(shape=shape, dtype=dtype)
-                assert fuv.is_2d_array(ones) is True
+                if (dtype is np.void and 0 not in shape and NP_VER[0] < 2
+                        and NP_VER[1] < 14):  # pragma: no cover
+                    with pytest.raises(TypeError) as exin:
+                        np.ones(shape=shape, dtype=dtype)
+                    assert str(exin.value) == NP_VER_TYPEERROR_MSG
+                else:
+                    ones = np.ones(shape=shape, dtype=dtype)
+                    assert fuv.is_2d_array(ones) is True
                 zeros = np.zeros(shape=shape, dtype=dtype)
                 assert fuv.is_2d_array(zeros) is True
                 empty = np.empty(shape=shape, dtype=dtype)
                 assert fuv.is_2d_array(empty) is True
             for shape in not_square_shapes:
-                ones = np.ones(shape=shape, dtype=dtype)
-                assert fuv.is_2d_array(ones) is False
+                if (dtype is np.void and 0 not in shape and NP_VER[0] < 2
+                        and NP_VER[1] < 14):  # pragma: no cover
+                    with pytest.raises(TypeError) as exin:
+                        np.ones(shape=shape, dtype=dtype)
+                    assert str(exin.value) == NP_VER_TYPEERROR_MSG
+                else:
+                    ones = np.ones(shape=shape, dtype=dtype)
+                    assert fuv.is_2d_array(ones) is False
                 zeros = np.zeros(shape=shape, dtype=dtype)
                 assert fuv.is_2d_array(zeros) is False
                 empty = np.empty(shape=shape, dtype=dtype)

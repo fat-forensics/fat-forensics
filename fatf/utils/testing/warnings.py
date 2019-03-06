@@ -9,6 +9,13 @@ import warnings
 
 from typing import Optional, Pattern, Union
 
+__all__ = ['DEFAULT_WARNINGS',
+           'EMPTY_RE',
+           'EMPTY_RE_I',
+           'handle_warnings_filter_pattern',
+           'set_default_warning_filters',
+           'is_warning_class_displayed']  # yapf: disable
+
 # The default list (reversed, since they are appended) of warning filters as of
 # Puthon 3.7
 DEFAULT_WARNINGS = [('ignore', None, ResourceWarning, '', 0),
@@ -18,7 +25,6 @@ DEFAULT_WARNINGS = [('ignore', None, ResourceWarning, '', 0),
                     ('default', None, DeprecationWarning, '__main__', 0)]
 
 EMPTY_RE = re.compile('')
-
 EMPTY_RE_I = re.compile('', re.IGNORECASE)
 
 
@@ -32,7 +38,7 @@ def handle_warnings_filter_pattern(
     ----------
     warning_filter_pattern : Union[None, str, Pattern]
         A warning class to be checked.
-    ignore_case : bool
+    ignore_case : boolean, optional (default=False)
         Should ``re.IGNORECASE`` flag be compiled into the module pattern?
         Defaults to ``False``.
 
@@ -104,7 +110,7 @@ def is_warning_class_displayed(warning_class: Warning,
     ----------
     warning_class : Warning
         A warning class to be checked.
-    warning_module : str
+    warning_module : string, optional (default='fatf.dummy')
         The module string from which the warning is emitted. If not given, this
         defaults to ``fatf.dummy``.
 

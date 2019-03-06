@@ -1,8 +1,8 @@
 [pylint]
-# ignore errors or warning (separate with , )
-disable =
+# Errors or warning code-names to be ignored (separated with ,)
+disable = locally-disabled
 
-# can add more processes to jobs if performance speed up needed
-jobs=1 
+# 0 is auto-detect
+jobs = 0
 
-max-line-length=120
+max-line-length = 79

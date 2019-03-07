@@ -119,17 +119,20 @@ test-docs:
 		--doctest-modules \
 		--ignore=docs/_build/ \
 		-k 'not test_ and not Test' \
+		-W error \
 		docs/ \
 		fatf/
 
 test-notebooks:
 	PYTEST_IN_PROGRESS='true' pytest \
 		--nbval \
+		-W error \
 		examples/
 
 test:
 	PYTEST_IN_PROGRESS='true' pytest \
 		--junit-xml=temp/pytest_$(PYTHON_VERSION).xml \
+		-W error \
 		fatf/
 
 code-coverage:
@@ -137,6 +140,7 @@ code-coverage:
 		--cov-report=term-missing \
 		--cov-report=xml:temp/coverage_$(PYTHON_VERSION).xml \
 		--cov=fatf \
+		-W error \
 		fatf/
 
 test-with-code-coverage:
@@ -144,7 +148,9 @@ test-with-code-coverage:
 		--junit-xml=temp/pytest_$(PYTHON_VERSION).xml \
 		--cov-report=term-missing \
 		--cov-report=xml:temp/coverage_$(PYTHON_VERSION).xml \
-		--cov=fatf fatf/
+		--cov=fatf \
+		-W error \
+		fatf/
 
 deploy-code-coverage:
 # @ before the command suppresses printing it out, hence hides the token

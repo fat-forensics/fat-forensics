@@ -106,7 +106,7 @@ def load_iris() -> Dict[str, np.ndarray]:
     Loads in the IRIS dataset.
 
     Returns
-    ------
+    -------
     data: Dict[str, numpy.ndarray]
         Dictionary with keys 'data', 'target', 'target_names',
         'feature_names' storing relevant information
@@ -126,7 +126,7 @@ def load_health_records() -> Dict[str, np.ndarray]:
     containing multiple dtypes.
 
     Returns
-    ------
+    -------
     data: Dict[str, numpy.ndarray]
         Dictionary with keys 'data', 'target', 'target_names',
         'feature_names' storing relevant information

@@ -350,7 +350,7 @@ def are_indices_valid(array: np.array, indices: np.array) -> bool:
         raise IncorrectShapeError('The indices array should be 1-dimensional.')
 
     invalid_indices = get_invalid_indices(array, indices)
-    assert is_1d_array(invalid_indices)
+    assert is_1d_array(invalid_indices), 'This should be a 1-d array.'
 
     is_valid = not bool(invalid_indices.shape[0])
     return is_valid

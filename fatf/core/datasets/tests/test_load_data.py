@@ -1,3 +1,9 @@
+"""
+Tests functions used to load data.
+"""
+# Author: Alex Hepburn <ah13558@bristol.ac.uk>
+# License: new BSD
+
 import os
 import numpy as np
 import pytest
@@ -62,9 +68,14 @@ def test_load_data(tmpdir):
     features_err = 'Number of features in dataset not consistent with header.'
     classes_err = 'Number of classes not consistent with header.'
     header_err = 'Not enough arguments in header.'
-    number_err = 'Header of csv is in incorrect format'
+    number_err1 = ('foo is not a valid integer for number of samples in the '
+                  'dataset')
+    number_err2 = ('bar is not a valid integer for number of samples in the '
+                   'dataset')
     n_dtype_err = 'Incorrect number of dtypes given.'
-
+    target_not_found_err = ('If list of dtypes is given, the last one '
+                            'must be called `target`.')
+    feature_names_err = 'Incorrect number of feature names given.'
     d = tmpdir.mkdir('temp')
     f = d.join('temp.csv')
 
@@ -88,20 +99,30 @@ def test_load_data(tmpdir):
         data = load_data(f.strpath)
     assert str(exin.value) == header_err
     
-    f.write('foo,bar\n1,0\n2,1', mode='w')
-    with pytest.raises(ValueError) as exin:
+    f.write('foo,0\n1,0\n2,1', mode='w')
+    with pytest.raises(TypeError) as exin:
         data = load_data(f.strpath)
-    assert str(exin.value) == number_err
+    assert str(exin.value) == number_err1
+
+    f.write('2,bar\n1,0\n2,1', mode='w')
+    with pytest.raises(TypeError) as exin:
+        data = load_data(f.strpath)
+    assert str(exin.value) == number_err2
 
     f.write('2,2,fail,pass\n1,2,0\n2,2,1', mode='w')
     with pytest.raises(ValueError) as exin:
         data = load_data(f.strpath, dtype=[('feat1', '<i4')])
     assert str(exin.value) == n_dtype_err
 
-    f.write('2,2,fail,pass\n1,2,0\n2,2,1', mode='w')
+    with pytest.raises(ValueError) as exin:
+        data = load_data(f.strpath, dtype=[('f1', '<i4'),
+                                           ('f2', '<i4'),
+                                           ('f3', '<i4')])
+    assert str(exin.value) == target_not_found_err
+
     data = load_data(f.strpath, dtype=[('feat1', '<i4'), 
                                        ('feat2', '<i4'), 
-                                       ('target', '<i4')])
+                                       ('target', '<i8')])
     assert data['data'].shape == (2, )
     assert data['target'].shape == (2, )
     assert np.array_equal(data['data'][0], np.array((1, 2), 
@@ -109,3 +130,29 @@ def test_load_data(tmpdir):
                                                   ('feat2', '<i4')]))
     assert np.array_equal(data['feature_names'], 
                           np.array(['feature_0', 'feature_1']))
+    
+    data = load_data(f.strpath, dtype=np.float32)
+    assert data['data'].shape == (2, 2)
+    assert data['target'].shape == (2, )
+    assert np.array_equal(data['data'][0], np.array((1, 2), dtype=np.float32))
+    assert np.array_equal(data['feature_names'], 
+                          np.array(['feature_0', 'feature_1']))
+    
+    data = load_data(f.strpath, feature_names=['f1', 'f2'])
+    assert data['data'].shape == (2, 2)
+    assert data['target'].shape == (2, )
+    assert np.array_equal(data['data'][0], np.array((1, 2), dtype=np.int64))
+    assert np.array_equal(data['feature_names'], np.array(['f1', 'f2']))
+
+    f.write('2,2,fail,pass\n1,foo,0\n2,bar,1', mode='w')
+    with pytest.raises(ValueError) as exin:
+        data = load_data(f.strpath, feature_names=['f1', 'f2', 'f3'])
+    assert str(exin.value) == feature_names_err
+
+    data = load_data(f.strpath, feature_names=['f1', 'f2'])
+    assert data['data'].shape == (2, )
+    assert data['target'].shape == (2, )
+    assert np.array_equal(data['data'][0], 
+                          np.array((1, 'foo'), dtype=[('f1', '<i8'),
+                                                      ('f2', '<U3')]))
+    assert np.array_equal(data['feature_names'], np.array(['f1', 'f2']))

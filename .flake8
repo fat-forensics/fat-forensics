@@ -1,8 +1,10 @@
 [flake8]
-# ignore errors or warning (separate with , )
-ignore = 
+# Ignore errors or warning (separated with ,)
+ignore =
+  W503
 
-# use to ignore certain files
-exclude = 
+# Ignore certain files
+exclude =
+  fatf/utils/tests/test_validation.py
 
-max-line-length=120
+max-line-length = 79

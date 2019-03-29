@@ -5,20 +5,15 @@ Holds custom warnings, errors and exceptions.
 # License: new BSD
 
 __all__ = ['FATFException',
-           'MissingImplementationError',
            'IncorrectShapeError',
-           'IncompatibleModelError']  # yapf: disable
+           'IncompatibleModelError',
+           'UnfittedModelError',
+           'PrefittedModelError']  # yapf: disable
 
 
 class FATFException(Exception):
     """
     Base class for FAT-Forensics exceptions (inherits from :class:`Exception`).
-    """
-
-
-class MissingImplementationError(FATFException):
-    """
-    Exception raised for unimplemented functionality.
     """
 
 

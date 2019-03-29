@@ -1,152 +1,597 @@
 """
-The :mod:`fatf.utils.distance` module includes all custom distance functions
-for FAT-Forensics testing and examples.
+Holds custom distance functions used for FAT-Forensics examples and testing.
 """
-
 # Author: Kacper Sokol <k.sokol@bristol.ac.uk>
-# License: BSD 3 clause
+# License: new BSD
 
+import logging
 import numpy as np
-from fatf.utils.validation import is_structured
 
-def euclidean_distance(x: np.ndarray, y: np.ndarray) -> float:
-    """Calculates the Euclidean distance between two data points.
-    Args
-    ----
-    x : np.ndarray
-        The first data point.
+from typing import Union
 
-    y : np.ndarray
-        The second data point.
+import fatf.utils.validation as fuv
+import fatf.utils.array_tools as fuat
+
+from fatf.exceptions import IncorrectShapeError
+
+__all__ = ['euclidean_distance',
+           'euclidean_point_distance',
+           'euclidean_array_distance',
+           'hamming_distance_base',
+           'hamming_distance',
+           'hamming_point_distance',
+           'hamming_array_distance',
+           'binary_distance',
+           'binary_point_distance',
+           'binary_array_distance']
+
+logger = logging.getLogger(__name__)
+
+
+def euclidean_distance(x: Union[np.ndarray, np.void],
+                       y: Union[np.ndarray, np.void]) -> float:
     """
-    if is_structured(x):
-        columns = x.dtype.names
-        x_minus_y = []
-        for c in columns:
-            x_minus_y.append(x[c] - y[c])
-        distance = np.linalg.norm(np.array(x_minus_y))
-    else:
-        distance = np.linalg.norm(x - y)
-    return distance
+    Calculates the Euclidean distance between two 1-dimensional numpy "arrays".
 
-def euclidean_point_distance(y: np.ndarray, X: np.ndarray) -> np.ndarray:
-    """Calculates the element-wise Euclidean distance between a data point, y,
-    and an array, X, of data points.
+    Each of the input arrays can be either a 1D numpy array or a row of a
+    structured numpy array, i.e. numpy's void.
 
-    Args
-    ----
-    y : np.ndarray
-        A data point.
-    X : np.ndarray
-        An array of data points.
-        data points.
-    """
-    distances = np.zeros((X.shape[0],))
-    if is_structured(X):
-        for i in range(0, X.shape[0]):
-            distances[i] = euclidean_distance(X[i], y)
-    else:
-        distances = np.apply_along_axis(euclidean_distance, 1, X, y)
-    return distances
+    Parameters
+    ----------
+    x : Union[numpy.ndarray, numpy.void]
+        The first numpy array (has to be 1-dimensional and purely numerical).
+    y : Union[numpy.ndarray, numpy.void]
+        The second numpy array (has to be 1-dimensional and purely numerical).
 
-def euclidean_vector_distance(X: np.ndarray, Y: np.ndarray) -> np.ndarray:
-    """Calculates the element-wise Euclidean distance between two arrays of data
-    points.
-
-    Args
-    ----
-    X : np.ndarray
-        An array of data points.
-    Y : np.ndarray
-        An array of data points.
+    Raises
+    ------
+    IncorrectShapeError
+        Either of the input arrays is not 1-dimensional or they are not of the
+        same length.
+    ValueError
+        Either of the input arrays is not purely numerical.
 
     Returns
     -------
-    distance_matrix : np.array
-        A point-wise Euclidean distance matrix between two arrays of data
-        points.
+    distance : float
+        Euclidean distance between the two numpy arrays.
     """
-    distance_matrix = np.zeros((X.shape[0], Y.shape[0]))
-    if is_structured(X):
-        for i in range(0, X.shape[0]):
-            distance_matrix[i] = euclidean_point_distance(X[i], Y)
-    else:
-        distance_matrix = np.apply_along_axis(euclidean_point_distance, 1, X, Y)
+    if not fuv.is_1d_like(x):
+        raise IncorrectShapeError('The x array should be 1-dimensional.')
+    if not fuv.is_1d_like(y):
+        raise IncorrectShapeError('The y array should be 1-dimensional.')
+
+    # Transform the arrays to unstructured
+    x_array = fuat.as_unstructured(x)
+    y_array = fuat.as_unstructured(y)
+
+    if not fuv.is_numerical_array(x_array):
+        raise ValueError('The x array should be purely numerical.')
+    if not fuv.is_numerical_array(y_array):
+        raise ValueError('The y array should be purely numerical.')
+
+    if x_array.shape[0] != y_array.shape[0]:
+        raise IncorrectShapeError(('The x and y arrays should have the same '
+                                   'length.'))
+
+    distance = np.linalg.norm(x_array - y_array)
+    return distance
+
+
+def euclidean_point_distance(y: Union[np.ndarray, np.void],
+                             X: np.ndarray) -> np.ndarray:
+    """
+    Calculates the Euclidean distance between ``y`` and every row of ``X``.
+
+    ``y`` has to be a 1-dimensional numerical numpy array or a row of a
+    structured numpy array (i.e. numpy's void) and ``X`` has to be a
+    2-dimensional numerical numpy array. The length of ``y`` has to be the same
+    as the width of ``X``.
+
+    Parameters
+    ----------
+    y : Union[numpy.ndarray, numpy.void]
+        A numpy array (has to be 1-dimensional and purely numerical) used to
+        calculate distances from.
+    X : numpy.ndarray
+        A numpy array (has to be 2-dimensional and purely numerical) to which
+        rows distances are calculated.
+
+    Raises
+    ------
+    IncorrectShapeError
+        Either ``y`` is not 1-dimensional or ``X`` is not 2-dimensional or the
+        length of ``y`` is not equal to the number of columns in ``X``.
+    ValueError
+        Either of the input arrays is not purely numerical.
+
+    Returns
+    -------
+    distances : numpy.ndarray
+        An array of Euclidean distances between ``y`` and every row of ``X``.
+    """
+    if not fuv.is_1d_like(y):
+        raise IncorrectShapeError('The y array should be 1-dimensional.')
+    if not fuv.is_2d_array(X):
+        raise IncorrectShapeError('The X array should be 2-dimensional.')
+
+    # Transform the arrays to unstructured
+    y_array = fuat.as_unstructured(y)
+    X_array = fuat.as_unstructured(X)
+
+    if not fuv.is_numerical_array(y_array):
+        raise ValueError('The y array should be purely numerical.')
+    if not fuv.is_numerical_array(X_array):
+        raise ValueError('The X array should be purely numerical.')
+
+    # Compare shapes
+    if y_array.shape[0] != X_array.shape[1]:
+        raise IncorrectShapeError('The number of columns in the X array '
+                                  'should the same as the number of elements '
+                                  'in the y array.')
+
+    distances = np.apply_along_axis(euclidean_distance, 1, X_array, y_array)
+    return distances
+
+
+def euclidean_array_distance(X: np.ndarray, Y: np.ndarray) -> np.ndarray:
+    """
+    Calculates the Euclidean distance matrix between rows in ``X`` and ``Y``.
+
+    Both ``X`` and ``Y`` have to be 2-dimensional numerical numpy arrays of the
+    same width.
+
+    Parameters
+    ----------
+    X : numpy.ndarray
+        A numpy array -- has to be 2-dimensional and purely numerical.
+    Y : numpy.ndarray
+        A numpy array -- has to be 2-dimensional and purely numerical.
+
+    Raises
+    ------
+    IncorrectShapeError
+        Either ``X`` or ``Y`` is not 2-dimensional or ``X`` and ``Y`` do not
+        have the same number of columns.
+    ValueError
+        Either of the input arrays is not purely numerical.
+
+    Returns
+    -------
+    distance_matrix : numpy.ndarray
+        An matrix of Euclidean distances between rows in ``X` and ``Y``.
+    """
+    if not fuv.is_2d_array(X):
+        raise IncorrectShapeError('The X array should be 2-dimensional.')
+    if not fuv.is_2d_array(Y):
+        raise IncorrectShapeError('The Y array should be 2-dimensional.')
+
+    if not fuv.is_numerical_array(X):
+        raise ValueError('The X array should be purely numerical.')
+    if not fuv.is_numerical_array(Y):
+        raise ValueError('The Y array should be purely numerical.')
+
+    # Transform the arrays to unstructured
+    Y_array = fuat.as_unstructured(Y)
+    X_array = fuat.as_unstructured(X)
+
+    # Compare shapes
+    if Y_array.shape[1] != X_array.shape[1]:
+        raise IncorrectShapeError('The number of columns in the X array '
+                                  'should the same as the number of columns '
+                                  'in Y array.')
+
+    distance_matrix = np.apply_along_axis(
+        euclidean_point_distance, 1, X_array, Y_array)
+
     return distance_matrix
 
-def hamming_distance_string(x: str, y: str) -> float:
-    if len(x) > len(y):
-        x = x[len(x)-len(y):]
-    elif len(y) > len(x):
-        y = y[len(y)-len(x):]
-    diff = 0
-    for i in range(0, len(x)):
-        if x[i] != y[i]:
-            diff += 1
-    return diff/len(x)
 
-def hamming_distance(x: np.ndarray, y: np.ndarray) -> float:
-    """Calculates the Hamming distance between two data points.
-    Args
-    ----
-    x : np.ndarray
-        The first data point.
-
-    y : np.ndarray
-        The second data point.
+def hamming_distance_base(x: str,
+                          y: str,
+                          normalise: bool = False,
+                          equal_length: bool = False) -> int:
     """
-    distance = 0
-    if is_structured(x):
-        columns = x.dtype.names
-        for c in columns:
-            distance += hamming_distance_string(x[c], y[c])
-    else:
-        for i in range(0, x.shape[0]):
-            distance += hamming_distance_string(x[i], y[i])
-    return distance
+    Calculates the Hamming distance between two strings ``x`` and ``y``.
 
-def hamming_point_distance(y: np.ndarray, X: np.ndarray) -> np.ndarray:
-    """Calculates the element-wise Hamming distance between a data point, y,
-    and an array, X, of data points.
+    If the strings are of a different length they are compared up to the
+    shorter one's length and the distance between them is increased by their
+    difference in length.
 
-    Args
-    ----
-    y : np.ndarray
-        A data point.
-    X : np.ndarray
-        An array of data points.
-        data points.
-    """
-    distances = np.zeros((X.shape[0],))
-    if is_structured(X):
-        for i in range(0, X.shape[0]):
-            distances[i] = hamming_distance(X[i], y)
-    else:
-        distances = np.apply_along_axis(hamming_distance, 1, X, y)
-    return distances
+    Parameters
+    ----------
+    x : string
+        The first string to be compared.
+    y : string
+        The second string to be compared.
+    normalise : boolean, optional (default=False)
+        Normalises the distance to be bounded between 0 and 1.
+    equal_length : boolean, optional (default=False)
+        Forces the arrays to be of equal length -- raises exception if they are
+        not.
 
-
-def hamming_vector_distance(X: np.ndarray, Y: np.ndarray) -> np.ndarray:
-    """Calculates the element-wise Hamming distance between two arrays of data
-    points.
-
-    Args
-    ----
-    X : np.ndarray
-        An array of data points.
-    Y : np.ndarray
-        An array of data points.
+    Raises
+    ------
+    TypeError
+        Either ``x`` or ``y`` is not a string.
+    ValueError
+        ``x`` and ``y`` are of different length when ``equal_length`` parameter
+        is set to ``True``.
 
     Returns
     -------
-    distance_matrix : np.array
-        A point-wise Euclidean distance matrix between two arrays of data
-        points.
+    distance : integer
+        The Hamming distances between ``x` and ``y``.
     """
-    distance_matrix = np.zeros((X.shape[0], Y.shape[0]))
-    if is_structured(X):
-        for i in range(0, X.shape[0]):
-            distance_matrix[i] = hamming_point_distance(X[i], Y)
+    if not isinstance(x, str):
+        raise TypeError('x should be a string.')
+    if not isinstance(y, str):
+        raise TypeError('y should be a string.')
+
+    x_len = len(x)
+    y_len = len(y)
+
+    distance = abs(x_len - y_len)
+    if distance and equal_length:
+        raise ValueError('Input strings differ in length and the equal_length '
+                         'parameter forces them to be of equal length.')
+    elif distance:
+        min_index = min(x_len, y_len)
+        for i in range(min_index):
+            distance += 0 if x[i] == y[i] else 1
     else:
-        distance_matrix = np.apply_along_axis(hamming_point_distance, 1, X, Y)
+        assert x_len == y_len, 'The strings should be of equal length.'
+        for i in range(x_len):
+            distance += 0 if x[i] == y[i] else 1
+
+    if normalise:
+        logger.debug('Hamming distance is being normalised.')
+        distance /= max(x_len, y_len)
+
+    return distance
+
+
+def hamming_distance(x: Union[np.ndarray, np.void],
+                     y: Union[np.ndarray, np.void],
+                     **kwargs: bool) -> Union[int, float]:
+    """
+    Computes the Hamming distance between 1-dimensional non-numerical arrays.
+
+    Each of the input arrays can be either a 1D numpy array or a row of a
+    structured numpy array, i.e. numpy's void.
+
+    Parameters
+    ----------
+    x : Union[numpy.ndarray, numpy.void]
+        The first numpy array (has to be 1-dimensional and non-numerical).
+    y : Union[numpy.ndarray, numpy.void]
+        The second numpy array (has to be 1-dimensional and non-numerical).
+    **kwargs : boolean
+        Keyword arguments that are passed to the
+        :func:`fatf.utils.distance.hamming_distance_base` function responsible
+        for calculating the Hamming distance.
+
+    Raises
+    ------
+    IncorrectShapeError
+        Either of the input arrays is not 1-dimensional or they are of a
+        different length.
+    ValueError
+        Either of the input arrays is not purely textual.
+
+    Returns
+    -------
+    distance : Union[integer, float]
+        Hamming distance between the two numpy arrays.
+    """
+    if not fuv.is_1d_like(x):
+        raise IncorrectShapeError('The x array should be 1-dimensional.')
+    if not fuv.is_1d_like(y):
+        raise IncorrectShapeError('The y array should be 1-dimensional.')
+
+    # Transform the arrays to unstructured
+    x_array = fuat.as_unstructured(x)
+    y_array = fuat.as_unstructured(y)
+
+    if not fuv.is_textual_array(x_array):
+        raise ValueError('The x array should be textual.')
+    if not fuv.is_textual_array(y_array):
+        raise ValueError('The y array should be textual.')
+
+    if x_array.shape[0] != y_array.shape[0]:
+        raise IncorrectShapeError('The x and y arrays should have the same '
+                                  'length.')
+
+    kw_hamming_distance = lambda v: hamming_distance_base(v[0], v[1], **kwargs)
+    distance = np.apply_along_axis(
+        kw_hamming_distance, 0, np.vstack((x_array, y_array)))
+    distance = distance.sum()
+    return distance
+
+
+def hamming_point_distance(y: Union[np.ndarray, np.void],
+                           X: np.ndarray,
+                           **kwargs: bool) -> np.ndarray:
+    """
+    Calculates the Hamming distance between ``y`` and every row of ``X``.
+
+    ``y`` has to be a 1-dimensional numerical numpy array or a row of a
+    structured numpy array (i.e. numpy's void) and ``X`` has to be a
+    2-dimensional numerical numpy array. The length of ``y`` has to be the same
+    as the width of ``X``.
+
+    Parameters
+    ----------
+    y : Union[numpy.ndarray, numpy.void]
+        A numpy array (has to be 1-dimensional and non-numerical) used to
+        calculate the distances from.
+    X : numpy.ndarray
+        A numpy array (has to be 2-dimensional and non-numerical) to which
+        rows the distances are calculated.
+    **kwargs : boolean
+        Keyword arguments that are passed to the
+        :func:`fatf.utils.distance.hamming_distance_base` function responsible
+        for calculating the Hamming distance.
+
+    Raises
+    ------
+    IncorrectShapeError
+        Either ``y`` is not 1-dimensional or ``X`` is not 2-dimensional or the
+        length of ``y`` is not equal to the number of columns in ``X``.
+    ValueError
+        Either of the input arrays is not purely textual.
+
+    Returns
+    -------
+    distances : numpy.ndarray
+        An array of Hamming distances between ``y`` and every row of ``X``.
+    """
+    if not fuv.is_1d_like(y):
+        raise IncorrectShapeError('The y array should be 1-dimensional.')
+    if not fuv.is_2d_array(X):
+        raise IncorrectShapeError('The X array should be 2-dimensional.')
+
+    # Transform the arrays to unstructured
+    y_array = fuat.as_unstructured(y)
+    X_array = fuat.as_unstructured(X)
+
+    if not fuv.is_textual_array(y_array):
+        raise ValueError('The y array should be textual.')
+    if not fuv.is_textual_array(X_array):
+        raise ValueError('The X array should be textual.')
+
+    # Compare shapes
+    if y_array.shape[0] != X_array.shape[1]:
+        raise IncorrectShapeError('The number of columns in the X array '
+                                  'should the same as the number of elements '
+                                  'in the y array.')
+
+    distances = np.apply_along_axis(
+        hamming_distance, 1, X_array, y_array, **kwargs)
+    return distances
+
+
+def hamming_array_distance(X: np.ndarray,
+                           Y: np.ndarray,
+                           **kwargs: bool) -> np.ndarray:
+    """
+    Calculates the Hamming distance matrix between rows in ``X`` and ``Y``.
+
+    Both ``X`` and ``Y`` have to be 2-dimensional numerical numpy arrays of the
+    same width.
+
+    Parameters
+    ----------
+    X : numpy.ndarray
+        A numpy array -- has to be 2-dimensional and non-numerical.
+    Y : numpy.ndarray
+        A numpy array -- has to be 2-dimensional and non-numerical.
+    **kwargs : boolean
+        Keyword arguments that are passed to the
+        :func:`fatf.utils.distance.hamming_distance_base` function responsible
+        for calculating the Hamming distance.
+
+    Raises
+    ------
+    IncorrectShapeError
+        Either ``X`` or ``Y`` is not 2-dimensional or ``X`` and ``Y`` do not
+        have the same number of columns.
+    ValueError
+        Either of the input arrays is not purely textual.
+
+    Returns
+    -------
+    distance_matrix : numpy.ndarray
+        An matrix of Hamming distances between rows in ``X` and ``Y``.
+    """
+    if not fuv.is_2d_array(X):
+        raise IncorrectShapeError('The X array should be 2-dimensional.')
+    if not fuv.is_2d_array(Y):
+        raise IncorrectShapeError('The Y array should be 2-dimensional.')
+
+    if not fuv.is_textual_array(X):
+        raise ValueError('The X array should be textual.')
+    if not fuv.is_textual_array(Y):
+        raise ValueError('The Y array should be textual.')
+
+    # Transform the arrays to unstructured
+    X_array = fuat.as_unstructured(X)
+    Y_array = fuat.as_unstructured(Y)
+
+    # Compare shapes
+    if X_array.shape[1] != Y_array.shape[1]:
+        raise IncorrectShapeError('The number of columns in the X array '
+                                  'should the same as the number of columns '
+                                  'in Y array.')
+
+    distance_matrix = np.apply_along_axis(
+        hamming_point_distance, 1, X_array, Y_array, **kwargs)
+    return distance_matrix
+
+
+def binary_distance(x: Union[np.ndarray, np.void],
+                    y: Union[np.ndarray, np.void],
+                    normalise: bool = False) -> Union[int, float]:
+    """
+    Computes the binary distance between two 1-dimensional arrays.
+
+    The distance is incremented by one for every position in the two input
+    arrays where the value does not match. Each of the input arrays can be
+    either a 1D numpy array or a row of a structured numpy array, i.e. numpy's
+    void.
+
+    Either of the input arrays is not of a base dtype. (See
+    :func:`fatf.utils.validation.is_base_array` function description for the
+    explanation of a base dtype.)
+
+    Parameters
+    ----------
+    x : Union[numpy.ndarray, numpy.void]
+        The first numpy array (has to be 1-dimensional).
+    y : Union[numpy.ndarray, numpy.void]
+        The second numpy array (has to be 1-dimensional).
+    normalise : boolean, optional (default=False)
+        Whether to normalise the binary distance using the input array length.
+
+    Raises
+    ------
+    IncorrectShapeError
+        Either of the input arrays is not 1-dimensional or they are of a
+        different length.
+
+    Returns
+    -------
+    distance : Union[integer, float]
+        Binary distance between the two numpy arrays.
+    """
+    if not fuv.is_1d_like(x):
+        raise IncorrectShapeError('The x array should be 1-dimensional.')
+    if not fuv.is_1d_like(y):
+        raise IncorrectShapeError('The y array should be 1-dimensional.')
+
+    # Transform the arrays to unstructured
+    x_array = fuat.as_unstructured(x)
+    y_array = fuat.as_unstructured(y)
+
+    if x_array.shape[0] != y_array.shape[0]:
+        raise IncorrectShapeError('The x and y arrays should have the same '
+                                  'length.')
+
+    distance = (x_array != y_array).sum()
+    if normalise:
+        logger.debug('Binary distance is being normalised.')
+        distance /= x_array.shape[0]
+    return distance
+
+
+def binary_point_distance(y: Union[np.ndarray, np.void],
+                          X: np.ndarray,
+                          **kwargs: bool) -> np.ndarray:
+    """
+    Calculates the binary distance between ``y`` and every row of ``X``.
+
+    ``y`` has to be a 1-dimensional numpy array or a row of a structured numpy
+    array (i.e. numpy's void) and ``X`` has to be a 2-dimensional numpy array.
+    The length of ``y`` has to be the same as the width of ``X``.
+
+    Either of the input arrays is not of a base dtype. (See
+    :func:`fatf.utils.validation.is_base_array` function description for the
+    explanation of a base dtype.)
+
+    Parameters
+    ----------
+    y : Union[numpy.ndarray, numpy.void]
+        A numpy array (has to be 1-dimensional) used to calculate the distances
+        from.
+    X : numpy.ndarray
+        A numpy array (has to be 2-dimensional) to which rows the distances are
+        calculated.
+    **kwargs : boolean
+        Keyword arguments that are passed to the
+        :func:`fatf.utils.distance.binary_distance` function responsible for
+        calculating the binary distance.
+
+    Raises
+    ------
+    IncorrectShapeError
+        Either ``y`` is not 1-dimensional or ``X`` is not 2-dimensional or the
+        length of ``y`` is not equal to the number of columns in ``X``.
+
+    Returns
+    -------
+    distances : numpy.ndarray
+        An array of binary distances between ``y`` and every row of ``X``.
+    """
+    if not fuv.is_1d_like(y):
+        raise IncorrectShapeError('The y array should be 1-dimensional.')
+    if not fuv.is_2d_array(X):
+        raise IncorrectShapeError('The X array should be 2-dimensional.')
+
+    # Transform the arrays to unstructured
+    y_array = fuat.as_unstructured(y)
+    X_array = fuat.as_unstructured(X)
+
+    # Compare shapes
+    if y_array.shape[0] != X_array.shape[1]:
+        raise IncorrectShapeError('The number of columns in the X array '
+                                  'should the same as the number of elements '
+                                  'in the y array.')
+
+    distances = np.apply_along_axis(
+        binary_distance, 1, X_array, y_array, **kwargs)
+    return distances
+
+
+def binary_array_distance(X: np.ndarray,
+                          Y: np.ndarray,
+                          **kwargs: bool) -> np.ndarray:
+    """
+    Calculates the binary distance matrix between rows in ``X`` and ``Y``.
+
+    Both ``X`` and ``Y`` have to be 2-dimensional numpy arrays of the same
+    width.
+
+    Either of the input arrays is not of a base dtype. (See
+    :func:`fatf.utils.validation.is_base_array` function description for the
+    explanation of a base dtype.)
+
+    Parameters
+    ----------
+    X : numpy.ndarray
+        A numpy array -- has to be 2-dimensional.
+    Y : numpy.ndarray
+        A numpy array -- has to be 2-dimensional.
+    **kwargs : boolean
+        Keyword arguments that are passed to the
+        :func:`fatf.utils.distance.binary_distance` function responsible for
+        calculating the binary distance.
+
+    Raises
+    ------
+    IncorrectShapeError
+        Either ``X`` or ``Y`` is not 2-dimensional or ``X`` and ``Y`` do not
+        have the same number of columns.
+
+    Returns
+    -------
+    distance_matrix : numpy.ndarray
+        An matrix of binary distances between rows in ``X` and ``Y``.
+    """
+    if not fuv.is_2d_array(X):
+        raise IncorrectShapeError('The X array should be 2-dimensional.')
+    if not fuv.is_2d_array(Y):
+        raise IncorrectShapeError('The Y array should be 2-dimensional.')
+
+    # Transform the arrays to unstructured
+    X_array = fuat.as_unstructured(X)
+    Y_array = fuat.as_unstructured(Y)
+
+    # Compare shapes
+    if X_array.shape[1] != Y_array.shape[1]:
+        raise IncorrectShapeError('The number of columns in the X array '
+                                  'should the same as the number of columns '
+                                  'in Y array.')
+
+    distance_matrix = np.apply_along_axis(
+        binary_point_distance, 1, X_array, Y_array, **kwargs)
     return distance_matrix

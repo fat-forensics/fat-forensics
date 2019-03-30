@@ -4,11 +4,11 @@ Holds numpy array tools.
 # Author: Kacper Sokol <k.sokol@bristol.ac.uk>
 # License: new BSD
 
+from typing import Optional, Union
+
 import logging
 import numpy as np
 import numpy.lib.recfunctions as recfn
-
-from typing import List, Optional, Union
 
 import fatf.utils.tools as fut
 import fatf.utils.validation as fuv
@@ -21,9 +21,9 @@ _LOCAL_STRUCTURED_TO_UNSTRUCTURED = None
 
 __all__ = ['structured_to_unstructured_row',
            'structured_to_unstructured',
-           'as_unstructured']
+           'as_unstructured']  # yapf: disable
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)  # pylint: disable=invalid-name
 
 
 def _choose_structured_to_unstructured() -> bool:
@@ -101,6 +101,7 @@ def fatf_structured_to_unstructured_row(
                              'numpy void and object-like types are not '
                              'allowed.')
 
+    # pylint: disable=len-as-condition
     assert len(structured_row.dtype.names), 'Structured means non-zero dtype.'
     classic_array = np.array([i for i in structured_row])
     if classic_array.shape[0] == 1:
@@ -111,9 +112,8 @@ def fatf_structured_to_unstructured_row(
 
 
 def structured_to_unstructured_row(
-        structured_row: np.void,
-        **kwargs: Optional[np.dtype]) -> Union[np.dtype,
-                                               np.ndarray]:  # pragma: no cover
+        structured_row: np.void, **kwargs: Optional[np.dtype]
+) -> Union[np.dtype, np.ndarray]:  # pragma: no cover
     """
     Calls either local or numpy's structured_to_unstructured(_row) function.
 
@@ -151,6 +151,7 @@ def structured_to_unstructured_row(
         just one element) representation of the ``structured_row`` with the
         most generic type out of the input row's dtypes.
     """
+    # pylint: disable=no-member
     if _LOCAL_STRUCTURED_TO_UNSTRUCTURED:
         classic_row = fatf_structured_to_unstructured_row(structured_row)
     else:
@@ -200,6 +201,7 @@ def fatf_structured_to_unstructured(
     else:
         dtype = str
     dtyped_columns = []
+    # pylint: disable=len-as-condition
     assert len(structured_array.dtype.names) != 0, 'This should be structured.'
     for i in structured_array.dtype.names:
         dtyped_columns.append(structured_array[i].astype(dtype))
@@ -215,7 +217,7 @@ def structured_to_unstructured(
 
     numpy 1.16.0 has introduced
     :func:`numpy.lib.recfunctions.structured_to_unstructured` function. To
-    ensure backwards compatibility up to numpy 1.8.2 this package implements
+    ensure backwards compatibility up to numpy 1.9.0 this package implements
     its own version of this function
     (:func:`fatf.utils.array_tools.fatf_structured_to_unstructured`).
     This function calls the latter if numpy version below 1.16.0 is installed.
@@ -252,21 +254,22 @@ def structured_to_unstructured(
         A classic numpy array representation of the ``structured_array`` with
         the most generic type out of the input array's dtypes.
     """
+    # pylint: disable=no-member
     if _LOCAL_STRUCTURED_TO_UNSTRUCTURED:
         classic_array = fatf_structured_to_unstructured(structured_array)
     else:
-        classic_array = recfn.structured_to_unstructured(structured_array,
-                                                         **kwargs)
+        classic_array = recfn.structured_to_unstructured(
+            structured_array, **kwargs)
         if (fuv.is_2d_array(structured_array)
                 and fuv.is_1d_array(classic_array)):
-            classic_array = classic_array.reshape(
-                (structured_array.shape[0], 1))
+            classic_array = classic_array.reshape((structured_array.shape[0],
+                                                   1))
     return classic_array
 
 
-def as_unstructured(array_like: Union[np.ndarray, np.void],
-                    **kwargs: Optional[np.dtype]) -> Union[np.dtype,
-                                                           np.ndarray]:
+def as_unstructured(
+        array_like: Union[np.ndarray, np.void],
+        **kwargs: Optional[np.dtype]) -> Union[np.dtype, np.ndarray]:
     """
     Converts an array like object into an unstructured array.
 

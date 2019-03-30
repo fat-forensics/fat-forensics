@@ -11,11 +11,13 @@ from typing import Tuple, Union
 
 import numpy as np
 
+import fatf.utils.tools as fut
 from fatf.exceptions import IncorrectShapeError
 
 __all__ = ['is_numerical_dtype',
            'is_textual_dtype',
            'is_base_dtype',
+           'is_flat_dtype',
            'are_similar_dtypes',
            'are_similar_dtype_arrays',
            'is_numerical_array',
@@ -30,6 +32,9 @@ __all__ = ['is_numerical_dtype',
            'get_invalid_indices',
            'are_indices_valid',
            'check_model_functionality']  # yapf: disable
+
+_NUMPY_VERSION = [int(i) for i in np.version.version.split('.')]
+_NUMPY_1_13 = fut.at_least_verion([1, 13], _NUMPY_VERSION)
 
 # Unsigned byte, Boolean, (signed) byte -- Boolean, unsigned integer,
 # (signed) integer, floating-point and complex-floating point.
@@ -114,9 +119,11 @@ def is_textual_dtype(dtype: np.dtype) -> bool:
                          'Only base dtype are allowed.')
 
     if dtype.kind in _NUMPY_TEXTUAL_KINDS_UNSUPPORTED:
-        warnings.warn('Zero-terminated bytes type is not supported and is not '
-                      'considered to be a textual type. Please use any other '
-                      'textual type.', category=UserWarning)
+        warnings.warn(
+            'Zero-terminated bytes type is not supported and is not '
+            'considered to be a textual type. Please use any other textual '
+            'type.',
+            category=UserWarning)
         is_textual = False
     else:
         is_textual = dtype.kind in _NUMPY_TEXTUAL_KINDS
@@ -160,6 +167,48 @@ def is_base_dtype(dtype: np.dtype) -> bool:
     is_basic = dtype.kind in _NUMPY_BASE_KINDS
 
     return is_basic
+
+
+def is_flat_dtype(dtype: np.dtype) -> bool:
+    """
+    Determines whether a numpy dtype object is flat.
+
+    Checks whether the ``dtype`` just encodes one element or a shape. A dtype
+    can characterise an array of other base types, which can then be embedded
+    as an element of another array.
+
+    Parameters
+    ----------
+    dtype : numpy.dtype
+        The dtype to be checked.
+
+    Raises
+    ------
+    TypeError
+        The input is not a numpy's dtype object.
+    ValueError
+        The dtype is structured -- this function only accepts plane dtypes.
+
+    Returns
+    -------
+    is_flat : boolean
+        True if the dtype is flat, False otherwise.
+    """
+    if not isinstance(dtype, np.dtype):
+        raise TypeError('The input should be a numpy dtype object.')
+
+    # If the dtype is complex
+    if dtype.names is not None:
+        raise ValueError('The numpy dtype object is structured. '
+                         'Only base dtype are allowed.')
+
+    # pylint: disable=len-as-condition
+    if _NUMPY_1_13:  # pragma: no cover
+        is_flat = not bool(dtype.ndim)
+    else:  # pragma: no cover
+        is_flat = len(dtype.shape) == 0
+
+    return is_flat
 
 
 def are_similar_dtypes(dtype_a: np.dtype,
@@ -276,8 +325,8 @@ def are_similar_dtype_arrays(array_a: np.ndarray,
                 if not are_similar:
                     break
     elif not is_a_structured and not is_b_structured:
-        are_similar = are_similar_dtypes(
-            array_a.dtype, array_b.dtype, strict_comparison)
+        are_similar = are_similar_dtypes(array_a.dtype, array_b.dtype,
+                                         strict_comparison)
     else:
         are_similar = False
 
@@ -467,6 +516,7 @@ def is_2d_array(array: np.ndarray) -> bool:
         raise TypeError('The input should be a numpy array-like.')
 
     if is_structured_array(array):
+        # pylint: disable=len-as-condition
         if len(array.shape) == 2 and len(array.dtype) == 1:
             is_2d = False
             message = ('2-dimensional arrays with 1D structured elements are '
@@ -476,7 +526,7 @@ def is_2d_array(array: np.ndarray) -> bool:
         elif len(array.shape) == 1 and len(array.dtype) > 0:
             is_2d = True
             for name in array.dtype.names:
-                if array.dtype[name].ndim:
+                if not is_flat_dtype(array.dtype[name]):
                     # This is a complex (multi-dimensional) embedded dtype
                     is_2d = False
                     break
@@ -532,21 +582,21 @@ def is_1d_like(oned_like_object: Union[np.ndarray, np.void]) -> bool:
 
     Returns
     -------
-    is_1d_like : boolean
+    is_1d_like_array : boolean
         True if the input is either a 1-dimensional numpy array or a row of a
         structured numpy array, False otherwise.
     """
-    is_1d_like = False
+    is_1d_like_array = False
     if isinstance(oned_like_object, np.void):
-        is_1d_like = is_structured_row(oned_like_object)
+        is_1d_like_array = is_structured_row(oned_like_object)
     elif isinstance(oned_like_object, np.ndarray):
-        is_1d_like = is_1d_array(oned_like_object)
+        is_1d_like_array = is_1d_array(oned_like_object)
     else:
         raise TypeError('The input should either be a numpy array-like object '
                         '(numpy.ndarray) or a row of a structured numpy array '
                         '(numpy.void).')
 
-    return is_1d_like
+    return is_1d_like_array
 
 
 def is_structured_array(array: np.ndarray) -> bool:

@@ -5,6 +5,9 @@ ignore =
 
 # Ignore certain files
 exclude =
-  fatf/utils/tests/test_validation.py
+
+per-file-ignores =
+    fatf/utils/tests/test_distance.py:W504
+    fatf/utils/tests/test_validation.py:E306,E701,E704,F841
 
 max-line-length = 79

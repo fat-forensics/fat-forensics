@@ -5,15 +5,15 @@ Includes custom predictive models used for FAT-Forensics testing and examples.
 # License: BSD 3 clause
 
 import abc
-import numpy as np
 
 from typing import Optional
+
+import numpy as np
 
 import fatf.utils.distance as fud
 import fatf.utils.validation as fuv
 
-from fatf.exceptions import (IncorrectShapeError,
-                             PrefittedModelError,
+from fatf.exceptions import (IncorrectShapeError, PrefittedModelError,
                              UnfittedModelError)
 
 __all__ = ['KNN']
@@ -32,12 +32,13 @@ class Model(abc.ABC):
         Any of the required methods -- ``fit`` or ``predict`` -- is not
         implemented.
     """
+    # pylint: disable=invalid-name
+
     @abc.abstractmethod
     def __init__(self) -> None:
         """
         Initialises the abstract model class.
         """
-
 
     @abc.abstractmethod
     def fit(self, X: np.ndarray, y: np.ndarray) -> None:
@@ -52,7 +53,6 @@ class Model(abc.ABC):
             A 1-dimensional numpy labels array used to fit the model.
         """
 
-
     @abc.abstractmethod
     def predict(self, X: np.ndarray) -> None:
         """
@@ -63,7 +63,6 @@ class Model(abc.ABC):
         X : numpy.ndarray
             A 2-dimensional numpy data array for which labels are predicted.
         """
-
 
     def predict_proba(self, X: np.ndarray) -> None:
         """
@@ -164,13 +163,14 @@ class KNN(Model):
     _numerical_indices : numpy.ndarray
         An array with numerical indices in the training array.
     """
+    # pylint: disable=too-many-instance-attributes
     _MODES = set(['classifier', 'c', 'regressor', 'r'])
-
 
     def __init__(self, k: int = 3, mode: Optional[str] = None) -> None:
         """
         Initialises the KNN model with the selected ``k`` parameter.
         """
+        super().__init__()
         if not isinstance(k, int):
             raise TypeError('The k parameter has to be an integer.')
         if k < 0:
@@ -188,9 +188,9 @@ class KNN(Model):
         self._k = k
 
         self._is_fitted = False
-        self._X = np.ndarray((0, 0))
+        self._X = np.ndarray((0, 0))  # pylint: disable=invalid-name
         self._y = np.ndarray((0, ))
-        self._X_n = int()
+        self._X_n = int()  # pylint: disable=invalid-name
         self._unique_y = np.ndarray((0, ))
         self._unique_y_counts = np.ndarray((0, ))
         self._unique_y_probabilities = np.ndarray((0, ))
@@ -198,7 +198,6 @@ class KNN(Model):
         self._is_structured = False
         self._categorical_indices = np.ndarray((0, ))
         self._numerical_indices = np.ndarray((0, ))
-
 
     def fit(self, X: np.ndarray, y: np.ndarray) -> None:
         """
@@ -265,11 +264,13 @@ class KNN(Model):
             self._unique_y_counts = unique_y_counts[unique_y_sort_index]
 
             # How many other labels have the same count.
-            top_y_index = self._unique_y_counts == np.max(self._unique_y_counts)
+            top_y_index = self._unique_y_counts == np.max(
+                self._unique_y_counts)
             top_y_unique_sorted = np.sort(self._unique_y[top_y_index])
             self._majority_label = top_y_unique_sorted[0]
 
-            self._unique_y_probabilities = self._unique_y_counts / self._y.shape[0]
+            self._unique_y_probabilities = (
+                self._unique_y_counts / self._y.shape[0])
         else:
             self._majority_label = self._y.mean()
             self._unique_y = np.ndarray((0, ))
@@ -278,7 +279,6 @@ class KNN(Model):
 
         self._X_n = self._X.shape[0]
         self._is_fitted = True
-
 
     def clear(self) -> None:
         """
@@ -304,7 +304,6 @@ class KNN(Model):
         self._is_structured = False
         self._categorical_indices = np.ndarray((0, ))
         self._numerical_indices = np.ndarray((0, ))
-
 
     def _get_distances(self, X: np.ndarray) -> np.ndarray:
         """
@@ -332,6 +331,7 @@ class KNN(Model):
         distances : numpy.ndarray
             An array of distances between X and the training data.
         """
+        # pylint: disable=invalid-name
         assert self._is_fitted, 'Cannot calculate distances on unfitted model.'
         assert fuv.is_2d_array(X), 'X must be a 2-dimensional array.'
         assert fuv.are_similar_dtype_arrays(X, self._X), \
@@ -367,7 +367,6 @@ class KNN(Model):
 
         return distances
 
-
     def predict(self, X: np.ndarray) -> np.ndarray:
         """
         Predicts labels of new instances with the fitted model.
@@ -393,6 +392,7 @@ class KNN(Model):
         predictions : numpy.ndarray
             Predicted class labels for each data point.
         """
+        # pylint: disable=too-many-locals,too-many-branches
         if not self._is_fitted:
             raise UnfittedModelError('This model has not been fitted yet.')
         if not fuv.is_2d_array(X):
@@ -410,7 +410,7 @@ class KNN(Model):
         if not fuv.is_structured_array(X):
             if X.shape[1] != self._X.shape[1]:
                 raise IncorrectShapeError(('X must have the same number of '
-                                           'columns as the ' 'training data '
+                                           'columns as the training data '
                                            '({}).').format(self._X.shape[1]))
 
         predictions = np.empty((X.shape[0], ))
@@ -437,18 +437,21 @@ class KNN(Model):
                     if top_label_unique_sorted.shape[0] > 1:
                         # Resolve the tie.
                         # Get count of these label for the training data.
-                        labels_filter = np.full((self._unique_y.shape[0], ),
-                                                fill_value=False)
+                        labels_filter = np.array(
+                            self._unique_y.shape[0] * [False])
                         for top_prediction in top_label_unique_sorted:
                             unique_y_filter = self._unique_y == top_prediction
-                            labels_filter = np.logical_or(labels_filter,
-                                                          unique_y_filter)
+                            np.logical_or(
+                                labels_filter,
+                                unique_y_filter,
+                                out=labels_filter)
                         g_top_label = self._unique_y[labels_filter]
-                        g_top_label_counts = self._unique_y_counts[labels_filter]
+                        g_top_label_counts = (
+                            self._unique_y_counts[labels_filter])
 
                         # What if any of the global labels have the same count?
-                        g_top_label_index = (g_top_label_counts
-                                             == np.max(g_top_label_counts))
+                        g_top_label_index = g_top_label_counts == np.max(
+                            g_top_label_counts)
                         g_top_label_sorted = np.sort(
                             g_top_label[g_top_label_index])
 
@@ -461,11 +464,9 @@ class KNN(Model):
                 predictions.append(prediction)
             predictions = np.array(predictions)
         else:
-            predictions = np.full((X.shape[0], ),
-                                  fill_value=self._majority_label)
+            predictions = np.array(X.shape[0] * [self._majority_label])
 
         return predictions
-
 
     def predict_proba(self, X: np.ndarray) -> np.ndarray:
         """
@@ -517,7 +518,7 @@ class KNN(Model):
         if not fuv.is_structured_array(X):
             if X.shape[1] != self._X.shape[1]:
                 raise IncorrectShapeError(('X must have the same number of '
-                                           'columns as the ' 'training data '
+                                           'columns as the training data '
                                            '({}).').format(self._X.shape[1]))
 
         probabilities = np.empty((X.shape[0], self._unique_y.shape[0]))
@@ -531,9 +532,9 @@ class KNN(Model):
                 values, counts = np.unique(close_labels, return_counts=True)
                 total_counts = np.sum(counts)
                 probs = np.zeros((self._unique_y.shape[0], ))
-                for vc in range(values.shape[0]):
-                    ind = np.where(self._unique_y==values[vc])[0]
-                    probs[ind] = counts[vc] / total_counts
+                for i in range(values.shape[0]):
+                    ind = np.where(self._unique_y == values[i])[0]
+                    probs[ind] = counts[i] / total_counts
                 probabilities.append(probs)
             probabilities = np.array(probabilities)
         else:

@@ -4,6 +4,8 @@ Tests functions responsible for objects validation across FAT-Forensics.
 # Author: Kacper Sokol <k.sokol@bristol.ac.uk>
 # License: new BSD
 
+# pylint: disable=too-many-lines
+
 import numpy as np
 import pytest
 
@@ -17,7 +19,7 @@ TEXTUAL_KINDS = ['string', u'unicode']
 UNSUPPORTED_TEXTUAL_KINDS = [b'bytes']
 UNSUPPORTED_TEXTUAL_DTYPES = [np.dtype('S'), np.dtype('a')]
 BASE_KINDS = [True, 1, -1, 1.0, 1 + 1j, 'string', u'unicode', b'bytes', np.nan,
-              np.inf, -np.inf]
+              np.inf, -np.inf]  # yapf: disable
 NOT_BASE_KINDS = [None, object()]
 
 NUMERICAL_NP_ARRAY = np.array([
@@ -71,15 +73,15 @@ BASE_NP_ARRAY = np.array([
     [1 + 1j, False],
     [1 + 1j, np.nan],
     [np.inf, -np.inf],
-    ['a', u'b']])  # yapf: disable
+    ['a', u'b']])  # yapf: disable  # pylint: disable=too-many-function-args
 NOT_BASE_NP_ARRAY = np.array([
-    [True, np.timedelta64(366,'D')],
-    [-1, 1.0],
-    [1 + 1j, np.datetime64('2005-02-25')],
-    [1 + 1j, np.nan],
+    [True, np.timedelta64(366, 'D')],  # pylint: disable=too-many-function-args
+    [-1, 1.0],  # type: ignore
+    [1 + 1j, np.datetime64('2005-02-25')],  # type: ignore
+    [1 + 1j, np.nan],  # type: ignore
     [np.inf, -np.inf],
-    ['a', u'b'],
-    [object(), 7],
+    ['a', u'b'],  # type: ignore
+    [object(), 7],  # type: ignore
     [9, None]])  # yapf: disable
 BASE_STRUCTURED_ARRAY = np.array([
     (True, 'a'),
@@ -175,6 +177,7 @@ def test_is_textual_dtype():
     """
     Tests :func:`fatf.utils.validation.is_textual_dtype` function.
     """
+    # pylint: disable=too-many-branches,too-many-statements
     type_error = 'The input should be a numpy dtype object.'
     value_error = ('The numpy dtype object is structured. '
                    'Only base dtype are allowed.')
@@ -248,7 +251,7 @@ def test_is_textual_dtype():
             for dtype in dtypes:
                 if dtype is str:
                     assert fuv.is_textual_dtype(np.dtype(dtype)) is True
-                elif dtype is bytes:
+                elif dtype is bytes:  # pragma: no cover
                     with pytest.warns(UserWarning) as warning:
                         assert fuv.is_textual_dtype(np.dtype(dtype)) is False
                     assert warning_message == str(warning[0].message)
@@ -318,10 +321,65 @@ def test_is_base_dtype():
                 assert fuv.is_base_dtype(np.dtype(dtype)) is True
 
 
+def test_is_flat_dtype():
+    """
+    Tests :func:`fatf.utils.validation.is_flat_dtype` function.
+    """
+
+    def numpy_low():
+        assert fuv.is_flat_dtype(NUMERICAL_NP_ARRAY.dtype)
+        assert fuv.is_flat_dtype(NUMERICAL_STRUCTURED_ARRAY.dtype[0])
+        assert fuv.is_flat_dtype(weird_array_1.dtype[0])
+        assert fuv.is_flat_dtype(weird_array_1.dtype[1])
+        assert not fuv.is_flat_dtype(weird_array_1.dtype[2])
+        assert fuv.is_flat_dtype(weird_array_2.dtype)
+
+    def numpy_high():  # pragma: no cover
+        assert fuv.is_flat_dtype(NUMERICAL_NP_ARRAY.dtype)
+        assert fuv.is_flat_dtype(NUMERICAL_STRUCTURED_ARRAY.dtype[0])
+        assert fuv.is_flat_dtype(weird_array_1.dtype[0])
+        assert fuv.is_flat_dtype(weird_array_1.dtype[1])
+        assert not fuv.is_flat_dtype(weird_array_1.dtype[2])
+        assert fuv.is_flat_dtype(weird_array_2.dtype)
+
+    type_error = 'The input should be a numpy dtype object.'
+    value_error = ('The numpy dtype object is structured. '
+                   'Only base dtype are allowed.')
+    # Test any object
+    with pytest.raises(TypeError) as exin:
+        fuv.is_flat_dtype(None)
+    assert str(exin.value) == type_error
+
+    # Test structured array
+    with pytest.raises(ValueError) as exin:
+        fuv.is_flat_dtype(NUMERICAL_STRUCTURED_ARRAY.dtype)
+    assert str(exin.value) == value_error
+    with pytest.raises(ValueError) as exin:
+        fuv.is_flat_dtype(NOT_NUMERICAL_STRUCTURED_ARRAY.dtype)
+    assert str(exin.value) == value_error
+    with pytest.raises(ValueError) as exin:
+        fuv.is_flat_dtype(BASE_STRUCTURED_ARRAY.dtype)
+    assert str(exin.value) == value_error
+    with pytest.raises(ValueError) as exin:
+        fuv.is_flat_dtype(NOT_BASE_STRUCTURED_ARRAY.dtype)
+    assert str(exin.value) == value_error
+
+    weird_array_1 = np.zeros(
+        3, dtype=[('x', 'f4'), ('y', np.float32), ('v', 'f4', (2, 2))])
+    weird_array_2 = np.ones((2, 2), dtype=weird_array_1.dtype[2])
+
+    if fuv._NUMPY_1_13:  # pragma: no cover  # pylint: disable=protected-access
+        numpy_low()
+        numpy_high()
+    else:  # pragma: no cover
+        numpy_low()
+
+
 def test_are_similar_dtypes():
     """
     Tests :func:`fatf.utils.validation.are_similar_dtypes` function.
     """
+    # pylint: disable=too-many-statements
     type_error_a = 'dtype_a should be a numpy dtype object.'
     type_error_b = 'dtype_b should be a numpy dtype object.'
     value_error_a = ('The dtype_a is a structured numpy dtype object. Only '
@@ -408,12 +466,10 @@ def test_are_similar_dtype_arrays():
     assert str(exin.value) == type_error_b
 
     # One structured the other one unstructured
-    assert fuv.are_similar_dtype_arrays(NUMERICAL_NP_ARRAY,
-                                        NUMERICAL_STRUCTURED_ARRAY,
-                                        False) is False
+    assert fuv.are_similar_dtype_arrays(
+        NUMERICAL_NP_ARRAY, NUMERICAL_STRUCTURED_ARRAY, False) is False
     assert fuv.are_similar_dtype_arrays(NUMERICAL_STRUCTURED_ARRAY,
-                                        NUMERICAL_NP_ARRAY,
-                                        True) is False
+                                        NUMERICAL_NP_ARRAY, True) is False
 
     f1_array = np.array([5, 1.222])
     f2_array = np.array([5, 1], dtype=float)
@@ -465,7 +521,7 @@ def test_is_numerical_array():
     """
     Tests :func:`fatf.utils.validation.is_numerical_array` function.
     """
-    # pylint: disable=too-many-branches
+    # pylint: disable=too-many-branches,too-many-statements
     type_error = 'The input should be a numpy array-like object.'
     # Test any object
     with pytest.raises(TypeError) as exin:
@@ -565,7 +621,7 @@ def test_is_textual_array():
     """
     Tests :func:`fatf.utils.validation.is_textual_array` function.
     """
-    # pylint: disable=too-many-branches
+    # pylint: disable=too-many-branches,too-many-statements
     type_error = 'The input should be a numpy array-like object.'
     warning_message = ('Zero-terminated bytes type is not supported and is '
                        'not considered to be a textual type. Please use any '
@@ -631,7 +687,7 @@ def test_is_textual_array():
                         np.ones((1, ), dtype=dtype)) is True
                     assert fuv.is_textual_array(
                         np.zeros((1, ), dtype=dtype)) is True
-                elif dtype is bytes:
+                elif dtype is bytes:  # pragma: no cover
                     with pytest.warns(UserWarning) as warning:
                         assert fuv.is_textual_array(
                             np.zeros((1, ), dtype=dtype)) is False
@@ -694,7 +750,7 @@ def test_is_base_array():
     """
     Tests :func:`fatf.utils.validation.is_base_array` function.
     """
-    # pylint: disable=too-many-branches
+    # pylint: disable=too-many-branches,too-many-statements
     type_error = 'The input should be a numpy array-like object.'
     # Test any object
     with pytest.raises(TypeError) as exin:
@@ -902,7 +958,8 @@ def test_is_2d_array():
                     assert fuv.is_2d_array(empty) is False
 
     # Complex types
-    arr = np.zeros(3, dtype=[('x','f4'),('y',np.float32),('value','f4',(2,2))])
+    arr = np.zeros(
+        3, dtype=[('x', 'f4'), ('y', np.float32), ('value', 'f4', (2, 2))])
     assert fuv.is_2d_array(arr) is False
     arr = np.ones((2, 2), dtype=arr.dtype[2])
     assert fuv.is_2d_array(arr) is False
@@ -1183,29 +1240,29 @@ def test_is_structured_row():
     assert str(exin.value) == type_error
     # Structured 0-dimensional arrays
     with pytest.raises(TypeError) as exin:
-        fuv.is_structured_row(np.array((1., (1+1j)),
-                                       dtype=[('n', '<f8'), ('c', '<c16')]))
+        fuv.is_structured_row(
+            np.array((1., (1 + 1j)), dtype=[('n', '<f8'), ('c', '<c16')]))
     assert str(exin.value) == type_error
     # Structured 1-dimensional arrays
     with pytest.raises(TypeError) as exin:
-        fuv.is_structured_row(np.array([(1., (1+1j))],
-                                       dtype=[('n', '<f8'), ('c', '<c16')]))
+        fuv.is_structured_row(
+            np.array([(1., (1 + 1j))], dtype=[('n', '<f8'), ('c', '<c16')]))
     assert str(exin.value) == type_error
     with pytest.raises(TypeError) as exin:
-        fuv.is_structured_row(np.array([(1., ), (2, ), (3, )],
-                                       dtype=[('n', '<f8')]))
+        fuv.is_structured_row(
+            np.array([(1., ), (2, ), (3, )], dtype=[('n', '<f8')]))
     assert str(exin.value) == type_error
     # Void types
-    v = np.array([b'123'], np.void)
+    void_array = np.array([b'123'], np.void)
     with pytest.raises(TypeError) as exin:
-        fuv.is_structured_row(v)
+        fuv.is_structured_row(void_array)
     assert str(exin.value) == type_error
-    assert not fuv.is_structured_row(v[0])
-    v = np.array([b'123', b'888'], np.void)
+    assert not fuv.is_structured_row(void_array[0])
+    void_array = np.array([b'123', b'888'], np.void)
     with pytest.raises(TypeError) as exin:
-        fuv.is_structured_row(v)
+        fuv.is_structured_row(void_array)
     assert str(exin.value) == type_error
-    assert not fuv.is_structured_row(v[1])
+    assert not fuv.is_structured_row(void_array[1])
     # Structured rows
     assert fuv.is_structured_row(NUMERICAL_STRUCTURED_ARRAY[0])
     assert fuv.is_structured_row(NOT_NUMERICAL_STRUCTURED_ARRAY[1])
@@ -1234,15 +1291,15 @@ def test_is_1d_like():
     assert not fuv.is_1d_like(BASE_STRUCTURED_ARRAY)
     assert not fuv.is_1d_like(NOT_BASE_STRUCTURED_ARRAY)
     # Structured 1D
-    assert not fuv.is_1d_like(np.array([(1., (1+1j))],
-                                dtype=[('n', '<f8'), ('c', '<c16')]))
+    assert not fuv.is_1d_like(
+        np.array([(1., (1 + 1j))], dtype=[('n', '<f8'), ('c', '<c16')]))
     user_warning = ('Structured (pseudo) 1-dimensional arrays are not '
                     'acceptable. A 1-dimensional structured numpy array can '
                     'be expressed as a classic numpy array with a desired '
                     'type.')
     with pytest.warns(UserWarning) as warning:
-        assert not fuv.is_1d_like(np.array([(1., ), (2, ), (3, )],
-                                           dtype=[('n', '<f8')]))
+        assert not fuv.is_1d_like(
+            np.array([(1., ), (2, ), (3, )], dtype=[('n', '<f8')]))
     assert str(warning[0].message) == user_warning
     # Structured row
     assert fuv.is_1d_like(NUMERICAL_STRUCTURED_ARRAY[0])
@@ -1250,12 +1307,12 @@ def test_is_1d_like():
     assert fuv.is_1d_like(BASE_STRUCTURED_ARRAY[2])
     assert fuv.is_1d_like(NOT_BASE_STRUCTURED_ARRAY[3])
     # Numpy void
-    v = np.array([b'123'], np.void)
-    assert fuv.is_1d_like(v)
-    assert not fuv.is_1d_like(v[0])
-    v = np.array([b'123', b'888'], np.void)
-    assert fuv.is_1d_like(v)
-    assert not fuv.is_1d_like(v[1])
+    void_array = np.array([b'123'], np.void)
+    assert fuv.is_1d_like(void_array)
+    assert not fuv.is_1d_like(void_array[0])
+    void_array = np.array([b'123', b'888'], np.void)
+    assert fuv.is_1d_like(void_array)
+    assert not fuv.is_1d_like(void_array[1])
 
 
 def test_is_structured_array():

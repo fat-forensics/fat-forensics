@@ -13,6 +13,7 @@ def test_at_least_verion():
     """
     Tests :func:`fatf.utils.tools.at_least_verion` function.
     """
+    # pylint: disable=too-many-locals,too-many-branches,too-many-statements
     # Wrong outer input types
     min_type_error = 'minimum_requirement parameter has to be a list.'
     min_element_type_error = ('{} element ({}) of the minimum_requirement '
@@ -173,7 +174,7 @@ def test_at_least_verion():
     assert fut.at_least_verion(correct_inner_types[0], correct_inner_types[1])
     with pytest.raises(ValueError) as exin:
         assert fut.at_least_verion(correct_inner_types[1],
-                                    correct_inner_types[0])
+                                   correct_inner_types[0])
     assert str(exin.value) == length_value_error
     for i in correct_inner_types:
         assert fut.at_least_verion(i, i)

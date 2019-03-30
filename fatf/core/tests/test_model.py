@@ -7,21 +7,8 @@ Holds custom distance functions used for FAT-Forensics examples and testing.
 import numpy as np
 import pytest
 
-
-    # Merge with alex's branch
-    # Sort out alex's files
-    # Merge alexs branch into model branch
-    # Reshuffle files and finctions
-    # merge model branch into dev
-    # merge ice, pdp branch into dev
-
-    # Give alex new tasks agreed with peter
-    # Merge lime
-
-
 import fatf.core.model as fcm
-from fatf.exceptions import (IncorrectShapeError,
-                             PrefittedModelError,
+from fatf.exceptions import (IncorrectShapeError, PrefittedModelError,
                              UnfittedModelError)
 
 
@@ -29,36 +16,40 @@ class TestModel(object):
     """
     Tests the :class:`fatf.core.model.Model` abstract model class.
     """
+
+    # pylint: disable=useless-object-inheritance
+
     def test__init__(self):
         """
         Tests the :func:``~fatf.core.model.Model.__init__` method.
         """
+        # pylint: disable=no-self-use
         error_message = ("Can't instantiate abstract class Model with "
                          'abstract methods __init__, fit, predict')
         with pytest.raises(TypeError) as exception_info:
-            model = fcm.Model()
+            fcm.Model()  # pylint: disable=abstract-class-instantiated
         assert str(exception_info.value) == error_message
-
 
     def test_fit(self):
         """
         Tests the :func:`~fatf.core.model.Model.fit` method.
         """
-        assert fcm.Model.fit(
-            object(), np.ndarray((0, 0)), np.ndarray((0, ))) is None
-
+        # pylint: disable=no-self-use
+        assert fcm.Model.fit(object(), np.ndarray((0, 0)),
+                             np.ndarray((0, ))) is None  # yapf: disable
 
     def test_predict(self):
         """
         Tests the :func:`~fatf.core.model.Model.predict` method.
         """
+        # pylint: disable=no-self-use
         assert fcm.Model.predict(object(), np.ndarray((0, ))) is None
-
 
     def test_predict_proba(self):
         """
         Tests the :func:`~fatf.core.model.Model.predict_proba` method.
         """
+        # pylint: disable=no-self-use
         error_message = ''
         with pytest.raises(NotImplementedError) as exception_info:
             fcm.Model.predict_proba(object(), np.ndarray((0, )))
@@ -69,6 +60,7 @@ class TestKNN(object):
     """
     Tests :class:`fatf.core.model.KNN` -- the k-nearest neighbours model class.
     """
+    # pylint: disable=protected-access,useless-object-inheritance
     type_error_k = 'The k parameter has to be an integer.'
     value_error_k = 'The k parameter has to be a positive integer.'
     value_error_mode = ('The mode parameter has to have one of the following '
@@ -126,7 +118,7 @@ class TestKNN(object):
     X_cat_categorical_indices = np.array([0, 1])
     X_cat_numerical_indices = np.array([])
     X_cat_struct = np.array([('a', 'b'), ('a', 'x'), ('yes', 'no'), ('5', '7'),
-                            ('x', '0'), ('o', 'b')],
+                             ('x', '0'), ('o', 'b')],
                             dtype=[('x', '<U3'), ('y', '<U2')])
     X_cat_struct_test = np.array([('yes', 'np'), ('yes', 'maybe'), ('x', '0')],
                                  dtype=[('x', '<U3'), ('y', '<U5')])
@@ -137,9 +129,10 @@ class TestKNN(object):
                                 [1, 1, 2],
                                 [2, 2, 2],
                                 [2, 2, 0],
-                                [2, 2, 2]])
+                                [2, 2, 2]])  # yapf: disable
 
-    X = np.array([[0, 0], [1, 1], [-1, 1], [-1, -1], [1, -1], [2, 2], ])
+    X = np.array([[0, 0], [1, 1], [-1, 1], [-1, -1], [1, -1],
+                  [2, 2], ])  # yapf: disable
     X_numerical_indices = np.array([0, 1])
     X_categorical_indices = np.array([])
 
@@ -174,7 +167,7 @@ class TestKNN(object):
                             [1.581, 5.831, 1.414],
                             [0.707, 7.071, 3.162],
                             [1.581, 5.831, 3.162],
-                            [3.536, 2.828, 2.000]])
+                            [3.536, 2.828, 2.000]])  # yapf: disable
     y_test_3_classification = np.array([0, 1, 0])
     y_test_3_classification_categorical = np.array(['0', '1', '0'])
     y_test_3_regression = np.array([0, 0.667, 0.333])
@@ -189,13 +182,14 @@ class TestKNN(object):
                                 [2.581, 6.831, 2.414],
                                 [1.707, 8.071, 4.162],
                                 [2.581, 6.831, 3.162],
-                                [4.536, 3.828, 3.000]])
+                                [4.536, 3.828, 3.000]])  # yapf: disable
 
     X_3D = np.ones((6, 2, 2))
 
-
-    def _test_unfitted_internals(
-            self, knn_clf, init_k=3, init_is_classifier=True):
+    def _test_unfitted_internals(self,
+                                 knn_clf,
+                                 init_k=3,
+                                 init_is_classifier=True):
         """
         Tests whether all internal attributes of an unfitted KNN model are OK.
 
@@ -208,6 +202,7 @@ class TestKNN(object):
         init_is_classifier : boolean
             Whether the model was fitted as a classifier.
         """
+        # pylint: disable=no-self-use
         assert knn_clf._k == init_k
         assert knn_clf._is_classifier is init_is_classifier
 
@@ -217,13 +212,12 @@ class TestKNN(object):
         assert knn_clf._X_n == int()
         assert np.equal(knn_clf._unique_y, np.ndarray((0, ))).all()
         assert np.equal(knn_clf._unique_y_counts, np.ndarray((0, ))).all()
-        assert np.equal(
-            knn_clf._unique_y_probabilities, np.ndarray((0, ))).all()
+        assert np.equal(knn_clf._unique_y_probabilities,
+                        np.ndarray((0, ))).all()  # yapf: disable
         assert knn_clf._majority_label is None
         assert knn_clf._is_structured is False
         assert np.equal(knn_clf._categorical_indices, np.ndarray((0, ))).all()
         assert np.equal(knn_clf._numerical_indices, np.ndarray((0, ))).all()
-
 
     def _test_fitted_internals(self,
                                knn_clf,
@@ -266,21 +260,23 @@ class TestKNN(object):
         unique_y_probabilities : Optional[numpy.ndarray]
             Frequencies of the unique elements in ``y``.
         """
+        # pylint: disable=no-self-use,too-many-arguments,invalid-name
         assert knn_clf._is_fitted
         assert np.array_equal(knn_clf._X, X)
         assert np.array_equal(knn_clf._y, y)
         assert knn_clf._X_n == X_n
         assert knn_clf._is_structured is is_structured
-        assert np.array_equal(
-            knn_clf._categorical_indices, categorical_indices)
+        assert np.array_equal(knn_clf._categorical_indices,
+                              categorical_indices)
         assert np.array_equal(knn_clf._numerical_indices, numerical_indices)
 
         if knn_clf._is_classifier:
             assert np.array_equal(knn_clf._unique_y, unique_y)
             assert np.equal(knn_clf._unique_y_counts, unique_y_counts).all()
-            assert np.isclose(knn_clf._unique_y_probabilities,
-                              unique_y_probabilities,
-                              atol=1e-3).all()
+            assert np.isclose(
+                knn_clf._unique_y_probabilities,
+                unique_y_probabilities,
+                atol=1e-3).all()
             assert knn_clf._majority_label == majority_label
         else:
             assert unique_y is None
@@ -289,9 +285,8 @@ class TestKNN(object):
             assert np.equal(knn_clf._unique_y, np.ndarray((0, ))).all()
             assert np.equal(knn_clf._unique_y_counts, np.ndarray((0, ))).all()
             assert np.equal(knn_clf._unique_y_probabilities,
-                            np.ndarray((0, ))).all()
+                            np.ndarray((0, ))).all()  # yapf: disable
             assert knn_clf._majority_label == majority_label
-
 
     def test_knn(self):
         """
@@ -344,11 +339,11 @@ class TestKNN(object):
         clf = fcm.KNN(k=k, mode='regressor')
         self._test_unfitted_internals(clf, init_k=k, init_is_classifier=False)
 
-
     def test_fit(self):
         """
         Tests KNN fitting (:func:`~fatf.core.model.KNN.fit`).
         """
+        # pylint: disable=too-many-statements
         k = 2
         clf = fcm.KNN(k=k)
         self._test_unfitted_internals(clf, init_k=k)
@@ -399,7 +394,8 @@ class TestKNN(object):
         clf = fcm.KNN(k=k, mode='r')
         self._test_unfitted_internals(clf, init_k=k, init_is_classifier=False)
         with pytest.raises(TypeError) as exception_info:
-            clf.fit(self.X, np.full((self.X.shape[0], ), fill_value='a'))
+            y_pred = np.array(self.X.shape[0] * ['a'])
+            clf.fit(self.X, y_pred)
         assert self.type_error_regressor == str(exception_info.value)
 
         # Fitting to a structured numerical array
@@ -451,7 +447,6 @@ class TestKNN(object):
             self.X_short_numerical_indices, self.short_unique_y,
             self.short_unique_y_counts, self.short_unique_y_probabilities)
 
-
     def test_clear(self):
         """
         Tests KNN clearing (:func:`~fatf.core.model.KNN.clear`).
@@ -474,16 +469,17 @@ class TestKNN(object):
         clf.clear()
         self._test_unfitted_internals(clf, init_k=k, init_is_classifier=True)
 
-
     def test_get_distances(self):
         """
         Tests KNN distances (:func:`~fatf.core.model.KNN._get_distances`).
         """
-        is_unfitted = lambda: self._test_unfitted_internals(
-            clf, init_k=2, init_is_classifier=True)
-
         k = 2
         clf = fcm.KNN(k=k)
+
+        def is_unfitted():
+            return self._test_unfitted_internals(
+                clf, init_k=2, init_is_classifier=True)
+
         is_unfitted()
 
         # Numerical distances on unstructured
@@ -522,9 +518,10 @@ class TestKNN(object):
         is_unfitted()
         clf.fit(self.X_cat_struct, self.y)
         self._test_fitted_internals(
-            clf, True, self.X_cat_struct, self.y, self.X_n, self.majority_label,
-            self.X_cat_struct_categorical_indices, self.X_cat_struct_numerical_indices,
-            self.unique_y, self.unique_y_counts, self.unique_y_probabilities)
+            clf, True, self.X_cat_struct, self.y, self.X_n,
+            self.majority_label, self.X_cat_struct_categorical_indices,
+            self.X_cat_struct_numerical_indices, self.unique_y,
+            self.unique_y_counts, self.unique_y_probabilities)
         dist = clf._get_distances(self.X_cat_struct_test)
         assert np.isclose(dist, self.X_cat_distances, atol=1e-3).all()
 
@@ -539,11 +536,11 @@ class TestKNN(object):
         dist = clf._get_distances(self.X_test_mix)
         assert np.isclose(dist, self.X_mix_distances, atol=1e-3).all()
 
-
     def test_predict(self):
         """
         Tests KNN predictions (:func:`~fatf.core.model.KNN.predict`).
         """
+        # pylint: disable=too-many-statements
         k = 2
         clf = fcm.KNN(k=k)
         self._test_unfitted_internals(clf, init_k=k, init_is_classifier=True)
@@ -560,7 +557,7 @@ class TestKNN(object):
         assert self.incorrect_shape_error_singular == str(exception_info.value)
         with pytest.raises(IncorrectShapeError) as exception_info:
             clf.predict(self.y)
-        assert self.incorrect_shape_error_singular== str(exception_info.value)
+        assert self.incorrect_shape_error_singular == str(exception_info.value)
 
         # dtype is not similar to the training data
         with pytest.raises(ValueError) as exception_info:
@@ -602,10 +599,10 @@ class TestKNN(object):
         clf = fcm.KNN(k=k, mode='r')
         self._test_unfitted_internals(clf, init_k=k, init_is_classifier=False)
         clf.fit(self.X, self.y)
-        self._test_fitted_internals(
-            clf, False, self.X, self.y, self.X_n,
-            self.majority_label_regressor, self.X_categorical_indices,
-            self.X_numerical_indices)
+        self._test_fitted_internals(clf, False, self.X, self.y, self.X_n,
+                                    self.majority_label_regressor,
+                                    self.X_categorical_indices,
+                                    self.X_numerical_indices)
         y_hat = clf.predict(self.X_test)
         assert np.isclose(y_hat, self.y_test_3_regression, atol=1e-3).all()
         # Sample bigger than k
@@ -613,13 +610,13 @@ class TestKNN(object):
         clf = fcm.KNN(k=k, mode='r')
         self._test_unfitted_internals(clf, init_k=k, init_is_classifier=False)
         clf.fit(self.X, self.y)
-        self._test_fitted_internals(
-            clf, False, self.X, self.y, self.X_n,
-            self.majority_label_regressor, self.X_categorical_indices,
-            self.X_numerical_indices)
+        self._test_fitted_internals(clf, False, self.X, self.y, self.X_n,
+                                    self.majority_label_regressor,
+                                    self.X_categorical_indices,
+                                    self.X_numerical_indices)
         y_hat = clf.predict(self.X_test)
-        y_true = np.full(
-            (y_hat.shape[0], ), fill_value=self.majority_label_regressor)
+        y_true = np.full((y_hat.shape[0], ),
+                         fill_value=self.majority_label_regressor)
         assert np.isclose(y_hat, y_true, atol=1e-3).all()
 
         # Regressor on structured
@@ -628,10 +625,10 @@ class TestKNN(object):
         clf = fcm.KNN(k=k, mode='r')
         self._test_unfitted_internals(clf, init_k=k, init_is_classifier=False)
         clf.fit(self.X_struct, self.y)
-        self._test_fitted_internals(
-            clf, True, self.X_struct, self.y, self.X_n,
-            self.majority_label_regressor, self.X_struct_categorical_indices,
-            self.X_struct_numerical_indices)
+        self._test_fitted_internals(clf, True, self.X_struct, self.y, self.X_n,
+                                    self.majority_label_regressor,
+                                    self.X_struct_categorical_indices,
+                                    self.X_struct_numerical_indices)
         y_hat = clf.predict(self.X_test_struct)
         assert np.isclose(y_hat, self.y_test_3_regression, atol=1e-3).all()
         # Sample bigger than k
@@ -639,13 +636,13 @@ class TestKNN(object):
         clf = fcm.KNN(k=k, mode='r')
         self._test_unfitted_internals(clf, init_k=k, init_is_classifier=False)
         clf.fit(self.X_struct, self.y)
-        self._test_fitted_internals(
-            clf, True, self.X_struct, self.y, self.X_n,
-            self.majority_label_regressor, self.X_struct_categorical_indices,
-            self.X_struct_numerical_indices)
+        self._test_fitted_internals(clf, True, self.X_struct, self.y, self.X_n,
+                                    self.majority_label_regressor,
+                                    self.X_struct_categorical_indices,
+                                    self.X_struct_numerical_indices)
         y_hat = clf.predict(self.X_test_struct)
-        y_true = np.full(
-            (y_hat.shape[0], ), fill_value=self.majority_label_regressor)
+        y_true = np.full((y_hat.shape[0], ),
+                         fill_value=self.majority_label_regressor)
         assert np.isclose(y_hat, y_true, atol=1e-3).all()
 
         # Numerical classifier on unstructured
@@ -670,8 +667,7 @@ class TestKNN(object):
             self.X_categorical_indices, self.X_numerical_indices,
             self.unique_y, self.unique_y_counts, self.unique_y_probabilities)
         y_hat = clf.predict(self.X_test)
-        y_true = np.full(
-            (y_hat.shape[0], ), fill_value=self.majority_label)
+        y_true = np.full((y_hat.shape[0], ), fill_value=self.majority_label)
         assert np.isclose(y_hat, y_true, atol=1e-3).all()
 
         # Numerical classifier on structured
@@ -696,8 +692,7 @@ class TestKNN(object):
             self.X_struct_categorical_indices, self.X_struct_numerical_indices,
             self.unique_y, self.unique_y_counts, self.unique_y_probabilities)
         y_hat = clf.predict(self.X_test_struct)
-        y_true = np.full(
-            (y_hat.shape[0], ), fill_value=self.majority_label)
+        y_true = np.full((y_hat.shape[0], ), fill_value=self.majority_label)
         assert np.isclose(y_hat, y_true, atol=1e-3).all()
 
         # Categorical classifier on unstructured
@@ -716,7 +711,6 @@ class TestKNN(object):
         # Sample bigger than k
         k = 10
         clf = fcm.KNN(k=k)
-        clf = fcm.KNN(k=k)
         self._test_unfitted_internals(clf, init_k=k, init_is_classifier=True)
         clf.fit(self.X, self.y_categorical)
         self._test_fitted_internals(
@@ -725,8 +719,7 @@ class TestKNN(object):
             self.X_numerical_indices, self.unique_y_categorical,
             self.unique_y_counts, self.unique_y_probabilities)
         y_hat = clf.predict(self.X_test)
-        y_true = np.full(
-            (y_hat.shape[0], ), fill_value=self.majority_label_categorical)
+        y_true = np.array(y_hat.shape[0] * [self.majority_label_categorical])
         assert np.array_equal(y_hat, y_true)
 
         # Categorical classifier on structured
@@ -753,44 +746,43 @@ class TestKNN(object):
             self.X_struct_numerical_indices, self.unique_y_categorical,
             self.unique_y_counts, self.unique_y_probabilities)
         y_hat = clf.predict(self.X_test_struct)
-        y_true = np.full(
-            (y_hat.shape[0], ), fill_value=self.majority_label_categorical)
+        y_true = np.array(y_hat.shape[0] * [self.majority_label_categorical])
         assert np.array_equal(y_hat, y_true)
 
         # Test when the majority class is ambiguous -- sample smaller than k
-        y = np.array([0, 1, 0, 1, 0, 1])
+        y = np.array([0, 1, 0, 1, 0, 1])  # pylint: disable=invalid-name
         majority_label = 0
         unique_y = np.array([0, 1])
         unique_y_counts = np.array([3, 3])
         unique_y_probabilities = np.array([.5, .5])
-        X_test = np.array([[0, 0], [2, 0]])
+        X_test = np.array([[0, 0], [2, 0]])  # pylint: disable=invalid-name
         y_test = np.array([0, 0])
         #
         k = 4
         clf = fcm.KNN(k=k)
         self._test_unfitted_internals(clf, init_k=k, init_is_classifier=True)
         clf.fit(self.X, y)
-        self._test_fitted_internals(
-            clf, False, self.X, y, self.X_n, majority_label,
-            self.X_categorical_indices, self.X_numerical_indices, unique_y,
-            unique_y_counts, unique_y_probabilities)
+        self._test_fitted_internals(clf, False, self.X, y, self.X_n,
+                                    majority_label, self.X_categorical_indices,
+                                    self.X_numerical_indices, unique_y,
+                                    unique_y_counts, unique_y_probabilities)
         y_hat = clf.predict(X_test)
         assert np.array_equal(y_hat, y_test)
-
 
     def test_predict_proba(self):
         """
         Tests KNN probabilities (:func:`~fatf.core.model.KNN.predict_proba`).
         """
+        # pylint: disable=too-many-statements
         # Regressor error
         k = 3
         clf = fcm.KNN(k=k, mode='r')
         self._test_unfitted_internals(clf, init_k=k, init_is_classifier=False)
         clf.fit(self.X, self.y)
-        self._test_fitted_internals(
-            clf, False, self.X, self.y, self.X_n,
-            self.majority_label_regressor, self.X_categorical_indices,
-            self.X_numerical_indices)
+        self._test_fitted_internals(clf, False, self.X, self.y, self.X_n,
+                                    self.majority_label_regressor,
+                                    self.X_categorical_indices,
+                                    self.X_numerical_indices)
         with pytest.raises(RuntimeError) as exception_info:
             clf.predict_proba(self.X_test)
         assert str(exception_info.value) == self.runtime_error
@@ -818,7 +810,7 @@ class TestKNN(object):
         assert self.incorrect_shape_error_singular == str(exception_info.value)
         with pytest.raises(IncorrectShapeError) as exception_info:
             clf.predict_proba(self.y)
-        assert self.incorrect_shape_error_singular== str(exception_info.value)
+        assert self.incorrect_shape_error_singular == str(exception_info.value)
 
         # dtype is not similar to the training data
         with pytest.raises(ValueError) as exception_info:
@@ -923,7 +915,6 @@ class TestKNN(object):
         assert np.isclose(y_hat, self.y_test_3_proba, atol=1e-3).all()
         # Sample bigger than k
         k = 10
-        clf = fcm.KNN(k=k)
         clf = fcm.KNN(k=k)
         self._test_unfitted_internals(clf, init_k=k, init_is_classifier=True)
         clf.fit(self.X, self.y_categorical)

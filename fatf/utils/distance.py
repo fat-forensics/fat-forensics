@@ -5,9 +5,10 @@ Holds custom distance functions used for FAT-Forensics examples and testing.
 # License: new BSD
 
 import logging
-import numpy as np
 
 from typing import Union
+
+import numpy as np
 
 import fatf.utils.validation as fuv
 import fatf.utils.array_tools as fuat
@@ -23,9 +24,9 @@ __all__ = ['euclidean_distance',
            'hamming_array_distance',
            'binary_distance',
            'binary_point_distance',
-           'binary_array_distance']
+           'binary_array_distance']  # yapf: disable
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)  # pylint: disable=invalid-name
 
 
 def euclidean_distance(x: Union[np.ndarray, np.void],
@@ -56,6 +57,7 @@ def euclidean_distance(x: Union[np.ndarray, np.void],
     distance : float
         Euclidean distance between the two numpy arrays.
     """
+    # pylint: disable=invalid-name
     if not fuv.is_1d_like(x):
         raise IncorrectShapeError('The x array should be 1-dimensional.')
     if not fuv.is_1d_like(y):
@@ -110,6 +112,7 @@ def euclidean_point_distance(y: Union[np.ndarray, np.void],
     distances : numpy.ndarray
         An array of Euclidean distances between ``y`` and every row of ``X``.
     """
+    # pylint: disable=invalid-name
     if not fuv.is_1d_like(y):
         raise IncorrectShapeError('The y array should be 1-dimensional.')
     if not fuv.is_2d_array(X):
@@ -117,7 +120,7 @@ def euclidean_point_distance(y: Union[np.ndarray, np.void],
 
     # Transform the arrays to unstructured
     y_array = fuat.as_unstructured(y)
-    X_array = fuat.as_unstructured(X)
+    X_array = fuat.as_unstructured(X)  # pylint: disable=invalid-name
 
     if not fuv.is_numerical_array(y_array):
         raise ValueError('The y array should be purely numerical.')
@@ -161,6 +164,7 @@ def euclidean_array_distance(X: np.ndarray, Y: np.ndarray) -> np.ndarray:
     distance_matrix : numpy.ndarray
         An matrix of Euclidean distances between rows in ``X` and ``Y``.
     """
+    # pylint: disable=invalid-name
     if not fuv.is_2d_array(X):
         raise IncorrectShapeError('The X array should be 2-dimensional.')
     if not fuv.is_2d_array(Y):
@@ -172,8 +176,8 @@ def euclidean_array_distance(X: np.ndarray, Y: np.ndarray) -> np.ndarray:
         raise ValueError('The Y array should be purely numerical.')
 
     # Transform the arrays to unstructured
-    Y_array = fuat.as_unstructured(Y)
-    X_array = fuat.as_unstructured(X)
+    Y_array = fuat.as_unstructured(Y)  # pylint: disable=invalid-name
+    X_array = fuat.as_unstructured(X)  # pylint: disable=invalid-name
 
     # Compare shapes
     if Y_array.shape[1] != X_array.shape[1]:
@@ -181,8 +185,8 @@ def euclidean_array_distance(X: np.ndarray, Y: np.ndarray) -> np.ndarray:
                                   'should the same as the number of columns '
                                   'in Y array.')
 
-    distance_matrix = np.apply_along_axis(
-        euclidean_point_distance, 1, X_array, Y_array)
+    distance_matrix = np.apply_along_axis(euclidean_point_distance, 1, X_array,
+                                          Y_array)
 
     return distance_matrix
 
@@ -190,7 +194,7 @@ def euclidean_array_distance(X: np.ndarray, Y: np.ndarray) -> np.ndarray:
 def hamming_distance_base(x: str,
                           y: str,
                           normalise: bool = False,
-                          equal_length: bool = False) -> int:
+                          equal_length: bool = False) -> Union[int, float]:
     """
     Calculates the Hamming distance between two strings ``x`` and ``y``.
 
@@ -220,9 +224,10 @@ def hamming_distance_base(x: str,
 
     Returns
     -------
-    distance : integer
+    distance : Union[integer, float]
         The Hamming distances between ``x` and ``y``.
     """
+    # pylint: disable=invalid-name
     if not isinstance(x, str):
         raise TypeError('x should be a string.')
     if not isinstance(y, str):
@@ -246,7 +251,7 @@ def hamming_distance_base(x: str,
 
     if normalise:
         logger.debug('Hamming distance is being normalised.')
-        distance /= max(x_len, y_len)
+        distance /= max(x_len, y_len)  # type: ignore
 
     return distance
 
@@ -284,6 +289,7 @@ def hamming_distance(x: Union[np.ndarray, np.void],
     distance : Union[integer, float]
         Hamming distance between the two numpy arrays.
     """
+    # pylint: disable=invalid-name
     if not fuv.is_1d_like(x):
         raise IncorrectShapeError('The x array should be 1-dimensional.')
     if not fuv.is_1d_like(y):
@@ -302,15 +308,16 @@ def hamming_distance(x: Union[np.ndarray, np.void],
         raise IncorrectShapeError('The x and y arrays should have the same '
                                   'length.')
 
-    kw_hamming_distance = lambda v: hamming_distance_base(v[0], v[1], **kwargs)
-    distance = np.apply_along_axis(
-        kw_hamming_distance, 0, np.vstack((x_array, y_array)))
+    def kw_hamming_distance(vec):
+        return hamming_distance_base(vec[0], vec[1], **kwargs)
+
+    distance = np.apply_along_axis(kw_hamming_distance, 0,
+                                   np.vstack((x_array, y_array)))
     distance = distance.sum()
     return distance
 
 
-def hamming_point_distance(y: Union[np.ndarray, np.void],
-                           X: np.ndarray,
+def hamming_point_distance(y: Union[np.ndarray, np.void], X: np.ndarray,
                            **kwargs: bool) -> np.ndarray:
     """
     Calculates the Hamming distance between ``y`` and every row of ``X``.
@@ -346,6 +353,7 @@ def hamming_point_distance(y: Union[np.ndarray, np.void],
     distances : numpy.ndarray
         An array of Hamming distances between ``y`` and every row of ``X``.
     """
+    # pylint: disable=invalid-name
     if not fuv.is_1d_like(y):
         raise IncorrectShapeError('The y array should be 1-dimensional.')
     if not fuv.is_2d_array(X):
@@ -353,7 +361,7 @@ def hamming_point_distance(y: Union[np.ndarray, np.void],
 
     # Transform the arrays to unstructured
     y_array = fuat.as_unstructured(y)
-    X_array = fuat.as_unstructured(X)
+    X_array = fuat.as_unstructured(X)  # pylint: disable=invalid-name
 
     if not fuv.is_textual_array(y_array):
         raise ValueError('The y array should be textual.')
@@ -366,13 +374,12 @@ def hamming_point_distance(y: Union[np.ndarray, np.void],
                                   'should the same as the number of elements '
                                   'in the y array.')
 
-    distances = np.apply_along_axis(
-        hamming_distance, 1, X_array, y_array, **kwargs)
+    distances = np.apply_along_axis(hamming_distance, 1, X_array, y_array,
+                                    **kwargs)
     return distances
 
 
-def hamming_array_distance(X: np.ndarray,
-                           Y: np.ndarray,
+def hamming_array_distance(X: np.ndarray, Y: np.ndarray,
                            **kwargs: bool) -> np.ndarray:
     """
     Calculates the Hamming distance matrix between rows in ``X`` and ``Y``.
@@ -404,6 +411,7 @@ def hamming_array_distance(X: np.ndarray,
     distance_matrix : numpy.ndarray
         An matrix of Hamming distances between rows in ``X` and ``Y``.
     """
+    # pylint: disable=invalid-name
     if not fuv.is_2d_array(X):
         raise IncorrectShapeError('The X array should be 2-dimensional.')
     if not fuv.is_2d_array(Y):
@@ -415,8 +423,8 @@ def hamming_array_distance(X: np.ndarray,
         raise ValueError('The Y array should be textual.')
 
     # Transform the arrays to unstructured
-    X_array = fuat.as_unstructured(X)
-    Y_array = fuat.as_unstructured(Y)
+    X_array = fuat.as_unstructured(X)  # pylint: disable=invalid-name
+    Y_array = fuat.as_unstructured(Y)  # pylint: disable=invalid-name
 
     # Compare shapes
     if X_array.shape[1] != Y_array.shape[1]:
@@ -424,8 +432,8 @@ def hamming_array_distance(X: np.ndarray,
                                   'should the same as the number of columns '
                                   'in Y array.')
 
-    distance_matrix = np.apply_along_axis(
-        hamming_point_distance, 1, X_array, Y_array, **kwargs)
+    distance_matrix = np.apply_along_axis(hamming_point_distance, 1, X_array,
+                                          Y_array, **kwargs)
     return distance_matrix
 
 
@@ -464,6 +472,7 @@ def binary_distance(x: Union[np.ndarray, np.void],
     distance : Union[integer, float]
         Binary distance between the two numpy arrays.
     """
+    # pylint: disable=invalid-name
     if not fuv.is_1d_like(x):
         raise IncorrectShapeError('The x array should be 1-dimensional.')
     if not fuv.is_1d_like(y):
@@ -484,8 +493,7 @@ def binary_distance(x: Union[np.ndarray, np.void],
     return distance
 
 
-def binary_point_distance(y: Union[np.ndarray, np.void],
-                          X: np.ndarray,
+def binary_point_distance(y: Union[np.ndarray, np.void], X: np.ndarray,
                           **kwargs: bool) -> np.ndarray:
     """
     Calculates the binary distance between ``y`` and every row of ``X``.
@@ -522,6 +530,7 @@ def binary_point_distance(y: Union[np.ndarray, np.void],
     distances : numpy.ndarray
         An array of binary distances between ``y`` and every row of ``X``.
     """
+    # pylint: disable=invalid-name
     if not fuv.is_1d_like(y):
         raise IncorrectShapeError('The y array should be 1-dimensional.')
     if not fuv.is_2d_array(X):
@@ -529,7 +538,7 @@ def binary_point_distance(y: Union[np.ndarray, np.void],
 
     # Transform the arrays to unstructured
     y_array = fuat.as_unstructured(y)
-    X_array = fuat.as_unstructured(X)
+    X_array = fuat.as_unstructured(X)  # pylint: disable=invalid-name
 
     # Compare shapes
     if y_array.shape[0] != X_array.shape[1]:
@@ -537,13 +546,12 @@ def binary_point_distance(y: Union[np.ndarray, np.void],
                                   'should the same as the number of elements '
                                   'in the y array.')
 
-    distances = np.apply_along_axis(
-        binary_distance, 1, X_array, y_array, **kwargs)
+    distances = np.apply_along_axis(binary_distance, 1, X_array, y_array,
+                                    **kwargs)
     return distances
 
 
-def binary_array_distance(X: np.ndarray,
-                          Y: np.ndarray,
+def binary_array_distance(X: np.ndarray, Y: np.ndarray,
                           **kwargs: bool) -> np.ndarray:
     """
     Calculates the binary distance matrix between rows in ``X`` and ``Y``.
@@ -577,6 +585,7 @@ def binary_array_distance(X: np.ndarray,
     distance_matrix : numpy.ndarray
         An matrix of binary distances between rows in ``X` and ``Y``.
     """
+    # pylint: disable=invalid-name
     if not fuv.is_2d_array(X):
         raise IncorrectShapeError('The X array should be 2-dimensional.')
     if not fuv.is_2d_array(Y):
@@ -592,6 +601,6 @@ def binary_array_distance(X: np.ndarray,
                                   'should the same as the number of columns '
                                   'in Y array.')
 
-    distance_matrix = np.apply_along_axis(
-        binary_point_distance, 1, X_array, Y_array, **kwargs)
+    distance_matrix = np.apply_along_axis(binary_point_distance, 1, X_array,
+                                          Y_array, **kwargs)
     return distance_matrix

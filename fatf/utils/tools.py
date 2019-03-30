@@ -46,20 +46,21 @@ def at_least_verion(minimum_requirement: List[int],
         ``True`` if the ``package_version`` satisfies the
         ``minimum_requirement``, ``False`` otherwise.
     """
+    # pylint: disable=too-many-branches
     if not isinstance(minimum_requirement, list):
         raise TypeError('minimum_requirement parameter has to be a list.')
     else:
-        for i, v in enumerate(minimum_requirement):
-            if not isinstance(v, int):
+        for i, val in enumerate(minimum_requirement):
+            if not isinstance(val, int):
                 raise TypeError(('{} element ({}) of the minimum_requirement '
-                                 'list is not an integer.').format(i, v))
+                                 'list is not an integer.').format(i, val))
     if not isinstance(package_version, list):
         raise TypeError('package_version parameter has to be a list.')
     else:
-        for i, v in enumerate(package_version):
-            if not isinstance(v, int):
+        for i, val in enumerate(package_version):
+            if not isinstance(val, int):
                 raise TypeError(('{} element ({}) of the package_version list '
-                                 'is not an integer.').format(i, v))
+                                 'is not an integer.').format(i, val))
 
     # Empty requirement
     if not minimum_requirement:

@@ -1,175 +1,119 @@
+"""
+Tests custom warnings, errors and exceptions.
+"""
+# Author: Kacper Sokol <k.sokol@bristol.ac.uk>
+# License: new BSD
+
 import pytest
 
 import fatf.exceptions
 
-def test_customexception():
+
+def test_fatfexception():
+    """
+    Tests :class:`fatf.exceptions.FATFException`.
+    """
     default_message = ''
     # Custom exception without a message
-    with pytest.raises(fatf.exceptions.CustomException) as exception_info:
-        raise fatf.exceptions.CustomException()
-    assert exception_info.value.message == default_message
+    with pytest.raises(fatf.exceptions.FATFException) as exception_info:
+        raise fatf.exceptions.FATFException()
     assert str(exception_info.value) == default_message
 
     # Custom exception without a message
-    with pytest.raises(fatf.exceptions.CustomException) as exception_info:
-        raise fatf.exceptions.CustomException
-    assert exception_info.value.message == default_message
+    with pytest.raises(fatf.exceptions.FATFException) as exception_info:
+        raise fatf.exceptions.FATFException
     assert str(exception_info.value) == default_message
 
     # Custom exception with a message
     custom_message = 'Custom message.'
-    with pytest.raises(fatf.exceptions.CustomException) as exception_info:
-        raise fatf.exceptions.CustomException(custom_message)
-    assert exception_info.value.message == custom_message
+    with pytest.raises(fatf.exceptions.FATFException) as exception_info:
+        raise fatf.exceptions.FATFException(custom_message)
     assert str(exception_info.value) == custom_message
 
-def test_customvalueerror():
+
+def test_incorrectshapeerror():
+    """
+    Tests :class:`fatf.exceptions.IncorrectShapeError`.
+    """
     default_message = ''
     # Custom exception without a message
-    with pytest.raises(fatf.exceptions.CustomValueError) as exception_info:
-        raise fatf.exceptions.CustomValueError()
-    assert exception_info.value.message == default_message
+    with pytest.raises(fatf.exceptions.IncorrectShapeError) as exin:
+        raise fatf.exceptions.IncorrectShapeError()
+    assert str(exin.value) == default_message
+
+    # Custom exception without a message
+    with pytest.raises(fatf.exceptions.IncorrectShapeError) as exin:
+        raise fatf.exceptions.IncorrectShapeError
+    assert str(exin.value) == default_message
+
+    # Custom exception with a message
+    custom_message = 'Custom message.'
+    with pytest.raises(fatf.exceptions.IncorrectShapeError) as exin:
+        raise fatf.exceptions.IncorrectShapeError(custom_message)
+    assert str(exin.value) == custom_message
+
+
+def test_incompatiblemodelerror():
+    """
+    Tests :class:`fatf.exceptions.IncompatibleModelError`.
+    """
+    default_message = ''
+    # Custom exception without a message
+    with pytest.raises(fatf.exceptions.IncompatibleModelError) as exin:
+        raise fatf.exceptions.IncompatibleModelError()
+    assert str(exin.value) == default_message
+
+    # Custom exception without a message
+    with pytest.raises(fatf.exceptions.IncompatibleModelError) as exin:
+        raise fatf.exceptions.IncompatibleModelError
+    assert str(exin.value) == default_message
+
+    # Custom exception with a message
+    custom_message = 'Custom message.'
+    with pytest.raises(fatf.exceptions.IncompatibleModelError) as exin:
+        raise fatf.exceptions.IncompatibleModelError(custom_message)
+    assert str(exin.value) == custom_message
+
+
+def test_unfittedmodelerror():
+    """
+    Tests :class:`fatf.exceptions.UnfittedModelError`.
+    """
+    default_message = ''
+    # Custom exception without a message
+    with pytest.raises(fatf.exceptions.UnfittedModelError) as exception_info:
+        raise fatf.exceptions.UnfittedModelError()
     assert str(exception_info.value) == default_message
 
     # Custom exception without a message
-    with pytest.raises(fatf.exceptions.CustomValueError) as exception_info:
-        raise fatf.exceptions.CustomValueError
-    assert exception_info.value.message == default_message
+    with pytest.raises(fatf.exceptions.UnfittedModelError) as exception_info:
+        raise fatf.exceptions.UnfittedModelError
     assert str(exception_info.value) == default_message
 
     # Custom exception with a message
     custom_message = 'Custom message.'
-    with pytest.raises(fatf.exceptions.CustomValueError) as exception_info:
-        raise fatf.exceptions.CustomValueError(custom_message)
-    assert exception_info.value.message == custom_message
+    with pytest.raises(fatf.exceptions.UnfittedModelError) as exception_info:
+        raise fatf.exceptions.UnfittedModelError(custom_message)
     assert str(exception_info.value) == custom_message
 
-def test_missingimplementationexception():
-    default_message = ('This is a default message.\nThis method/function has '
-                       'not been implemented yet.'
-                      )
+
+def test_prefittedmodelerror():
+    """
+    Tests :class:`fatf.exceptions.PrefittedModelError`.
+    """
+    default_message = ''
     # Custom exception without a message
-    with pytest.raises(fatf.exceptions.MissingImplementationException) as \
-            exception_info:
-        raise fatf.exceptions.MissingImplementationException()
-    assert exception_info.value.message == default_message
+    with pytest.raises(fatf.exceptions.PrefittedModelError) as exception_info:
+        raise fatf.exceptions.PrefittedModelError()
     assert str(exception_info.value) == default_message
 
     # Custom exception without a message
-    with pytest.raises(fatf.exceptions.MissingImplementationException) as \
-            exception_info:
-        raise fatf.exceptions.MissingImplementationException
-    assert exception_info.value.message == default_message
-    assert str(exception_info.value) == default_message
-
-    # Custom exception with a message
-    custom_message = 'Custom message.'
-    with pytest.raises(fatf.exceptions.MissingImplementationException) as \
-            exception_info:
-        raise fatf.exceptions.MissingImplementationException(custom_message)
-    assert exception_info.value.message == custom_message
-    assert str(exception_info.value) == custom_message
-
-def test_incorrectshapeexception():
-    default_message = ('This is a default message.\nThis array has incorrect '
-                       'shape.'
-                      )
-    # Custom exception without a message
-    with pytest.raises(fatf.exceptions.IncorrectShapeException) as \
-            exception_info:
-        raise fatf.exceptions.IncorrectShapeException()
-    assert exception_info.value.message == default_message
-    assert str(exception_info.value) == default_message
-
-    # Custom exception without a message
-    with pytest.raises(fatf.exceptions.IncorrectShapeException) as \
-            exception_info:
-        raise fatf.exceptions.IncorrectShapeException
-    assert exception_info.value.message == default_message
+    with pytest.raises(fatf.exceptions.PrefittedModelError) as exception_info:
+        raise fatf.exceptions.PrefittedModelError
     assert str(exception_info.value) == default_message
 
     # Custom exception with a message
     custom_message = 'Custom message.'
-    with pytest.raises(fatf.exceptions.IncorrectShapeException) as \
-            exception_info:
-        raise fatf.exceptions.IncorrectShapeException(custom_message)
-    assert exception_info.value.message == custom_message
-    assert str(exception_info.value) == custom_message
-
-def test_incompatiblemodelexception():
-    default_message = ('This is a default message.\nThis model is incompatible '
-                       'with the desired functionality.'
-                      )
-    # Custom exception without a message
-    with pytest.raises(fatf.exceptions.IncompatibleModelException) as \
-            exception_info:
-        raise fatf.exceptions.IncompatibleModelException()
-    assert exception_info.value.message == default_message
-    assert str(exception_info.value) == default_message
-
-    # Custom exception without a message
-    with pytest.raises(fatf.exceptions.IncompatibleModelException) as \
-            exception_info:
-        raise fatf.exceptions.IncompatibleModelException
-    assert exception_info.value.message == default_message
-    assert str(exception_info.value) == default_message
-
-    # Custom exception with a message
-    custom_message = 'Custom message.'
-    with pytest.raises(fatf.exceptions.IncompatibleModelException) as \
-            exception_info:
-        raise fatf.exceptions.IncompatibleModelException(custom_message)
-    assert exception_info.value.message == custom_message
-    assert str(exception_info.value) == custom_message
-
-def test_prefittedmodelexception():
-    default_message = ('This is a default message.\n'
-                       'This model has already been fitted.'
-                      )
-    # Custom exception without a message
-    with pytest.raises(fatf.exceptions.PrefittedModelException) as \
-            exception_info:
-        raise fatf.exceptions.PrefittedModelException()
-    assert exception_info.value.message == default_message
-    assert str(exception_info.value) == default_message
-
-    # Custom exception without a message
-    with pytest.raises(fatf.exceptions.PrefittedModelException) as \
-            exception_info:
-        raise fatf.exceptions.PrefittedModelException
-    assert exception_info.value.message == default_message
-    assert str(exception_info.value) == default_message
-
-    # Custom exception with a message
-    custom_message = 'Custom message.'
-    with pytest.raises(fatf.exceptions.PrefittedModelException) as \
-            exception_info:
-        raise fatf.exceptions.PrefittedModelException(custom_message)
-    assert exception_info.value.message == custom_message
-    assert str(exception_info.value) == custom_message
-
-def test_unfittedmodelexception():
-    default_message = ('This is a default message.\n'
-                       'This model is not fitted.'
-                      )
-    # Custom exception without a message
-    with pytest.raises(fatf.exceptions.UnfittedModelException) as \
-            exception_info:
-        raise fatf.exceptions.UnfittedModelException()
-    assert exception_info.value.message == default_message
-    assert str(exception_info.value) == default_message
-
-    # Custom exception without a message
-    with pytest.raises(fatf.exceptions.UnfittedModelException) as \
-            exception_info:
-        raise fatf.exceptions.UnfittedModelException
-    assert exception_info.value.message == default_message
-    assert str(exception_info.value) == default_message
-
-    # Custom exception with a message
-    custom_message = 'Custom message.'
-    with pytest.raises(fatf.exceptions.UnfittedModelException) as \
-            exception_info:
-        raise fatf.exceptions.UnfittedModelException(custom_message)
-    assert exception_info.value.message == custom_message
+    with pytest.raises(fatf.exceptions.PrefittedModelError) as exception_info:
+        raise fatf.exceptions.PrefittedModelError(custom_message)
     assert str(exception_info.value) == custom_message

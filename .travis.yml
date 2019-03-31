@@ -69,7 +69,7 @@ script:
   - make check-types
   - make test-with-code-coverage 
 #  - make test-notebooks
-#  - make test-docs
+  - make test-docs
   - make docs-linkcheck
   - make docs-coverage
   - make docs-html

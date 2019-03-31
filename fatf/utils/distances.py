@@ -273,7 +273,7 @@ def hamming_distance(x: Union[np.ndarray, np.void],
         The second numpy array (has to be 1-dimensional and non-numerical).
     **kwargs : boolean
         Keyword arguments that are passed to the
-        :func:`fatf.utils.distance.hamming_distance_base` function responsible
+        :func:`fatf.utils.distances.hamming_distance_base` function responsible
         for calculating the Hamming distance.
 
     Raises
@@ -337,7 +337,7 @@ def hamming_point_distance(y: Union[np.ndarray, np.void], X: np.ndarray,
         rows the distances are calculated.
     **kwargs : boolean
         Keyword arguments that are passed to the
-        :func:`fatf.utils.distance.hamming_distance_base` function responsible
+        :func:`fatf.utils.distances.hamming_distance_base` function responsible
         for calculating the Hamming distance.
 
     Raises
@@ -395,7 +395,7 @@ def hamming_array_distance(X: np.ndarray, Y: np.ndarray,
         A numpy array -- has to be 2-dimensional and non-numerical.
     **kwargs : boolean
         Keyword arguments that are passed to the
-        :func:`fatf.utils.distance.hamming_distance_base` function responsible
+        :func:`fatf.utils.distances.hamming_distance_base` function responsible
         for calculating the Hamming distance.
 
     Raises
@@ -516,7 +516,7 @@ def binary_point_distance(y: Union[np.ndarray, np.void], X: np.ndarray,
         calculated.
     **kwargs : boolean
         Keyword arguments that are passed to the
-        :func:`fatf.utils.distance.binary_distance` function responsible for
+        :func:`fatf.utils.distances.binary_distance` function responsible for
         calculating the binary distance.
 
     Raises
@@ -571,7 +571,7 @@ def binary_array_distance(X: np.ndarray, Y: np.ndarray,
         A numpy array -- has to be 2-dimensional.
     **kwargs : boolean
         Keyword arguments that are passed to the
-        :func:`fatf.utils.distance.binary_distance` function responsible for
+        :func:`fatf.utils.distances.binary_distance` function responsible for
         calculating the binary distance.
 
     Raises

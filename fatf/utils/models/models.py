@@ -10,7 +10,7 @@ from typing import List, Optional
 
 import numpy as np
 
-import fatf.utils.distance as fud
+import fatf.utils.distances as fud
 import fatf.utils.validation as fuv
 
 from fatf.exceptions import (IncorrectShapeError, PrefittedModelError,

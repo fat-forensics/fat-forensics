@@ -10,7 +10,7 @@ import numpy as np
 
 import pytest
 
-import fatf.utils.distance as fud
+import fatf.utils.distances as fud
 from fatf.exceptions import IncorrectShapeError
 
 VECTOR_0D = np.array(7, dtype=int)
@@ -100,7 +100,7 @@ DISTANCES_2D_CATEGORICAL_A_BINARY_NORMALISED = np.array([[0.5, 1.0, 0.5],
 
 def test_euclidean_distance():
     """
-    Tests :func:`fatf.utils.distance.euclidean_distance`.
+    Tests :func:`fatf.utils.distances.euclidean_distance`.
     """
     shape_error_x = 'The x array should be 1-dimensional.'
     shape_error_y = 'The y array should be 1-dimensional.'
@@ -204,7 +204,7 @@ def test_euclidean_distance():
 
 def test_euclidean_point_distance():
     """
-    Tests :func:`fatf.utils.distance.euclidean_point_distance`.
+    Tests :func:`fatf.utils.distances.euclidean_point_distance`.
     """
     shape_error_y = 'The y array should be 1-dimensional.'
     shape_error_X = 'The X array should be 2-dimensional.'
@@ -315,7 +315,7 @@ def test_euclidean_point_distance():
 
 def test_euclidean_array_distance():
     """
-    Tests :func:`fatf.utils.distance.euclidean_array_distance`.
+    Tests :func:`fatf.utils.distances.euclidean_array_distance`.
     """
     shape_error_X = 'The X array should be 2-dimensional.'
     shape_error_Y = 'The Y array should be 2-dimensional.'
@@ -403,7 +403,7 @@ def test_euclidean_array_distance():
 
 def test_hamming_distance_base():
     """
-    Tests :func:`fatf.utils.distance.hamming_distance_base`.
+    Tests :func:`fatf.utils.distances.hamming_distance_base`.
     """
     type_error_x = 'x should be a string.'
     type_error_y = 'y should be a string.'
@@ -519,7 +519,7 @@ def test_hamming_distance_base():
 
 def test_hamming_distance():
     """
-    Tests :func:`fatf.utils.distance.hamming_distance_base`.
+    Tests :func:`fatf.utils.distances.hamming_distance_base`.
     """
     shape_error_x = 'The x array should be 1-dimensional.'
     shape_error_y = 'The y array should be 1-dimensional.'
@@ -635,7 +635,7 @@ def test_hamming_distance():
 
 def test_hamming_point_distance():
     """
-    Tests :func:`fatf.utils.distance.hamming_point_distance`.
+    Tests :func:`fatf.utils.distances.hamming_point_distance`.
     """
     # pylint: disable=too-many-statements
     shape_error_y = 'The y array should be 1-dimensional.'
@@ -805,7 +805,7 @@ def test_hamming_point_distance():
 
 def test_hamming_array_distance():
     """
-    Tests :func:`fatf.utils.distance.hamming_array_distance`.
+    Tests :func:`fatf.utils.distances.hamming_array_distance`.
     """
     # pylint: disable=too-many-statements
     shape_error_X = 'The X array should be 2-dimensional.'
@@ -952,7 +952,7 @@ def test_hamming_array_distance():
 
 def test_binary_distance():
     """
-    Tests :func:`fatf.utils.distance.binary_distance`.
+    Tests :func:`fatf.utils.distances.binary_distance`.
     """
     # pylint: disable=too-many-statements
     shape_error_x = 'The x array should be 1-dimensional.'
@@ -1166,7 +1166,7 @@ def test_binary_distance():
 
 def test_binary_point_distance():
     """
-    Tests :func:`fatf.utils.distance.binary_point_distance`.
+    Tests :func:`fatf.utils.distances.binary_point_distance`.
     """
     # pylint: disable=too-many-statements,too-many-branches
     shape_error_y = 'The y array should be 1-dimensional.'
@@ -1438,7 +1438,7 @@ def test_binary_point_distance():
 
 def test_binary_array_distance():
     """
-    Tests :func:`fatf.utils.distance.binary_array_distance`.
+    Tests :func:`fatf.utils.distances.binary_array_distance`.
     """
     # pylint: disable=too-many-statements
     shape_error_X = 'The X array should be 2-dimensional.'

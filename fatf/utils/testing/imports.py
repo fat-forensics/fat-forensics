@@ -23,10 +23,11 @@ def module_import_tester(module_name: str,
 
     >>> import fatf.utils.testing.imports as futi
     >>> with futi.module_import_tester('a_module', when_missing=True):
-    ...     import a_module
-    Traceback (most recent call last):
-        ...
-    ModuleNotFoundError: No module named 'a_module'
+    ...     try:
+    ...         import a_module
+    ...     except ImportError:
+    ...         print('Module not found!')
+    Module not found!
     >>> with futi.module_import_tester('a_module', when_missing=False):
     ...     import a_module
 

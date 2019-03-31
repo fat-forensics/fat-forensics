@@ -7,6 +7,7 @@ ignore =
 exclude =
 
 per-file-ignores =
+    fatf/utils/testing/tests/test_imports.py:F401,F811
     fatf/utils/tests/test_distance.py:W504
     fatf/utils/tests/test_validation.py:E306,E701,E704,F841
 

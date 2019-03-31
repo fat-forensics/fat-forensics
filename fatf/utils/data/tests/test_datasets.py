@@ -60,7 +60,7 @@ def test_validate_data_header():
     assert str(exin.value) == value_error_features
     with pytest.raises(ValueError) as exin:
         fudd._validate_data_header(X, y_too_long, n_samples, n_features,
-                                    y_names)
+                                   y_names)
     assert str(exin.value) == value_error_labels
     with pytest.raises(ValueError) as exin:
         fudd._validate_data_header(X, y, n_samples, n_features,

@@ -70,7 +70,7 @@ def module_import_tester(module_name: str,
     yield
 
     # Cleanup context -- restore Python package index.
-    if action == 1 or action == 2:
+    if action in (1, 2):
         sys.path = sys_path_backup
         if action == 2:
             sys.modules[module_name] = module_backup

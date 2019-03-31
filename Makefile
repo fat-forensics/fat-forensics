@@ -122,20 +122,17 @@ test-docs:
 		--doctest-modules \
 		--ignore=docs/_build/ \
 		-k 'not test_ and not Test' \
-		-W error \
 		docs/ \
 		fatf/
 
 test-notebooks:
 	PYTHONPATH=./ PYTEST_IN_PROGRESS='true' pytest \
 		--nbval \
-		-W error \
 		examples/
 
 test:
 	PYTHONPATH=./ PYTEST_IN_PROGRESS='true' pytest \
 		--junit-xml=temp/pytest_$(PYTHON_VERSION).xml \
-		-W error \
 		fatf/
 
 code-coverage:
@@ -143,7 +140,6 @@ code-coverage:
 		--cov-report=term-missing \
 		--cov-report=xml:temp/coverage_$(PYTHON_VERSION).xml \
 		--cov=fatf \
-		-W error \
 		fatf/
 
 test-with-code-coverage:
@@ -152,7 +148,6 @@ test-with-code-coverage:
 		--cov-report=term-missing \
 		--cov-report=xml:temp/coverage_$(PYTHON_VERSION).xml \
 		--cov=fatf \
-		-W error \
 		fatf/
 
 deploy-code-coverage:

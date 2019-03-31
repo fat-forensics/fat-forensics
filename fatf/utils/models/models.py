@@ -6,7 +6,7 @@ Includes custom predictive models used for FAT-Forensics testing and examples.
 
 import abc
 
-from typing import Optional
+from typing import List, Optional
 
 import numpy as np
 
@@ -16,7 +16,7 @@ import fatf.utils.validation as fuv
 from fatf.exceptions import (IncorrectShapeError, PrefittedModelError,
                              UnfittedModelError)
 
-__all__ = []
+__all__ = []  # type: List[str]
 
 
 class Model(abc.ABC):

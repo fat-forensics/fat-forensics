@@ -1,25 +1,75 @@
 # Use container on EC2, other options available (venvs)[https://docs.travis-ci.com/user/reference/overview/]
-sudo: false
-dist: trusty
-
-language: python
-python:
-  - "2.7"
-  - "3.6"
-  - "3.7-dev"
+dist: xenial
 
 notifications:
   email: false
 
+git:
+  depth: 5
+  submodules: false
+
+language: python
+
+cache:
+  - pip
+#  - directories:
+#    - $HOME/.cache/pip
+before_cache:
+  - rm -f $HOME/.cache/pip/log/debug.log
+
+python:
+  - '3.7'
+  - '3.6'
+  - '3.5'
+  - '3.8-dev'
+
+env:
+  global:
+    - MAKEFLAGS='-j 2'  # This allows to parallelise make, e.g. make t1 t2
+  matrix:
+    - FATF_TEST_SCIPY=1.1.0   FATF_TEST_NUMPY=1.15.4
+    - FATF_TEST_SCIPY=1.0.1   FATF_TEST_NUMPY=1.14.6
+    - FATF_TEST_SCIPY=0.19.1  FATF_TEST_NUMPY=1.13.3
+    - FATF_TEST_SCIPY=0.18.1  FATF_TEST_NUMPY=1.12.1
+    - FATF_TEST_SCIPY=0.18.1  FATF_TEST_NUMPY=1.9.0
+    - FATF_TEST_SCIPY=latest  FATF_TEST_NUMPY=latest
+
+matrix:
+  fast_finish: true
+  exclude:
+    - python: '3.7'
+      env: FATF_TEST_SCIPY=1.0.1   FATF_TEST_NUMPY=1.14.6
+    - python: '3.7'
+      env: FATF_TEST_SCIPY=0.19.1  FATF_TEST_NUMPY=1.13.3
+    - python: '3.7'
+      env: FATF_TEST_SCIPY=0.18.1  FATF_TEST_NUMPY=1.12.1
+    - python: '3.7'
+      env: FATF_TEST_SCIPY=0.18.1  FATF_TEST_NUMPY=1.9.0
+    - python: '3.8-dev'
+      env: FATF_TEST_SCIPY=1.0.1   FATF_TEST_NUMPY=1.14.6
+    - python: '3.8-dev'
+      env: FATF_TEST_SCIPY=0.19.1  FATF_TEST_NUMPY=1.13.3
+    - python: '3.8-dev'
+      env: FATF_TEST_SCIPY=0.18.1  FATF_TEST_NUMPY=1.12.1
+    - python: '3.8-dev'
+      env: FATF_TEST_SCIPY=0.18.1  FATF_TEST_NUMPY=1.9.0
+  allow_failures:
+    - python: '3.8-dev'
+    - env: FATF_TEST_SCIPY=latest  FATF_TEST_NUMPY=latest
+
 install:
-  - make dev-dependencies  # Install python development dependencies
-  - make package
+  - make dependencies-dev  # Install python development dependencies
+#  - pip install lime matplotlib scikit-learn
+#  - make install-sans-dep
 
 script:
-  - make test  # pytest
-  - make check-linting-pylint  # pylint fatf/
-  - make check-linting-flake8  # flake8 fatf/
-  - make code-coverage  # pytest --cov=./ --cov-report xml
-
-after_success:
-  - codecov -t $CODECOV_TOKEN
+  - make linting-pylint
+  - make linting-flake8
+  - make linting-yapf
+  - make check-types
+  - make test-with-code-coverage 
+#  - make test-notebooks
+  - make test-docs
+  - make docs-linkcheck
+  - make docs-coverage
+  - make docs-html

@@ -17,7 +17,7 @@ import fatf.utils.distances as fud
 from fatf.exceptions import (IncorrectShapeError, PrefittedModelError,
                              UnfittedModelError)
 
-__all__ = []  # type: List[str]
+__all__ = ['KNN']
 
 
 class Model(abc.ABC):

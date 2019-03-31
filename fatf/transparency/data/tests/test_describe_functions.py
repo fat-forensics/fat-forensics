@@ -1,34 +1,112 @@
-# -*- coding: utf-8 -*-
 """
-Created on Mon Dec 10 15:23:40 2018
-
-@author: rp13102
+Tests describing arrays.
 """
+# Author: Kacper Sokol <k.sokol@bristol.ac.uk>
+#         Rafael Poyiadzi <rp13102@bristol.ac.uk>
+# License: new BSD
 
 import pytest
 
 import numpy as np
 
-import fatf.transparency.data.describe as ftdd
+import fatf.transparency.data.describe_functions as ftddf
 
-input_describe_numeric_0 = np.array([0], dtype='int32')
-expected_describe_numeric_0 = {'count' : 1,
-                                'mean': 0.0,
-                                'std': 0.0,
-                                'max': 0,
-                                'min': 0,
-                                 '25%': 0.0,
-                                 '50%': 0.0,
-                                 '75%': 0.0}
+from fatf.exceptions import IncorrectShapeError
+
+NUMERICAL_KEYS = ['count', 'mean', 'std', 'max', 'min', '25%', '50%', '75%',
+                  'nan_count']
+CATEGORICAL_KEYS = ['count', 'count_unique', 'unique', 'most_common',
+                    'most_common_count', 'hist']
 
 
-@pytest.mark.parametrize("input_series, expected_output",
-                         [(input_describe_numeric_0, expected_describe_numeric_0)])
-def test_describe_numeric(input_series, expected_output):
-    output = ftdd.describe_numeric(input_series)
-    for key, val in expected_output.items():
-        assert key in output.keys()
-        assert val == output[key]
+def test_describe_numerical_array():
+    """
+    Tests :func:`fatf.transparency.data.describe.describe_numerical_array`.
+    """
+    runtime_warning = 'Invalid value encountered in percentile'
+    #
+    incorrect_shape_error = 'The input array should be 1-dimensional.'
+    value_error_non_numerical = 'The input array should be purely numerical.'
+    value_error_empty = 'The input array cannot be empty.'
+
+    # Wrong shape
+    array = np.array([[5, 33], [22, 17]])
+    with pytest.raises(IncorrectShapeError) as exin:
+        ftddf.describe_numerical_array(array)
+    assert str(exin.value) == incorrect_shape_error
+
+    # Wrong type
+    array = np.array(['string', 33, 22, 17])
+    with pytest.raises(ValueError) as exin:
+        ftddf.describe_numerical_array(array)
+    assert str(exin.value) == value_error_non_numerical
+
+    # Empty array
+    array = np.array([], dtype=np.int32)
+    with pytest.raises(ValueError) as exin:
+        ftddf.describe_numerical_array(array)
+    assert str(exin.value) == value_error_empty
+
+    # Array with nans -- structured row; ignore nans + default parameter
+    array = np.array([(33, 22, np.nan, 11, np.nan, 4)],
+                     dtype=[('a', int), ('b', int), ('c', np.float),
+                            ('d', np.int32), ('e', np.float), ('f', int)])
+    description = {'count': 6, 'mean': 17.5, 'std': 11.011, 'max': 33,
+                   'min': 4, '25%': 9.25, '50%': 16.5, '75%': 24.75,
+                   'nan_count': 2}
+    array_description = ftddf.describe_numerical_array(array[0])
+    assert set(NUMERICAL_KEYS) == set(description.keys())
+    assert set(NUMERICAL_KEYS) == set(array_description.keys())
+    for i in NUMERICAL_KEYS:
+        assert pytest.approx(array_description[i], abs=1e-3) == description[i]
+    # ...
+    array_description = ftddf.describe_numerical_array(
+        array[0], skip_nans=True)
+    assert set(NUMERICAL_KEYS) == set(description.keys())
+    assert set(NUMERICAL_KEYS) == set(array_description.keys())
+    for i in NUMERICAL_KEYS:
+        assert pytest.approx(array_description[i], abs=1e-3) == description[i]
+
+
+    # Array with nans -- classic array; do not ignore nans
+    array = np.array([33, 22, np.nan, 11, np.nan, 4])
+    description = {'count': 6, 'mean': np.nan, 'std': np.nan, 'max': np.nan,
+                   'min': np.nan, '25%': np.nan, '50%': np.nan, '75%': np.nan,
+                   'nan_count': 2}
+    with pytest.warns(RuntimeWarning) as w:
+        array_description = ftddf.describe_numerical_array(
+            array, skip_nans=False)
+    assert set(NUMERICAL_KEYS) == set(description.keys())
+    assert set(NUMERICAL_KEYS) == set(array_description.keys())
+    assert len(w) == 3
+    for i in range(len(w)):
+        assert str(w[i].message).startswith(runtime_warning)
+    for i in NUMERICAL_KEYS:
+        true = description[i]
+        computed = array_description[i]
+        if np.isnan(true) and np.isnan(computed):
+            assert True
+        else:
+            assert true == computed
+
+    # Array without nans -- classic array; ignore nans
+    array = np.array([33, 22, 11, 4])
+    description = {'count': 4, 'mean': 17.5, 'std': 11.011, 'max': 33,
+                   'min': 4, '25%': 9.25, '50%': 16.5, '75%': 24.75,
+                   'nan_count': 0}
+    array_description = ftddf.describe_numerical_array(array, skip_nans=True)
+    assert set(NUMERICAL_KEYS) == set(description.keys())
+    assert set(NUMERICAL_KEYS) == set(array_description.keys())
+    for i in NUMERICAL_KEYS:
+        assert pytest.approx(array_description[i], abs=1e-3) == description[i]
+
+    # Array without nans -- classic array; do not ignore nans
+    array_description = ftddf.describe_numerical_array(array, skip_nans=False)
+    assert set(NUMERICAL_KEYS) == set(description.keys())
+    assert set(NUMERICAL_KEYS) == set(array_description.keys())
+    for i in NUMERICAL_KEYS:
+        assert pytest.approx(array_description[i], abs=1e-3) == description[i]
+
 
 input_describe_categorical_0 = np.array(['a', 'b', 'a'])
 expected_describe_categorical_0 = {'count' : 3,
@@ -43,8 +121,12 @@ expected_describe_categorical_0 = {'count' : 3,
 @pytest.mark.parametrize("input_series, expected_output",
                          [(input_describe_categorical_0, expected_describe_categorical_0)
                           ])
-def test_describe_categorical(input_series, expected_output):
-    output = ftdd.describe_categorical(input_series)
+def test_describe_categorical_array(input_series, expected_output):
+    """
+    Tests :func:`fatf.transparency.data.describe.describe_categorical_array`.
+    """
+    return
+    output = ftddf.describe_categorical_array(input_series)
     for key, val in expected_output.items():
         assert key in output.keys()
         assert np.all(val == output[key])
@@ -89,8 +171,12 @@ expected_output1 = {'age': {'25%': 23.25,
 @pytest.mark.parametrize("input_dataset, condition, todescribe, expected_output",
                          [(input_dataset0, condition0, todescribe0, expected_output0),
                           (input_dataset0, None, todescribe0, expected_output1)])
-def test_describe_dataset(input_dataset, condition, todescribe, expected_output):
-    output = ftdd.describe_dataset(input_dataset, todescribe=todescribe, condition=condition)
+def test_describe_array(input_dataset, condition, todescribe, expected_output):
+    """
+    Tests :func:`fatf.transparency.data.describe.describe_array`.
+    """
+    return
+    output = ftddf.describe_array(input_dataset, todescribe=todescribe, condition=condition)
     for key, val in expected_output.items():
         assert key in output.keys()
         if type(val) == dict:
@@ -101,9 +187,9 @@ def test_describe_dataset(input_dataset, condition, todescribe, expected_output)
 condition1 = np.array(['f', 'm'])
 @pytest.mark.parametrize("input_dataset, condition, todescribe",
                          [(input_dataset0, condition1, todescribe0, )])
-def test_describe_dataset2(input_dataset, condition, todescribe):
+def test_describe_array2(input_dataset, condition, todescribe):
     with pytest.raises(ValueError):
-        ftdd.describe_dataset(input_dataset, todescribe=todescribe, condition=condition)
+        ftddf.describe_array(input_dataset, todescribe=todescribe, condition=condition)
 
 def test_generic():
     testdata = np.array([('Heidi Mitchell', 'uboyd@hotmail.com', 74, 52, 'female', '1121', 'cancer', '03/06/2018'),
@@ -137,8 +223,8 @@ def test_generic():
              ('weight', '<i4'), ('gender', '<U6'), ('zipcode', '<U6'),
              ('diagnosis', '<U6'), ('dob', '<U10')])
 
-    a=ftdd.describe_dataset(testdata2, todescribe=['age'], condition=np.array(['f', 'f', 'm', 'm']))
+    a=ftddf.describe_array(testdata2, todescribe=['age'], condition=np.array(['f', 'f', 'm', 'm']))
     print(a)
 
-    a=ftdd.describe_dataset(testdata2, todescribe=['age'])
+    a=ftddf.describe_array(testdata2, todescribe=['age'])
     print(a)

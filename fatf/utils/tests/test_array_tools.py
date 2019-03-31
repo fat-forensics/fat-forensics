@@ -10,7 +10,7 @@ import pytest
 
 import fatf.utils.array_tools as fuat
 import fatf.utils.validation as fuv
-from fatf.utils.tests.test_validation import (
+from fatf.utils.testing.arrays import (
     BASE_NP_ARRAY, NOT_BASE_NP_ARRAY, NOT_BASE_STRUCTURED_ARRAY,
     NOT_NUMERICAL_NP_ARRAY, NOT_NUMERICAL_STRUCTURED_ARRAY, NUMERICAL_NP_ARRAY,
     NUMERICAL_STRUCTURED_ARRAY, WIDE_NP_ARRAY, WIDE_STRUCTURED_ARRAY)

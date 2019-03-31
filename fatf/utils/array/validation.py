@@ -4,15 +4,13 @@ Holds functions responsible for objects validation across FAT-Forensics.
 # Author: Kacper Sokol <k.sokol@bristol.ac.uk>
 # License: new BSD
 
-import inspect
 import warnings
 
-from typing import Tuple, Union
+from typing import Union
 
 import numpy as np
 
 import fatf.utils.tools as fut
-from fatf.exceptions import IncorrectShapeError
 
 __all__ = ['is_numerical_dtype',
            'is_textual_dtype',
@@ -27,11 +25,7 @@ __all__ = ['is_numerical_dtype',
            'is_2d_array',
            'is_structured_row',
            'is_1d_like',
-           'is_structured_array',
-           'indices_by_type',
-           'get_invalid_indices',
-           'are_indices_valid',
-           'check_model_functionality']  # yapf: disable
+           'is_structured_array']  # yapf: disable
 
 _NUMPY_VERSION = [int(i) for i in np.version.version.split('.')]
 _NUMPY_1_13 = fut.at_least_verion([1, 13], _NUMPY_VERSION)
@@ -622,222 +616,3 @@ def is_structured_array(array: np.ndarray) -> bool:
         raise TypeError('The input should be a numpy array-like.')
 
     return len(array.dtype) != 0
-
-
-def indices_by_type(array: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
-    """
-    Identifies indices of columns with numerical and non-numerical values.
-
-    Checks whether a numpy array is purely numerical or a structured array
-    and returns two numpy arrays: the first-one with indices of numerical
-    columns and the second-one with indices of non-numerical columns.
-
-    Parameters
-    ----------
-    array : numpy.ndarray
-        A numpy array to be checked (it has to be a 2-dimensional array).
-
-    Raises
-    ------
-    TypeError
-        The input array is not a numpy array-like object.
-    ValueError
-        The input array consists of complex types such as numpy void and
-        object-like types that are not supported by this function.
-    IncorrectShapeError
-        The input array is not 2-dimensional.
-
-    Returns
-    -------
-    numerical_indices : numpy.ndarray
-        A numpy array containing indices of the numerical columns of the input
-        array.
-    non_numerical_indices : numpy.ndarray
-        A numpy array containing indices of the non-numerical columns of the
-        input array.
-    """
-    if not isinstance(array, np.ndarray):
-        raise TypeError('The input should be a numpy array-like.')
-    if not is_2d_array(array):
-        raise IncorrectShapeError('The input array should be 2-dimensional.')
-    if not is_base_array(array):
-        raise ValueError('indices_by_type only supports input arrays that '
-                         'hold base numpy types, i.e. numerical and '
-                         'string-like -- numpy void and object-like types are '
-                         'not allowed.')
-
-    if is_structured_array(array):
-        assert len(array.dtype) > 1, 'This should be a 2D array.'
-        numerical_indices_list = []
-        non_numerical_indices_list = []
-
-        for column_name in array.dtype.names:
-            column_dtype = array.dtype[column_name]
-            if is_numerical_dtype(column_dtype):
-                numerical_indices_list.append(column_name)
-            else:
-                non_numerical_indices_list.append(column_name)
-
-        numerical_indices = np.array(numerical_indices_list)
-        non_numerical_indices = np.array(non_numerical_indices_list)
-    else:
-        if is_numerical_array(array):
-            numerical_indices = np.array(range(array.shape[1]))
-            non_numerical_indices = np.empty((0, ), dtype='i8')
-        else:
-            numerical_indices = np.empty((0, ), dtype='i8')
-            non_numerical_indices = np.array(range(array.shape[1]))
-
-    return numerical_indices, non_numerical_indices
-
-
-def get_invalid_indices(array: np.ndarray, indices: np.ndarray) -> np.ndarray:
-    """
-    Returns a numpy array with column indices that the input array is missing.
-
-    Parameters
-    ----------
-    array : numpy.ndarray
-        A 2-dimensional array to be checked.
-    indices : numpy.ndarray
-        A 1-dimensional array of indices corresponding to columns in the input
-        array.
-
-    Raises
-    ------
-    TypeError
-        Either of the input arrays is not a numpy array-like object.
-    IncorrectShapeError
-        The input array is not 2-dimensional or the indices arrays in not
-        1-dimensional.
-
-    Returns
-    -------
-    invalid_indices : numpy.ndarray
-        A **sorted** array of indices that were not found in the input array.
-    """
-    if not (isinstance(array, np.ndarray) and isinstance(indices, np.ndarray)):
-        raise TypeError('Input arrays should be numpy array-like objects.')
-    if not is_2d_array(array):
-        raise IncorrectShapeError('The input array should be 2-dimensional.')
-    if not is_1d_array(indices):
-        raise IncorrectShapeError('The indices array should be 1-dimensional.')
-
-    if is_structured_array(array):
-        array_indices = set(array.dtype.names)
-    else:
-        array_indices = set(range(array.shape[1]))
-
-    # Alternatively use numpy's np.isin (which supersedes np.in1d):
-    # invalid_indices = indices[np.isin(indices, array_indices, invert=True)]
-    # or np.setdiff1d: invalid_indices = np.setdiff1d(indices, array_indices)
-    invalid_indices = set(indices.tolist()) - array_indices
-    return np.sort(list(invalid_indices))
-
-
-def are_indices_valid(array: np.array, indices: np.array) -> bool:
-    """
-    Checks whether all the input ``indices`` are valid for the input ``array``.
-
-    Parameters
-    ----------
-    array : numpy.array
-        The 2-dimensional array to be checked.
-    indices : numpy.array
-        1-dimensional array of column indices.
-
-    Raises
-    ------
-    TypeError
-        Either of the input arrays is not a numpy array-like object.
-    IncorrectShapeError
-        The input array is not 2-dimensional or the indices arrays in not
-        1-dimensional.
-
-    Returns
-    -------
-    is_valid : boolean
-        A Boolean variable that indicates whether the input column indices are
-        valid indices for the input array.
-    """
-    if not (isinstance(array, np.ndarray) and isinstance(indices, np.ndarray)):
-        raise TypeError('Input arrays should be numpy array-like objects.')
-    if not is_2d_array(array):
-        raise IncorrectShapeError('The input array should be 2-dimensional.')
-    if not is_1d_array(indices):
-        raise IncorrectShapeError('The indices array should be 1-dimensional.')
-
-    invalid_indices = get_invalid_indices(array, indices)
-    assert is_1d_array(invalid_indices), 'This should be a 1-d array.'
-
-    is_valid = not bool(invalid_indices.shape[0])
-    return is_valid
-
-
-def check_model_functionality(model_object: object,
-                              require_probabilities: bool = False,
-                              suppress_warning: bool = False) -> bool:
-    """
-    Checks whether a model object has all the required functionality.
-
-    Examines a ``model_object`` and ensures that it has all the required
-    methods with the correct number of parameters (excluding ``self``):
-    ``__init__`` (at least 0), ``fit`` (at least 2), ``predict`` (at least 1)
-    and, if required (``require_probabilities=True``), ``predict_proba`` (at
-    least 1).
-
-    Parameters
-    ----------
-    model_object : object
-        A Python object that represents a predictive model.
-    require_probabilities : boolean, optional (default=False)
-        A boolean parameter that indicates whether the model object should
-        contain a ``predict_proba`` method. Defaults to False.
-    suppress_warning : boolean, optional (default=False)
-        A boolean parameter that indicates whether the function should suppress
-        its warning message. Defaults to False.
-
-    Warns
-    -----
-    UserWarning
-        Warns about the required functionality that the model object lacks.
-
-    Returns
-    -------
-    is_functional : boolean
-        A Boolean variable that indicates whether the model object has all the
-        desired functionality.
-    """
-    is_functional = True
-
-    methods = {'fit': 2, 'predict': 1}
-    if require_probabilities:
-        methods['predict_proba'] = 1
-
-    message_strings = []
-    for method in methods:
-        if not hasattr(model_object, method):
-            is_functional = False
-            message_strings.append(
-                'The model class is missing \'{}\' method.'.format(method))
-        else:
-            method_object = getattr(model_object, method)
-            required_param_n = 0
-            params = inspect.signature(method_object).parameters
-            for param in params:
-                if params[param].default is params[param].empty:
-                    required_param_n += 1
-            if required_param_n != methods[method]:
-                is_functional = False
-                message_strings.append(
-                    ('The \'{}\' method of the class has incorrect number '
-                     '({}) of the required parameters. It needs to have '
-                     'exactly {} required parameters. Try using optional '
-                     'parameters if you require more functionality.').format(
-                         method, required_param_n, methods[method]))
-
-    if not is_functional and not suppress_warning:
-        message = '\n'.join(message_strings)
-        warnings.warn(message, category=UserWarning)
-
-    return is_functional

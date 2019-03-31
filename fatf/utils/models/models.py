@@ -6,12 +6,13 @@ Includes custom predictive models used for FAT-Forensics testing and examples.
 
 import abc
 
-from typing import List, Optional
+from typing import List, Optional  # pylint: disable=unused-import
 
 import numpy as np
 
+import fatf.utils.array.tools as fuat
+import fatf.utils.array.validation as fuav
 import fatf.utils.distances as fud
-import fatf.utils.validation as fuv
 
 from fatf.exceptions import (IncorrectShapeError, PrefittedModelError,
                              UnfittedModelError)
@@ -227,32 +228,32 @@ class KNN(Model):
         """
         if self._is_fitted:
             raise PrefittedModelError('This model has already been fitted.')
-        if not fuv.is_2d_array(X):
+        if not fuav.is_2d_array(X):
             raise IncorrectShapeError('The training data must be a 2-'
                                       'dimensional array.')
-        if not fuv.is_1d_array(y):
+        if not fuav.is_1d_array(y):
             raise IncorrectShapeError('The training data labels must be a 1-'
                                       'dimensional array.')
         if X.shape[0] == 0:
             raise IncorrectShapeError('The data array has to have at least '
                                       'one data point.')
-        # If the array is structured the fuv.is_2d_array function takes care of
-        # checking whether there is at least one column
-        if not fuv.is_structured_array(X) and X.shape[1] == 0:
+        # If the array is structured the fuav.is_2d_array function takes care
+        # of checking whether there is at least one column
+        if not fuav.is_structured_array(X) and X.shape[1] == 0:
             raise IncorrectShapeError('The data array has to have at least '
                                       'one feature.')
         if X.shape[0] != y.shape[0]:
             raise IncorrectShapeError('The number of samples in X must be the '
                                       'same as the number of labels in y.')
-        if not self._is_classifier and not fuv.is_numerical_array(y):
+        if not self._is_classifier and not fuav.is_numerical_array(y):
             raise TypeError('Regressor can only be fitted for a numerical '
                             'target vector.')
 
-        numerical_indices, categorical_indices = fuv.indices_by_type(X)
+        numerical_indices, categorical_indices = fuat.indices_by_type(X)
         self._numerical_indices = numerical_indices
         self._categorical_indices = categorical_indices
 
-        self._is_structured = fuv.is_structured_array(X)
+        self._is_structured = fuav.is_structured_array(X)
         self._X = X
         self._y = y
 
@@ -333,8 +334,8 @@ class KNN(Model):
         """
         # pylint: disable=invalid-name
         assert self._is_fitted, 'Cannot calculate distances on unfitted model.'
-        assert fuv.is_2d_array(X), 'X must be a 2-dimensional array.'
-        assert fuv.are_similar_dtype_arrays(X, self._X), \
+        assert fuav.is_2d_array(X), 'X must be a 2-dimensional array.'
+        assert fuav.are_similar_dtype_arrays(X, self._X), \
             'X must have the same dtype as the training data.'
 
         distances_shape = (self._X.shape[0], X.shape[0])
@@ -363,7 +364,7 @@ class KNN(Model):
         assert categorical_distances.shape == numerical_distances.shape, \
             'Different number of point-wise distances for these feature types.'
         distances = categorical_distances + numerical_distances
-        assert fuv.is_2d_array(distances), 'Distances matrix must be 2D.'
+        assert fuav.is_2d_array(distances), 'Distances matrix must be 2D.'
 
         return distances
 
@@ -395,19 +396,19 @@ class KNN(Model):
         # pylint: disable=too-many-locals,too-many-branches
         if not self._is_fitted:
             raise UnfittedModelError('This model has not been fitted yet.')
-        if not fuv.is_2d_array(X):
+        if not fuav.is_2d_array(X):
             raise IncorrectShapeError('X must be a 2-dimensional array. If '
                                       'you want to predict a single data '
                                       'point please format it as a single row '
                                       'in a 2-dimensional array.')
-        if not fuv.are_similar_dtype_arrays(X, self._X):
+        if not fuav.are_similar_dtype_arrays(X, self._X):
             raise ValueError('X must have the same dtype as the training '
                              'data.')
         if not X.shape[0]:
             raise IncorrectShapeError('X must have at least one row.')
         # No need to check for columns in a structured array -> this is handled
         # by the dtype checker.
-        if not fuv.is_structured_array(X):
+        if not fuav.is_structured_array(X):
             if X.shape[1] != self._X.shape[1]:
                 raise IncorrectShapeError(('X must have the same number of '
                                            'columns as the training data '
@@ -503,19 +504,19 @@ class KNN(Model):
 
         if not self._is_fitted:
             raise UnfittedModelError('This model has not been fitted yet.')
-        if not fuv.is_2d_array(X):
+        if not fuav.is_2d_array(X):
             raise IncorrectShapeError('X must be a 2-dimensional array. If '
                                       'you want to predict a single data '
                                       'point please format it as a single row '
                                       'in a 2-dimensional array.')
-        if not fuv.are_similar_dtype_arrays(X, self._X):
+        if not fuav.are_similar_dtype_arrays(X, self._X):
             raise ValueError('X must have the same dtype as the training '
                              'data.')
         if not X.shape[0]:
             raise IncorrectShapeError('X must have at least one row.')
         # No need to check for columns in a structured array -> this is handled
         # by the dtype checker.
-        if not fuv.is_structured_array(X):
+        if not fuav.is_structured_array(X):
             if X.shape[1] != self._X.shape[1]:
                 raise IncorrectShapeError(('X must have the same number of '
                                            'columns as the training data '

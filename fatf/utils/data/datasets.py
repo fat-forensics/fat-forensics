@@ -13,7 +13,7 @@ from typing import Dict, List, Tuple, Union
 import numpy as np
 
 import fatf.utils.tools as fut
-import fatf.utils.validation as fuv
+import fatf.utils.array.validation as fuav
 
 __all__ = ['load_data', 'load_health_records', 'load_iris']
 
@@ -58,9 +58,9 @@ def _validate_data_header(X: np.ndarray, y: np.ndarray, n_samples: int,
         True if the header is consistent with the data, False otherwise.
     """
     # pylint: disable=invalid-name
-    assert fuv.is_2d_array(X), 'X has to be a 2-dimensional array.'
-    assert fuv.is_1d_array(y), 'y has to be a 1-dimensional array.'
-    assert fuv.is_1d_array(y_names), 'y_names has to be a 1-dimensional array.'
+    assert fuav.is_2d_array(X), 'X has to be a 2-dimensional array.'
+    assert fuav.is_1d_array(y), 'y has to be a 1-dimensional array.'
+    assert fuav.is_1d_array(y_names), 'y_names must be a 1-dimensional array.'
 
     is_consistent = False
     if X.shape[0] != n_samples:
@@ -286,7 +286,7 @@ def load_data(file_path: str,
         usecols=range(n_features),
         invalid_raise=True,
         **kwargs)
-    if dtype is None and fuv.is_structured_array(data):
+    if dtype is None and fuav.is_structured_array(data):
         data.dtype.names = feature_names
 
     target = np.genfromtxt(  # pylint: disable=unexpected-keyword-arg

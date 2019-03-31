@@ -10,8 +10,8 @@ from typing import Union
 
 import numpy as np
 
-import fatf.utils.validation as fuv
-import fatf.utils.array_tools as fuat
+import fatf.utils.array.tools as fuat
+import fatf.utils.array.validation as fuav
 
 from fatf.exceptions import IncorrectShapeError
 
@@ -58,18 +58,18 @@ def euclidean_distance(x: Union[np.ndarray, np.void],
         Euclidean distance between the two numpy arrays.
     """
     # pylint: disable=invalid-name
-    if not fuv.is_1d_like(x):
+    if not fuav.is_1d_like(x):
         raise IncorrectShapeError('The x array should be 1-dimensional.')
-    if not fuv.is_1d_like(y):
+    if not fuav.is_1d_like(y):
         raise IncorrectShapeError('The y array should be 1-dimensional.')
 
     # Transform the arrays to unstructured
     x_array = fuat.as_unstructured(x)
     y_array = fuat.as_unstructured(y)
 
-    if not fuv.is_numerical_array(x_array):
+    if not fuav.is_numerical_array(x_array):
         raise ValueError('The x array should be purely numerical.')
-    if not fuv.is_numerical_array(y_array):
+    if not fuav.is_numerical_array(y_array):
         raise ValueError('The y array should be purely numerical.')
 
     if x_array.shape[0] != y_array.shape[0]:
@@ -113,18 +113,18 @@ def euclidean_point_distance(y: Union[np.ndarray, np.void],
         An array of Euclidean distances between ``y`` and every row of ``X``.
     """
     # pylint: disable=invalid-name
-    if not fuv.is_1d_like(y):
+    if not fuav.is_1d_like(y):
         raise IncorrectShapeError('The y array should be 1-dimensional.')
-    if not fuv.is_2d_array(X):
+    if not fuav.is_2d_array(X):
         raise IncorrectShapeError('The X array should be 2-dimensional.')
 
     # Transform the arrays to unstructured
     y_array = fuat.as_unstructured(y)
     X_array = fuat.as_unstructured(X)  # pylint: disable=invalid-name
 
-    if not fuv.is_numerical_array(y_array):
+    if not fuav.is_numerical_array(y_array):
         raise ValueError('The y array should be purely numerical.')
-    if not fuv.is_numerical_array(X_array):
+    if not fuav.is_numerical_array(X_array):
         raise ValueError('The X array should be purely numerical.')
 
     # Compare shapes
@@ -165,14 +165,14 @@ def euclidean_array_distance(X: np.ndarray, Y: np.ndarray) -> np.ndarray:
         An matrix of Euclidean distances between rows in ``X` and ``Y``.
     """
     # pylint: disable=invalid-name
-    if not fuv.is_2d_array(X):
+    if not fuav.is_2d_array(X):
         raise IncorrectShapeError('The X array should be 2-dimensional.')
-    if not fuv.is_2d_array(Y):
+    if not fuav.is_2d_array(Y):
         raise IncorrectShapeError('The Y array should be 2-dimensional.')
 
-    if not fuv.is_numerical_array(X):
+    if not fuav.is_numerical_array(X):
         raise ValueError('The X array should be purely numerical.')
-    if not fuv.is_numerical_array(Y):
+    if not fuav.is_numerical_array(Y):
         raise ValueError('The Y array should be purely numerical.')
 
     # Transform the arrays to unstructured
@@ -290,18 +290,18 @@ def hamming_distance(x: Union[np.ndarray, np.void],
         Hamming distance between the two numpy arrays.
     """
     # pylint: disable=invalid-name
-    if not fuv.is_1d_like(x):
+    if not fuav.is_1d_like(x):
         raise IncorrectShapeError('The x array should be 1-dimensional.')
-    if not fuv.is_1d_like(y):
+    if not fuav.is_1d_like(y):
         raise IncorrectShapeError('The y array should be 1-dimensional.')
 
     # Transform the arrays to unstructured
     x_array = fuat.as_unstructured(x)
     y_array = fuat.as_unstructured(y)
 
-    if not fuv.is_textual_array(x_array):
+    if not fuav.is_textual_array(x_array):
         raise ValueError('The x array should be textual.')
-    if not fuv.is_textual_array(y_array):
+    if not fuav.is_textual_array(y_array):
         raise ValueError('The y array should be textual.')
 
     if x_array.shape[0] != y_array.shape[0]:
@@ -354,18 +354,18 @@ def hamming_point_distance(y: Union[np.ndarray, np.void], X: np.ndarray,
         An array of Hamming distances between ``y`` and every row of ``X``.
     """
     # pylint: disable=invalid-name
-    if not fuv.is_1d_like(y):
+    if not fuav.is_1d_like(y):
         raise IncorrectShapeError('The y array should be 1-dimensional.')
-    if not fuv.is_2d_array(X):
+    if not fuav.is_2d_array(X):
         raise IncorrectShapeError('The X array should be 2-dimensional.')
 
     # Transform the arrays to unstructured
     y_array = fuat.as_unstructured(y)
     X_array = fuat.as_unstructured(X)  # pylint: disable=invalid-name
 
-    if not fuv.is_textual_array(y_array):
+    if not fuav.is_textual_array(y_array):
         raise ValueError('The y array should be textual.')
-    if not fuv.is_textual_array(X_array):
+    if not fuav.is_textual_array(X_array):
         raise ValueError('The X array should be textual.')
 
     # Compare shapes
@@ -412,14 +412,14 @@ def hamming_array_distance(X: np.ndarray, Y: np.ndarray,
         An matrix of Hamming distances between rows in ``X` and ``Y``.
     """
     # pylint: disable=invalid-name
-    if not fuv.is_2d_array(X):
+    if not fuav.is_2d_array(X):
         raise IncorrectShapeError('The X array should be 2-dimensional.')
-    if not fuv.is_2d_array(Y):
+    if not fuav.is_2d_array(Y):
         raise IncorrectShapeError('The Y array should be 2-dimensional.')
 
-    if not fuv.is_textual_array(X):
+    if not fuav.is_textual_array(X):
         raise ValueError('The X array should be textual.')
-    if not fuv.is_textual_array(Y):
+    if not fuav.is_textual_array(Y):
         raise ValueError('The Y array should be textual.')
 
     # Transform the arrays to unstructured
@@ -449,8 +449,8 @@ def binary_distance(x: Union[np.ndarray, np.void],
     void.
 
     Either of the input arrays is not of a base dtype. (See
-    :func:`fatf.utils.validation.is_base_array` function description for the
-    explanation of a base dtype.)
+    :func:`fatf.utils.array.validation.is_base_array` function description for
+    the explanation of a base dtype.)
 
     Parameters
     ----------
@@ -473,9 +473,9 @@ def binary_distance(x: Union[np.ndarray, np.void],
         Binary distance between the two numpy arrays.
     """
     # pylint: disable=invalid-name
-    if not fuv.is_1d_like(x):
+    if not fuav.is_1d_like(x):
         raise IncorrectShapeError('The x array should be 1-dimensional.')
-    if not fuv.is_1d_like(y):
+    if not fuav.is_1d_like(y):
         raise IncorrectShapeError('The y array should be 1-dimensional.')
 
     # Transform the arrays to unstructured
@@ -503,8 +503,8 @@ def binary_point_distance(y: Union[np.ndarray, np.void], X: np.ndarray,
     The length of ``y`` has to be the same as the width of ``X``.
 
     Either of the input arrays is not of a base dtype. (See
-    :func:`fatf.utils.validation.is_base_array` function description for the
-    explanation of a base dtype.)
+    :func:`fatf.utils.array.validation.is_base_array` function description for
+    the explanation of a base dtype.)
 
     Parameters
     ----------
@@ -531,9 +531,9 @@ def binary_point_distance(y: Union[np.ndarray, np.void], X: np.ndarray,
         An array of binary distances between ``y`` and every row of ``X``.
     """
     # pylint: disable=invalid-name
-    if not fuv.is_1d_like(y):
+    if not fuav.is_1d_like(y):
         raise IncorrectShapeError('The y array should be 1-dimensional.')
-    if not fuv.is_2d_array(X):
+    if not fuav.is_2d_array(X):
         raise IncorrectShapeError('The X array should be 2-dimensional.')
 
     # Transform the arrays to unstructured
@@ -560,8 +560,8 @@ def binary_array_distance(X: np.ndarray, Y: np.ndarray,
     width.
 
     Either of the input arrays is not of a base dtype. (See
-    :func:`fatf.utils.validation.is_base_array` function description for the
-    explanation of a base dtype.)
+    :func:`fatf.utils.array.validation.is_base_array` function description for
+    the explanation of a base dtype.)
 
     Parameters
     ----------
@@ -586,9 +586,9 @@ def binary_array_distance(X: np.ndarray, Y: np.ndarray,
         An matrix of binary distances between rows in ``X` and ``Y``.
     """
     # pylint: disable=invalid-name
-    if not fuv.is_2d_array(X):
+    if not fuav.is_2d_array(X):
         raise IncorrectShapeError('The X array should be 2-dimensional.')
-    if not fuv.is_2d_array(Y):
+    if not fuav.is_2d_array(Y):
         raise IncorrectShapeError('The Y array should be 2-dimensional.')
 
     # Transform the arrays to unstructured

@@ -8,8 +8,10 @@ import numpy as np
 
 import pytest
 
-import fatf.utils.array_tools as fuat
-import fatf.utils.validation as fuv
+import fatf.utils.array.tools as fuat
+import fatf.utils.array.validation as fuav
+
+from fatf.exceptions import IncorrectShapeError
 from fatf.utils.testing.arrays import (
     BASE_NP_ARRAY, NOT_BASE_NP_ARRAY, NOT_BASE_STRUCTURED_ARRAY,
     NOT_NUMERICAL_NP_ARRAY, NOT_NUMERICAL_STRUCTURED_ARRAY, NUMERICAL_NP_ARRAY,
@@ -44,8 +46,8 @@ def _compare_nan_arrays(array1, array2):
     """
     Compares 2 numpy arrays and returns True if they are element-wise the same.
     """
-    assert not fuv.is_structured_array(array1), 'array1 cannot be structured.'
-    assert not fuv.is_structured_array(array2), 'array2 cannot be structured.'
+    assert not fuav.is_structured_array(array1), 'array1 cannot be structured.'
+    assert not fuav.is_structured_array(array2), 'array2 cannot be structured.'
     assert array1.shape == array2.shape, 'Inputs must be of the same shape.'
     # pylint: disable=len-as-condition
     assert len(array1.shape) > 0 and len(array1.shape) < 3, 'Only 1D or 2D.'
@@ -121,9 +123,212 @@ def test_compare_nan_arrays():
     assert _compare_nan_arrays(array_2d_a[[1], :], array_2d_b[[0], :])
 
 
+def test_indices_by_type():
+    """
+    Tests :func:`fatf.utils.array.tools.indices_by_type` function.
+    """
+    # pylint: disable=too-many-locals,too-many-statements
+    # Test any object and shape
+    type_error = 'The input should be a numpy array-like.'
+    incorrect_shape_error = 'The input array should be 2-dimensional.'
+    value_error = ('indices_by_type only supports input arrays that hold base '
+                   'numpy types, i.e. numerical and string-like -- numpy void '
+                   'and object-like types are not allowed.')
+    with pytest.raises(TypeError) as exin:
+        fuat.indices_by_type(None)
+    assert str(exin.value) == type_error
+    with pytest.raises(IncorrectShapeError) as exin:
+        fuat.indices_by_type(np.empty((0, )))
+    assert str(exin.value) == incorrect_shape_error
+    with pytest.raises(ValueError) as exin:
+        fuat.indices_by_type(NOT_NUMERICAL_NP_ARRAY)
+    assert str(exin.value) == value_error
+
+    # Empty array
+    i_n, i_c = fuat.indices_by_type(np.empty((22, 0)))
+    assert np.array_equal([], i_n)
+    assert np.array_equal([], i_c)
+
+    # All numerical array
+    array_all_numerical = np.ones((22, 4))
+    array_all_numerical_indices_numerical = np.array([0, 1, 2, 3])
+    array_all_numerical_indices_categorical = np.array([], dtype=int)
+    i_n, i_c = fuat.indices_by_type(array_all_numerical)
+    assert np.array_equal(array_all_numerical_indices_numerical, i_n)
+    assert np.array_equal(array_all_numerical_indices_categorical, i_c)
+
+    # All categorical -- single type -- array
+    array_all_categorical = np.ones((22, 4), dtype='U4')
+    array_all_categorical_indices_numerical = np.array([])
+    array_all_categorical_indices_categorical = np.array([0, 1, 2, 3])
+    i_n, i_c = fuat.indices_by_type(array_all_categorical)
+    assert np.array_equal(array_all_categorical_indices_numerical, i_n)
+    assert np.array_equal(array_all_categorical_indices_categorical, i_c)
+
+    # Mixture array
+    array_mixture_1 = np.ones((22, ), dtype=[('a', 'U4'),
+                                             ('b', 'U4'),
+                                             ('c', 'U4'),
+                                             ('d', 'U4')])  # yapf: disable
+    array_mixture_1_indices_numerical = np.array([])
+    array_mixture_1_indices_categorical = np.array(['a', 'b', 'c', 'd'],
+                                                   dtype='U1')
+    ####
+    i_n, i_c = fuat.indices_by_type(array_mixture_1)
+    assert np.array_equal(array_mixture_1_indices_numerical, i_n)
+    assert np.array_equal(array_mixture_1_indices_categorical, i_c)
+
+    array_mixture_2 = np.ones((22, ), dtype=[('a', 'U4'),
+                                             ('b', 'f'),
+                                             ('c', 'U4'),
+                                             ('d', int)])  # yapf: disable
+    array_mixture_2_indices_numerical = np.array(['b', 'd'], dtype='U1')
+    array_mixture_2_indices_categorical = np.array(['a', 'c'], dtype='U1')
+    i_n, i_c = fuat.indices_by_type(array_mixture_2)
+    assert np.array_equal(array_mixture_2_indices_numerical, i_n)
+    assert np.array_equal(array_mixture_2_indices_categorical, i_c)
+
+    glob_indices_numerical = np.array([0, 1])
+    glob_indices_categorical = np.array([])
+    i_n, i_c = fuat.indices_by_type(NUMERICAL_NP_ARRAY)
+    assert np.array_equal(glob_indices_numerical, i_n)
+    assert np.array_equal(glob_indices_categorical, i_c)
+    #
+    glob_indices_numerical = np.array([0, 1, 2])
+    glob_indices_categorical = np.array([])
+    i_n, i_c = fuat.indices_by_type(WIDE_NP_ARRAY)
+    assert np.array_equal(glob_indices_numerical, i_n)
+    assert np.array_equal(glob_indices_categorical, i_c)
+    #
+    glob_indices_numerical = np.array(['numbers', 'complex'])
+    glob_indices_categorical = np.array([])
+    i_n, i_c = fuat.indices_by_type(NUMERICAL_STRUCTURED_ARRAY)
+    assert np.array_equal(glob_indices_numerical, i_n)
+    assert np.array_equal(glob_indices_categorical, i_c)
+    #
+    glob_indices_numerical = np.array(['numerical'])
+    glob_indices_categorical = np.array(['categorical'])
+    i_n, i_c = fuat.indices_by_type(NOT_NUMERICAL_STRUCTURED_ARRAY)
+    assert np.array_equal(glob_indices_numerical, i_n)
+    assert np.array_equal(glob_indices_categorical, i_c)
+    #
+    glob_indices_numerical = np.array(['numbers', 'complex', 'anybody'])
+    glob_indices_categorical = np.array([])
+    i_n, i_c = fuat.indices_by_type(WIDE_STRUCTURED_ARRAY)
+    assert np.array_equal(glob_indices_numerical, i_n)
+    assert np.array_equal(glob_indices_categorical, i_c)
+
+
+def test_get_invalid_indices():
+    """
+    Tests :func:`fatf.utils.array.tools.get_invalid_indices` function.
+    """
+    type_error = 'Input arrays should be numpy array-like objects.'
+    incorrect_shape_array = 'The input array should be 2-dimensional.'
+    incorrect_shape_indices = 'The indices array should be 1-dimensional.'
+    with pytest.raises(TypeError) as exin:
+        fuat.get_invalid_indices(None, np.ones((4, )))
+    assert str(exin.value) == type_error
+    with pytest.raises(TypeError) as exin:
+        fuat.get_invalid_indices(None, np.ones((4, 4)))
+    assert str(exin.value) == type_error
+    with pytest.raises(TypeError) as exin:
+        fuat.get_invalid_indices(np.ones((4, )), None)
+    assert str(exin.value) == type_error
+    with pytest.raises(TypeError) as exin:
+        fuat.get_invalid_indices(None, np.ones((4, 4)))
+    assert str(exin.value) == type_error
+    # Incorrect shape array
+    with pytest.raises(IncorrectShapeError) as exin:
+        fuat.get_invalid_indices(np.ones((5, )), np.ones((4, 4)))
+    assert str(exin.value) == incorrect_shape_array
+    with pytest.raises(IncorrectShapeError) as exin:
+        fuat.get_invalid_indices(np.ones((5, )), np.ones((4, )))
+    assert str(exin.value) == incorrect_shape_array
+    with pytest.raises(IncorrectShapeError) as exin:
+        fuat.get_invalid_indices(np.ones((5, 3)), np.ones((4, 4)))
+    assert str(exin.value) == incorrect_shape_indices
+
+    gind = fuat.get_invalid_indices(NUMERICAL_NP_ARRAY, np.array([0, 2]))
+    assert np.array_equal(gind, np.array([2]))
+    gind = fuat.get_invalid_indices(NUMERICAL_NP_ARRAY, np.array(['a', 1]))
+    assert np.array_equal(gind, np.array(['1', 'a']))
+    gind = fuat.get_invalid_indices(NUMERICAL_NP_ARRAY, np.array([1, 0]))
+    assert np.array_equal(gind, np.array([]))
+    assert np.array_equal(gind, np.empty((0, )))
+    #
+    gind = fuat.get_invalid_indices(NOT_NUMERICAL_NP_ARRAY, np.array([0, 2]))
+    assert np.array_equal(gind, np.array([2]))
+    gind = fuat.get_invalid_indices(NOT_NUMERICAL_NP_ARRAY, np.array(['a', 1]))
+    assert np.array_equal(gind, np.array(['1', 'a']))
+    #
+    gind = fuat.get_invalid_indices(NUMERICAL_STRUCTURED_ARRAY,
+                                    np.array([0, 'numbers']))
+    assert np.array_equal(gind, np.array(['0']))
+    gind = fuat.get_invalid_indices(NUMERICAL_STRUCTURED_ARRAY, np.array([0]))
+    assert np.array_equal(gind, np.array([0]))
+    gind = fuat.get_invalid_indices(NUMERICAL_STRUCTURED_ARRAY,
+                                    np.array(['complex', 'numbers']))
+    assert np.array_equal(gind, np.array([]))
+    #
+    gind = fuat.get_invalid_indices(WIDE_STRUCTURED_ARRAY,
+                                    np.array(['complex', 'numbers']))
+    assert np.array_equal(gind, np.array([]))
+
+
+def test_are_indices_valid():
+    """
+    Tests :func:`fatf.utils.array.tools.are_indices_valid` function.
+    """
+    type_error = 'Input arrays should be numpy array-like objects.'
+    incorrect_shape_array = 'The input array should be 2-dimensional.'
+    incorrect_shape_indices = 'The indices array should be 1-dimensional.'
+    with pytest.raises(TypeError) as exin:
+        fuat.are_indices_valid(None, np.ones((4, )))
+    assert str(exin.value) == type_error
+    with pytest.raises(TypeError) as exin:
+        fuat.are_indices_valid(None, np.ones((4, 4)))
+    assert str(exin.value) == type_error
+    with pytest.raises(TypeError) as exin:
+        fuat.are_indices_valid(np.ones((4, )), None)
+    assert str(exin.value) == type_error
+    with pytest.raises(TypeError) as exin:
+        fuat.are_indices_valid(None, np.ones((4, 4)))
+    assert str(exin.value) == type_error
+    # Incorrect shape array
+    with pytest.raises(IncorrectShapeError) as exin:
+        fuat.are_indices_valid(np.ones((5, )), np.ones((4, 4)))
+    assert str(exin.value) == incorrect_shape_array
+    with pytest.raises(IncorrectShapeError) as exin:
+        fuat.are_indices_valid(np.ones((5, )), np.ones((4, )))
+    assert str(exin.value) == incorrect_shape_array
+    with pytest.raises(IncorrectShapeError) as exin:
+        fuat.are_indices_valid(np.ones((5, 3)), np.ones((4, 4)))
+    assert str(exin.value) == incorrect_shape_indices
+
+    assert not fuat.are_indices_valid(NUMERICAL_NP_ARRAY, np.array([0, 2]))
+    assert not fuat.are_indices_valid(NUMERICAL_NP_ARRAY, np.array(['a', 1]))
+    assert fuat.are_indices_valid(NUMERICAL_NP_ARRAY, np.array([1, 0]))
+    #
+    assert not fuat.are_indices_valid(NOT_NUMERICAL_NP_ARRAY, np.array([0, 2]))
+    assert not fuat.are_indices_valid(NOT_NUMERICAL_NP_ARRAY,
+                                      np.array(['a', 1]))  # yapf: disable
+    assert fuat.are_indices_valid(NOT_NUMERICAL_NP_ARRAY, np.array([0, 1]))
+    #
+    assert not fuat.are_indices_valid(NUMERICAL_STRUCTURED_ARRAY,
+                                      np.array([0, 'numbers']))
+    assert not fuat.are_indices_valid(NUMERICAL_STRUCTURED_ARRAY,
+                                      np.array([0]))  # yapf: disable
+    assert fuat.are_indices_valid(NUMERICAL_STRUCTURED_ARRAY,
+                                  np.array(['complex', 'numbers']))
+    #
+    assert fuat.are_indices_valid(WIDE_STRUCTURED_ARRAY,
+                                  np.array(['complex', 'numbers']))
+
+
 def test_fatf_structured_to_unstructured_row():
     """
-    Tests :func:`fatf.utils.array_tools.fatf_structured_to_unstructured_row`.
+    Tests :func:`fatf.utils.array.tools.fatf_structured_to_unstructured_row`.
     """
     type_error = 'The input should be a row of a structured array.'
     with pytest.raises(TypeError) as exin:
@@ -169,7 +374,7 @@ def test_fatf_structured_to_unstructured_row():
 
 def test_structured_to_unstructured_row():
     """
-    Tests :func:`fatf.utils.array_tools.structured_to_unstructured_row`.
+    Tests :func:`fatf.utils.array.tools.structured_to_unstructured_row`.
     """
     simple = fuat.fatf_structured_to_unstructured_row(
         NUMERICAL_STRUCTURED_ARRAY[2])
@@ -184,18 +389,18 @@ def test_structured_to_unstructured_row():
 
 def test_choose_structured_to_unstructured(caplog):
     """
-    Tests :func:`fatf.utils.array_tools._choose_structured_to_unstructured`.
+    Tests :func:`fatf.utils.array.tools._choose_structured_to_unstructured`.
     """
     # pylint: disable=protected-access
     # Memorise current numpy version
     installed_numpy_version = np.version.version
     # Fake version lower than 1.16.0
     np.version.version = '1.15.999'
-    log_message = ("Using fatf's fatf.utils.array_tools."
+    log_message = ("Using fatf's fatf.utils.array.tools."
                    'fatf_structured_to_unstructured as fatf.utils.'
-                   'array_tools.structured_to_unstructured and fatf.utils.'
-                   'array_tools.fatf_structured_to_unstructured_row as '
-                   'fatf.utils.array_tools.structured_to_unstructured_row.')
+                   'array.tools.structured_to_unstructured and fatf.utils.'
+                   'array.tools.fatf_structured_to_unstructured_row as '
+                   'fatf.utils.array.tools.structured_to_unstructured_row.')
     assert fuat._choose_structured_to_unstructured()
     assert len(caplog.records) == 1
     assert caplog.records[0].levelname == 'INFO'
@@ -203,8 +408,8 @@ def test_choose_structured_to_unstructured(caplog):
     # Fake at least 1.16.0 version
     np.version.version = '1.16.000'
     log_message = ("Using numpy's numpy.lib.recfunctions."
-                   'structured_to_unstructured as fatf.utils.array_tools.'
-                   'structured_to_unstructured and fatf.utils.array_tools.'
+                   'structured_to_unstructured as fatf.utils.array.tools.'
+                   'structured_to_unstructured and fatf.utils.array.tools.'
                    'structured_to_unstructured_row.')
     assert not fuat._choose_structured_to_unstructured()
     assert len(caplog.records) == 2
@@ -217,7 +422,7 @@ def test_choose_structured_to_unstructured(caplog):
 
 def test_fatf_structured_to_unstructured():
     """
-    Tests :func:`fatf.utils.array_tools.fatf_structured_to_unstructured`.
+    Tests :func:`fatf.utils.array.tools.fatf_structured_to_unstructured`.
     """
     # Wrong array types
     type_error = 'structured_array should be a structured numpy array.'
@@ -261,7 +466,7 @@ def test_fatf_structured_to_unstructured():
 
 def test_structured_to_unstructured():
     """
-    Tests :func:`fatf.utils.array_tools.structured_to_unstructured`.
+    Tests :func:`fatf.utils.array.tools.structured_to_unstructured`.
     """
     simple = fuat.structured_to_unstructured(NOT_NUMERICAL_STRUCTURED_ARRAY)
     assert np.array_equal(simple, NOT_NUMERICAL_UNSTRUCTURED_ARRAY)
@@ -275,7 +480,7 @@ def test_structured_to_unstructured():
 
 def test_as_unstructured():
     """
-    Tests :func:`fatf.utils.array_tools.as_unstructured`.
+    Tests :func:`fatf.utils.array.tools.as_unstructured`.
     """
     type_error = ('The input should either be a numpy (structured or '
                   'unstructured) array-like object (numpy.ndarray) or a row '

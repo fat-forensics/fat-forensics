@@ -8,9 +8,9 @@ Tests functions responsible for loading data.
 import numpy as np
 import pytest
 
+import fatf.utils.array.validation as fuav
 import fatf.utils.data.datasets as fudd
 import fatf.utils.tools as fut
-import fatf.utils.validation as fuv
 
 _NUMPY_VERSION = [int(i) for i in np.version.version.split('.')]
 _NUMPY_1_14 = fut.at_least_verion([1, 14], _NUMPY_VERSION)
@@ -22,7 +22,7 @@ def test_validate_data_header():
     """
     assertion_2d = 'X has to be a 2-dimensional array.'
     assertion_1d_y = 'y has to be a 1-dimensional array.'
-    assertion_1d_names = 'y_names has to be a 1-dimensional array.'
+    assertion_1d_names = 'y_names must be a 1-dimensional array.'
 
     value_error_samples = ('The number of samples in the dataset is not '
                            'consistent with the header.')
@@ -234,7 +234,7 @@ def test_load_data(tmpdir):
     my_names = np.array(['a', 'b'])
     my_data = np.array([(1., 2.), (2., 2.)], dtype=my_dtype)
     loaded_data = fudd.load_data(temp_file_path, dtype=my_dtype)
-    assert fuv.is_structured_array(loaded_data['data'])
+    assert fuav.is_structured_array(loaded_data['data'])
     assert np.array_equal(loaded_data['data'], my_data)
     for i in range(len(my_dtype)):
         assert loaded_data['data'].dtype.names[i] == my_dtype[i][0]
@@ -268,7 +268,7 @@ def test_load_data(tmpdir):
     my_target = np.array(['0', '1'])
     my_data = np.array([(1., 2.), (2., 2.)], dtype=my_dtype[:-1])
     loaded_data = fudd.load_data(temp_file_path, dtype=my_dtype)
-    assert fuv.is_structured_array(loaded_data['data'])
+    assert fuav.is_structured_array(loaded_data['data'])
     assert np.array_equal(loaded_data['data'], my_data)
     for i in range(len(my_dtype[:-1])):
         assert loaded_data['data'].dtype.names[i] == my_dtype[i][0]
@@ -431,7 +431,7 @@ def test_load_iris():
     ])
 
     iris_data = fudd.load_iris()
-    assert not fuv.is_structured_array(iris_data['data'])
+    assert not fuav.is_structured_array(iris_data['data'])
     assert iris_data['data'].shape == (n_samples, n_features)
     assert iris_data['target'].shape == (n_samples, )
     assert np.array_equal(iris_data['target_names'], target_names)
@@ -464,7 +464,7 @@ def test_load_health_records():
     feature_names = np.array([x for (x, y) in dtypes])
 
     cat_data = fudd.load_health_records()
-    assert fuv.is_structured_array(cat_data['data'])
+    assert fuav.is_structured_array(cat_data['data'])
     assert cat_data['data'].shape == (n_samples, )
     assert len(cat_data['data'].dtype.names) == n_features
     assert cat_data['target'].shape == (n_samples, )

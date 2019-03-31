@@ -1,5 +1,5 @@
 codecov==2.0.15
-flake8==3.6.0
+flake8==3.7.0
 mypy==0.641
 nbval==0.9.1
 numpydoc==0.8.0
@@ -7,4 +7,4 @@ pylint==2.2.3
 pytest==3.9.1
 pytest-cov==2.6.0
 sphinx==1.7.8
-yapf==0.25.0
+yapf==0.26.0

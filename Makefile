@@ -84,19 +84,22 @@ endif
 docs-html:
 	mkdir -p docs/_build
 	mkdir -p docs/_static
-	sphinx-build -M html docs docs/_build -nW -w docs/_build/nit-picky-html.txt
+	PYTHONPATH=./ sphinx-build \
+		-M html docs docs/_build \
+		-nW \
+		-w docs/_build/nit-picky-html.txt
 	cat docs/_build/nit-picky-html.txt
 #	$(MAKE) -C docs html
 
 docs-linkcheck:
 	mkdir -p docs/_build/linkcheck
-	sphinx-build -M linkcheck docs docs/_build
+	PYTHONPATH=./ sphinx-build -M linkcheck docs docs/_build
 	cat docs/_build/linkcheck/output.txt
 #	$(MAKE) -C docs linkcheck
 
 docs-coverage:
 	mkdir -p docs/_build/coverage
-	sphinx-build -M coverage docs docs/_build
+	PYTHONPATH=./ sphinx-build -M coverage docs docs/_build
 	cat docs/_build/coverage/python.txt
 #	$(MAKE) -C docs html -b coverage  # Build html with docstring coverage report
 #	$(MAKE) -C docs coverage
@@ -113,43 +116,38 @@ docs-clean:
 # (`-k 'not test_ and not Test'` is used as a hack -- no doctests in functions
 # starting with `test_` and classes starting with `Test` will be found.)
 test-docs:
-	PYTEST_IN_PROGRESS='true' pytest \
+	PYTHONPATH=./ PYTEST_IN_PROGRESS='true' pytest \
 		--doctest-glob='*.txt' \
 		--doctest-glob='*.rst' \
 		--doctest-modules \
 		--ignore=docs/_build/ \
 		-k 'not test_ and not Test' \
-		-W error \
 		docs/ \
 		fatf/
 
 test-notebooks:
-	PYTEST_IN_PROGRESS='true' pytest \
+	PYTHONPATH=./ PYTEST_IN_PROGRESS='true' pytest \
 		--nbval \
-		-W error \
 		examples/
 
 test:
-	PYTEST_IN_PROGRESS='true' pytest \
+	PYTHONPATH=./ PYTEST_IN_PROGRESS='true' pytest \
 		--junit-xml=temp/pytest_$(PYTHON_VERSION).xml \
-		-W error \
 		fatf/
 
 code-coverage:
-	PYTEST_IN_PROGRESS='true' pytest \
+	PYTHONPATH=./ PYTEST_IN_PROGRESS='true' pytest \
 		--cov-report=term-missing \
 		--cov-report=xml:temp/coverage_$(PYTHON_VERSION).xml \
 		--cov=fatf \
-		-W error \
 		fatf/
 
 test-with-code-coverage:
-	PYTEST_IN_PROGRESS='true' pytest \
+	PYTHONPATH=./ PYTEST_IN_PROGRESS='true' pytest \
 		--junit-xml=temp/pytest_$(PYTHON_VERSION).xml \
 		--cov-report=term-missing \
 		--cov-report=xml:temp/coverage_$(PYTHON_VERSION).xml \
 		--cov=fatf \
-		-W error \
 		fatf/
 
 deploy-code-coverage:

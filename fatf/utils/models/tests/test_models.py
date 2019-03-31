@@ -7,64 +7,64 @@ Holds custom distance functions used for FAT-Forensics examples and testing.
 import numpy as np
 import pytest
 
-import fatf.core.model as fcm
+import fatf.utils.models.models as fumm
 from fatf.exceptions import (IncorrectShapeError, PrefittedModelError,
                              UnfittedModelError)
 
 
 class TestModel(object):
     """
-    Tests the :class:`fatf.core.model.Model` abstract model class.
+    Tests the :class:`fatf.utils.models.models.Model` abstract model class.
     """
 
     # pylint: disable=useless-object-inheritance
 
     def test__init__(self):
         """
-        Tests the :func:``~fatf.core.model.Model.__init__` method.
+        Tests the :func:``~fatf.utils.models.models.Model.__init__` method.
         """
         # pylint: disable=no-self-use
         error_message = ("Can't instantiate abstract class Model with "
                          'abstract methods __init__, fit, predict')
         with pytest.raises(TypeError) as exception_info:
-            fcm.Model()  # pylint: disable=abstract-class-instantiated
+            fumm.Model()  # pylint: disable=abstract-class-instantiated
         assert str(exception_info.value) == error_message
 
     def test_fit(self):
         """
-        Tests the :func:`~fatf.core.model.Model.fit` method.
+        Tests the :func:`~fatf.utils.models.models.Model.fit` method.
         """
         # pylint: disable=no-self-use
-        assert fcm.Model.fit(object(), np.ndarray((0, 0)),
-                             np.ndarray((0, ))) is None  # yapf: disable
+        assert fumm.Model.fit(object(), np.ndarray((0, 0)),
+                              np.ndarray((0, ))) is None  # yapf: disable
 
     def test_predict(self):
         """
-        Tests the :func:`~fatf.core.model.Model.predict` method.
+        Tests the :func:`~fatf.utils.models.models.predict` method.
         """
         # pylint: disable=no-self-use
-        assert fcm.Model.predict(object(), np.ndarray((0, ))) is None
+        assert fumm.Model.predict(object(), np.ndarray((0, ))) is None
 
     def test_predict_proba(self):
         """
-        Tests the :func:`~fatf.core.model.Model.predict_proba` method.
+        Tests the :func:`~fatf.utils.models.models.Model.predict_proba` method.
         """
         # pylint: disable=no-self-use
         error_message = ''
         with pytest.raises(NotImplementedError) as exception_info:
-            fcm.Model.predict_proba(object(), np.ndarray((0, )))
+            fumm.Model.predict_proba(object(), np.ndarray((0, )))
         assert str(exception_info.value) == error_message
 
 
 class TestKNN(object):
     """
-    Tests :class:`fatf.core.model.KNN` -- the k-nearest neighbours model class.
+    Tests :class:`fatf.utils.models.models.KNN` -- k-nearest neighbours model.
     """
     # pylint: disable=protected-access,useless-object-inheritance
     type_error_k = 'The k parameter has to be an integer.'
     value_error_k = 'The k parameter has to be a positive integer.'
     value_error_mode = ('The mode parameter has to have one of the following '
-                        'values {}.').format(fcm.KNN._MODES)
+                        'values {}.').format(fumm.KNN._MODES)
     prefitted_model_error = 'This model has already been fitted.'
     incorrect_shape_error_rows = 'X must have at least one row.'
     incorrect_shape_error_2d = ('The training data must be a 2-dimensional '
@@ -294,58 +294,58 @@ class TestKNN(object):
         """
         # k is not an integer
         with pytest.raises(TypeError) as exception_info:
-            clf = fcm.KNN(k=None)
+            clf = fumm.KNN(k=None)
         assert str(exception_info.value) == self.type_error_k
         with pytest.raises(TypeError) as exception_info:
-            clf = fcm.KNN(k='k')
+            clf = fumm.KNN(k='k')
         assert str(exception_info.value) == self.type_error_k
         with pytest.raises(TypeError) as exception_info:
-            clf = fcm.KNN(k=-5.5)
+            clf = fumm.KNN(k=-5.5)
         assert str(exception_info.value) == self.type_error_k
 
         # k is a negative integer
         with pytest.raises(ValueError) as exception_info:
-            clf = fcm.KNN(k=-5)
+            clf = fumm.KNN(k=-5)
         assert str(exception_info.value) == self.value_error_k
 
         # mode specifier is wrong
         with pytest.raises(ValueError) as exception_info:
-            clf = fcm.KNN(k=5, mode=object())
+            clf = fumm.KNN(k=5, mode=object())
         assert str(exception_info.value) == self.value_error_mode
         with pytest.raises(ValueError) as exception_info:
-            clf = fcm.KNN(k=5, mode=3)
+            clf = fumm.KNN(k=5, mode=3)
         assert str(exception_info.value) == self.value_error_mode
         with pytest.raises(ValueError) as exception_info:
-            clf = fcm.KNN(k=5, mode='C')
+            clf = fumm.KNN(k=5, mode='C')
         assert str(exception_info.value) == self.value_error_mode
 
-        clf = fcm.KNN()
+        clf = fumm.KNN()
         self._test_unfitted_internals(
             clf, init_k=self.k, init_is_classifier=True)
 
         k = 8
-        clf = fcm.KNN(k=k)
+        clf = fumm.KNN(k=k)
         self._test_unfitted_internals(clf, init_k=k, init_is_classifier=True)
 
-        clf = fcm.KNN(k=k, mode=None)
+        clf = fumm.KNN(k=k, mode=None)
         self._test_unfitted_internals(clf, init_k=k, init_is_classifier=True)
-        clf = fcm.KNN(k=k, mode='c')
+        clf = fumm.KNN(k=k, mode='c')
         self._test_unfitted_internals(clf, init_k=k, init_is_classifier=True)
-        clf = fcm.KNN(k=k, mode='classifier')
+        clf = fumm.KNN(k=k, mode='classifier')
         self._test_unfitted_internals(clf, init_k=k, init_is_classifier=True)
 
-        clf = fcm.KNN(k=k, mode='r')
+        clf = fumm.KNN(k=k, mode='r')
         self._test_unfitted_internals(clf, init_k=k, init_is_classifier=False)
-        clf = fcm.KNN(k=k, mode='regressor')
+        clf = fumm.KNN(k=k, mode='regressor')
         self._test_unfitted_internals(clf, init_k=k, init_is_classifier=False)
 
     def test_fit(self):
         """
-        Tests KNN fitting (:func:`~fatf.core.model.KNN.fit`).
+        Tests KNN fitting (:func:`~fatf.utils.models.models.KNN.fit`).
         """
         # pylint: disable=too-many-statements
         k = 2
-        clf = fcm.KNN(k=k)
+        clf = fumm.KNN(k=k)
         self._test_unfitted_internals(clf, init_k=k)
         clf.fit(self.X, self.y)
         self._test_fitted_internals(
@@ -358,7 +358,7 @@ class TestKNN(object):
             clf.fit(self.X, self.y)
         assert self.prefitted_model_error == str(exception_info.value)
 
-        clf = fcm.KNN(k=k)
+        clf = fumm.KNN(k=k)
         self._test_unfitted_internals(clf, init_k=k)
         # X is not 2D
         with pytest.raises(IncorrectShapeError) as exception_info:
@@ -391,7 +391,7 @@ class TestKNN(object):
         assert self.incorrect_shape_error_Xy == str(exception_info.value)
 
         # Fitting regressor to a categorical label vector
-        clf = fcm.KNN(k=k, mode='r')
+        clf = fumm.KNN(k=k, mode='r')
         self._test_unfitted_internals(clf, init_k=k, init_is_classifier=False)
         with pytest.raises(TypeError) as exception_info:
             y_pred = np.array(self.X.shape[0] * ['a'])
@@ -399,7 +399,7 @@ class TestKNN(object):
         assert self.type_error_regressor == str(exception_info.value)
 
         # Fitting to a structured numerical array
-        clf = fcm.KNN(k=k)
+        clf = fumm.KNN(k=k)
         self._test_unfitted_internals(clf, init_k=k, init_is_classifier=True)
         clf.fit(self.X_struct, self.y)
         self._test_fitted_internals(
@@ -408,7 +408,7 @@ class TestKNN(object):
             self.unique_y, self.unique_y_counts, self.unique_y_probabilities)
 
         # Fitting to a structured mixed numerical-categorical array
-        clf = fcm.KNN(k=k)
+        clf = fumm.KNN(k=k)
         self._test_unfitted_internals(clf, init_k=k, init_is_classifier=True)
         clf.fit(self.X_mix, self.y)
         self._test_fitted_internals(
@@ -417,7 +417,7 @@ class TestKNN(object):
             self.unique_y, self.unique_y_counts, self.unique_y_probabilities)
 
         # Fit a regressor to a numerical data and check internal parameters
-        clf = fcm.KNN(k=k, mode='regressor')
+        clf = fumm.KNN(k=k, mode='regressor')
         self._test_unfitted_internals(clf, init_k=k, init_is_classifier=False)
         clf.fit(self.X_short, self.y_short_numerical)
         self._test_fitted_internals(
@@ -426,7 +426,7 @@ class TestKNN(object):
             self.X_short_categorical_indices, self.X_short_numerical_indices)
 
         # Fit a classifier to a numerical data and check internal parameters
-        clf = fcm.KNN(k=k, mode='classifier')
+        clf = fumm.KNN(k=k, mode='classifier')
         self._test_unfitted_internals(clf, init_k=k, init_is_classifier=True)
         clf.fit(self.X_short, self.y_short_numerical)
         self._test_fitted_internals(
@@ -438,7 +438,7 @@ class TestKNN(object):
             self.short_numerical_unique_y_probabilities)
 
         # Fit a classifier to a categorical data and check internal parameters
-        clf = fcm.KNN(k=k, mode='classifier')
+        clf = fumm.KNN(k=k, mode='classifier')
         self._test_unfitted_internals(clf, init_k=k, init_is_classifier=True)
         clf.fit(self.X_short, self.y_short)
         self._test_fitted_internals(
@@ -449,10 +449,10 @@ class TestKNN(object):
 
     def test_clear(self):
         """
-        Tests KNN clearing (:func:`~fatf.core.model.KNN.clear`).
+        Tests KNN clearing (:func:`~fatf.utils.models.models.KNN.clear`).
         """
         k = 2
-        clf = fcm.KNN(k=k)
+        clf = fumm.KNN(k=k)
         self._test_unfitted_internals(clf, init_k=k, init_is_classifier=True)
 
         # Clearing an unfitted model
@@ -471,10 +471,10 @@ class TestKNN(object):
 
     def test_get_distances(self):
         """
-        Tests KNN distances (:func:`~fatf.core.model.KNN._get_distances`).
+        Tests distances (:func:`~fatf.utils.models.models.KNN._get_distances`).
         """
         k = 2
-        clf = fcm.KNN(k=k)
+        clf = fumm.KNN(k=k)
 
         def is_unfitted():
             return self._test_unfitted_internals(
@@ -538,11 +538,11 @@ class TestKNN(object):
 
     def test_predict(self):
         """
-        Tests KNN predictions (:func:`~fatf.core.model.KNN.predict`).
+        Tests KNN predictions (:func:`~fatf.utils.models.models.KNN.predict`).
         """
         # pylint: disable=too-many-statements
         k = 2
-        clf = fcm.KNN(k=k)
+        clf = fumm.KNN(k=k)
         self._test_unfitted_internals(clf, init_k=k, init_is_classifier=True)
 
         # Unfitted model
@@ -596,7 +596,7 @@ class TestKNN(object):
         # Regressor on unstructured
         # Sample smaller than k
         k = 3
-        clf = fcm.KNN(k=k, mode='r')
+        clf = fumm.KNN(k=k, mode='r')
         self._test_unfitted_internals(clf, init_k=k, init_is_classifier=False)
         clf.fit(self.X, self.y)
         self._test_fitted_internals(clf, False, self.X, self.y, self.X_n,
@@ -607,7 +607,7 @@ class TestKNN(object):
         assert np.isclose(y_hat, self.y_test_3_regression, atol=1e-3).all()
         # Sample bigger than k
         k = 10
-        clf = fcm.KNN(k=k, mode='r')
+        clf = fumm.KNN(k=k, mode='r')
         self._test_unfitted_internals(clf, init_k=k, init_is_classifier=False)
         clf.fit(self.X, self.y)
         self._test_fitted_internals(clf, False, self.X, self.y, self.X_n,
@@ -622,7 +622,7 @@ class TestKNN(object):
         # Regressor on structured
         # Sample smaller than k
         k = 3
-        clf = fcm.KNN(k=k, mode='r')
+        clf = fumm.KNN(k=k, mode='r')
         self._test_unfitted_internals(clf, init_k=k, init_is_classifier=False)
         clf.fit(self.X_struct, self.y)
         self._test_fitted_internals(clf, True, self.X_struct, self.y, self.X_n,
@@ -633,7 +633,7 @@ class TestKNN(object):
         assert np.isclose(y_hat, self.y_test_3_regression, atol=1e-3).all()
         # Sample bigger than k
         k = 10
-        clf = fcm.KNN(k=k, mode='r')
+        clf = fumm.KNN(k=k, mode='r')
         self._test_unfitted_internals(clf, init_k=k, init_is_classifier=False)
         clf.fit(self.X_struct, self.y)
         self._test_fitted_internals(clf, True, self.X_struct, self.y, self.X_n,
@@ -648,7 +648,7 @@ class TestKNN(object):
         # Numerical classifier on unstructured
         # Sample smaller than k
         k = 3
-        clf = fcm.KNN(k=k)
+        clf = fumm.KNN(k=k)
         self._test_unfitted_internals(clf, init_k=k, init_is_classifier=True)
         clf.fit(self.X, self.y)
         self._test_fitted_internals(
@@ -659,7 +659,7 @@ class TestKNN(object):
         assert np.isclose(y_hat, self.y_test_3_classification, atol=1e-3).all()
         # Sample bigger than k
         k = 10
-        clf = fcm.KNN(k=k)
+        clf = fumm.KNN(k=k)
         self._test_unfitted_internals(clf, init_k=k, init_is_classifier=True)
         clf.fit(self.X, self.y)
         self._test_fitted_internals(
@@ -673,7 +673,7 @@ class TestKNN(object):
         # Numerical classifier on structured
         # Sample smaller than k
         k = 3
-        clf = fcm.KNN(k=k)
+        clf = fumm.KNN(k=k)
         self._test_unfitted_internals(clf, init_k=k, init_is_classifier=True)
         clf.fit(self.X_struct, self.y)
         self._test_fitted_internals(
@@ -684,7 +684,7 @@ class TestKNN(object):
         assert np.isclose(y_hat, self.y_test_3_classification, atol=1e-3).all()
         # Sample bigger than k
         k = 10
-        clf = fcm.KNN(k=k)
+        clf = fumm.KNN(k=k)
         self._test_unfitted_internals(clf, init_k=k, init_is_classifier=True)
         clf.fit(self.X_struct, self.y)
         self._test_fitted_internals(
@@ -698,7 +698,7 @@ class TestKNN(object):
         # Categorical classifier on unstructured
         # Sample smaller than k
         k = 3
-        clf = fcm.KNN(k=k)
+        clf = fumm.KNN(k=k)
         self._test_unfitted_internals(clf, init_k=k, init_is_classifier=True)
         clf.fit(self.X, self.y_categorical)
         self._test_fitted_internals(
@@ -710,7 +710,7 @@ class TestKNN(object):
         assert np.array_equal(y_hat, self.y_test_3_classification_categorical)
         # Sample bigger than k
         k = 10
-        clf = fcm.KNN(k=k)
+        clf = fumm.KNN(k=k)
         self._test_unfitted_internals(clf, init_k=k, init_is_classifier=True)
         clf.fit(self.X, self.y_categorical)
         self._test_fitted_internals(
@@ -725,7 +725,7 @@ class TestKNN(object):
         # Categorical classifier on structured
         # Sample smaller than k
         k = 3
-        clf = fcm.KNN(k=k)
+        clf = fumm.KNN(k=k)
         self._test_unfitted_internals(clf, init_k=k, init_is_classifier=True)
         clf.fit(self.X_struct, self.y_categorical)
         self._test_fitted_internals(
@@ -737,7 +737,7 @@ class TestKNN(object):
         assert np.array_equal(y_hat, self.y_test_3_classification_categorical)
         # Sample bigger than k
         k = 10
-        clf = fcm.KNN(k=k)
+        clf = fumm.KNN(k=k)
         self._test_unfitted_internals(clf, init_k=k, init_is_classifier=True)
         clf.fit(self.X_struct, self.y_categorical)
         self._test_fitted_internals(
@@ -759,7 +759,7 @@ class TestKNN(object):
         y_test = np.array([0, 0])
         #
         k = 4
-        clf = fcm.KNN(k=k)
+        clf = fumm.KNN(k=k)
         self._test_unfitted_internals(clf, init_k=k, init_is_classifier=True)
         clf.fit(self.X, y)
         self._test_fitted_internals(clf, False, self.X, y, self.X_n,
@@ -771,12 +771,12 @@ class TestKNN(object):
 
     def test_predict_proba(self):
         """
-        Tests KNN probabilities (:func:`~fatf.core.model.KNN.predict_proba`).
+        Tests probas (:func:`~fatf.utils.models.models.KNN.predict_proba`).
         """
         # pylint: disable=too-many-statements
         # Regressor error
         k = 3
-        clf = fcm.KNN(k=k, mode='r')
+        clf = fumm.KNN(k=k, mode='r')
         self._test_unfitted_internals(clf, init_k=k, init_is_classifier=False)
         clf.fit(self.X, self.y)
         self._test_fitted_internals(clf, False, self.X, self.y, self.X_n,
@@ -789,7 +789,7 @@ class TestKNN(object):
 
         # Test other errors...
         k = 3
-        clf = fcm.KNN(k=k)
+        clf = fumm.KNN(k=k)
         self._test_unfitted_internals(clf, init_k=k, init_is_classifier=True)
 
         # Unfitted model
@@ -849,7 +849,7 @@ class TestKNN(object):
         # Numerical classifier on unstructured
         # Sample smaller than k
         k = 3
-        clf = fcm.KNN(k=k)
+        clf = fumm.KNN(k=k)
         self._test_unfitted_internals(clf, init_k=k, init_is_classifier=True)
         clf.fit(self.X, self.y)
         self._test_fitted_internals(
@@ -860,7 +860,7 @@ class TestKNN(object):
         assert np.isclose(y_hat, self.y_test_3_proba, atol=1e-3).all()
         # Sample bigger than k
         k = 10
-        clf = fcm.KNN(k=k)
+        clf = fumm.KNN(k=k)
         self._test_unfitted_internals(clf, init_k=k, init_is_classifier=True)
         clf.fit(self.X, self.y)
         self._test_fitted_internals(
@@ -876,7 +876,7 @@ class TestKNN(object):
         # Numerical classifier on structured
         # Sample smaller than k
         k = 3
-        clf = fcm.KNN(k=k)
+        clf = fumm.KNN(k=k)
         self._test_unfitted_internals(clf, init_k=k, init_is_classifier=True)
         clf.fit(self.X_struct, self.y)
         self._test_fitted_internals(
@@ -887,7 +887,7 @@ class TestKNN(object):
         assert np.isclose(y_hat, self.y_test_3_proba, atol=1e-3).all()
         # Sample bigger than k
         k = 10
-        clf = fcm.KNN(k=k)
+        clf = fumm.KNN(k=k)
         self._test_unfitted_internals(clf, init_k=k, init_is_classifier=True)
         clf.fit(self.X_struct, self.y)
         self._test_fitted_internals(
@@ -903,7 +903,7 @@ class TestKNN(object):
         # Categorical classifier on unstructured
         # Sample smaller than k
         k = 3
-        clf = fcm.KNN(k=k)
+        clf = fumm.KNN(k=k)
         self._test_unfitted_internals(clf, init_k=k, init_is_classifier=True)
         clf.fit(self.X, self.y_categorical)
         self._test_fitted_internals(
@@ -915,7 +915,7 @@ class TestKNN(object):
         assert np.isclose(y_hat, self.y_test_3_proba, atol=1e-3).all()
         # Sample bigger than k
         k = 10
-        clf = fcm.KNN(k=k)
+        clf = fumm.KNN(k=k)
         self._test_unfitted_internals(clf, init_k=k, init_is_classifier=True)
         clf.fit(self.X, self.y_categorical)
         self._test_fitted_internals(
@@ -932,7 +932,7 @@ class TestKNN(object):
         # Categorical classifier on structured
         # Sample smaller than k
         k = 3
-        clf = fcm.KNN(k=k)
+        clf = fumm.KNN(k=k)
         self._test_unfitted_internals(clf, init_k=k, init_is_classifier=True)
         clf.fit(self.X_struct, self.y_categorical)
         self._test_fitted_internals(
@@ -944,7 +944,7 @@ class TestKNN(object):
         assert np.isclose(y_hat, self.y_test_3_proba, atol=1e-3).all()
         # Sample bigger than k
         k = 10
-        clf = fcm.KNN(k=k)
+        clf = fumm.KNN(k=k)
         self._test_unfitted_internals(clf, init_k=k, init_is_classifier=True)
         clf.fit(self.X_struct, self.y_categorical)
         self._test_fitted_internals(

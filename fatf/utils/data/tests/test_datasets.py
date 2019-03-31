@@ -8,7 +8,7 @@ Tests functions responsible for loading data.
 import numpy as np
 import pytest
 
-import fatf.core.datasets.load_data as fcdld
+import fatf.utils.data.datasets as fudd
 import fatf.utils.tools as fut
 import fatf.utils.validation as fuv
 
@@ -18,7 +18,7 @@ _NUMPY_1_14 = fut.at_least_verion([1, 14], _NUMPY_VERSION)
 
 def test_validate_data_header():
     """
-    Tests :func:`fatf.core.datasets._validate_data_header`.
+    Tests :func:`fatf.utils.data.datasets._validate_data_header`.
     """
     assertion_2d = 'X has to be a 2-dimensional array.'
     assertion_1d_y = 'y has to be a 1-dimensional array.'
@@ -36,13 +36,13 @@ def test_validate_data_header():
     one_d = np.array([1, 2, 0])
     two_d = np.array([[1, 2, 0], [2, 2, 1]])
     with pytest.raises(AssertionError) as exin:
-        fcdld._validate_data_header(one_d, two_d, 0, 0, two_d)
+        fudd._validate_data_header(one_d, two_d, 0, 0, two_d)
     assert str(exin.value).startswith(assertion_2d)
     with pytest.raises(AssertionError) as exin:
-        fcdld._validate_data_header(two_d, two_d, 0, 0, two_d)
+        fudd._validate_data_header(two_d, two_d, 0, 0, two_d)
     assert str(exin.value).startswith(assertion_1d_y)
     with pytest.raises(AssertionError) as exin:
-        fcdld._validate_data_header(two_d, one_d, 2, 3, two_d)
+        fudd._validate_data_header(two_d, one_d, 2, 3, two_d)
     assert str(exin.value).startswith(assertion_1d_names)
 
     X = np.array([[1, 2, 0], [2, 2, 1]])
@@ -53,31 +53,31 @@ def test_validate_data_header():
     y_names = np.array(['fail', 'pass'])
     y_names_too_many = np.array(['fail', 'pass', 'ok'])
     with pytest.raises(ValueError) as exin:
-        fcdld._validate_data_header(X, y, n_samples - 1, n_features, y_names)
+        fudd._validate_data_header(X, y, n_samples - 1, n_features, y_names)
     assert str(exin.value) == value_error_samples
     with pytest.raises(ValueError) as exin:
-        fcdld._validate_data_header(X, y, n_samples, n_features - 1, y_names)
+        fudd._validate_data_header(X, y, n_samples, n_features - 1, y_names)
     assert str(exin.value) == value_error_features
     with pytest.raises(ValueError) as exin:
-        fcdld._validate_data_header(X, y_too_long, n_samples, n_features,
+        fudd._validate_data_header(X, y_too_long, n_samples, n_features,
                                     y_names)
     assert str(exin.value) == value_error_labels
     with pytest.raises(ValueError) as exin:
-        fcdld._validate_data_header(X, y, n_samples, n_features,
-                                    y_names_too_many)
+        fudd._validate_data_header(X, y, n_samples, n_features,
+                                   y_names_too_many)
     assert str(exin.value) == value_error_classes
 
     # All good
-    assert fcdld._validate_data_header(X, y, n_samples, n_features, y_names)
+    assert fudd._validate_data_header(X, y, n_samples, n_features, y_names)
 
     # Empty names
-    assert fcdld._validate_data_header(X, y, n_samples, n_features,
-                                       np.array([]))
+    assert fudd._validate_data_header(X, y, n_samples, n_features,
+                                      np.array([]))
 
 
 def test_get_data_header(tmpdir):
     """
-    Tests :func:`fatf.core.datasets._get_data_header`.
+    Tests :func:`fatf.utils.data.datasets._get_data_header`.
     """
     value_error = ('The header is too short. Expecting at least 2 entries, '
                    'found 1.')
@@ -99,53 +99,53 @@ def test_get_data_header(tmpdir):
 
     write_to_temp('2\n1,0\n2,1')
     with pytest.raises(ValueError) as exin:
-        fcdld._get_data_header(temp_file_path)
+        fudd._get_data_header(temp_file_path)
     assert str(exin.value) == value_error
 
     write_to_temp('foo,2\n1,0\n2,1')
     with pytest.raises(TypeError) as exin:
-        fcdld._get_data_header(temp_file_path)
+        fudd._get_data_header(temp_file_path)
     assert str(exin.value).endswith(type_error_samples)
     write_to_temp('1.0,2\n1,0\n2,1')
     with pytest.raises(TypeError) as exin:
-        fcdld._get_data_header(temp_file_path)
+        fudd._get_data_header(temp_file_path)
     assert str(exin.value).endswith(type_error_samples)
     write_to_temp('1.5,2\n1,0\n2,1')
     with pytest.raises(TypeError) as exin:
-        fcdld._get_data_header(temp_file_path)
+        fudd._get_data_header(temp_file_path)
     assert str(exin.value).endswith(type_error_samples)
 
     write_to_temp('2,bar\n1,0\n2,1')
     with pytest.raises(TypeError) as exin:
-        fcdld._get_data_header(temp_file_path)
+        fudd._get_data_header(temp_file_path)
     assert str(exin.value).endswith(type_error_features)
     write_to_temp('2,2.0\n1,0\n2,1')
     with pytest.raises(TypeError) as exin:
-        fcdld._get_data_header(temp_file_path)
+        fudd._get_data_header(temp_file_path)
     assert str(exin.value).endswith(type_error_features)
     write_to_temp('2,2.5\n1,0\n2,1')
     with pytest.raises(TypeError) as exin:
-        fcdld._get_data_header(temp_file_path)
+        fudd._get_data_header(temp_file_path)
     assert str(exin.value).endswith(type_error_features)
 
     write_to_temp('2,3\n1,0,1,0\n2,1,55,1')
-    n_samples, n_features, targ_names = fcdld._get_data_header(temp_file_path)
+    n_samples, n_features, targ_names = fudd._get_data_header(temp_file_path)
     assert n_samples == 2 and n_features == 3 and is_empty_array(targ_names)
 
     write_to_temp('2,3,test1\n1,0,1,0\n2,1,55,1')
-    n_samples, n_features, targ_names = fcdld._get_data_header(temp_file_path)
+    n_samples, n_features, targ_names = fudd._get_data_header(temp_file_path)
     assert (n_samples == 2 and n_features == 3
             and np.array_equal(np.array(['test1']), targ_names))
 
     write_to_temp('200,333,test1,test0\n1,0,1,0\n2,1,55,1')
-    n_samples, n_features, targ_names = fcdld._get_data_header(temp_file_path)
+    n_samples, n_features, targ_names = fudd._get_data_header(temp_file_path)
     assert (n_samples == 200 and n_features == 333
             and np.array_equal(np.array(['test1', 'test0']), targ_names))
 
 
 def test_load_data(tmpdir):
     """
-    Tests :func:`fatf.core.datasets.load_data`.
+    Tests :func:`fatf.utils.data.datasets.load_data`.
     """
     value_error_feature_number = ('The number of feature names (3) is '
                                   'inconsistent with the number of features '
@@ -192,11 +192,11 @@ def test_load_data(tmpdir):
 
     # No feature names and incorrect type dtype
     with pytest.raises(TypeError) as exin:
-        fcdld.load_data(temp_file_path, dtype=7)
+        fudd.load_data(temp_file_path, dtype=7)
     assert str(exin.value) == type_error_dtype
 
     # No feature names and no dtype
-    loaded_data = fcdld.load_data(temp_file_path)
+    loaded_data = fudd.load_data(temp_file_path)
     assert np.array_equal(loaded_data['data'], simple_data)
     assert loaded_data['data'].dtype == np.int
     assert np.array_equal(loaded_data['target'], simple_target)
@@ -205,7 +205,7 @@ def test_load_data(tmpdir):
     assert np.array_equal(loaded_data['feature_names'], simple_feature_names_a)
 
     # No feature names and a simple dtype
-    loaded_data = fcdld.load_data(temp_file_path, dtype=np.float32)
+    loaded_data = fudd.load_data(temp_file_path, dtype=np.float32)
     assert np.array_equal(loaded_data['data'], simple_data)
     assert loaded_data['data'].dtype == np.float32
     assert np.array_equal(loaded_data['target'], simple_target)
@@ -213,7 +213,7 @@ def test_load_data(tmpdir):
     assert np.array_equal(loaded_data['target_names'], simple_target_names)
     assert np.array_equal(loaded_data['feature_names'], simple_feature_names_a)
     #
-    loaded_data = fcdld.load_data(temp_file_path, dtype='f')
+    loaded_data = fudd.load_data(temp_file_path, dtype='f')
     assert np.array_equal(loaded_data['data'], simple_data)
     assert loaded_data['data'].dtype == np.float32
     assert np.array_equal(loaded_data['target'], simple_target)
@@ -221,7 +221,7 @@ def test_load_data(tmpdir):
     assert np.array_equal(loaded_data['target_names'], simple_target_names)
     assert np.array_equal(loaded_data['feature_names'], simple_feature_names_a)
     #
-    loaded_data = fcdld.load_data(temp_file_path, dtype=float)
+    loaded_data = fudd.load_data(temp_file_path, dtype=float)
     assert np.array_equal(loaded_data['data'], simple_data)
     assert loaded_data['data'].dtype == np.float64
     assert np.array_equal(loaded_data['target'], simple_target)
@@ -233,7 +233,7 @@ def test_load_data(tmpdir):
     my_dtype = [('a', np.float64), ('b', 'f')]
     my_names = np.array(['a', 'b'])
     my_data = np.array([(1., 2.), (2., 2.)], dtype=my_dtype)
-    loaded_data = fcdld.load_data(temp_file_path, dtype=my_dtype)
+    loaded_data = fudd.load_data(temp_file_path, dtype=my_dtype)
     assert fuv.is_structured_array(loaded_data['data'])
     assert np.array_equal(loaded_data['data'], my_data)
     for i in range(len(my_dtype)):
@@ -246,20 +246,20 @@ def test_load_data(tmpdir):
     # ...incorrect complex dtype
     my_dtype = [('a', np.float64), 'b']
     with pytest.raises(ValueError) as exin:
-        fcdld.load_data(temp_file_path, dtype=my_dtype)
+        fudd.load_data(temp_file_path, dtype=my_dtype)
     assert str(exin.value) == value_error_dtype_tuple.format('b')
     my_dtype = [('a', np.float64), ('b', )]
     with pytest.raises(ValueError) as exin:
-        fcdld.load_data(temp_file_path, dtype=my_dtype)
+        fudd.load_data(temp_file_path, dtype=my_dtype)
     assert str(exin.value) == value_error_dtype_tuple.format("('b',)")
     my_dtype = [('a', np.float64), (np.float64, 'b')]
     with pytest.raises(TypeError) as exin:
-        fcdld.load_data(temp_file_path, dtype=my_dtype)
+        fudd.load_data(temp_file_path, dtype=my_dtype)
     e_format = "<class 'numpy.float64'>"
     assert str(exin.value) == type_error_dtype_str.format(e_format)
     my_dtype = [('a', np.float64)]
     with pytest.raises(ValueError) as exin:
-        fcdld.load_data(temp_file_path, dtype=my_dtype)
+        fudd.load_data(temp_file_path, dtype=my_dtype)
     assert str(exin.value) == value_error_dtype_number
 
     # No feature names and a complex dtype -- including target
@@ -267,7 +267,7 @@ def test_load_data(tmpdir):
     my_names = np.array(['a', 'b'])
     my_target = np.array(['0', '1'])
     my_data = np.array([(1., 2.), (2., 2.)], dtype=my_dtype[:-1])
-    loaded_data = fcdld.load_data(temp_file_path, dtype=my_dtype)
+    loaded_data = fudd.load_data(temp_file_path, dtype=my_dtype)
     assert fuv.is_structured_array(loaded_data['data'])
     assert np.array_equal(loaded_data['data'], my_data)
     for i in range(len(my_dtype[:-1])):
@@ -282,13 +282,13 @@ def test_load_data(tmpdir):
 
     # feature_names supplied and incorrect dtype
     with pytest.raises(TypeError) as exin:
-        fcdld.load_data(temp_file_path, feature_names=['a', 'b'], dtype=7)
+        fudd.load_data(temp_file_path, feature_names=['a', 'b'], dtype=7)
     assert str(exin.value) == type_error_dtype
 
     # feature_names supplied and no dtype
     my_names = ['a', 'b']
     my_names_np = np.array(my_names)
-    loaded_data = fcdld.load_data(temp_file_path, feature_names=my_names)
+    loaded_data = fudd.load_data(temp_file_path, feature_names=my_names)
     assert np.array_equal(loaded_data['data'], simple_data)
     assert loaded_data['data'].dtype == np.int
     assert np.array_equal(loaded_data['target'], simple_target)
@@ -298,18 +298,18 @@ def test_load_data(tmpdir):
     # ...wrong type
     wrong_type = ['a', 3]
     with pytest.raises(TypeError) as exin:
-        fcdld.load_data(temp_file_path, feature_names=wrong_type)
+        fudd.load_data(temp_file_path, feature_names=wrong_type)
     assert str(exin.value) == type_error_feature_string
     # ...wrong quantity
     wrong_type = ['a', 'c', 'b']
     with pytest.raises(ValueError) as exin:
-        fcdld.load_data(temp_file_path, feature_names=wrong_type)
+        fudd.load_data(temp_file_path, feature_names=wrong_type)
     assert str(exin.value) == value_error_feature_number
 
     # feature_names supplied and a simple dtype
     my_names = ['a', 'b']
     my_names_np = np.array(my_names)
-    loaded_data = fcdld.load_data(
+    loaded_data = fudd.load_data(
         temp_file_path, feature_names=my_names, dtype=np.float32)
     assert np.array_equal(loaded_data['data'], simple_data)
     assert loaded_data['data'].dtype == np.float32
@@ -318,7 +318,7 @@ def test_load_data(tmpdir):
     assert np.array_equal(loaded_data['target_names'], simple_target_names)
     assert np.array_equal(loaded_data['feature_names'], my_names_np)
     #
-    loaded_data = fcdld.load_data(
+    loaded_data = fudd.load_data(
         temp_file_path, feature_names=my_names, dtype='f')
     assert np.array_equal(loaded_data['data'], simple_data)
     assert loaded_data['data'].dtype == np.float32
@@ -327,7 +327,7 @@ def test_load_data(tmpdir):
     assert np.array_equal(loaded_data['target_names'], simple_target_names)
     assert np.array_equal(loaded_data['feature_names'], my_names_np)
     #
-    loaded_data = fcdld.load_data(
+    loaded_data = fudd.load_data(
         temp_file_path, feature_names=my_names, dtype=float)
     assert np.array_equal(loaded_data['data'], simple_data)
     assert loaded_data['data'].dtype == np.float64
@@ -340,38 +340,38 @@ def test_load_data(tmpdir):
     my_names = ['a', 'b']
     my_types = [('a', int), ('b', int)]
     with pytest.raises(ValueError) as exin:
-        fcdld.load_data(temp_file_path, feature_names=my_names, dtype=my_types)
+        fudd.load_data(temp_file_path, feature_names=my_names, dtype=my_types)
     assert str(exin.value) == value_error_dual_names
 
     # feature_names supplied and a complex dtype -- including target
     my_names = ['a', 'b']
     my_types = [('a', int), ('b', float), ('targ', int)]
     with pytest.raises(ValueError) as exin:
-        fcdld.load_data(temp_file_path, feature_names=my_names, dtype=my_types)
+        fudd.load_data(temp_file_path, feature_names=my_names, dtype=my_types)
     assert str(exin.value) == value_error_dual_names
 
     ##########
 
     # Incorrect feature_names supplied and incorrect dtype
     with pytest.raises(TypeError) as exin:
-        fcdld.load_data(temp_file_path, feature_names=4, dtype=2)
+        fudd.load_data(temp_file_path, feature_names=4, dtype=2)
     assert str(exin.value) == type_error_feature_names
 
     # Incorrect feature_names supplied and no dtype
     with pytest.raises(TypeError) as exin:
-        fcdld.load_data(temp_file_path, feature_names=4)
+        fudd.load_data(temp_file_path, feature_names=4)
     assert str(exin.value) == type_error_feature_names
 
     # Incorrect feature_names supplied and a simple dtype
     with pytest.raises(TypeError) as exin:
-        fcdld.load_data(temp_file_path, feature_names=4, dtype=np.int)
+        fudd.load_data(temp_file_path, feature_names=4, dtype=np.int)
     assert str(exin.value) == type_error_feature_names
 
     # Incorrect feature_names supplied and a complex dtype
     my_names = ['a', 'b']
     my_types = [('a', int), ('b', float), ('targ', int)]
     with pytest.raises(TypeError) as exin:
-        fcdld.load_data(temp_file_path, feature_names=4, dtype=my_types)
+        fudd.load_data(temp_file_path, feature_names=4, dtype=my_types)
     assert str(exin.value) == type_error_feature_names
 
     # A mixture of categorical and numerical feature and a categorical target
@@ -385,7 +385,7 @@ def test_load_data(tmpdir):
     my_target = np.array(['pass', 'fail'], dtype=string_type.format('4'))
     my_target_names = np.array(['fail', 'pass'])
     #
-    loaded_data = fcdld.load_data(temp_file_path)
+    loaded_data = fudd.load_data(temp_file_path)
     assert np.array_equal(loaded_data['data'], my_data)
     for i in range(len(my_feature_names)):
         assert loaded_data['data'].dtype.names[i] == my_feature_names[i]
@@ -400,7 +400,7 @@ def test_load_data(tmpdir):
     my_feature_dtype = [('f0', np.int),
                         ('f1', np.dtype(string_type.format('3')))]
     my_data = np.array([(1, 'foo'), (2, 'bar')], dtype=my_feature_dtype)
-    loaded_data = fcdld.load_data(
+    loaded_data = fudd.load_data(
         temp_file_path, feature_names=my_feature_names)
     assert np.array_equal(loaded_data['data'], my_data)
     for i in range(len(my_feature_names)):
@@ -414,7 +414,7 @@ def test_load_data(tmpdir):
 
 def test_load_iris():
     """
-    Tests :func:`fatf.core.datasets.load_iris`.
+    Tests :func:`fatf.utils.data.datasets.load_iris`.
     """
     # Check the first, middle and last entry in the dataset.
     n_samples = 150
@@ -430,7 +430,7 @@ def test_load_iris():
         'petal width (cm)'
     ])
 
-    iris_data = fcdld.load_iris()
+    iris_data = fudd.load_iris()
     assert not fuv.is_structured_array(iris_data['data'])
     assert iris_data['data'].shape == (n_samples, n_features)
     assert iris_data['target'].shape == (n_samples, )
@@ -443,7 +443,7 @@ def test_load_iris():
 
 def test_load_health_records():
     """
-    Tests :func:`fatf.core.datasets.load_health_records`.
+    Tests :func:`fatf.utils.data.datasets.load_health_records`.
     """
     # Check the first, middle and last entry in the dataset.
     n_samples = 21
@@ -463,7 +463,7 @@ def test_load_health_records():
     target_names = np.array(['fail', 'success'])
     feature_names = np.array([x for (x, y) in dtypes])
 
-    cat_data = fcdld.load_health_records()
+    cat_data = fudd.load_health_records()
     assert fuv.is_structured_array(cat_data['data'])
     assert cat_data['data'].shape == (n_samples, )
     assert len(cat_data['data'].dtype.names) == n_features

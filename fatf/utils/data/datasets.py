@@ -20,7 +20,7 @@ __all__ = ['load_data', 'load_health_records', 'load_iris']
 _NUMPY_VERSION = [int(i) for i in np.version.version.split('.')]
 _NUMPY_1_14 = fut.at_least_verion([1, 14], _NUMPY_VERSION)
 
-_DATA_PATH = os.path.join(os.path.dirname(__file__), 'data')
+_DATA_PATH = os.path.join(os.path.dirname(__file__), 'datasets')
 
 
 def _validate_data_header(X: np.ndarray, y: np.ndarray, n_samples: int,

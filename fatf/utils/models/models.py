@@ -16,7 +16,7 @@ import fatf.utils.validation as fuv
 from fatf.exceptions import (IncorrectShapeError, PrefittedModelError,
                              UnfittedModelError)
 
-__all__ = ['KNN']
+__all__ = []
 
 
 class Model(abc.ABC):

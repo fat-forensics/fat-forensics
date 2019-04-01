@@ -77,11 +77,13 @@ def test_describe_numerical_array():
     with pytest.warns(RuntimeWarning) as w:
         array_description = ftddf.describe_numerical_array(
             array, skip_nans=False)
+    for i in range(len(w)):
+        print(w[i])
+        print(w[i].message)
+        assert str(w[i].message).startswith(runtime_warning)
+    assert len(w) == 3
     assert set(NUMERICAL_KEYS) == set(description.keys())
     assert set(NUMERICAL_KEYS) == set(array_description.keys())
-    assert len(w) == 3
-    for i in range(len(w)):
-        assert str(w[i].message).startswith(runtime_warning)
     for i in NUMERICAL_KEYS:
         true = description[i]
         computed = array_description[i]
@@ -347,7 +349,7 @@ def test_describe_array():
             for i in NUMERICAL_KEYS:
                 col_d = column_description[i]
                 gt_d = description_num[col_id][i]
-                if np.isnan(col_d) and np.isnan(gt_d):
+                if np.isnan(col_d) and np.isnan(gt_d):  # pragma: no cover
                     assert True
                 else:
                     assert pytest.approx(col_d, abs=1e-3) == gt_d
@@ -424,7 +426,7 @@ def test_describe_array():
         for i in NUMERICAL_KEYS:
             col_d = column_description[i]
             gt_d = description_num_nan[col_id][i]
-            if np.isnan(col_d) and np.isnan(gt_d):
+            if np.isnan(col_d) and np.isnan(gt_d):  # pragma: no cover
                 assert True
             else:
                 assert pytest.approx(col_d, abs=1e-3) == gt_d
@@ -477,7 +479,7 @@ def test_describe_array():
         for i in NUMERICAL_KEYS:
             col_d = column_description[i]
             gt_d = description_num_nan[col_id][i]
-            if np.isnan(col_d) and np.isnan(gt_d):
+            if np.isnan(col_d) and np.isnan(gt_d):  # pragma: no cover
                 assert True
             else:
                 assert pytest.approx(col_d, abs=1e-3) == gt_d
@@ -491,7 +493,7 @@ def test_describe_array():
         for i in NUMERICAL_KEYS:
             col_d = column_description[i]
             gt_d = description_num_nan[col_id][i]
-            if np.isnan(col_d) and np.isnan(gt_d):
+            if np.isnan(col_d) and np.isnan(gt_d):  # pragma: no cover
                 assert True
             else:
                 assert pytest.approx(col_d, abs=1e-3) == gt_d
@@ -521,7 +523,7 @@ def test_describe_array():
         for i in NUMERICAL_KEYS:
             col_d = column_description[i]
             gt_d = description_num[col_id][i]
-            if np.isnan(col_d) and np.isnan(gt_d):
+            if np.isnan(col_d) and np.isnan(gt_d):  # pragma: no cover
                 assert True
             else:
                 assert pytest.approx(col_d, abs=1e-3) == gt_d
@@ -535,7 +537,7 @@ def test_describe_array():
         for i in NUMERICAL_KEYS:
             col_d = column_description[i]
             gt_d = description_num[col_id][i]
-            if np.isnan(col_d) and np.isnan(gt_d):
+            if np.isnan(col_d) and np.isnan(gt_d):  # pragma: no cover
                 assert True
             else:
                 assert pytest.approx(col_d, abs=1e-3) == gt_d
@@ -570,7 +572,7 @@ def test_describe_array():
         for i in NUMERICAL_KEYS:
             col_d = column_description[i]
             gt_d = description_num[col_id][i]
-            if np.isnan(col_d) and np.isnan(gt_d):
+            if np.isnan(col_d) and np.isnan(gt_d):  # pragma: no cover
                 assert True
             else:
                 assert pytest.approx(col_d, abs=1e-3) == gt_d
@@ -584,7 +586,7 @@ def test_describe_array():
         for i in NUMERICAL_KEYS:
             col_d = column_description[i]
             gt_d = description_num[col_id][i]
-            if np.isnan(col_d) and np.isnan(gt_d):
+            if np.isnan(col_d) and np.isnan(gt_d):  # pragma: no cover
                 assert True
             else:
                 assert pytest.approx(col_d, abs=1e-3) == gt_d

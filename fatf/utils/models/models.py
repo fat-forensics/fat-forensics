@@ -6,7 +6,7 @@ Includes custom predictive models used for FAT-Forensics testing and examples.
 
 import abc
 
-from typing import List, Optional  # pylint: disable=unused-import
+from typing import Optional
 
 import numpy as np
 

@@ -13,10 +13,12 @@ import fatf.transparency.data.describe_functions as ftddf
 
 from fatf.exceptions import IncorrectShapeError
 
-NUMERICAL_KEYS = ['count', 'mean', 'std', 'max', 'min', '25%', '50%', '75%',
-                  'nan_count']
-CATEGORICAL_KEYS = ['count', 'count_unique', 'unique', 'most_common',
-                    'most_common_count', 'hist']
+NUMERICAL_KEYS = [
+    'count', 'mean', 'std', 'max', 'min', '25%', '50%', '75%', 'nan_count'
+]
+CATEGORICAL_KEYS = [
+    'count', 'unique', 'unique_counts', 'top', 'freq', 'is_top_unique'
+]
 
 
 def test_describe_numerical_array():
@@ -53,7 +55,7 @@ def test_describe_numerical_array():
                             ('d', np.int32), ('e', np.float), ('f', int)])
     description = {'count': 6, 'mean': 17.5, 'std': 11.011, 'max': 33,
                    'min': 4, '25%': 9.25, '50%': 16.5, '75%': 24.75,
-                   'nan_count': 2}
+                   'nan_count': 2}  # yapf: disable
     array_description = ftddf.describe_numerical_array(array[0])
     assert set(NUMERICAL_KEYS) == set(description.keys())
     assert set(NUMERICAL_KEYS) == set(array_description.keys())
@@ -67,12 +69,11 @@ def test_describe_numerical_array():
     for i in NUMERICAL_KEYS:
         assert pytest.approx(array_description[i], abs=1e-3) == description[i]
 
-
     # Array with nans -- classic array; do not ignore nans
     array = np.array([33, 22, np.nan, 11, np.nan, 4])
     description = {'count': 6, 'mean': np.nan, 'std': np.nan, 'max': np.nan,
                    'min': np.nan, '25%': np.nan, '50%': np.nan, '75%': np.nan,
-                   'nan_count': 2}
+                   'nan_count': 2}  # yapf: disable
     with pytest.warns(RuntimeWarning) as w:
         array_description = ftddf.describe_numerical_array(
             array, skip_nans=False)
@@ -93,7 +94,7 @@ def test_describe_numerical_array():
     array = np.array([33, 22, 11, 4])
     description = {'count': 4, 'mean': 17.5, 'std': 11.011, 'max': 33,
                    'min': 4, '25%': 9.25, '50%': 16.5, '75%': 24.75,
-                   'nan_count': 0}
+                   'nan_count': 0}  # yapf: disable
     array_description = ftddf.describe_numerical_array(array, skip_nans=True)
     assert set(NUMERICAL_KEYS) == set(description.keys())
     assert set(NUMERICAL_KEYS) == set(array_description.keys())
@@ -108,123 +109,520 @@ def test_describe_numerical_array():
         assert pytest.approx(array_description[i], abs=1e-3) == description[i]
 
 
-input_describe_categorical_0 = np.array(['a', 'b', 'a'])
-expected_describe_categorical_0 = {'count' : 3,
-                                'count_unique': 2,
-                                'unique': ['a', 'b'],
-                                'most_common': 'a',
-                                'most_common_count': 2,
-                                 'hist': {'a': 2, 'b':1},
-                                 }
-
-
-@pytest.mark.parametrize("input_series, expected_output",
-                         [(input_describe_categorical_0, expected_describe_categorical_0)
-                          ])
-def test_describe_categorical_array(input_series, expected_output):
+def test_describe_categorical_array():
     """
     Tests :func:`fatf.transparency.data.describe.describe_categorical_array`.
     """
-    return
-    output = ftddf.describe_categorical_array(input_series)
-    for key, val in expected_output.items():
-        assert key in output.keys()
-        assert np.all(val == output[key])
+    incorrect_shape_error = 'The input array should be 1-dimensional.'
+    value_error_non_numerical = 'The input array should be purely categorical.'
+    value_error_empty = 'The input array cannot be empty.'
 
-input_dataset0 = np.array([('Heidi Mitchell', 'uboyd@hotmail.com', 74, 52, 'female', '1121', 'cancer', '03/06/2018'),
-       ('Tina Burns', 'stevenwheeler@williams.bi',  3, 86, 'female', '0323', 'hip', '26/09/2017'),
-       ('Bryan Norton', 'erica36@hotmail.com', 48, 57, 'male', '0301', 'hip', '09/09/2012'),
-       ('Ms. Erin Craig', 'ritterluke@gmail.com', 30, 98, 'male', '2223', 'cancer', '04/11/2006'),],
-      dtype=[('name', '<U16'), ('email', '<U25'), ('age', '<i4'),
-             ('weight', '<i4'), ('gender', '<U6'), ('zipcode', '<U6'),
-             ('diagnosis', '<U6'), ('dob', '<U10')])
+    # Wrong shape
+    array = np.array([[5, 33], [22, 17]])
+    with pytest.raises(IncorrectShapeError) as exin:
+        ftddf.describe_categorical_array(array)
+    assert str(exin.value) == incorrect_shape_error
 
-expected_output0 = {'f': {'age': {'25%': 20.75,
-                       '50%': 38.5,
-                       '75%': 56.25,
-                       'count': 2,
-                       'max': 74,
-                       'mean': 38.5,
-                       'min': 3,
-                       'std': 35.5}},
-                     'm': {'age': {'25%': 34.5,
-                       '50%': 39.0,
-                       '75%': 43.5,
-                       'count': 2,
-                       'max': 48,
-                       'mean': 39.0,
-                       'min': 30,
-                       'std': 9.0}}}
+    # Empty array
+    array = np.array([], dtype=np.int32)
+    with pytest.raises(ValueError) as exin:
+        ftddf.describe_categorical_array(array)
+    assert str(exin.value) == value_error_empty
 
-condition0 = np.array(['f', 'f', 'm', 'm'])
-todescribe0 = ['age']
+    # Wrong type
+    array = np.array([5, 33])
+    with pytest.raises(ValueError) as exin:
+        ftddf.describe_categorical_array(array)
+    assert str(exin.value) == value_error_non_numerical
 
-expected_output1 = {'age': {'25%': 23.25,
-                          '50%': 39.0,
-                          '75%': 54.5,
-                          'count': 4,
-                          'max': 74,
-                          'mean': 38.75,
-                          'min': 3,
-                          'std': 25.897635027160298}}
+    # Structured row
+    array = np.array([('aa', 'bb', 'abc', 'd', 'bb')],
+                     dtype=[('a', 'U2'), ('b', 'U2'), ('c', 'U3'), ('d', 'U4'),
+                            ('e', 'U2')])
+    description = {'count': 5, 'unique': np.array(['aa', 'abc', 'bb', 'd']),
+                   'unique_counts': np.array([1, 1, 2, 1]), 'top': 'bb',
+                   'freq': 2, 'is_top_unique': True}  # yapf: disable
+    array_description = ftddf.describe_categorical_array(array[0])
+    assert set(CATEGORICAL_KEYS) == set(description.keys())
+    assert set(CATEGORICAL_KEYS) == set(array_description.keys())
+    for i in CATEGORICAL_KEYS:
+        if isinstance(description[i], (str, bool, int)):
+            assert array_description[i] == description[i]
+        elif isinstance(description[i], np.ndarray):
+            assert np.array_equal(array_description[i], description[i])
+        else:  # pragma: no cover
+            assert False, 'Unrecognised type!'
 
-@pytest.mark.parametrize("input_dataset, condition, todescribe, expected_output",
-                         [(input_dataset0, condition0, todescribe0, expected_output0),
-                          (input_dataset0, None, todescribe0, expected_output1)])
-def test_describe_array(input_dataset, condition, todescribe, expected_output):
+    # Classic array -- more than one top
+    array = np.array(['d', 'bb', 'abc', 'd', 'bb'])
+    description = {'count': 5, 'unique': np.array(['abc', 'bb', 'd']),
+                   'unique_counts': np.array([1, 2, 2]), 'top': 'bb',
+                   'freq': 2, 'is_top_unique': False}  # yapf: disable
+    array_description = ftddf.describe_categorical_array(array)
+    assert set(CATEGORICAL_KEYS) == set(description.keys())
+    assert set(CATEGORICAL_KEYS) == set(array_description.keys())
+    for i in CATEGORICAL_KEYS:
+        if isinstance(description[i], (str, bool, int)):
+            assert array_description[i] == description[i]
+        elif isinstance(description[i], np.ndarray):
+            assert np.array_equal(array_description[i], description[i])
+        else:  # pragma: no cover
+            assert False, 'Unrecognised type!'
+
+
+def test_describe_array():
     """
     Tests :func:`fatf.transparency.data.describe.describe_array`.
     """
-    return
-    output = ftddf.describe_array(input_dataset, todescribe=todescribe, condition=condition)
-    for key, val in expected_output.items():
-        assert key in output.keys()
-        if type(val) == dict:
-            for key2, val2 in val.items():
-                assert key2 in output[key].keys()
-                assert np.all(val2 == output[key][key2])
+    incorrect_shape_error = 'The input array should be 1- or 2-dimensional.'
+    value_error_non_base = ('The input array should be of a base type (a '
+                            'mixture of numerical and textual types).')
+    user_warning = ('The input array is 1-dimensional. Ignoring include and '
+                    'exclude parameters.')
+    value_error_0_columns = 'The input array cannot have 0 columns.'
+    value_error_include_index = ('The following include index is not valid '
+                                 'for the input array: {}.')
+    value_error_include_indices = ('The following include indices are not '
+                                   'valid for the input array: {}.')
+    type_error_include = ('The include parameter can either be a string, an '
+                          'integer or a list of these two types.')
+    value_error_exclude_index = ('The following exclude index is not valid '
+                                 'for the input array: {}.')
+    value_error_exclude_indices = ('The following exclude indices are not '
+                                   'valid for the input array: {}.')
+    type_error_exclude = ('The exclude parameter can either be a string, an '
+                          'integer or a list of these two types.')
+    runtime_error = 'None of the columns were selected to be described.'
+    runtime_warning = 'Invalid value encountered in percentile'
 
-condition1 = np.array(['f', 'm'])
-@pytest.mark.parametrize("input_dataset, condition, todescribe",
-                         [(input_dataset0, condition1, todescribe0, )])
-def test_describe_array2(input_dataset, condition, todescribe):
-    with pytest.raises(ValueError):
-        ftddf.describe_array(input_dataset, todescribe=todescribe, condition=condition)
+    # Wrong shape
+    array = np.ones((2, 2, 2), dtype=np.int32)
+    with pytest.raises(IncorrectShapeError) as exin:
+        ftddf.describe_array(array)
+    assert str(exin.value) == incorrect_shape_error
 
-def test_generic():
-    testdata = np.array([('Heidi Mitchell', 'uboyd@hotmail.com', 74, 52, 'female', '1121', 'cancer', '03/06/2018'),
-       ('Tina Burns', 'stevenwheeler@williams.bi',  3, 86, 'female', '0323', 'hip', '26/09/2017'),
-       ('Justin Brown', 'velasquezjake@gmail.com', 26, 56, 'female', '0100', 'heart', '31/12/2015'),
-       ('Brent Parker', 'kennethsingh@strong-foley', 70, 57, 'male', '3131', 'heart', '02/10/2011'),
-       ('Bryan Norton', 'erica36@hotmail.com', 48, 57, 'male', '0301', 'hip', '09/09/2012'),
-       ('Ms. Erin Craig', 'ritterluke@gmail.com', 30, 98, 'male', '2223', 'cancer', '04/11/2006'),
-       ('Gerald Park', 'larrylee@hayes-brown.net', 41, 73, 'female', '0101', 'heart', '15/12/2015'),
-       ('Monica Fry', 'morenocraig@howard.com', 24,  1, 'male', '1212', 'hip', '21/12/2005'),
-       ('Michael Smith', 'edward72@dunlap-jackson.c', 44, 66, 'male', '0111', 'hip', '07/11/2012'),
-       ('Dean Campbell', 'michele18@hotmail.com', 62, 96, 'female', '2320', 'lung', '22/01/2009'),
-       ('Kimberly Kent', 'wilsoncarla@mitchell-gree', 63, 51, 'male', '2003', 'cancer', '16/06/2017'),
-       ('Michael Burnett', 'collin04@scott.org', 26, 88, 'male', '0301', 'heart', '07/03/2009'),
-       ('Patricia Richard', 'deniserodriguez@hotmail.c', 94, 64, 'female', '3310', 'heart', '20/08/2006'),
-       ('Joshua Ramos', 'michaelolson@yahoo.com', 59, 19, 'female', '3013', 'cancer', '22/07/2005'),
-       ('Samuel Fletcher', 'jessicagarcia@hotmail.com', 14, 88, 'female', '1211', 'lung', '29/07/2004'),
-       ('Donald Hess', 'rking@gray-mueller.com', 16, 15, 'male', '0102', 'hip', '16/09/2010'),
-       ('Rebecca Thomas', 'alex57@gmail.com', 94, 48, 'female', '0223', 'cancer', '05/02/2000'),
-       ('Hannah Osborne', 'ericsullivan@austin.com', 41, 25, 'female', '0212', 'heart', '11/06/2012'),
-       ('Sarah Nelson', 'davidcruz@hood-mathews.co', 36, 57, 'female', '0130', 'cancer', '13/01/2003'),
-       ('Angela Kelly', 'pwilson@howell-bryant.com', 37, 52, 'female', '1023', 'heart', '28/03/2009'),
-       ('Susan Williams', 'smithjoshua@allen.com', 21, 42, 'male', '0203', 'lung', '15/11/2005')],
-      dtype=[('name', '<U16'), ('email', '<U25'), ('age', '<i4'), ('weight', '<i4'), ('gender', '<U6'), ('zipcode', '<U6'), ('diagnosis', '<U6'), ('dob', '<U10')])
+    # Wrong type
+    array = np.array([[2, None, 2], [7, 4, 7]])
+    with pytest.raises(ValueError) as exin:
+        ftddf.describe_array(array)
+    assert str(exin.value) == value_error_non_base
 
-    testdata2 = np.array([('Heidi Mitchell', 'uboyd@hotmail.com', 74, 52, 'female', '1121', 'cancer', '03/06/2018'),
-       ('Tina Burns', 'stevenwheeler@williams.bi',  3, 86, 'female', '0323', 'hip', '26/09/2017'),
-       ('Bryan Norton', 'erica36@hotmail.com', 48, 57, 'male', '0301', 'hip', '09/09/2012'),
-       ('Ms. Erin Craig', 'ritterluke@gmail.com', 30, 98, 'male', '2223', 'cancer', '04/11/2006'),],
-      dtype=[('name', '<U16'), ('email', '<U25'), ('age', '<i4'),
-             ('weight', '<i4'), ('gender', '<U6'), ('zipcode', '<U6'),
-             ('diagnosis', '<U6'), ('dob', '<U10')])
+    # 1D categorical array -- no include & exclude
+    array = np.array([2, '44', 2, 44])
+    description = {'count': 4, 'unique': np.array(['2', '44']),
+                   'unique_counts': np.array([2, 2]), 'top': '2', 'freq': 2,
+                   'is_top_unique': False}  # yapf: disable
+    array_description = ftddf.describe_array(array)
+    assert set(CATEGORICAL_KEYS) == set(description.keys())
+    assert set(CATEGORICAL_KEYS) == set(array_description.keys())
+    for i in CATEGORICAL_KEYS:
+        if isinstance(description[i], (str, bool, int)):
+            assert array_description[i] == description[i]
+        elif isinstance(description[i], np.ndarray):
+            assert np.array_equal(array_description[i], description[i])
+        else:  # pragma: no cover
+            assert False, 'Unrecognised type!'
+    # Skip nans
+    array_description = ftddf.describe_array(array, skip_nans=False)
+    assert set(CATEGORICAL_KEYS) == set(description.keys())
+    assert set(CATEGORICAL_KEYS) == set(array_description.keys())
+    for i in CATEGORICAL_KEYS:
+        if isinstance(description[i], (str, bool, int)):
+            assert array_description[i] == description[i]
+        elif isinstance(description[i], np.ndarray):
+            assert np.array_equal(array_description[i], description[i])
+        else:  # pragma: no cover
+            assert False, 'Unrecognised type!'
 
-    a=ftddf.describe_array(testdata2, todescribe=['age'], condition=np.array(['f', 'f', 'm', 'm']))
-    print(a)
+    # 1D categorical array -- include & not exclude
+    array = np.array([2, '44', 2, 44])
+    description = {'count': 4, 'unique': np.array(['2', '44']),
+                   'unique_counts': np.array([2, 2]), 'top': '2', 'freq': 2,
+                   'is_top_unique': False}  # yapf: disable
+    with pytest.warns(UserWarning) as w:
+        array_description = ftddf.describe_array(array, exclude='unimportant')
+    assert len(w) == 1
+    assert str(w[0].message) == user_warning
+    #
+    assert set(CATEGORICAL_KEYS) == set(description.keys())
+    assert set(CATEGORICAL_KEYS) == set(array_description.keys())
+    for i in CATEGORICAL_KEYS:
+        if isinstance(description[i], (str, bool, int)):
+            assert array_description[i] == description[i]
+        elif isinstance(description[i], np.ndarray):
+            assert np.array_equal(array_description[i], description[i])
+        else:  # pragma: no cover
+            assert False, 'Unrecognised type!'
 
-    a=ftddf.describe_array(testdata2, todescribe=['age'])
-    print(a)
+    # 1D structured numerical array -- include & exclude -- ignore nans
+    array = np.array([(33, 22, np.nan, 11, np.nan, 4)],
+                     dtype=[('a', int), ('b', int), ('c', np.float),
+                            ('d', np.int32), ('e', np.float), ('f', int)])
+    description = {'count': 6, 'mean': 17.5, 'std': 11.011, 'max': 33,
+                   'min': 4, '25%': 9.25, '50%': 16.5, '75%': 24.75,
+                   'nan_count': 2}  # yapf: disable
+    with pytest.warns(UserWarning) as w:
+        array_description = ftddf.describe_array(
+            array[0], exclude='unimportant', include='nope')
+    assert len(w) == 1
+    assert str(w[0].message) == user_warning
+    #
+    assert set(NUMERICAL_KEYS) == set(description.keys())
+    assert set(NUMERICAL_KEYS) == set(array_description.keys())
+    for i in NUMERICAL_KEYS:
+        assert pytest.approx(array_description[i], abs=1e-3) == description[i]
+
+    # 1D numerical array -- include & not exclude -- do not filter nans
+    description = {'count': 6, 'mean': np.nan, 'std': np.nan, 'max': np.nan,
+                   'min': np.nan, '25%': np.nan, '50%': np.nan, '75%': np.nan,
+                   'nan_count': 2}  # yapf: disable
+    with pytest.warns(None) as w:
+        array_description = ftddf.describe_array(
+            array[0], include='unimportant', skip_nans=False)
+    assert len(w) == 4
+    assert issubclass(w[0].category, UserWarning)
+    assert str(w[0].message) == user_warning
+    for i in range(1, len(w)):
+        assert issubclass(w[i].category, RuntimeWarning)
+        assert str(w[i].message).startswith(runtime_warning)
+    #
+    assert set(NUMERICAL_KEYS) == set(description.keys())
+    assert set(NUMERICAL_KEYS) == set(array_description.keys())
+    for i in NUMERICAL_KEYS:
+        true = description[i]
+        computed = array_description[i]
+        if np.isnan(true) and np.isnan(computed):
+            assert True
+        else:
+            assert true == computed
+
+    # A 2D array with 0 columns
+    array = np.ndarray((10, 0), dtype=np.int32)
+    with pytest.raises(ValueError) as exin:
+        ftddf.describe_array(array)
+    assert str(exin.value) == value_error_0_columns
+
+    # Testing arrays
+    numerical_indices_struct = ['a', 'b', 'd']
+    array_num = np.array([[33, 0.5, 11], [17, 2.22, 22], [22, 3.33, -5],
+                          [0, np.nan, 0]])
+    array_cat = np.array([['one', 'four'], ['six', 'xyz'], ['one', 'xyz'],
+                          ['s', 'four']])
+    array_struct = np.array([(33, 0.5, 'one', 11, 'four'),
+                             (17, 2.22, 'six', 22, 'xyz'),
+                             (22, 3.33, 'one', -5, 'xyz'),
+                             (0, np.nan, 's', 0, 'four')],
+                            dtype=[('a', int), ('b', float), ('c', 'U3'),
+                                   ('d', np.int32), ('e', 'U4')])
+    # yapf: disable
+    num_c0 = {'count': 4, 'mean': 18, 'std': 11.895, 'max': 33, 'min': 0,
+              '25%': 12.75, '50%': 19.5, '75%': 24.75, 'nan_count': 0}
+    num_c1 = {'count': 4, 'mean': 2.017, 'std': 1.164, 'max': 3.33, 'min': 0.5,
+              '25%': 1.36, '50%': 2.22, '75%': 2.775, 'nan_count': 1}
+    num_c1_nan = {'count': 4, 'mean': np.nan, 'std': np.nan, 'max': np.nan,
+                  'min': np.nan, '25%': np.nan, '50%': np.nan, '75%': np.nan,
+                  'nan_count': 1}
+    num_c2 = {'count': 4, 'mean': 7, 'std': 10.416, 'max': 22, 'min': -5,
+              '25%': -1.25, '50%': 5.5, '75%': 13.75, 'nan_count': 0}
+    description_num = {'a': num_c0, 'b': num_c1, 'd': num_c2, 0: num_c0,
+                       1: num_c1, 3: num_c2, 2: num_c2}
+    description_num_nan = {'a': num_c0, 'b': num_c1_nan, 'd': num_c2,
+                           0: num_c0, 1: num_c1_nan, 3: num_c2, 2: num_c2}
+    cat_c0 = {'count': 4, 'unique': np.array(['one', 's', 'six']),
+              'unique_counts': np.array([2, 1, 1]), 'top': 'one', 'freq': 2,
+              'is_top_unique': True}  # yapf: disable
+    cat_c1 = {'count': 4, 'unique': np.array(['four', 'xyz']),
+              'unique_counts': np.array([2, 2]), 'top': 'four', 'freq': 2,
+              'is_top_unique': False}  # yapf: disable
+    description_cat = {'c': cat_c0, 'e': cat_c1, 0: cat_c0, 1: cat_c1}
+    # yapf: enable
+
+    # 2D structured mixture -- ignore nans -- no include/ exclude
+    description = ftddf.describe_array(array_struct)
+    assert set(description) == set(array_struct.dtype.names)
+    for col_id, column_description in description.items():
+        if col_id in numerical_indices_struct:
+            assert set(NUMERICAL_KEYS) == set(column_description.keys())
+            assert set(NUMERICAL_KEYS) == set(description_num[col_id].keys())
+            for i in NUMERICAL_KEYS:
+                col_d = column_description[i]
+                gt_d = description_num[col_id][i]
+                if np.isnan(col_d) and np.isnan(gt_d):
+                    assert True
+                else:
+                    assert pytest.approx(col_d, abs=1e-3) == gt_d
+        else:
+            assert set(CATEGORICAL_KEYS) == set(column_description.keys())
+            assert set(CATEGORICAL_KEYS) == set(description_cat[col_id].keys())
+            for i in CATEGORICAL_KEYS:
+                col_d = column_description[i]
+                gt_d = description_cat[col_id][i]
+                if isinstance(col_d, (str, bool, int, np.int64, np.bool_)):
+                    assert col_d == gt_d
+                elif isinstance(col_d, np.ndarray):
+                    assert np.array_equal(col_d, gt_d)
+                else:  # pragma: no cover
+                    assert False, 'Unrecognised type!'
+
+    # 2D structured mixture -- do not ignore nans -- no include/ exclude
+    with pytest.warns(RuntimeWarning) as w:
+        description = ftddf.describe_array(array_struct, skip_nans=False)
+    assert len(w) == 3
+    for i in range(len(w)):
+        assert issubclass(w[i].category, RuntimeWarning)
+        assert str(w[i].message).startswith(runtime_warning)
+    assert set(description) == set(array_struct.dtype.names)
+    for col_id, column_description in description.items():
+        if col_id in numerical_indices_struct:
+            assert set(NUMERICAL_KEYS) == set(column_description.keys())
+            assert set(NUMERICAL_KEYS) == set(
+                description_num_nan[col_id].keys())
+            for i in NUMERICAL_KEYS:
+                col_d = column_description[i]
+                gt_d = description_num_nan[col_id][i]
+                if np.isnan(col_d) and np.isnan(gt_d):
+                    assert True
+                else:
+                    assert pytest.approx(col_d, abs=1e-3) == gt_d
+        else:
+            assert set(CATEGORICAL_KEYS) == set(column_description.keys())
+            assert set(CATEGORICAL_KEYS) == set(description_cat[col_id].keys())
+            for i in CATEGORICAL_KEYS:
+                col_d = column_description[i]
+                gt_d = description_cat[col_id][i]
+                if isinstance(col_d, (str, bool, int, np.int64, np.bool_)):
+                    assert col_d == gt_d
+                elif isinstance(col_d, np.ndarray):
+                    assert np.array_equal(col_d, gt_d)
+                else:  # pragma: no cover
+                    assert False, 'Unrecognised type!'
+
+    # 2D structured mixture -- include categorical/ exclude string
+    description = ftddf.describe_array(
+        array_struct, include='categorical', exclude='c')
+    assert set(description) == set(['e'])
+    for col_id, column_description in description.items():
+        assert set(CATEGORICAL_KEYS) == set(column_description.keys())
+        assert set(CATEGORICAL_KEYS) == set(description_cat[col_id].keys())
+        for i in CATEGORICAL_KEYS:
+            col_d = column_description[i]
+            gt_d = description_cat[col_id][i]
+            if isinstance(col_d, (str, bool, int, np.int64, np.bool_)):
+                assert col_d == gt_d
+            elif isinstance(col_d, np.ndarray):
+                assert np.array_equal(col_d, gt_d)
+            else:  # pragma: no cover
+                assert False, 'Unrecognised type!'
+
+    # 2D structured mixture -- include numerical/ exclude list
+    description = ftddf.describe_array(
+        array_struct, include='numerical', exclude=['a', 'b', 'c', 'e'])
+    assert set(description) == set('d')
+    for col_id, column_description in description.items():
+        assert set(NUMERICAL_KEYS) == set(column_description.keys())
+        assert set(NUMERICAL_KEYS) == set(description_num_nan[col_id].keys())
+        for i in NUMERICAL_KEYS:
+            col_d = column_description[i]
+            gt_d = description_num_nan[col_id][i]
+            if np.isnan(col_d) and np.isnan(gt_d):
+                assert True
+            else:
+                assert pytest.approx(col_d, abs=1e-3) == gt_d
+
+    # 2D structured mixture -- include='numerical', exclude='numerical'
+    with pytest.raises(RuntimeError) as exin:
+        ftddf.describe_array(
+            array_struct, include='numerical', exclude='numerical')
+    assert str(exin.value) == runtime_error
+
+    # Invalid indices -- include
+    with pytest.raises(ValueError) as exin:
+        ftddf.describe_array(array_struct, include='f', exclude='x')
+    assert str(exin.value) == value_error_include_index.format('f')
+
+    # Invalid indices -- include
+    with pytest.raises(TypeError) as exin:
+        ftddf.describe_array(array_struct, include=7.5, exclude='x')
+    assert str(exin.value) == type_error_include
+
+    # Invalid indices -- include
+    with pytest.raises(ValueError) as exin:
+        ftddf.describe_array(
+            array_struct, include=['a', 7.5, 'b', 'y'], exclude='x')
+    assert str(exin.value) == value_error_include_indices.format(['7.5', 'y'])
+
+    # Invalid indices -- exclude
+    with pytest.raises(ValueError) as exin:
+        ftddf.describe_array(array_struct, include='b', exclude='x')
+    assert str(exin.value) == value_error_exclude_index.format('x')
+
+    # Invalid indices -- include
+    with pytest.raises(ValueError) as exin:
+        ftddf.describe_array(
+            array_struct, include='a', exclude=['a', 7.5, 'b', 'z'])
+    assert str(exin.value) == value_error_exclude_indices.format(['7.5', 'z'])
+
+    # Invalid indices -- exclude
+    with pytest.raises(TypeError) as exin:
+        ftddf.describe_array(array_struct, include='b', exclude=4.2)
+    assert str(exin.value) == type_error_exclude
+
+    # Include list
+    description = ftddf.describe_array(
+        array_struct, include=['a', 'd'], exclude='categorical')
+    assert set(description) == set(['a', 'd'])
+    for col_id, column_description in description.items():
+        assert set(NUMERICAL_KEYS) == set(column_description.keys())
+        assert set(NUMERICAL_KEYS) == set(description_num_nan[col_id].keys())
+        for i in NUMERICAL_KEYS:
+            col_d = column_description[i]
+            gt_d = description_num_nan[col_id][i]
+            if np.isnan(col_d) and np.isnan(gt_d):
+                assert True
+            else:
+                assert pytest.approx(col_d, abs=1e-3) == gt_d
+
+    # include string
+    description = ftddf.describe_array(array_struct, include='a')
+    assert set(description) == set(['a'])
+    for col_id, column_description in description.items():
+        assert set(NUMERICAL_KEYS) == set(column_description.keys())
+        assert set(NUMERICAL_KEYS) == set(description_num_nan[col_id].keys())
+        for i in NUMERICAL_KEYS:
+            col_d = column_description[i]
+            gt_d = description_num_nan[col_id][i]
+            if np.isnan(col_d) and np.isnan(gt_d):
+                assert True
+            else:
+                assert pytest.approx(col_d, abs=1e-3) == gt_d
+
+    # Include categorical
+    description = ftddf.describe_array(array_struct, include='categorical')
+    assert set(description) == set(['c', 'e'])
+    for col_id, column_description in description.items():
+        assert set(CATEGORICAL_KEYS) == set(column_description.keys())
+        assert set(CATEGORICAL_KEYS) == set(description_cat[col_id].keys())
+        for i in CATEGORICAL_KEYS:
+            col_d = column_description[i]
+            gt_d = description_cat[col_id][i]
+            if isinstance(col_d, (str, bool, int, np.int64, np.bool_)):
+                assert col_d == gt_d
+            elif isinstance(col_d, np.ndarray):
+                assert np.array_equal(col_d, gt_d)
+            else:  # pragma: no cover
+                assert False, 'Unrecognised type!'
+
+    # Include numerical
+    description = ftddf.describe_array(array_struct, include='numerical')
+    assert set(description) == set(['a', 'b', 'd'])
+    for col_id, column_description in description.items():
+        assert set(NUMERICAL_KEYS) == set(column_description.keys())
+        assert set(NUMERICAL_KEYS) == set(description_num[col_id].keys())
+        for i in NUMERICAL_KEYS:
+            col_d = column_description[i]
+            gt_d = description_num[col_id][i]
+            if np.isnan(col_d) and np.isnan(gt_d):
+                assert True
+            else:
+                assert pytest.approx(col_d, abs=1e-3) == gt_d
+
+    # 2D structured mixture -- include=None, exclude='categorical'
+    description = ftddf.describe_array(array_struct, exclude='categorical')
+    assert set(description) == set(['a', 'b', 'd'])
+    for col_id, column_description in description.items():
+        assert set(NUMERICAL_KEYS) == set(column_description.keys())
+        assert set(NUMERICAL_KEYS) == set(description_num[col_id].keys())
+        for i in NUMERICAL_KEYS:
+            col_d = column_description[i]
+            gt_d = description_num[col_id][i]
+            if np.isnan(col_d) and np.isnan(gt_d):
+                assert True
+            else:
+                assert pytest.approx(col_d, abs=1e-3) == gt_d
+
+    # 2D structured mixture -- include=None, exclude='numerical'
+    description = ftddf.describe_array(array_struct, exclude='numerical')
+    assert set(description) == set(['c', 'e'])
+    for col_id, column_description in description.items():
+        assert set(CATEGORICAL_KEYS) == set(column_description.keys())
+        assert set(CATEGORICAL_KEYS) == set(description_cat[col_id].keys())
+        for i in CATEGORICAL_KEYS:
+            col_d = column_description[i]
+            gt_d = description_cat[col_id][i]
+            if isinstance(col_d, (str, bool, int, np.int64, np.bool_)):
+                assert col_d == gt_d
+            elif isinstance(col_d, np.ndarray):
+                assert np.array_equal(col_d, gt_d)
+            else:  # pragma: no cover
+                assert False, 'Unrecognised type!'
+
+    # 2D classic numerical -- only exclude numerical
+    with pytest.raises(RuntimeError) as exin:
+        ftddf.describe_array(array_num, exclude='numerical')
+    assert str(exin.value) == runtime_error
+
+    # 2D classic numerical -- only exclude=1
+    description = ftddf.describe_array(array_num, exclude=1)
+    assert set(description) == set([0, 2])
+    for col_id, column_description in description.items():
+        assert set(NUMERICAL_KEYS) == set(column_description.keys())
+        assert set(NUMERICAL_KEYS) == set(description_num[col_id].keys())
+        for i in NUMERICAL_KEYS:
+            col_d = column_description[i]
+            gt_d = description_num[col_id][i]
+            if np.isnan(col_d) and np.isnan(gt_d):
+                assert True
+            else:
+                assert pytest.approx(col_d, abs=1e-3) == gt_d
+
+    # 2D classic numerical -- only include=[0,2]
+    description = ftddf.describe_array(array_num, include=[0, 2])
+    assert set(description) == set([0, 2])
+    for col_id, column_description in description.items():
+        assert set(NUMERICAL_KEYS) == set(column_description.keys())
+        assert set(NUMERICAL_KEYS) == set(description_num[col_id].keys())
+        for i in NUMERICAL_KEYS:
+            col_d = column_description[i]
+            gt_d = description_num[col_id][i]
+            if np.isnan(col_d) and np.isnan(gt_d):
+                assert True
+            else:
+                assert pytest.approx(col_d, abs=1e-3) == gt_d
+
+    # 2D classic categorical -- only exclude categorical
+    with pytest.raises(RuntimeError) as exin:
+        ftddf.describe_array(array_cat, exclude='categorical')
+    assert str(exin.value) == runtime_error
+
+    # 2D classic categorical -- only exclude=0
+    description = ftddf.describe_array(array_cat, exclude=0)
+    assert set(description) == set([1])
+    for col_id, column_description in description.items():
+        assert set(CATEGORICAL_KEYS) == set(column_description.keys())
+        assert set(CATEGORICAL_KEYS) == set(description_cat[col_id].keys())
+        for i in CATEGORICAL_KEYS:
+            col_d = column_description[i]
+            gt_d = description_cat[col_id][i]
+            if isinstance(col_d, (str, bool, int, np.int64, np.bool_)):
+                assert col_d == gt_d
+            elif isinstance(col_d, np.ndarray):
+                assert np.array_equal(col_d, gt_d)
+            else:  # pragma: no cover
+                assert False, 'Unrecognised type!'
+
+    # 2D classic categorical -- only include=1, exclude=numerical
+    description = ftddf.describe_array(
+        array_cat, include=1, exclude='numerical')
+    assert set(description) == set([1])
+    for col_id, column_description in description.items():
+        assert set(CATEGORICAL_KEYS) == set(column_description.keys())
+        assert set(CATEGORICAL_KEYS) == set(description_cat[col_id].keys())
+        for i in CATEGORICAL_KEYS:
+            col_d = column_description[i]
+            gt_d = description_cat[col_id][i]
+            if isinstance(col_d, (str, bool, int, np.int64, np.bool_)):
+                assert col_d == gt_d
+            elif isinstance(col_d, np.ndarray):
+                assert np.array_equal(col_d, gt_d)
+            else:  # pragma: no cover
+                assert False, 'Unrecognised type!'

@@ -5,6 +5,8 @@ Implements functions to describe numpy arrays.
 #         Kacper Sokol <k.sokol@bristol.ac.uk>
 # License: new BSD
 
+import warnings
+
 from typing import Dict, List, Optional, Union
 
 import numpy as np
@@ -14,101 +16,218 @@ import fatf.utils.array.validation as fuav
 
 from fatf.exceptions import IncorrectShapeError
 
-__all__ = ['describe_categorical_array',
+__all__ = ['describe_array',
            'describe_numerical_array',
-           'describe_array']  # yapf: disable
+           'describe_categorical_array']  # yapf: disable
 
 
-def describe_array(dataset: np.ndarray,
-                   todescribe: Optional[List[str]] = None,
-                   condition: Optional[np.array] = None) -> dict:
-    """Will provide a description of the desired fields of the dataset.
+def describe_array(
+        array: np.ndarray,
+        include: Optional[Union[str, int, List[Union[str, int]]]] = None,
+        exclude: Optional[Union[str, int, List[Union[str, int]]]] = None,
+        **kwargs: bool
+) -> Dict[Union[str, int],
+          Union[str, int, float, bool, np.ndarray,
+                Dict[str, Union[str, int, float, bool, np.ndarray]]]
+          ]:  # yapf: disable
+    """
+    Describes categorical (textual) and numerical columns in the input array.
+
+    The details of numerical and categorical descriptions can be found in
+    :func:`fatf.transparency.data.describe_functions.describe_numerical_array`
+    and :func:
+    `fatf.transparency.data.describe_functions.describe_categorical_array`
+    functions documentation respectively.
+
+    To filter out the columns that will be described you can use ``include``
+    and ``exclude`` parameters. Either of these can be a list with columns
+    indices, a string or an integer when excluding or including just one
+    column; or one of the keywords: ``'numerical'`` or ``'categorical'``, to
+    indicate that only numerical or categorical columns should be included/
+    excluded. By default all columns are described.
 
     Parameters
     ----------
-    dataset : np.ndarray
-        The dataset to be described.
-    todescribe : Optional[list]
-        A list of field names to be described. If none, then all will be
-        described.
-    condition : np.array
-        Values used to provide conditional descriptions.
+    array : numpy.ndarray
+        The array to be described.
+    include : Union[str, int, List[Union[str, int]]], optional (default=None)
+        A list of column indices to be included in the description. If
+        ``None`` (the default value), all of the columns will be included.
+        Alternatively this can be set to a single index (either a string or an
+        integer) to compute statistics just for this one column. It is also
+        possible to set it to ``'numerical'`` or ``'categorical'`` to just
+        include numerical or categorical columns respectively.
+    exclude : Union[str, int, List[Union[str, int]]], optional (default=None)
+        A list of column indices to be excluded from the description. If
+        ``None`` (the default value), none of the columns will be excluded.
+        Alternatively this can be set to a single index (either a string or an
+        integer) to exclude just one column. It is also possible to set it to
+        ``'numerical'`` or ``'categorical'`` to exclude wither all numerical or
+        all categorical columns respectively.
+    **kwargs : bool
+        Keyword arguments that are passed to the :func:
+        `fatf.transparency.data.describe_functions.describe_numerical_array`
+        function responsible for describing numerical arrays.
+
+    Warns
+    -----
+    UserWarning
+        When using ``include`` or ``exclude`` parameters for 1-dimensional
+        input arrays (in which case these parameters are ignored).
 
     Raises
     ------
+    IncorrectShapeError
+        The input array is neither 1- not 2-dimensional.
+    RuntimeError
+        None of the columns were selected to be described.
+    TypeError
+        The ``include`` or the ``exclude`` parameter is of a wrong type.
     ValueError
-        Dimensions of dataset and condition do not match.
+        The input array is not of a base type (textual and numerical elements).
+        The input array has 0 columns. Indices given in the ``include`` or
+        ``exclude`` parameter are not valid indices for the input array.
 
     Returns
     -------
-    If condition not provided:
-        describe_dict : dict
-            Dictionary of dictionaries. At first level keys correspond to fields
-            that were described, and at second level you have key, value pairs
-            for the statistics evaluated.
-    Else:
-        grand_dict : dict
-            Dictionary of dictionaries of dictionaries. First level corresponds to
-            keys corresponding to the unique values in the condition array. The rest
-            two levels correspond to a describe_dict.
-
+    description : Dict[Union[str, int],
+                       Dict[str, Union[str, int, float bool, np.ndarray]]]
+        For 2-dimensional arrays a dictionary describing every column under a
+        key corresponding to its index in the input array. For a 1-dimensional
+        input array a dictionary describing that array.
     """
-    if not fuav.is_2d_array(dataset):
-        raise TypeError('Input should be 2-Dimensional')
-    structured_bool = True
-    if len(dataset.dtype) == 0:
-        structured_bool = False
-
-    numerical_fields, categorical_fields = fuat.indices_by_type(dataset)
-    if not todescribe:
-        todescribe = numerical_fields.tolist() + categorical_fields.tolist()
-    if condition is not None:
-        values_set = list(set(condition))
-        n_samples = condition.shape[0]
-        if n_samples != dataset.shape[0]:
-            raise ValueError('Dimension of condition does not match dimension of dataset')
-
-        grand_dict = {}
-        for value in values_set:
-            mask = np.array(np.zeros(n_samples), dtype=bool)
-            t = np.where(condition == value)[0]
-            mask[t] = True
-            describe_dict = {}
-
-            for field_name in numerical_fields:
-                if field_name in todescribe:
-                    if structured_bool:
-                        describe_dict[field_name] = describe_numerical_array(dataset[mask][field_name])
-                    else:
-                        describe_dict[field_name] = describe_numerical_array(dataset[mask][:, field_name])
-            for field_name in categorical_fields:
-                if field_name in todescribe:
-                    if structured_bool:
-                        describe_dict[field_name] = describe_categorical_array(dataset[mask][field_name])
-                    else:
-                        describe_dict[field_name] = describe_categorical_array(dataset[mask][:, field_name])
-            grand_dict[value] = describe_dict
-        return grand_dict
+    # pylint: disable=too-many-branches,too-many-statements
+    is_1d = fuav.is_1d_like(array)
+    if is_1d:
+        array = fuat.as_unstructured(array)
+        is_2d = False
     else:
-        describe_dict = {}
-        for field_name in numerical_fields:
-            if field_name in todescribe:
-                if structured_bool:
-                    describe_dict[field_name] = describe_numerical_array(dataset[field_name])
-                else:
-                    describe_dict[field_name] = describe_numerical_array(dataset[:, field_name])
-        for field_name in categorical_fields:
-            if field_name in todescribe:
-                if structured_bool:
-                    describe_dict[field_name] = describe_categorical_array(dataset[field_name])
-                else:
-                    describe_dict[field_name] = describe_categorical_array(dataset[:, field_name])
-        return describe_dict
+        is_2d = fuav.is_2d_array(array)
+
+    if not is_1d and not is_2d:
+        raise IncorrectShapeError('The input array should be 1- or '
+                                  '2-dimensional.')
+
+    if not fuav.is_base_array(array):
+        raise ValueError('The input array should be of a base type (a mixture '
+                         'of numerical and textual types).')
+
+    if is_1d:
+        if include is not None or exclude is not None:
+            warnings.warn(
+                'The input array is 1-dimensional. Ignoring include and '
+                'exclude parameters.',
+                category=UserWarning)
+
+        if fuav.is_numerical_array(array):
+            description = describe_numerical_array(array, **kwargs)
+        elif fuav.is_textual_array(array):
+            description = describe_categorical_array(array)
+        else:  # pragma: no cover
+            assert False, 'A base array should either be numerical or textual.'
+    elif is_2d:
+        numerical_indices, categorical_indices = fuat.indices_by_type(array)
+        is_structured_array = fuav.is_structured_array(array)
+
+        if (numerical_indices.shape[0] + categorical_indices.shape[0]) == 0:
+            raise ValueError('The input array cannot have 0 columns.')
+
+        numerical_indices_set = set(numerical_indices)
+        categorical_indices_set = set(categorical_indices)
+        # Indices to be included
+        if include is None:
+            pass
+        elif isinstance(include, (str, int)):
+            if include == 'numerical':
+                categorical_indices_set = set()
+            elif include == 'categorical':
+                numerical_indices_set = set()
+            else:
+                if not fuat.are_indices_valid(array, np.array([include])):
+                    raise ValueError('The following include index is not '
+                                     'valid for the input array: '
+                                     '{}.'.format(include))
+
+                numerical_indices_set = numerical_indices_set.intersection(
+                    [include])
+                categorical_indices_set = categorical_indices_set.intersection(
+                    [include])
+        elif isinstance(include, list):
+            if not fuat.are_indices_valid(array, np.array(include)):
+                invalid_indices = fuat.get_invalid_indices(
+                    array, np.array(include)).tolist()
+                raise ValueError('The following include indices are not valid '
+                                 'for the input array: '
+                                 '{}.'.format(invalid_indices))
+
+            numerical_indices_set = numerical_indices_set.intersection(include)
+            categorical_indices_set = categorical_indices_set.intersection(
+                include)
+        else:
+            raise TypeError('The include parameter can either be a string, an '
+                            'integer or a list of these two types.')
+
+        # Indices to be included
+        if exclude is None:
+            pass
+        elif isinstance(exclude, (str, int)):
+            if exclude == 'numerical':
+                numerical_indices_set = set()
+            elif exclude == 'categorical':
+                categorical_indices_set = set()
+            else:
+                if not fuat.are_indices_valid(array, np.array([exclude])):
+                    raise ValueError('The following exclude index is not '
+                                     'valid for the input array: '
+                                     '{}.'.format(exclude))
+
+                numerical_indices_set = numerical_indices_set.difference(
+                    [exclude])
+                categorical_indices_set = categorical_indices_set.difference(
+                    [exclude])
+        elif isinstance(exclude, list):
+            if not fuat.are_indices_valid(array, np.array(exclude)):
+                invalid_indices = fuat.get_invalid_indices(
+                    array, np.array(exclude)).tolist()
+                raise ValueError('The following exclude indices are not valid '
+                                 'for the input array: '
+                                 '{}.'.format(invalid_indices))
+
+            numerical_indices_set = numerical_indices_set.difference(exclude)
+            categorical_indices_set = categorical_indices_set.difference(
+                exclude)
+        else:
+            raise TypeError('The exclude parameter can either be a string, an '
+                            'integer or a list of these two types.')
+
+        all_indices = numerical_indices_set.union(categorical_indices_set)
+        if len(all_indices) == 0:  # pylint: disable=len-as-condition
+            raise RuntimeError('None of the columns were selected to be '
+                               'described.')
+
+        description = dict()
+        for index in numerical_indices_set:
+            if is_structured_array:
+                description[index] = describe_numerical_array(
+                    array[index], **kwargs)
+            else:
+                description[index] = describe_numerical_array(
+                    array[:, index], **kwargs)
+        for index in categorical_indices_set:
+            if is_structured_array:
+                description[index] = describe_categorical_array(array[index])
+            else:
+                description[index] = describe_categorical_array(
+                    array[:, index])
+    else:  # pragma: no cover
+        assert False, 'The input array can only be 1- or 2-dimensional.'
+
+    return description  # type: ignore
 
 
-def describe_numerical_array(
-        array: Union[np.ndarray, np.void],
-        skip_nans: bool = True) -> Dict[str, Union[int, float]]:
+def describe_numerical_array(array: Union[np.ndarray, np.void],
+                             skip_nans: bool = True
+                             ) -> Dict[str, Union[int, float, np.ndarray]]:
     """
     Describes a numerical numpy array with basic statistics.
 
@@ -151,7 +270,7 @@ def describe_numerical_array(
     Parameters
     ----------
     array : Union[numpy.ndarray, numpy.void]
-        An array for which description is desired.
+        An array for which a description is desired.
     skip_nans : boolean, optional (default=True)
         If set to ``True``, ``numpy.nan``s present in the input array will be
         excluded while computing the statistics.
@@ -159,13 +278,13 @@ def describe_numerical_array(
     Raises
     ------
     IncorrectShapeError
-        The input array is not 1-dimensinoal.
+        The input array is not 1-dimensional.
     ValueError
         The input array is not purely numerical or it is empty.
 
     Returns
     -------
-    numerical_description : Dict[str, Union[int, float]]
+    numerical_description : Dict[string, Union[integer, float, numpy.ndarray]]
         A dictionary describing the numerical input array.
     """
     if not fuav.is_1d_like(array):
@@ -200,17 +319,84 @@ def describe_numerical_array(
     return numerical_description
 
 
-def describe_categorical_array(array: np.ndarray):
-    unique, counter = np.unique(array, return_counts = True)
-    top = np.argmax(counter)
+def describe_categorical_array(
+        array: Union[np.ndarray, np.void]
+) -> Dict[str, Union[str, int, bool, np.ndarray]]:
+    """
+    Describes a categorical numpy array with basic statistics.
 
-    categorical_dict = {
-        'count': array.shape[0],
-        'count_unique': len(unique),
+    The description outputted by this function is a dictionary with the
+    following keys:
+
+    ``count`` : integer
+        The number of elements in the array.
+
+    ``unique`` : numpy.ndarray
+        The unique values in the array, ordered lexicographically.
+
+    ``unique_counts`` : numpy.ndarray
+        The counts of the unique values in the array.
+
+    ``top`` : string
+        The most frequent value in the array.
+
+    ``freq`` : integer
+        The count of the most frequent value in the array.
+
+    ``is_top_unique`` : boolean
+        Indicates whether the most frequent value (``freq``) in the array is
+        the only one with that count.
+
+    Parameters
+    ----------
+    array : Union[numpy.ndarray, numpy.void]
+        An array for which a description is desired.
+
+    Raises
+    ------
+    IncorrectShapeError
+        The input array is not 1-dimensinoal.
+    ValueError
+        The input array is not categorical (at least one string-like component)
+        or it is empty.
+
+    Returns
+    -------
+    categorical_description : Dict[string, Union[string, integer, boolean,
+                                                 numpy.ndarray]]
+        A dictionary describing the categorical input array.
+    """
+    if not fuav.is_1d_like(array):
+        raise IncorrectShapeError('The input array should be 1-dimensional.')
+
+    classic_array = fuat.as_unstructured(array)
+    assert len(classic_array.shape) == 1, '1D arrays only at this point.'
+
+    if not classic_array.shape[0]:
+        raise ValueError('The input array cannot be empty.')
+    if not fuav.is_textual_array(classic_array):
+        raise ValueError('The input array should be purely categorical.')
+
+    unique, unique_counts = np.unique(classic_array, return_counts=True)
+
+    unique_sort_index = np.argsort(unique)
+    unique = unique[unique_sort_index]
+    unique_counts = unique_counts[unique_sort_index]
+
+    top_index = np.argmax(unique_counts)
+
+    top = unique[top_index]
+    freq = unique_counts[top_index]
+
+    is_top_unique = (unique_counts == freq).sum() < 2
+
+    categorical_description = {
+        'count': classic_array.shape[0],
         'unique': unique,
-        'most_common': unique[top],
-        'most_common_count': counter[top],
-        'hist': dict(zip(unique, counter))
+        'unique_counts': unique_counts,
+        'top': top,
+        'freq': freq,
+        'is_top_unique': is_top_unique
     }
 
-    return categorical_dict
+    return categorical_description

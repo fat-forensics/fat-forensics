@@ -12,6 +12,8 @@ import pytest
 import fatf
 import fatf.utils.testing.warnings as testing_w
 
+PYTEST_WARNING_FILTERS = ['fatf.vis', 'fatf.transparency.sklearn']
+
 
 @pytest.mark.parametrize('error_type,error_class',
                          [('Import', ImportWarning),
@@ -40,7 +42,9 @@ def test_warnings_emission1(error_type, error_class):
         warning_matches_module = testing_w.handle_warnings_filter_pattern(
             fltr[3], ignore_case=False)
         if warning_matches_module is not None:
-            assert 'fatf' not in warning_matches_module.pattern
+            module_pattern = warning_matches_module.pattern
+            if module_pattern not in PYTEST_WARNING_FILTERS:
+                assert 'fatf' not in module_pattern
 
 
 def test_warnings_emission2():

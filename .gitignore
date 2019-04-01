@@ -20,3 +20,4 @@ docs/_build
 docs/_resources
 
 temp/*
+.coverage.*

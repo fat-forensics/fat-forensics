@@ -5,20 +5,15 @@ Holds custom warnings, errors and exceptions.
 # License: new BSD
 
 __all__ = ['FATFException',
-           'MissingImplementationError',
            'IncorrectShapeError',
-           'IncompatibleModelError']  # yapf: disable
+           'IncompatibleModelError',
+           'UnfittedModelError',
+           'PrefittedModelError']  # yapf: disable
 
 
 class FATFException(Exception):
     """
     Base class for FAT-Forensics exceptions (inherits from :class:`Exception`).
-    """
-
-
-class MissingImplementationError(FATFException):
-    """
-    Exception raised for unimplemented functionality.
     """
 
 
@@ -33,6 +28,23 @@ class IncompatibleModelError(FATFException):
     Exception raised when a model lacks desired functionality.
 
     For example, it can be raised when a model is expected to output
-    probabilities for its prediction but it is does not support this
+    probabilities for its predictions but it does not support this
     functionality.
+    """
+
+
+class UnfittedModelError(FATFException):
+    """
+    Exception raised when a model is unfitted and a fitted one is expected.
+
+    This is usually raised when the model is not fitted and a ``predict`` or
+    a ``predict_proba`` method is called.
+    """
+
+
+class PrefittedModelError(FATFException):
+    """
+    Exception raised when a model is fitted and an unfitted one is expected.
+
+    This is usually raised when a fitted model is tried to be fitted again.
     """

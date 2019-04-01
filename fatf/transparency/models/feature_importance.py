@@ -1,47 +1,47 @@
 """
-Functions for calculating feature importance and 
-Individual Conditional Expectation (ICE)
+Functions for calculating feature influence for a predictive model.
+
+This module implements Partial Dependence (PD) and Individual Conditional
+Expectation (ICE).
 """
 # Author: Alex Hepburn <ah13558@bristol.ac.uk>
+#         Kacper Sokol <k.sokol@bristol.ac.uk>
 # License: new BSD
 
-from typing import List, Dict, Union, Tuple
+from typing import Tuple, Union
 import warnings
 
 import numpy as np
 
-from fatf.utils.array.validation import (is_2d_array, 
-                                         is_numerical_array,
-                                         is_structured_array)
-from fatf.utils.array.tools import get_invalid_indices, are_indices_valid
-from fatf.utils.models.validation import check_model_functionality
+import fatf.utils.array.tools as fuat
+import fatf.utils.array.validation as fuav
+import fatf.utils.models.validation as fumv
+
 from fatf.exceptions import IncompatibleModelError, IncorrectShapeError
 
 __all__ = ['individual_conditional_expectation', 'partial_dependence']
 
 
-def _check_input(
-                X: np.ndarray, 
-                model: object, 
-                feature: Union[int, str],
-                is_categorical: bool,
-                steps: int,
-                check_x: bool = True,
-                check_model: bool = True,
-                check_feature: bool = True,
-                check_steps : bool = True) -> None:
+def _check_input(X: np.ndarray,
+                 model: object,
+                 feature: Union[int, str],
+                 is_categorical: bool,
+                 steps: int,
+                 check_x: bool = True,
+                 check_model: bool = True,
+                 check_feature: bool = True,
+                 check_steps: bool = True) -> None:
     """
-    Checks if input is compatible to compute partial depedence and invdividual
-    conditional expectations.
+    Checks if the input can be used to compute PD and ICE.
 
     Parameters
     ----------
     X : np.ndarray
         Data matrix (can be structured or regular np.ndarray)
-    model : object 
+    model : object
         Which is fitted model containing functions fit(X, Y), predict(X)
         and predict_proba(X)
-    feature : Union[integer, string] 
+    feature : Union[integer, string]
         Corresponding to column in X for feature to compute ICE
     is_categorical : boolean
         If feature is categorical (do not numerically interpolate)
@@ -73,20 +73,19 @@ def _check_input(
         Feature given is an invalid index to np.ndarray X
     """
     if check_x:
-        if not is_2d_array(X):
+        if not fuav.is_2d_array(X):
             raise IncorrectShapeError('X must be 2-dimensional array.')
     if check_model:
-        if not check_model_functionality(model, require_probabilities=True, 
-                                         suppress_warning=True):
+        if not fumv.check_model_functionality(
+                model, require_probabilities=True, suppress_warning=True):
             raise IncompatibleModelError(
                 'Partial dependence and individal conditional expectiations '
                 'requires model object to have method predict_proba().')
-        #TODO: check if model is already trained or not
+        # TODO(Kacper): Check if the model is already trained or not
     if check_feature:
         f = np.array([feature], dtype=type(feature))
-        if not are_indices_valid(X, f):
-            raise ValueError('Invalid features %s given.' 
-                             %str(f))
+        if not fuat.are_indices_valid(X, f):
+            raise ValueError('Invalid features {} given.'.format(f))
     if check_steps:
         if is_categorical and steps is not None:
             message = ('Feature is defined as categorical but number of steps '
@@ -95,12 +94,8 @@ def _check_input(
             warnings.warn(message, category=UserWarning)
 
 
-
-def _interpolate_array(
-                      X: np.ndarray,
-                      feature: int,
-                      is_categorical: bool,
-                      steps: int) -> Tuple[np.ndarray, np.ndarray]:
+def _interpolate_array(X: np.ndarray, feature: int, is_categorical: bool,
+                       steps: int) -> Tuple[np.ndarray, np.ndarray]:
     """
     Generates array which has interpolated between maximum and minimum
     for feature for every datapoint taking a normal np.ndarray
@@ -116,7 +111,7 @@ def _interpolate_array(
     steps : integer
         How many steps to sample with between feature min amd max. Defaults
         to 100.
-    
+
     Warnings
     --------
     UserWarning
@@ -125,29 +120,31 @@ def _interpolate_array(
     Returns
     -------
     X_sampled : numpy.ndarray
-        Numpy array with shape (n_samples, steps, n_features) with the dataset 
+        Numpy array with shape (n_samples, steps, n_features) with the dataset
         repeated with different values of feature for each point
     values : numpy.ndarray
         Array of values that have been interpolated between the maximum and
         minimum for the feature specified.
     """
-    is_struct = is_structured_array(X)
+    is_struct = fuav.is_structured_array(X)
     if is_struct:
         feat = X[feature]
     else:
         feat = X[:, feature]
-    if not is_numerical_array(feat) and not is_categorical:
+
+    if not fuav.is_numerical_array(feat) and not is_categorical:
         message = ('Feature %s is not numerical and not specified as '
                    'categorical. Samples will be generated by using values '
                    'contained in the dataset.')
         is_categorical = True
         warnings.warn(message, category=UserWarning)
+
     if is_categorical:
         values = np.unique(feat)
         steps = np.unique(feat).shape[0]
     else:
         values = np.linspace(min(feat), max(feat), steps)
-    samples = []
+
     if is_struct:
         X_sampled = np.zeros((X.shape[0], steps), dtype=X.dtype)
         for i in range(0, X.shape[0]):
@@ -162,12 +159,11 @@ def _interpolate_array(
 
 
 def individual_conditional_expectation(
-        X: np.ndarray, 
-        model: object, 
+        X: np.ndarray,
+        model: object,
         feature: Union[int, str],
         is_categorical: bool = False,
-        steps: int = None
-) -> Tuple[np.ndarray, np.ndarray]:
+        steps: int = None) -> Tuple[np.ndarray, np.ndarray]:
     """
     Calculates Individual Conditional Expectation for all class for feature
     specified.
@@ -176,22 +172,22 @@ def individual_conditional_expectation(
     ----------
     X : numpy.ndarray
         Data matrix (can be structured or regular numpy.ndarray)
-    model: object 
+    model: object
         Which is fitted model containing functions fit(X, Y), predict(X)
         and predict_proba(X)
-    feature : Union[integer, string] 
+    feature : Union[integer, string]
         Corresponding to column in X for feature to compute ICE
     is_categorical : boolean
         If feature is categorical (do not numerically interpolate)
     steps : integer
-        How many steps to sample with between feature min amd max. If 
+        How many steps to sample with between feature min amd max. If
         is_categorical is True, then the number of unique values for feature in
         the dataset is used. Else, steps defaults to 100.
 
     Returns
     -------
     probs : numpy.ndarray
-        Shape [n_samples, steps, n_classes] that contains 
+        Shape [n_samples, steps, n_classes] that contains
     values : numpy.ndarray
         Shape [steps] specifying the interpolation values that have been tested
     """
@@ -200,34 +196,33 @@ def individual_conditional_expectation(
         steps = 100
     n_classes = model.predict_proba(X[0:1]).shape[1]
     X_sampled, values = _interpolate_array(X, feature, is_categorical, steps)
-    probs = np.zeros((X.shape[0], X_sampled.shape[1], n_classes), 
-                      dtype=np.float)
+    probs = np.zeros((X.shape[0], X_sampled.shape[1], n_classes),
+                     dtype=np.float)
     for i in range(0, X.shape[0]):
         X_pred = X_sampled[i]
         probas = model.predict_proba(X_pred)
         probs[i, :, :] = probas
     return probs, values
 
-def partial_dependence(
-        X: np.ndarray,
-        model: object,
-        feature: Union[int, str],
-        is_categorical: bool = False,
-        steps: int = None
-) -> Tuple[np.ndarray, np.array]:
+
+def partial_dependence(X: np.ndarray,
+                       model: object,
+                       feature: Union[int, str],
+                       is_categorical: bool = False,
+                       steps: int = None) -> Tuple[np.ndarray, np.array]:
     """
-    Calculates partial dependence for all classes for feature. Takes the mean 
-    of the output of individual_conditional_expectation function over all 
+    Calculates partial dependence for all classes for feature. Takes the mean
+    of the output of individual_conditional_expectation function over all
     training data points.
 
     Parameters
     ----------
-    X : numpy.ndarray 
+    X : numpy.ndarray
         Data matrix (can be structured or regular np.ndarray)
-    model : object 
+    model : object
         Which is fitted model containing functions fit(X, Y), predict(X)
         and predict_proba(X)
-    feature : Union[integer, string] 
+    feature : Union[integer, string]
         Corresponding to column in X for feature to compute ICE
     is_categorical : boolean
         If feature is categorical (do not numerically interpolate)
@@ -238,14 +233,11 @@ def partial_dependence(
     Returns
     -------
     probs : numpy.ndarray
-        Shape [steps, n_classes] that contains 
+        Shape [steps, n_classes] that contains
     values : numpy.ndarray
         Shape [steps] specifying the interpolation values that have been tested
     """
-    ice, values = individual_conditional_expectation(X, 
-                                                     model, 
-                                                     feature, 
-                                                     is_categorical,
-                                                     steps=steps)
+    ice, values = individual_conditional_expectation(
+        X, model, feature, is_categorical, steps=steps)
     pd = np.mean(ice, axis=0)
     return pd, values

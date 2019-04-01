@@ -1,12 +1,11 @@
 import pytest
 import numpy as np
 
-from fatf.tests.predictor import KNN
-from fatf.tests.predictor import KNN_structured
+from fatf.core.model import FAT_KNN
 from fatf.analyse.feature_importance import (individual_conditional_expectation,
                                              partial_dependence, plot_ICE)
-from fatf.exceptions import (MissingImplementationException, CustomValueError,
-                            IncompatibleModelException, IncorrectShapeException)
+from fatf.exceptions import (MissingImplementationError, 
+                             IncompatibleModelError, IncorrectShapeError)
 
 
 numerical_array = np.array(
@@ -73,7 +72,7 @@ class InvalidModel(object):
         pass
 
 def test_individual_conditional_expectation():
-    predictor = KNN()
+    predictor = FAT_KNN()
     with pytest.raises(IncorrectShapeException):
         individual_conditional_expectation(np.ones((6, 4, 4)), predictor, 3, steps=3)
     invalid_model = InvalidModel()
@@ -93,7 +92,7 @@ def test_individual_conditional_expectation():
     assert(np.array_equal(ice_cat[0], results_cat))
     assert(np.array_equal(ice_cat[1], values_cat))
 
-    predictor_struct = KNN_structured()
+    predictor_struct = FAT_KNN()
     predictor_struct.fit(structure_array, np.array([2, 0, 1, 1, 0, 2]))
 
     ice_struct = individual_conditional_expectation(test_structure_array, predictor_struct, 'd', steps=3)
@@ -107,7 +106,7 @@ def test_individual_conditional_expectation():
     assert(np.array_equal(ice_struct_cat[1], values_cat_struct))
 
 def test_partial_dependence():
-    predictor = KNN()
+    predictor = FAT_KNN()
     with pytest.raises(IncorrectShapeException):
         partial_dependence(np.ones((6, 4, 4)), predictor, 3, steps=3)
     invalid_model = InvalidModel()
@@ -127,7 +126,7 @@ def test_partial_dependence():
     assert(np.array_equal(pd_cat[0], np.mean(results_cat, axis=0)))
     assert(np.array_equal(pd_cat[1], values_cat))
 
-    predictor_struct = KNN_structured()
+    predictor_struct = FAT_KNN()
     predictor_struct.fit(structure_array, np.array([2, 0, 1, 1, 0, 2]))
 
     pd_struct = partial_dependence(test_structure_array, predictor_struct, 'd', steps=3)

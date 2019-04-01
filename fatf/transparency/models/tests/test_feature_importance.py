@@ -2,8 +2,9 @@ import pytest
 import numpy as np
 
 from fatf.utils.models import KNN
-from fatf.analyse.feature_importance import (individual_conditional_expectation,
-                                             partial_dependence)
+from fatf.transparency.models.feature_importance import \
+    (individual_conditional_expectation,
+    partial_dependence)
 from fatf.exceptions import IncompatibleModelError, IncorrectShapeError
 
 

@@ -10,8 +10,12 @@ import pytest
 import numpy as np
 
 import fatf.transparency.data.describe_functions as ftddf
+import fatf.utils.tools as fut
 
 from fatf.exceptions import IncorrectShapeError
+
+_NUMPY_VERSION = [int(i) for i in np.version.version.split('.')]
+_NUMPY_1_16 = fut.at_least_verion([1, 16], _NUMPY_VERSION)
 
 NUMERICAL_KEYS = [
     'count', 'mean', 'std', 'max', 'min', '25%', '50%', '75%', 'nan_count'
@@ -25,7 +29,9 @@ def test_describe_numerical_array():
     """
     Tests :func:`fatf.transparency.data.describe.describe_numerical_array`.
     """
-    runtime_warning = 'Invalid value encountered in percentile'
+    runtime_warning_percentile = 'Invalid value encountered in percentile'
+    # numpy<1.16 throws a reduce warning for nan arrays when computing min/max
+    runtime_warning_minmax = 'invalid value encountered in reduce'
     #
     incorrect_shape_error = 'The input array should be 1-dimensional.'
     value_error_non_numerical = 'The input array should be purely numerical.'
@@ -77,11 +83,16 @@ def test_describe_numerical_array():
     with pytest.warns(RuntimeWarning) as w:
         array_description = ftddf.describe_numerical_array(
             array, skip_nans=False)
-    for i in range(len(w)):
-        print(w[i])
-        print(w[i].message)
-        assert str(w[i].message).startswith(runtime_warning)
-    assert len(w) == 3
+    if _NUMPY_1_16:  # pragma: no cover
+        assert len(w) == 3
+        for i in range(len(w)):
+            assert str(w[i].message).startswith(runtime_warning_percentile)
+    else:  # pragma: no cover
+        assert len(w) == 5
+        assert str(w[0].message).startswith(runtime_warning_minmax)
+        for i in range(1, len(w) - 1):
+            assert str(w[i].message).startswith(runtime_warning_percentile)
+        assert str(w[-1].message).startswith(runtime_warning_minmax)
     assert set(NUMERICAL_KEYS) == set(description.keys())
     assert set(NUMERICAL_KEYS) == set(array_description.keys())
     for i in NUMERICAL_KEYS:
@@ -195,7 +206,9 @@ def test_describe_array():
     type_error_exclude = ('The exclude parameter can either be a string, an '
                           'integer or a list of these two types.')
     runtime_error = 'None of the columns were selected to be described.'
-    runtime_warning = 'Invalid value encountered in percentile'
+    runtime_warning_percentile = 'Invalid value encountered in percentile'
+    # numpy<1.16 throws a reduce warning for nan arrays when computing min/max
+    runtime_warning_minmax = 'invalid value encountered in reduce'
 
     # Wrong shape
     array = np.ones((2, 2, 2), dtype=np.int32)
@@ -281,12 +294,22 @@ def test_describe_array():
     with pytest.warns(None) as w:
         array_description = ftddf.describe_array(
             array[0], include='unimportant', skip_nans=False)
-    assert len(w) == 4
     assert issubclass(w[0].category, UserWarning)
     assert str(w[0].message) == user_warning
-    for i in range(1, len(w)):
-        assert issubclass(w[i].category, RuntimeWarning)
-        assert str(w[i].message).startswith(runtime_warning)
+    if _NUMPY_1_16:  # pragma: no cover
+        assert len(w) == 4
+        for i in range(1, len(w)):
+            assert issubclass(w[i].category, RuntimeWarning)
+            assert str(w[i].message).startswith(runtime_warning_percentile)
+    else:  # pragma: no cover
+        assert len(w) == 6
+        assert issubclass(w[1].category, RuntimeWarning)
+        assert str(w[1].message).startswith(runtime_warning_minmax)
+        for i in range(2, len(w) - 1):
+            assert issubclass(w[i].category, RuntimeWarning)
+            assert str(w[i].message).startswith(runtime_warning_percentile)
+        assert issubclass(w[-1].category, RuntimeWarning)
+        assert str(w[-1].message).startswith(runtime_warning_minmax)
     #
     assert set(NUMERICAL_KEYS) == set(description.keys())
     assert set(NUMERICAL_KEYS) == set(array_description.keys())
@@ -369,10 +392,17 @@ def test_describe_array():
     # 2D structured mixture -- do not ignore nans -- no include/ exclude
     with pytest.warns(RuntimeWarning) as w:
         description = ftddf.describe_array(array_struct, skip_nans=False)
-    assert len(w) == 3
-    for i in range(len(w)):
-        assert issubclass(w[i].category, RuntimeWarning)
-        assert str(w[i].message).startswith(runtime_warning)
+    if _NUMPY_1_16:  # pragma: no cover
+        assert len(w) == 3
+        for i in range(len(w)):
+            assert str(w[i].message).startswith(runtime_warning_percentile)
+    else:  # pragma: no cover
+        assert len(w) == 5
+        assert str(w[0].message).startswith(runtime_warning_minmax)
+        for i in range(1, len(w) - 1):
+            assert str(w[i].message).startswith(runtime_warning_percentile)
+        assert str(w[-1].message).startswith(runtime_warning_minmax)
+    #
     assert set(description) == set(array_struct.dtype.names)
     for col_id, column_description in description.items():
         if col_id in numerical_indices_struct:

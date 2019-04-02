@@ -309,9 +309,9 @@ def describe_numerical_array(array: Union[np.ndarray, np.void],
         'mean': np.mean(classic_array),
         'std': np.std(classic_array),
         'min': np.min(classic_array),
-        '25%': np.quantile(classic_array, 0.25),
-        '50%': np.quantile(classic_array, 0.50),
-        '75%': np.quantile(classic_array, 0.75),
+        '25%': np.percentile(classic_array, 25),
+        '50%': np.percentile(classic_array, 50),
+        '75%': np.percentile(classic_array, 75),
         'max': np.max(classic_array),
         'nan_count': nan_indices.sum()
     }

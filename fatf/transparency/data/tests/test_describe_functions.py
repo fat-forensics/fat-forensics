@@ -16,6 +16,7 @@ from fatf.exceptions import IncorrectShapeError
 
 _NUMPY_VERSION = [int(i) for i in np.version.version.split('.')]
 _NUMPY_1_16 = fut.at_least_verion([1, 16], _NUMPY_VERSION)
+_NUMPY_1_10 = fut.at_least_verion([1, 10], _NUMPY_VERSION)
 
 NUMERICAL_KEYS = [
     'count', 'mean', 'std', 'max', 'min', '25%', '50%', '75%', 'nan_count'
@@ -77,22 +78,31 @@ def test_describe_numerical_array():
 
     # Array with nans -- classic array; do not ignore nans
     array = np.array([33, 22, np.nan, 11, np.nan, 4])
-    description = {'count': 6, 'mean': np.nan, 'std': np.nan, 'max': np.nan,
-                   'min': np.nan, '25%': np.nan, '50%': np.nan, '75%': np.nan,
-                   'nan_count': 2}  # yapf: disable
-    with pytest.warns(RuntimeWarning) as w:
+    if _NUMPY_1_10:  # pragma: no cover
+        description = {'count': 6, 'mean': np.nan, 'std': np.nan,
+                       'max': np.nan, 'min': np.nan, '25%': np.nan,
+                       '50%': np.nan, '75%': np.nan, 'nan_count': 2
+                       }  # yapf: disable
+        with pytest.warns(RuntimeWarning) as w:
+            array_description = ftddf.describe_numerical_array(
+                array, skip_nans=False)
+        if _NUMPY_1_16:
+            assert len(w) == 3
+            for i in range(len(w)):
+                assert str(w[i].message).startswith(runtime_warning_percentile)
+        else:
+            assert len(w) == 5
+            assert str(w[0].message).startswith(runtime_warning_minmax)
+            for i in range(1, len(w) - 1):
+                assert str(w[i].message).startswith(runtime_warning_percentile)
+            assert str(w[-1].message).startswith(runtime_warning_minmax)
+    else:  # pragma: no cover
+        description = {'count': 6, 'mean': np.nan, 'std': np.nan,
+                       'max': np.nan, 'min': np.nan, '25%': 13.75,
+                       '50%': 27.5, '75%': np.nan, 'nan_count': 2
+                       }  # yapf: disable
         array_description = ftddf.describe_numerical_array(
             array, skip_nans=False)
-    if _NUMPY_1_16:  # pragma: no cover
-        assert len(w) == 3
-        for i in range(len(w)):
-            assert str(w[i].message).startswith(runtime_warning_percentile)
-    else:  # pragma: no cover
-        assert len(w) == 5
-        assert str(w[0].message).startswith(runtime_warning_minmax)
-        for i in range(1, len(w) - 1):
-            assert str(w[i].message).startswith(runtime_warning_percentile)
-        assert str(w[-1].message).startswith(runtime_warning_minmax)
     assert set(NUMERICAL_KEYS) == set(description.keys())
     assert set(NUMERICAL_KEYS) == set(array_description.keys())
     for i in NUMERICAL_KEYS:
@@ -101,7 +111,7 @@ def test_describe_numerical_array():
         if np.isnan(true) and np.isnan(computed):
             assert True
         else:
-            assert true == computed
+            assert pytest.approx(computed, abs=1e-3) == true
 
     # Array without nans -- classic array; ignore nans
     array = np.array([33, 22, 11, 4])
@@ -288,28 +298,40 @@ def test_describe_array():
         assert pytest.approx(array_description[i], abs=1e-3) == description[i]
 
     # 1D numerical array -- include & not exclude -- do not filter nans
-    description = {'count': 6, 'mean': np.nan, 'std': np.nan, 'max': np.nan,
-                   'min': np.nan, '25%': np.nan, '50%': np.nan, '75%': np.nan,
-                   'nan_count': 2}  # yapf: disable
-    with pytest.warns(None) as w:
-        array_description = ftddf.describe_array(
-            array[0], include='unimportant', skip_nans=False)
-    assert issubclass(w[0].category, UserWarning)
-    assert str(w[0].message) == user_warning
-    if _NUMPY_1_16:  # pragma: no cover
-        assert len(w) == 4
-        for i in range(1, len(w)):
-            assert issubclass(w[i].category, RuntimeWarning)
-            assert str(w[i].message).startswith(runtime_warning_percentile)
+    if _NUMPY_1_10:  # pragma: no cover
+        description = {'count': 6, 'mean': np.nan, 'std': np.nan,
+                       'max': np.nan, 'min': np.nan, '25%': np.nan,
+                       '50%': np.nan, '75%': np.nan, 'nan_count': 2
+                       }  # yapf: disable
+        with pytest.warns(None) as w:
+            array_description = ftddf.describe_array(
+                array[0], include='unimportant', skip_nans=False)
+        assert issubclass(w[0].category, UserWarning)
+        assert str(w[0].message) == user_warning
+        if _NUMPY_1_16:
+            assert len(w) == 4
+            for i in range(1, len(w)):
+                assert issubclass(w[i].category, RuntimeWarning)
+                assert str(w[i].message).startswith(runtime_warning_percentile)
+        else:
+            assert len(w) == 6
+            assert issubclass(w[1].category, RuntimeWarning)
+            assert str(w[1].message).startswith(runtime_warning_minmax)
+            for i in range(2, len(w) - 1):
+                assert issubclass(w[i].category, RuntimeWarning)
+                assert str(w[i].message).startswith(runtime_warning_percentile)
+            assert issubclass(w[-1].category, RuntimeWarning)
+            assert str(w[-1].message).startswith(runtime_warning_minmax)
     else:  # pragma: no cover
-        assert len(w) == 6
-        assert issubclass(w[1].category, RuntimeWarning)
-        assert str(w[1].message).startswith(runtime_warning_minmax)
-        for i in range(2, len(w) - 1):
-            assert issubclass(w[i].category, RuntimeWarning)
-            assert str(w[i].message).startswith(runtime_warning_percentile)
-        assert issubclass(w[-1].category, RuntimeWarning)
-        assert str(w[-1].message).startswith(runtime_warning_minmax)
+        description = {'count': 6, 'mean': np.nan, 'std': np.nan,
+                       'max': np.nan, 'min': np.nan, '25%': 13.75,
+                       '50%': 27.5, '75%': np.nan, 'nan_count': 2
+                       }  # yapf: disable
+        with pytest.warns(UserWarning) as w:
+            array_description = ftddf.describe_array(
+                array[0], include='unimportant', skip_nans=False)
+        assert len(w) == 1
+        assert str(w[0].message) == user_warning
     #
     assert set(NUMERICAL_KEYS) == set(description.keys())
     assert set(NUMERICAL_KEYS) == set(array_description.keys())
@@ -347,12 +369,17 @@ def test_describe_array():
     num_c1_nan = {'count': 4, 'mean': np.nan, 'std': np.nan, 'max': np.nan,
                   'min': np.nan, '25%': np.nan, '50%': np.nan, '75%': np.nan,
                   'nan_count': 1}
+    num_c1_nann = {'count': 4, 'mean': np.nan, 'std': np.nan, 'max': np.nan,
+                   'min': np.nan, '25%': 1.79, '50%': 2.775, '75%': np.nan,
+                   'nan_count': 1}
     num_c2 = {'count': 4, 'mean': 7, 'std': 10.416, 'max': 22, 'min': -5,
               '25%': -1.25, '50%': 5.5, '75%': 13.75, 'nan_count': 0}
     description_num = {'a': num_c0, 'b': num_c1, 'd': num_c2, 0: num_c0,
                        1: num_c1, 3: num_c2, 2: num_c2}
     description_num_nan = {'a': num_c0, 'b': num_c1_nan, 'd': num_c2,
                            0: num_c0, 1: num_c1_nan, 3: num_c2, 2: num_c2}
+    description_num_nann = {'a': num_c0, 'b': num_c1_nann, 'd': num_c2,
+                            0: num_c0, 1: num_c1_nann, 3: num_c2, 2: num_c2}
     cat_c0 = {'count': 4, 'unique': np.array(['one', 's', 'six']),
               'unique_counts': np.array([2, 1, 1]), 'top': 'one', 'freq': 2,
               'is_top_unique': True}  # yapf: disable
@@ -390,28 +417,33 @@ def test_describe_array():
                     assert False, 'Unrecognised type!'
 
     # 2D structured mixture -- do not ignore nans -- no include/ exclude
-    with pytest.warns(RuntimeWarning) as w:
-        description = ftddf.describe_array(array_struct, skip_nans=False)
-    if _NUMPY_1_16:  # pragma: no cover
-        assert len(w) == 3
-        for i in range(len(w)):
-            assert str(w[i].message).startswith(runtime_warning_percentile)
+    if _NUMPY_1_10:  # pragma: no cover
+        description_num_test = description_num_nan
+        with pytest.warns(RuntimeWarning) as w:
+            description = ftddf.describe_array(array_struct, skip_nans=False)
+        if _NUMPY_1_16:
+            assert len(w) == 3
+            for i in range(len(w)):
+                assert str(w[i].message).startswith(runtime_warning_percentile)
+        else:  # pragma: no cover
+            assert len(w) == 5
+            assert str(w[0].message).startswith(runtime_warning_minmax)
+            for i in range(1, len(w) - 1):
+                assert str(w[i].message).startswith(runtime_warning_percentile)
+            assert str(w[-1].message).startswith(runtime_warning_minmax)
     else:  # pragma: no cover
-        assert len(w) == 5
-        assert str(w[0].message).startswith(runtime_warning_minmax)
-        for i in range(1, len(w) - 1):
-            assert str(w[i].message).startswith(runtime_warning_percentile)
-        assert str(w[-1].message).startswith(runtime_warning_minmax)
+        description_num_test = description_num_nann
+        description = ftddf.describe_array(array_struct, skip_nans=False)
     #
     assert set(description) == set(array_struct.dtype.names)
     for col_id, column_description in description.items():
         if col_id in numerical_indices_struct:
             assert set(NUMERICAL_KEYS) == set(column_description.keys())
             assert set(NUMERICAL_KEYS) == set(
-                description_num_nan[col_id].keys())
+                description_num_test[col_id].keys())
             for i in NUMERICAL_KEYS:
                 col_d = column_description[i]
-                gt_d = description_num_nan[col_id][i]
+                gt_d = description_num_test[col_id][i]
                 if np.isnan(col_d) and np.isnan(gt_d):
                     assert True
                 else:

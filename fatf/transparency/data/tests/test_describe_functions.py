@@ -16,6 +16,8 @@ from fatf.exceptions import IncorrectShapeError
 
 _NUMPY_VERSION = [int(i) for i in np.version.version.split('.')]
 _NUMPY_1_16 = fut.at_least_verion([1, 16], _NUMPY_VERSION)
+_NUMPY_1_15 = fut.at_least_verion([1, 15], _NUMPY_VERSION)
+_NUMPY_1_11 = fut.at_least_verion([1, 11], _NUMPY_VERSION)
 _NUMPY_1_10 = fut.at_least_verion([1, 10], _NUMPY_VERSION)
 
 NUMERICAL_KEYS = [
@@ -30,7 +32,8 @@ def test_describe_numerical_array():
     """
     Tests :func:`fatf.transparency.data.describe.describe_numerical_array`.
     """
-    runtime_warning_percentile = 'Invalid value encountered in percentile'
+    rwpf = 'percentile' if _NUMPY_1_11 else 'median'
+    runtime_warning_percentile = 'Invalid value encountered in {}'.format(rwpf)
     # numpy<1.16 throws a reduce warning for nan arrays when computing min/max
     runtime_warning_minmax = 'invalid value encountered in reduce'
     #
@@ -90,12 +93,16 @@ def test_describe_numerical_array():
             assert len(w) == 3
             for i in range(len(w)):
                 assert str(w[i].message).startswith(runtime_warning_percentile)
-        else:
+        elif _NUMPY_1_15:
             assert len(w) == 5
             assert str(w[0].message).startswith(runtime_warning_minmax)
             for i in range(1, len(w) - 1):
                 assert str(w[i].message).startswith(runtime_warning_percentile)
             assert str(w[-1].message).startswith(runtime_warning_minmax)
+        else:
+            assert len(w) == 3
+            for i in range(len(w)):
+                assert str(w[i].message).startswith(runtime_warning_percentile)
     else:  # pragma: no cover
         description = {'count': 6, 'mean': np.nan, 'std': np.nan,
                        'max': np.nan, 'min': np.nan, '25%': 13.75,
@@ -216,7 +223,8 @@ def test_describe_array():
     type_error_exclude = ('The exclude parameter can either be a string, an '
                           'integer or a list of these two types.')
     runtime_error = 'None of the columns were selected to be described.'
-    runtime_warning_percentile = 'Invalid value encountered in percentile'
+    rwpf = 'percentile' if _NUMPY_1_11 else 'median'
+    runtime_warning_percentile = 'Invalid value encountered in {}'.format(rwpf)
     # numpy<1.16 throws a reduce warning for nan arrays when computing min/max
     runtime_warning_minmax = 'invalid value encountered in reduce'
 
@@ -313,7 +321,7 @@ def test_describe_array():
             for i in range(1, len(w)):
                 assert issubclass(w[i].category, RuntimeWarning)
                 assert str(w[i].message).startswith(runtime_warning_percentile)
-        else:
+        elif _NUMPY_1_15:
             assert len(w) == 6
             assert issubclass(w[1].category, RuntimeWarning)
             assert str(w[1].message).startswith(runtime_warning_minmax)
@@ -322,6 +330,11 @@ def test_describe_array():
                 assert str(w[i].message).startswith(runtime_warning_percentile)
             assert issubclass(w[-1].category, RuntimeWarning)
             assert str(w[-1].message).startswith(runtime_warning_minmax)
+        else:
+            assert len(w) == 4
+            for i in range(1, len(w)):
+                assert issubclass(w[i].category, RuntimeWarning)
+                assert str(w[i].message).startswith(runtime_warning_percentile)
     else:  # pragma: no cover
         description = {'count': 6, 'mean': np.nan, 'std': np.nan,
                        'max': np.nan, 'min': np.nan, '25%': 13.75,
@@ -425,12 +438,16 @@ def test_describe_array():
             assert len(w) == 3
             for i in range(len(w)):
                 assert str(w[i].message).startswith(runtime_warning_percentile)
-        else:  # pragma: no cover
+        elif _NUMPY_1_15:
             assert len(w) == 5
             assert str(w[0].message).startswith(runtime_warning_minmax)
             for i in range(1, len(w) - 1):
                 assert str(w[i].message).startswith(runtime_warning_percentile)
             assert str(w[-1].message).startswith(runtime_warning_minmax)
+        else:
+            assert len(w) == 3
+            for i in range(len(w)):
+                assert str(w[i].message).startswith(runtime_warning_percentile)
     else:  # pragma: no cover
         description_num_test = description_num_nann
         description = ftddf.describe_array(array_struct, skip_nans=False)

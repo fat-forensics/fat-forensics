@@ -615,8 +615,7 @@ class TestKNN(object):
                                     self.X_categorical_indices,
                                     self.X_numerical_indices)
         y_hat = clf.predict(self.X_test)
-        y_true = np.full((y_hat.shape[0], ),
-                         fill_value=self.majority_label_regressor)
+        y_true = np.array(y_hat.shape[0] * [self.majority_label_regressor])
         assert np.isclose(y_hat, y_true, atol=1e-3).all()
 
         # Regressor on structured
@@ -641,8 +640,7 @@ class TestKNN(object):
                                     self.X_struct_categorical_indices,
                                     self.X_struct_numerical_indices)
         y_hat = clf.predict(self.X_test_struct)
-        y_true = np.full((y_hat.shape[0], ),
-                         fill_value=self.majority_label_regressor)
+        y_true = np.array(y_hat.shape[0] * [self.majority_label_regressor])
         assert np.isclose(y_hat, y_true, atol=1e-3).all()
 
         # Numerical classifier on unstructured
@@ -667,7 +665,7 @@ class TestKNN(object):
             self.X_categorical_indices, self.X_numerical_indices,
             self.unique_y, self.unique_y_counts, self.unique_y_probabilities)
         y_hat = clf.predict(self.X_test)
-        y_true = np.full((y_hat.shape[0], ), fill_value=self.majority_label)
+        y_true = np.array(y_hat.shape[0] * [self.majority_label])
         assert np.isclose(y_hat, y_true, atol=1e-3).all()
 
         # Numerical classifier on structured
@@ -692,7 +690,7 @@ class TestKNN(object):
             self.X_struct_categorical_indices, self.X_struct_numerical_indices,
             self.unique_y, self.unique_y_counts, self.unique_y_probabilities)
         y_hat = clf.predict(self.X_test_struct)
-        y_true = np.full((y_hat.shape[0], ), fill_value=self.majority_label)
+        y_true = np.array(y_hat.shape[0] * [self.majority_label])
         assert np.isclose(y_hat, y_true, atol=1e-3).all()
 
         # Categorical classifier on unstructured

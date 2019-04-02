@@ -6,7 +6,7 @@ Includes custom predictive models used for FAT-Forensics testing and examples.
 
 import abc
 
-from typing import List, Optional  # pylint: disable=unused-import
+from typing import Optional
 
 import numpy as np
 
@@ -17,7 +17,7 @@ import fatf.utils.distances as fud
 from fatf.exceptions import (IncorrectShapeError, PrefittedModelError,
                              UnfittedModelError)
 
-__all__ = []  # type: List[str]
+__all__ = ['KNN']
 
 
 class Model(abc.ABC):

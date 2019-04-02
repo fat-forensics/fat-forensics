@@ -16,7 +16,7 @@ from fatf.exceptions import IncorrectShapeError
 
 _NUMPY_VERSION = [int(i) for i in np.version.version.split('.')]
 _NUMPY_1_16 = fut.at_least_verion([1, 16], _NUMPY_VERSION)
-_NUMPY_1_15 = fut.at_least_verion([1, 15], _NUMPY_VERSION)
+_NUMPY_1_14_4 = fut.at_least_verion([1, 14, 4], _NUMPY_VERSION)
 _NUMPY_1_11 = fut.at_least_verion([1, 11], _NUMPY_VERSION)
 _NUMPY_1_10 = fut.at_least_verion([1, 10], _NUMPY_VERSION)
 
@@ -93,7 +93,7 @@ def test_describe_numerical_array():
             assert len(w) == 3
             for i in range(len(w)):
                 assert str(w[i].message).startswith(runtime_warning_percentile)
-        elif _NUMPY_1_15:
+        elif _NUMPY_1_14_4:
             assert len(w) == 5
             assert str(w[0].message).startswith(runtime_warning_minmax)
             for i in range(1, len(w) - 1):
@@ -210,16 +210,16 @@ def test_describe_array():
     user_warning = ('The input array is 1-dimensional. Ignoring include and '
                     'exclude parameters.')
     value_error_0_columns = 'The input array cannot have 0 columns.'
-    value_error_include_index = ('The following include index is not valid '
-                                 'for the input array: {}.')
+    value_error_include_index = ('The following include index is not a valid '
+                                 'index: {}.')
     value_error_include_indices = ('The following include indices are not '
-                                   'valid for the input array: {}.')
+                                   'valid indices: ')
     type_error_include = ('The include parameter can either be a string, an '
                           'integer or a list of these two types.')
-    value_error_exclude_index = ('The following exclude index is not valid '
-                                 'for the input array: {}.')
+    value_error_exclude_index = ('The following exclude index is not a valid '
+                                 'index: {}.')
     value_error_exclude_indices = ('The following exclude indices are not '
-                                   'valid for the input array: {}.')
+                                   'valid indices: ')
     type_error_exclude = ('The exclude parameter can either be a string, an '
                           'integer or a list of these two types.')
     runtime_error = 'None of the columns were selected to be described.'
@@ -321,7 +321,7 @@ def test_describe_array():
             for i in range(1, len(w)):
                 assert issubclass(w[i].category, RuntimeWarning)
                 assert str(w[i].message).startswith(runtime_warning_percentile)
-        elif _NUMPY_1_15:
+        elif _NUMPY_1_14_4:
             assert len(w) == 6
             assert issubclass(w[1].category, RuntimeWarning)
             assert str(w[1].message).startswith(runtime_warning_minmax)
@@ -438,7 +438,7 @@ def test_describe_array():
             assert len(w) == 3
             for i in range(len(w)):
                 assert str(w[i].message).startswith(runtime_warning_percentile)
-        elif _NUMPY_1_15:
+        elif _NUMPY_1_14_4:
             assert len(w) == 5
             assert str(w[0].message).startswith(runtime_warning_minmax)
             for i in range(1, len(w) - 1):
@@ -517,7 +517,7 @@ def test_describe_array():
     assert str(exin.value) == runtime_error
 
     # Invalid indices -- include
-    with pytest.raises(ValueError) as exin:
+    with pytest.raises(IndexError) as exin:
         ftddf.describe_array(array_struct, include='f', exclude='x')
     assert str(exin.value) == value_error_include_index.format('f')
 
@@ -527,21 +527,27 @@ def test_describe_array():
     assert str(exin.value) == type_error_include
 
     # Invalid indices -- include
-    with pytest.raises(ValueError) as exin:
+    with pytest.raises(IndexError) as exin:
         ftddf.describe_array(
             array_struct, include=['a', 7.5, 'b', 'y'], exclude='x')
-    assert str(exin.value) == value_error_include_indices.format(['7.5', 'y'])
+    exin_message = str(exin.value)
+    assert (exin_message.startswith(value_error_include_indices)
+            and '{' in exin_message and '}' in exin_message
+            and '7.5' in exin_message and 'y' in exin_message)
 
     # Invalid indices -- exclude
-    with pytest.raises(ValueError) as exin:
+    with pytest.raises(IndexError) as exin:
         ftddf.describe_array(array_struct, include='b', exclude='x')
     assert str(exin.value) == value_error_exclude_index.format('x')
 
     # Invalid indices -- include
-    with pytest.raises(ValueError) as exin:
+    with pytest.raises(IndexError) as exin:
         ftddf.describe_array(
             array_struct, include='a', exclude=['a', 7.5, 'b', 'z'])
-    assert str(exin.value) == value_error_exclude_indices.format(['7.5', 'z'])
+    exin_message = str(exin.value)
+    assert (exin_message.startswith(value_error_exclude_indices)
+            and '{' in exin_message and '}' in exin_message
+            and '7.5' in exin_message and 'z' in exin_message)
 
     # Invalid indices -- exclude
     with pytest.raises(TypeError) as exin:
@@ -707,3 +713,135 @@ def test_describe_array():
                 assert np.array_equal(col_d, gt_d)
             else:  # pragma: no cover
                 assert False, 'Unrecognised type!'
+
+
+def test_filter_include_indices():
+    """
+    Tests :func:`fatf.transparency.data.describe._filter_include_indices`.
+    """
+    index_error_a = 'The following include index is not a valid index: {}.'
+    index_error_b = 'The following include indices are not valid indices: '
+    type_error = ('The include parameter can either be a string, an integer '
+                  'or a list of these two types.')
+    n_set = set(['n1', 'n2', 'n3'])
+    c_set = set(['c1', 'c2', 'c3'])
+    nc_set = n_set.union(c_set)
+    n_set_num = set([1, 2, 4])
+    c_set_num = set([3, 5])
+    nc_set_num = n_set_num.union(c_set_num)
+
+    # None index
+    include = None
+    c_ind, n_ind = ftddf._filter_include_indices(c_set, n_set, include, nc_set)
+    assert c_ind == c_set and n_ind == n_set
+
+    # 'numerical' index
+    include = 'numerical'
+    c_ind, n_ind = ftddf._filter_include_indices(c_set, n_set, include, nc_set)
+    assert c_ind == set() and n_ind == n_set
+
+    # 'categorical' index
+    include = 'categorical'
+    c_ind, n_ind = ftddf._filter_include_indices(c_set, n_set, include, nc_set)
+    assert c_ind == c_set and n_ind == set()
+
+    # Numbered index
+    # ...int
+    include = 5
+    with pytest.raises(IndexError) as exin:
+        ftddf._filter_include_indices(c_set, n_set, include, nc_set)
+    assert str(exin.value) == index_error_a.format(include)
+    #
+    c_ind, n_ind = ftddf._filter_include_indices(c_set_num, n_set_num, include,
+                                                 nc_set_num)
+    assert c_ind == set([5]) and n_ind == set()
+    # ...float (and object testing)
+    include = 5.
+    with pytest.raises(TypeError) as exin:
+        ftddf._filter_include_indices(c_set, n_set, include, nc_set)
+    assert str(exin.value) == type_error.format(include)
+
+    # String index
+    include = 'c2'
+    c_ind, n_ind = ftddf._filter_include_indices(c_set, n_set, include, nc_set)
+    assert c_ind == set(['c2']) and n_ind == set()
+
+    # List index
+    # ...with float
+    include = ['c1', 'c5', 77, 7.7, 'n3']
+    with pytest.raises(IndexError) as exin:
+        ftddf._filter_include_indices(c_set, n_set, include, nc_set)
+    exin_msg = str(exin.value)
+    assert (exin_msg.startswith(index_error_b) and '77' in exin_msg
+            and '7.7' in exin_msg and "'c5'" in exin_msg)
+    # ..normal
+    include = ['c1', 'c3', 'n3']
+    c_ind, n_ind = ftddf._filter_include_indices(
+        set(['c1', 'c2']), n_set, include, nc_set)
+    assert c_ind == set(['c1']) and n_ind == set(['n3'])
+
+
+def test_filter_exclude_indices():
+    """
+    Tests :func:`fatf.transparency.data.describe._filter_exclude_indices`.
+    """
+    index_error_a = 'The following exclude index is not a valid index: {}.'
+    index_error_b = 'The following exclude indices are not valid indices: '
+    type_error = ('The exclude parameter can either be a string, an integer '
+                  'or a list of these two types.')
+    n_set = set(['n1', 'n2', 'n3'])
+    c_set = set(['c1', 'c2', 'c3'])
+    nc_set = n_set.union(c_set)
+    n_set_num = set([1, 2, 4])
+    c_set_num = set([3, 5])
+    nc_set_num = n_set_num.union(c_set_num)
+
+    # None index
+    exclude = None
+    c_ind, n_ind = ftddf._filter_exclude_indices(c_set, n_set, exclude, nc_set)
+    assert c_ind == c_set and n_ind == n_set
+
+    # 'numerical' index
+    exclude = 'numerical'
+    c_ind, n_ind = ftddf._filter_exclude_indices(c_set, n_set, exclude, nc_set)
+    assert c_ind == c_set and n_ind == set()
+
+    # 'categorical' index
+    exclude = 'categorical'
+    c_ind, n_ind = ftddf._filter_exclude_indices(c_set, n_set, exclude, nc_set)
+    assert c_ind == set() and n_ind == n_set
+
+    # Numbered index
+    # ...int
+    exclude = 5
+    with pytest.raises(IndexError) as exin:
+        ftddf._filter_exclude_indices(c_set, n_set, exclude, nc_set)
+    assert str(exin.value) == index_error_a.format(exclude)
+    #
+    c_ind, n_ind = ftddf._filter_exclude_indices(c_set_num, n_set_num, exclude,
+                                                 nc_set_num)
+    assert c_ind == set([3]) and n_ind == set([1, 2, 4])
+    # ...float (and object testing)
+    exclude = 5.
+    with pytest.raises(TypeError) as exin:
+        ftddf._filter_exclude_indices(c_set, n_set, exclude, nc_set)
+    assert str(exin.value) == type_error.format(exclude)
+
+    # String index
+    exclude = 'c2'
+    c_ind, n_ind = ftddf._filter_exclude_indices(c_set, n_set, exclude, nc_set)
+    assert c_ind == set(['c1', 'c3']) and n_ind == set(['n1', 'n2', 'n3'])
+
+    # List index
+    # ...with float
+    exclude = ['c1', 'c5', 77, 7.7, 'n3']
+    with pytest.raises(IndexError) as exin:
+        ftddf._filter_exclude_indices(c_set, n_set, exclude, nc_set)
+    exin_msg = str(exin.value)
+    assert (exin_msg.startswith(index_error_b) and '77' in exin_msg
+            and '7.7' in exin_msg and "'c5'" in exin_msg)
+    # ..normal
+    exclude = ['c1', 'c3', 'n3']
+    c_ind, n_ind = ftddf._filter_exclude_indices(
+        set(['c1', 'c2']), n_set, exclude, nc_set)
+    assert c_ind == set(['c2']) and n_ind == set(['n1', 'n2'])

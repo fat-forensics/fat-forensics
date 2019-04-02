@@ -7,7 +7,7 @@ Implements functions to describe numpy arrays.
 
 import warnings
 
-from typing import Dict, List, Optional, Union
+from typing import Dict, List, Optional, Set, Tuple, Union
 
 import numpy as np
 
@@ -19,6 +19,8 @@ from fatf.exceptions import IncorrectShapeError
 __all__ = ['describe_array',
            'describe_numerical_array',
            'describe_categorical_array']  # yapf: disable
+
+IndicesType = Set[Union[str, int]]
 
 
 def describe_array(
@@ -81,12 +83,9 @@ def describe_array(
         The input array is neither 1- not 2-dimensional.
     RuntimeError
         None of the columns were selected to be described.
-    TypeError
-        The ``include`` or the ``exclude`` parameter is of a wrong type.
     ValueError
         The input array is not of a base type (textual and numerical elements).
-        The input array has 0 columns. Indices given in the ``include`` or
-        ``exclude`` parameter are not valid indices for the input array.
+        The input array has 0 columns.
 
     Returns
     -------
@@ -96,7 +95,7 @@ def describe_array(
         key corresponding to its index in the input array. For a 1-dimensional
         input array a dictionary describing that array.
     """
-    # pylint: disable=too-many-branches,too-many-statements
+    # pylint: disable=too-many-locals,too-many-branches
     is_1d = fuav.is_1d_like(array)
     if is_1d:
         array = fuat.as_unstructured(array)
@@ -134,71 +133,18 @@ def describe_array(
 
         numerical_indices_set = set(numerical_indices)
         categorical_indices_set = set(categorical_indices)
+        all_indices = categorical_indices_set.union(numerical_indices_set)
         # Indices to be included
-        if include is None:
-            pass
-        elif isinstance(include, (str, int)):
-            if include == 'numerical':
-                categorical_indices_set = set()
-            elif include == 'categorical':
-                numerical_indices_set = set()
-            else:
-                if not fuat.are_indices_valid(array, np.array([include])):
-                    raise ValueError('The following include index is not '
-                                     'valid for the input array: '
-                                     '{}.'.format(include))
-
-                numerical_indices_set = numerical_indices_set.intersection(
-                    [include])
-                categorical_indices_set = categorical_indices_set.intersection(
-                    [include])
-        elif isinstance(include, list):
-            if not fuat.are_indices_valid(array, np.array(include)):
-                invalid_indices = fuat.get_invalid_indices(
-                    array, np.array(include)).tolist()
-                raise ValueError('The following include indices are not valid '
-                                 'for the input array: '
-                                 '{}.'.format(invalid_indices))
-
-            numerical_indices_set = numerical_indices_set.intersection(include)
-            categorical_indices_set = categorical_indices_set.intersection(
-                include)
-        else:
-            raise TypeError('The include parameter can either be a string, an '
-                            'integer or a list of these two types.')
+        include_indices = _filter_include_indices(categorical_indices_set,
+                                                  numerical_indices_set,
+                                                  include, all_indices)
+        categorical_indices_set, numerical_indices_set = include_indices
 
         # Indices to be included
-        if exclude is None:
-            pass
-        elif isinstance(exclude, (str, int)):
-            if exclude == 'numerical':
-                numerical_indices_set = set()
-            elif exclude == 'categorical':
-                categorical_indices_set = set()
-            else:
-                if not fuat.are_indices_valid(array, np.array([exclude])):
-                    raise ValueError('The following exclude index is not '
-                                     'valid for the input array: '
-                                     '{}.'.format(exclude))
-
-                numerical_indices_set = numerical_indices_set.difference(
-                    [exclude])
-                categorical_indices_set = categorical_indices_set.difference(
-                    [exclude])
-        elif isinstance(exclude, list):
-            if not fuat.are_indices_valid(array, np.array(exclude)):
-                invalid_indices = fuat.get_invalid_indices(
-                    array, np.array(exclude)).tolist()
-                raise ValueError('The following exclude indices are not valid '
-                                 'for the input array: '
-                                 '{}.'.format(invalid_indices))
-
-            numerical_indices_set = numerical_indices_set.difference(exclude)
-            categorical_indices_set = categorical_indices_set.difference(
-                exclude)
-        else:
-            raise TypeError('The exclude parameter can either be a string, an '
-                            'integer or a list of these two types.')
+        exclude_indices = _filter_exclude_indices(categorical_indices_set,
+                                                  numerical_indices_set,
+                                                  exclude, all_indices)
+        categorical_indices_set, numerical_indices_set = exclude_indices
 
         all_indices = numerical_indices_set.union(categorical_indices_set)
         if len(all_indices) == 0:  # pylint: disable=len-as-condition
@@ -206,19 +152,20 @@ def describe_array(
                                'described.')
 
         description = dict()
-        for index in numerical_indices_set:
+        for idx in numerical_indices_set:
             if is_structured_array:
-                description[index] = describe_numerical_array(
-                    array[index], **kwargs)
+                description[idx] = describe_numerical_array(  # type: ignore
+                    array[idx], **kwargs)
             else:
-                description[index] = describe_numerical_array(
-                    array[:, index], **kwargs)
-        for index in categorical_indices_set:
+                description[idx] = describe_numerical_array(  # type: ignore
+                    array[:, idx], **kwargs)
+        for idx in categorical_indices_set:
             if is_structured_array:
-                description[index] = describe_categorical_array(array[index])
+                description[idx] = describe_categorical_array(  # type: ignore
+                    array[idx])
             else:
-                description[index] = describe_categorical_array(
-                    array[:, index])
+                description[idx] = describe_categorical_array(  # type: ignore
+                    array[:, idx])
     else:  # pragma: no cover
         assert False, 'The input array can only be 1- or 2-dimensional.'
 
@@ -400,3 +347,148 @@ def describe_categorical_array(
     }
 
     return categorical_description
+
+
+def _filter_include_indices(
+        categorical_indices_set: IndicesType,
+        numerical_indices_set: IndicesType,
+        include: Union[None, str, int, List[Union[str, int]]],
+        all_indices: IndicesType) -> Tuple[IndicesType, IndicesType]:
+    """
+    Filters categorical and numerical indices sets with the include set.
+
+    For a detailed description of the filtering mechanism please refer to
+    :func:`fatf.transparency.data.describe_functions.describe_array`
+    documentation.
+
+    Parameters
+    ----------
+    categorical_indices_set : Set[Union[string, integer]]
+        A set of categorical indices to be filtered.
+    numerical_indices_set : Set[Union[string, integer]]
+        A set of numerical indices to be filtered.
+    include : Union[None, string, integer, List[Union[string, integer]]]
+        An index or a list of indices to be included. ``None`` means including
+        all of the indices.
+    all_indices : Set[Union[string, integer]]
+        A set of all indices before any filtering was ever applied.
+
+    Raises
+    ------
+    TypeError
+        The ``include`` parameter is of a wrong type.
+    IndexError
+        Indices given in the ``include`` parameter are not valid indices for
+        the ``categorical_indices_set`` and ``numerical_indices_set``.
+
+    Returns
+    -------
+    categorical_indices_set : Set[Union[string, integer]]
+        A set of categorical indices after filtering.
+    numerical_indices_set : Set[Union[string, integer]]
+        A set of numerical indices after filtering.
+    """
+    assert isinstance(categorical_indices_set, set), 'This has to be a set.'
+    assert isinstance(numerical_indices_set, set), 'This has to be a set.'
+
+    if include is None:
+        pass
+    elif isinstance(include, (str, int)):
+        if include == 'numerical':
+            categorical_indices_set = set()
+        elif include == 'categorical':
+            numerical_indices_set = set()
+        else:
+            if include not in all_indices:
+                raise IndexError('The following include index is not a valid '
+                                 'index: {}.'.format(include))
+
+            numerical_indices_set = numerical_indices_set.intersection(
+                [include])
+            categorical_indices_set = categorical_indices_set.intersection(
+                [include])
+    elif isinstance(include, list):
+        invalid_indices = set(include).difference(all_indices)
+        if invalid_indices:
+            raise IndexError('The following include indices are not valid '
+                             'indices: {}.'.format(invalid_indices))
+
+        numerical_indices_set = numerical_indices_set.intersection(include)
+        categorical_indices_set = categorical_indices_set.intersection(include)
+    else:
+        raise TypeError('The include parameter can either be a string, an '
+                        'integer or a list of these two types.')
+
+    return categorical_indices_set, numerical_indices_set
+
+
+def _filter_exclude_indices(
+        categorical_indices_set: IndicesType,
+        numerical_indices_set: IndicesType,
+        exclude: Union[None, str, int, List[Union[str, int]]],
+        all_indices: IndicesType) -> Tuple[IndicesType, IndicesType]:
+    """
+    Filters categorical and numerical indices sets with the exclude set.
+
+    For a detailed description of the filtering mechanism please refer to
+    :func:`fatf.transparency.data.describe_functions.describe_array`
+    documentation.
+
+    Parameters
+    ----------
+    categorical_indices_set : Set[Union[string, integer]]
+        A set of categorical indices to be filtered.
+    numerical_indices_set : Set[Union[string, integer]]
+        A set of numerical indices to be filtered.
+    exclude : Union[None, string, integer, List[Union[string, integer]]]
+        An index or a list of indices to be excluded. ``None`` means not
+        excluding any index.
+    all_indices : Set[Union[string, integer]]
+        A set of all indices before any filtering was ever applied.
+
+    Raises
+    ------
+    TypeError
+        The ``exclude`` parameter is of a wrong type.
+    IndexError
+        Indices given in the ``exclude`` parameter are not valid indices for
+        the ``categorical_indices_set`` and ``numerical_indices_set``.
+
+    Returns
+    -------
+    categorical_indices_set : Set[Union[string, integer]]
+        A set of categorical indices after filtering.
+    numerical_indices_set : Set[Union[string, integer]]
+        A set of numerical indices after filtering.
+    """
+    assert isinstance(categorical_indices_set, set), 'This has to be a set.'
+    assert isinstance(numerical_indices_set, set), 'This has to be a set.'
+
+    if exclude is None:
+        pass
+    elif isinstance(exclude, (str, int)):
+        if exclude == 'numerical':
+            numerical_indices_set = set()
+        elif exclude == 'categorical':
+            categorical_indices_set = set()
+        else:
+            if exclude not in all_indices:
+                raise IndexError('The following exclude index is not a valid '
+                                 'index: {}.'.format(exclude))
+
+            numerical_indices_set = numerical_indices_set.difference([exclude])
+            categorical_indices_set = categorical_indices_set.difference(
+                [exclude])
+    elif isinstance(exclude, list):
+        invalid_indices = set(exclude).difference(all_indices)
+        if invalid_indices:
+            raise IndexError('The following exclude indices are not valid '
+                             'indices: {}.'.format(invalid_indices))
+
+        numerical_indices_set = numerical_indices_set.difference(exclude)
+        categorical_indices_set = categorical_indices_set.difference(exclude)
+    else:
+        raise TypeError('The exclude parameter can either be a string, an '
+                        'integer or a list of these two types.')
+
+    return categorical_indices_set, numerical_indices_set

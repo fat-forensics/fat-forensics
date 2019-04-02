@@ -10,14 +10,61 @@ import numpy as np
 
 import matplotlib.pyplot as plt
 from matplotlib.collections import LineCollection
+from fatf.exceptions import IncorrectShapeError
+
+
+def _check_input(data: np.ndarray,
+                 values: np.ndarray,
+                 category: int,
+                 is_pd: bool = False):
+    """
+    Checks input variables for both plot_individual_conditional_expectation
+    and plot_partial_dependence.
+
+    Parameters
+    ----------
+    data : numpy.ndarray
+        Array that contains probabilities for ICE or PD.
+    values : numpy.ndarray
+        Containing values of feature tested for ICE or PD.
+    category : numpy.ndarray
+        Which class to plot probabilities for
+    is_pd : boolean
+        If true then checks input for use in plot PD else checks for use in
+        plot ICE.
+    
+    Raises
+    ------
+    IncorrectShapeError
+        If data does not have the correct shape for use in specified mode.
+    ValueError
+        If category is not a valid index in data array or if values array 
+        does not contain the same number of entries as steps in data array.
+    """
+    axis = 3
+    msg = ('plot_individual_condtional_expectation expects matrix '
+           'of shape [n_samples, steps, n_classes].')
+    if is_pd:
+        axis = 2
+        msg = ('plot_partial_depenedence expects matrix of shape '
+               '[steps, n_classes].')
+    if axis != len(data.shape):
+        raise IncorrectShapeError(msg)
+    if category < 0 or category > data.shape[-1]:
+        raise ValueError('Category {} is not a valid index for probability '
+                         'matrix.'.format(category))
+    if values.shape[0] != data.shape[-2]:
+        raise ValueError('{} values provided does not match {} steps in '
+                         'probability matrix.'.format(values.shape[0], 
+                                                      data.shape[-2]))
 
 
 def plot_individual_conditional_expectiation(
         ice: np.ndarray,
-        feature_name: str,
         values: np.ndarray,
         category: int,
-        category_name: str = '',
+        feature_name: str = None,
+        category_name: str = None,
         ax: plt.Axes = None,
         plot_pd: bool = False) -> plt.Axes:
     """
@@ -28,12 +75,12 @@ def plot_individual_conditional_expectiation(
     ice : numpy.ndarray
         Shape [n_samples, steps, n_classes] containing probabilities
         outputted from ICE
-    feature_name : string
-        Specificy which feature was used to calculate the ICE
     values : numpy.array
         Containing values of feature tested for ICE
     category : integer
         Which class to plot probabilities for
+    feature_name : string
+        Specificy which feature was used to calculate the ICE
     category_name : string
         Name of class chosen. If None then the category_name will be
         the category integer converted to str. Default: None
@@ -49,10 +96,13 @@ def plot_individual_conditional_expectiation(
         Figure with individual conditional expectation and partial dependence
         line plotted.
     """
-    if not category_name:
-        category_name = str(category)
+    _check_input(ice, values, category)
+    if category_name is None:
+        category_name = 'Class {}'.format(str(category))
+    if feature_name is None:
+        feature_name = 'Feature'
     if ax is None:
-        ax = plt.subplot(111)
+        ax = plt.subplot()
         ax.set_xlim([values[0], values[-1]])
         ax.set_ylabel(
             'Probability of belonging to class {}'.format(category_name))
@@ -74,10 +124,10 @@ def plot_individual_conditional_expectiation(
 
 def plot_partial_dependence(
         pd: np.ndarray,
-        feature_name: str,
         values: np.ndarray,
         category: int,
-        category_name: str = '',
+        feature_name: str = None,
+        category_name: str = None,
         ax: plt.Axes = None,
         plot_pd: bool = False) -> plt.Axes:
     """
@@ -88,12 +138,12 @@ def plot_partial_dependence(
     pd : numpy.ndarray
         Shape [steps, n_classes] containing probabilities
         outputted from ICE
-    feature_name : string
-        Specificy which feature was used to calculate the ICE
     values : numpy.array
-        Containing values of feature tested for ICE
+        Containing values of feature tested for partial dependence
     category : integer
         Which class to plot probabilities for
+    feature_name : string
+        Specificy which feature was used to calculate the partial dependence
     category_name : string
         Name of class chosen. If None then the category_name will be
         the category integer converted to str. Default: None
@@ -107,10 +157,13 @@ def plot_partial_dependence(
         Figure with individual conditional expectation and partial dependence
         line plotted.
     """
-    if not category_name:
-        category_name = str(category)
+    _check_input(pd, values, category, True)
+    if category_name is None:
+        category_name = 'Class {}'.format(str(category))
+    if feature_name is None:
+        feature_name = 'Feature'
     if ax is None:
-        ax = plt.subplot(111)
+        ax = plt.subplot()
         ax.set_xlim([values[0], values[-1]])
         ax.set_title('Partial Dependence')
         ax.set_xlabel(feature_name)
@@ -120,25 +173,3 @@ def plot_partial_dependence(
             label='Partial Dependence')
     ax.legend()
     return ax
-    
-
-
-if __name__ == '__main__':
-    from sklearn import svm
-    from sklearn.model_selection import train_test_split
-    from sklearn.neighbors import KNeighborsClassifier
-    from fatf.utils.data import datasets
-    from fatf.transparency.models import feature_importance as featim
-    plt.style.use('ggplot')
-    predictor = svm.SVC(probability=True, gamma='scale')
-    predictor = KNeighborsClassifier(n_neighbors=15)
-    data = datasets.load_iris()
-    X_train, X_test, y_train, y_test = train_test_split(data['data'], 
-                                                        data['target'])
-    predictor.fit(X_train, y_train)
-    i, v = featim.individual_conditional_expectation(X_test, predictor, 
-                                                     feature=2)
-    ax = plot_individual_conditional_expectiation(
-        i, feature_name=data['feature_names'][2], values=v, 
-        category_name=data['target_names'][0], category=0, plot_pd=True)
-    plt.show()

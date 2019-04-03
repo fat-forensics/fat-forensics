@@ -1,10 +1,9 @@
 import pytest
 import numpy as np
 
-from fatf.analyse.lime import Lime, plot_lime
-from fatf.tests.predictor import KNN
-from fatf.exceptions import (MissingImplementationException, CustomValueError,
-                            IncompatibleModelException, IncorrectShapeException)
+from fatf.transparency.lime import Lime
+from fatf.utils.models import KNN
+from fatf.exceptions import IncompatibleModelError, IncorrectShapeError
 
 numerical_array = np.array(
         [[0, 0, 0.08, 0.69],
@@ -38,32 +37,37 @@ def is_explain_equal(dict1, dict2):
             val2 = dict2[key]
             if set([x[0] for x in val]) != set([x[0] for x in val2]):
                 equal = False
+                break
             array1 = np.array([x[1] for x in val])
             array2 = np.array([x[1] for x in val2])
-            if not any(np.isclose(array1, array2, atol=1e-1)):
+            if not np.isclose(array1, array2, atol=1).all():
                 equal = False
+                break
+        else:
+            equal = False
+            break
     return equal
 
 def test_lime_exceptions():
     # Test Exceptions
-    with pytest.raises(MissingImplementationException):
+    with pytest.raises(NotImplementedError):
         lime = Lime(np.ones((6, 4), dtype='U4'), predictor, class_names=class_names,
                     feature_names=feature_names, random_state=10)
     invalid_model = InvalidModel()
-    with pytest.raises(IncompatibleModelException):
+    with pytest.raises(IncompatibleModelError):
         lime = Lime(numerical_array, invalid_model, class_names=class_names,
                     feature_names=feature_names, random_state=10)
-    with pytest.raises(IncorrectShapeException):
+    with pytest.raises(IncorrectShapeError):
         lime = Lime(np.ones((6, 4, 4)), predictor, class_names=class_names,
                     feature_names=feature_names, random_state=10)
-    with pytest.raises(CustomValueError):
+    with pytest.raises(ValueError):
         lime = Lime(numerical_array, predictor, class_names=class_names,
                     feature_names=feature_names, random_state=10,
                     categorical_indices=np.array([0, 10]))
-    with pytest.raises(CustomValueError):
+    with pytest.raises(ValueError):
         lime = Lime(numerical_array, predictor, class_names=['class1'],
                     feature_names=feature_names, random_state=10)
-    with pytest.raises(CustomValueError):
+    with pytest.raises(ValueError):
         lime = Lime(numerical_array, predictor, class_names=class_names,
                     feature_names=['feature1'], random_state=10)
 
@@ -124,7 +128,3 @@ def test_explain_instance():
                 categorical_indices=np.array(['a', 'b']))
     explained_categorical_structure = lime.explain_instance(sample)
     assert(is_explain_equal(explained_categorical_structure, categorical_results) == True)
-
-def test_plot():
-    # Plotting not tested - just offers basical functionality
-    return True

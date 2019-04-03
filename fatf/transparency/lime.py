@@ -11,11 +11,11 @@ import logging
 
 import numpy as np 
 
-from fatf.utils.validation import (check_array_type, is_2d_array, 
-                                   check_model_functionality,
-                                   check_indices)
-from fatf.exceptions import (MissingImplementationException, CustomValueError,
-                            IncompatibleModelException, IncorrectShapeException)
+import fatf.utils.array.validation as fuav
+import fatf.utils.models.validation as fumv
+import fatf.utils.array.tools as fuat 
+
+from fatf.exceptions import IncompatibleModelError, IncorrectShapeError
 try:
     import lime
     from lime.lime_tabular import LimeTabularExplainer
@@ -123,8 +123,8 @@ class Lime(object):
                            check_class_names: bool = True):
         """Check input data and model is valid for LIME algorithm
 
-        Args
-        ----
+        Parameters
+        ----------
         X : np.array
             The data to be used
         model : object
@@ -151,51 +151,52 @@ class Lime(object):
             If true then class names will be checked. Defaults to True
 
         Raises
-        ----
-        MissingImplementationException:
+        ------
+        NotImplementedError:
             The input X is a numpy structured array and not ndarray with same data type
-        IncorrectShapeException:
+        IncorrectShapeError:
             The input X is not a 2-D array
-        IncompatibleModelException:
+        IncompatibleModelError:
             The model parameter does not contain a peridct_proba() method that is needed
             for LIME algorithm
-        CustomValueError:
+        ValueError:
             Index given in categorical_indices parameter is out of range for features
             given in X
-        CustomValueError:
+        ValueError:
             Number of feature names given does not equal to number of features in X
-        CustomValueError:
+        ValueError:
             Number of class names given does not equal number of classes that model
             has been trained with
         """
         if check_x:
-            numerical_ind, categorical_ind = check_array_type(X)
+            numerical_ind, categorical_ind = fuat.indices_by_type(X)
             if not np.array_equal(categorical_ind, np.array([])):
-                raise MissingImplementationException(
+                raise NotImplementedError(
                     'LIME not implemented for non-numerical arrays.')
-            if not is_2d_array(X):
-                raise IncorrectShapeException('X must be 2-D array.')
+            if not fuav.is_2d_array(X):
+                raise IncorrectShapeError('X must be 2-D array.')
         if check_model:
-            if not check_model_functionality(model, True):
-                raise IncompatibleModelException(
+            if not fumv.check_model_functionality(model, True, 
+                                                  suppress_warning=True):
+                raise IncompatibleModelError(
                     'LIME requires model object to have method predict_proba() in order to '
                     'work')
         if check_categorical_indices:
             if not np.array_equal(categorical_indices, np.array([])):
-                if not check_indices(X, categorical_indices):
-                    raise CustomValueError(
+                if not fuat.are_indices_valid(X, categorical_indices):
+                    raise ValueError(
                         'Indices given in categorical_indices not valid for input array X')
         # need numerical version of X for use in model.predict_proba
         X, _ = self._process_X_indices(X, categorical_indices)
         if check_feature_names:
             if feature_names is not None:
                 if len(feature_names) != numerical_ind.shape[0]:
-                    raise CustomValueError(
+                    raise ValueError(
                         'Number of feature names given does not correspond to input array')
         if check_class_names:
             if class_names is not None:
                 if len(class_names) != model.predict_proba(X[0:1, :]).shape[1]:
-                    raise CustomValueError(
+                    raise ValueError(
                         'Number of class names given does not correspond to model')
 
     def _process_X_indices(self, X:np.array, categorical_indices: np.array) -> (np.ndarray, np.array):
@@ -251,7 +252,7 @@ class Lime(object):
 
         Raises
         ----
-        CustomValueError:
+        ValueError:
             Entry of labels not found in dataset (i.e. two classes but label 2 is given)
         
         Returns
@@ -267,7 +268,7 @@ class Lime(object):
             x = instance
         if not np.array_equal(labels, np.array([])):
             if np.any(labels > self._num_classes):
-                raise CustomValueError('Class %d not in dataset specified'%l)
+                raise ValueError('Class %d not in dataset specified'%l)
         else:
             labels = list(range(0, self._num_classes))
         exp = self.tabular_explainer.explain_instance(
@@ -284,64 +285,6 @@ class Lime(object):
 
     def show_notebook(self, explained: Dict[str, Tuple[str, float]]) -> None:
         # TODO: implement show_notebook that takes explain_instance return
-        raise MissingImplementationException(
+        raise NotImplementedError(
             'show_notebook function not yet implemented')
         #self._exp.show_in_notebook(predict_proba=True)
-
-def plot_lime(lime_explained: Dict[str, List[tuple]]) -> plt.Figure:
-    """Figures to display explainer
-
-    Args
-    ----
-    lime_explained: Dictionary returned from Lime.explain_instance. 
-
-    Returns
-    ----
-    Figure from matplotlib where it is split into as many subplots as there are 
-    possible labels in Dataset.
-
-    Raises
-    ----
-    ImportError: Matplotlib not installed
-    """
-    if not plt:
-        raise ImportError('Matplotlib is not installed. You will not be able to use plot_lime ' 
-                          'function. To use please install matplotlib by: pip install ' 
-                          'matplotlib')
-    sharey = False
-    names = None
-    # check if all features are used, all subplots can share y axis
-    sets = []
-    labels = []
-    for k, v in lime_explained.items():
-        sets.append(set([l[0] for l in v]))
-        labels.append(k)
-    if all(s==sets[0] for s in sets):
-        sharey = True
-        f, axs = plt.subplots(1, len(sets), sharey=sharey, sharex=True)
-    else:
-        f, axs = plt.subplots(len(sets), 1, sharex=True)
-    f.suptitle('Local Explanations for classes')
-    if sharey: # Make sure all barplots are in the same order if sharing
-        names = list(sets[0])
-    # Do the plotting
-    for ax, label in zip(axs, labels):
-        exp = lime_explained[label]
-        vals = [x[1] for x in exp]
-        unordered_names = [x[0] for x in exp]
-        if sharey:
-            # get bars in correct order for sharing y-axis
-            ind = [unordered_names.index(item) for item in names]
-            vals = [vals[i] for i in ind]
-        else:
-            names = unordered_names
-        vals.reverse()
-        l = names[::-1]
-        colors = ['green' if x > 0 else 'red' for x in vals]
-        pos = np.arange(len(exp)) + .5
-        ax.barh(pos, vals, align='center', color=colors)
-        ax.set_yticks(pos)
-        ax.set_yticklabels(l)
-        title = str(label)
-        ax.set_title(title)
-    return f

@@ -1,0 +1,7 @@
+include LICENCE
+include README.rst
+include requirements.txt
+include requirements-dev.txt
+include requirements-aux.txt
+include fatf/utils/data/datasets/health_records.csv
+include fatf/utils/data/datasets/iris.csv

@@ -2,17 +2,22 @@ import matplotlib.pyplot as plt
 from typing import Dict, List
 import numpy as np 
 
+
 def plot_lime(lime_explained: Dict[str, List[tuple]]) -> plt.Figure:
-    """Figures to display explainer
+    """
+    Plotting function for dictionary return by explain_instance method in
+    Lime class.
 
     Parameters
-    ----
-    lime_explained: Dictionary returned from Lime.explain_instance. 
+    ----------
+    lime_explained : Dictionary[string, List[tuple]] 
+        Dictionary returned from Lime.explain_instance. 
 
     Returns
-    ----
-    Figure from matplotlib where it is split into as many subplots as there are 
-    possible labels in Dataset.
+    -------
+    f : matplotlib.pyplot.Figure
+        Figure from matplotlib where it is split into as many subplots as 
+        there are possible labels in lime_explained object.
 
     """
     sharey = False

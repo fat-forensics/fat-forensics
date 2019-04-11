@@ -77,9 +77,9 @@ def test_lime_exceptions():
     notimplemeneted_msg = 'LIME not implemented for non-numerical arrays.'
     incompatible_msg = ('LIME requires model object to have method '
                        'predict_proba().')
-    shape_msg = 'X must be 2-D array.'
+    shape_msg = 'data must be 2-D array.'
     cat_indices_msg = ('Indices given in categorical_indices not valid for '
-                       'input array X')
+                       'input array data')
     class_msg = 'Number of class names given does not correspond to model'
     feature_msg = ('Number of feature names given does not correspond to '
                    'input array')

@@ -2,8 +2,6 @@ from fatf.vis import lime as vislime
 import numpy as np
 import matplotlib.pyplot as plt 
 
-from numbers import Number
-from typing import List, Tuple
 from fatf.vis._utils import _get_bar_plot_data
 
 

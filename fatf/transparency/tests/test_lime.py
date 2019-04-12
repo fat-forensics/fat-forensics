@@ -1,3 +1,9 @@
+"""
+Tests  plotting functions.
+"""
+# Author: Alex Hepburn <ah13558@bristol.ac.uk>
+# License: new BSD
+
 import pytest
 import numpy as np
 
@@ -10,17 +16,21 @@ from fatf.utils.models import KNN
 from fatf.exceptions import IncompatibleModelError, IncorrectShapeError
 import fatf.utils.testing.imports as futi
 
-numerical_array = np.array(
+NUMERICAL_ARRAY = np.array(
         [[0, 0, 0.08, 0.69],
         [1, 0, 0.03, 0.29],
         [0, 1, 0.99, 0.82],
         [2, 1, 0.73, 0.48],
         [1, 0, 0.36, 0.89],
         [0, 1, 0.07, 0.21]])
-predictor = KNN()
-predictor.fit(numerical_array, np.array([2, 0, 1, 1, 0, 2]))
-class_names = ['class0', 'class1', 'class2']
-feature_names = ['feat0', 'feat1', 'feat2', 'feat3']
+SAMPLE = np.array([0, 1, 0.08, 0.54])
+STRUCT_SAMPLE = np.array([(0, 1, 0.08, 0.54)], dtype=[('a', 'i'), ('b', 'i'), 
+                                                      ('c', 'f'), ('d', 'f')])
+PREDICTOR = KNN()
+PREDICTOR.fit(NUMERICAL_ARRAY, np.array([2, 0, 1, 1, 0, 2]))
+CLASS_NAMES = ['class0', 'class1', 'class2']
+FEATURE_NAMES = ['feat0', 'feat1', 'feat2', 'feat3']
+
 
 class InvalidModel(object):
     """Class to test if exception when model does not have
@@ -85,43 +95,42 @@ def test_lime_exceptions():
                    'input array')
     class_explain_msg = 'Class [10] not in dataset specified'
     with pytest.raises(NotImplementedError) as exin:
-        lime = Lime(np.ones((6, 4), dtype='U4'), predictor, 
-                    class_names=class_names,feature_names=feature_names)
+        lime = Lime(np.ones((6, 4), dtype='U4'), PREDICTOR,
+                    class_names=CLASS_NAMES, feature_names=FEATURE_NAMES)
     assert str(exin.value) == notimplemeneted_msg
     invalid_model = InvalidModel()
     with pytest.raises(IncompatibleModelError) as exin:
-        lime = Lime(numerical_array, invalid_model, class_names=class_names,
-                    feature_names=feature_names)
+        lime = Lime(NUMERICAL_ARRAY, invalid_model, class_names=CLASS_NAMES,
+                    feature_names=FEATURE_NAMES)
     assert str(exin.value) == incompatible_msg
     with pytest.raises(IncorrectShapeError) as exin:
-        lime = Lime(np.ones((6, 4, 4)), predictor, class_names=class_names,
-                    feature_names=feature_names)
+        lime = Lime(np.ones((6, 4, 4)), PREDICTOR, class_names=CLASS_NAMES,
+                    feature_names=FEATURE_NAMES)
     assert str(exin.value) == shape_msg
     with pytest.raises(ValueError) as exin:
-        lime = Lime(numerical_array, predictor, class_names=class_names,
-                    feature_names=feature_names,
+        lime = Lime(NUMERICAL_ARRAY, PREDICTOR, class_names=CLASS_NAMES,
+                    feature_names=FEATURE_NAMES,
                     categorical_indices=np.array([0, 10]))
     assert str(exin.value) == cat_indices_msg
     with pytest.raises(ValueError) as exin:
-        lime = Lime(numerical_array, predictor, class_names=['class1'],
-                    feature_names=feature_names)
+        lime = Lime(NUMERICAL_ARRAY, PREDICTOR, class_names=['class1'],
+                    feature_names=FEATURE_NAMES)
     assert str(exin.value) == class_msg
     with pytest.raises(ValueError) as exin:
-        lime = Lime(numerical_array, predictor, class_names=class_names,
+        lime = Lime(NUMERICAL_ARRAY, PREDICTOR, class_names=CLASS_NAMES,
                     feature_names=['feature1'])
     assert str(exin.value) == feature_msg
-    sample = np.array([0, 1, 0.08, 0.54])
     with pytest.raises(ValueError) as exin:
-        lime = Lime(numerical_array, predictor)
-        exp = lime.explain_instance(sample, labels=np.array([10,]))
+        lime = Lime(NUMERICAL_ARRAY, PREDICTOR)
+        exp = lime.explain_instance(SAMPLE, labels=np.array([10,]))
     assert str(exin.value) == class_explain_msg
 
 
 def test_explain_instance():
-    sample = np.array([0, 1, 0.08, 0.54])
-    lime = Lime(numerical_array, predictor, class_names=class_names, 
-                feature_names=feature_names)
-    explained = lime.explain_instance(sample)
+    SAMPLE = np.array([0, 1, 0.08, 0.54])
+    lime = Lime(NUMERICAL_ARRAY, PREDICTOR, class_names=CLASS_NAMES, 
+                feature_names=FEATURE_NAMES)
+    explained = lime.explain_instance(SAMPLE)
     numerical_results = {
         'class0': [('feat0 <= 0.00', -0.4153762474280945), 
                    ('0.50 < feat1 <= 1.00', -0.28039957101809865), 
@@ -138,10 +147,10 @@ def test_explain_instance():
     assert is_explain_equal(explained, numerical_results)
 
     # change so feat0 and feat1 are treated as categorical
-    lime = Lime(numerical_array, predictor, class_names=class_names, 
-                feature_names=feature_names,
+    lime = Lime(NUMERICAL_ARRAY, PREDICTOR, class_names=CLASS_NAMES, 
+                feature_names=FEATURE_NAMES,
                 categorical_indices=np.array([0, 1]))
-    explained_categorical = lime.explain_instance(sample)
+    explained_categorical = lime.explain_instance(SAMPLE)
     categorical_results = {
         'class0': [('feat0=0', -0.4133642307066818), 
                    ('feat1=1', -0.2823750842408885), 
@@ -157,8 +166,6 @@ def test_explain_instance():
                    ('0.34 < feat3 <= 0.58', 0.025521020693166262)]}
     assert is_explain_equal(categorical_results,explained_categorical)
 
-    sample = np.array([(0, 1, 0.08, 0.54)], dtype=[('a', 'i'), ('b', 'i'), 
-                                                   ('c', 'f'), ('d', 'f')])
     structure_array = np.array([
         (0, 0, 0.08, 0.69),
         (1, 0, 0.03, 0.29),
@@ -167,12 +174,12 @@ def test_explain_instance():
         (1, 0, 0.36, 0.89),
         (0, 1, 0.07, 0.21)], dtype=[('a', 'i'), ('b', 'i'), ('c', 'f'), 
                                     ('d', 'f')])
-    lime = Lime(structure_array, predictor, class_names=class_names,
-                feature_names=feature_names)
-    explained_numerical_structure = lime.explain_instance(sample)
+    lime = Lime(structure_array, PREDICTOR, class_names=CLASS_NAMES,
+                feature_names=FEATURE_NAMES)
+    explained_numerical_structure = lime.explain_instance(STRUCT_SAMPLE)
     assert is_explain_equal(explained_numerical_structure, numerical_results)
-    lime = Lime(structure_array, predictor, class_names=class_names,
-                feature_names=feature_names,
+    lime = Lime(structure_array, PREDICTOR, class_names=CLASS_NAMES,
+                feature_names=FEATURE_NAMES,
                 categorical_indices=np.array(['a', 'b']))
-    explained_categorical_structure = lime.explain_instance(sample)
+    explained_categorical_structure = lime.explain_instance(STRUCT_SAMPLE)
     assert is_explain_equal(explained_categorical_structure, categorical_results)

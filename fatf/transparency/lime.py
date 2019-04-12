@@ -76,8 +76,9 @@ class Lime(object):
                  num_features: int = 0,
                  distance_metric: str = 'euclidean',
                  random_state: int = None):
-        self._check_input(data, model, categorical_indices, class_names,
-                          feature_names, check_class_names=False)
+        assert self._validate_input(data, model, categorical_indices, 
+                                    class_names, feature_names, 
+                                    check_class_names=False)
         if fuav.is_structured_array(data):
             self._data = fuat.as_unstructured(data)
             self._categorical = np.array([data.dtype.names.index(y) for y in
@@ -86,8 +87,9 @@ class Lime(object):
             self._data = data
             self._categorical = categorical_indices
         self._num_classes = model.predict_proba(self._data[[0], :]).shape[1]
-        self._check_input(self._data, model, self._categorical, class_names,
-                          feature_names, False, False, False, False, True)
+        assert self._validate_input(self._data, model, self._categorical, 
+                                    class_names, feature_names, False, False, 
+                                    False, False, True)
         self._common_type = self._data.dtype
         self.model = model
         self.num_features = num_features
@@ -108,17 +110,17 @@ class Lime(object):
             random_state=random_state)
 
 
-    def _check_input(self,
-                     data: np.array,
-                     model: object,
-                     categorical_indices: np.array,
-                     class_names: List[str],
-                     feature_names: List[str],
-                     check_data: bool = True,
-                     check_model: bool = True,
-                     check_categorical_indices: bool = True,
-                     check_feature_names: bool = True,
-                     check_class_names: bool = True):
+    def _validate_input(self,
+                        data: np.array,
+                        model: object,
+                        categorical_indices: np.array,
+                        class_names: List[str],
+                        feature_names: List[str],
+                        check_data: bool = True,
+                        check_model: bool = True,
+                        check_categorical_indices: bool = True,
+                        check_feature_names: bool = True,
+                        check_class_names: bool = True) -> bool:
         """
         Checks input data and model is valid for LIME algorithm
 
@@ -164,7 +166,13 @@ class Lime(object):
             features given indataor number of feature names given does not
             equal to number of features indataor number of class names given
             does not equal number of classes that model has been trained with.
+        
+        Returns
+        -------
+        input_is_valid : boolean
+            ``True`` if the input is valid, ``False`` otherwise.
         """
+        input_is_valid = False
         if check_data:
             if not fuav.is_2d_array(data):
                 raise IncorrectShapeError('data must be 2-D array.')
@@ -197,6 +205,8 @@ class Lime(object):
                     raise ValueError(
                         'Number of class names given does not correspond to '
                         'model')
+        input_is_valid = True
+        return input_is_valid
 
 
     def explain_instance(self,

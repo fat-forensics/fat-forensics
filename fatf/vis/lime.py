@@ -10,6 +10,8 @@ from typing import Dict, List
 import matplotlib.pyplot as plt
 import numpy as np
 
+__all__ = ['plot_lime']
+
 
 def plot_lime(lime_explained: Dict[str, List[tuple]]) -> plt.Figure:
     """

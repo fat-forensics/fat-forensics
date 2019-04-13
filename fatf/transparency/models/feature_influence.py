@@ -449,10 +449,9 @@ def merge_ice_arrays(ice_arrays_list: List[np.ndarray]) -> np.ndarray:
         The ``ice_arrays_list`` input parameter is not a list.
     ValueError
         The list of ICE arrays to be merged is empty. One of the ICE arrays is
-        not of a base type. Some of the ICE arrays do not share the same second
-        (number of steps) or third (number of classes) dimension or type -- for
-        structured arrays the dtype names and types also have to match. Some of
-        the arrays are structured while other are not structured.
+        not a numerical array. One of the ICE arrays is structured. Some of the
+        ICE arrays do not share the same second (number of steps) or third
+        (number of classes) dimension or type.
 
     Returns
     -------
@@ -460,60 +459,32 @@ def merge_ice_arrays(ice_arrays_list: List[np.ndarray]) -> np.ndarray:
         All of the ICE arrays merged together alongside the first dimension
         (number of instances).
     """
-    dimension_error_msg = 'The ice_array should be 3-dimensional.'
-    dimension_mismatch_msg = ('All of the ICE arrays need to be constructed '
-                              'for the same number of classes and the same '
-                              'number of samples for the selected feature '
-                              '(the second and the third dimension of the ice '
-                              'array).')
-
     if isinstance(ice_arrays_list, list):
         if not ice_arrays_list:
             raise ValueError('Cannot merge 0 arrays.')
 
         previous_shape = None
         for ice_array in ice_arrays_list:
-            if not fuav.is_base_array(ice_array):
+            if not fuav.is_numerical_array(ice_array):
                 raise ValueError('The ice_array list should only contain '
-                                 'arrays of a base type.')
-
-            is_structured = fuav.is_structured_array(ice_array)
-
-            if is_structured:
-                if len(ice_array.shape) != 2:
-                    raise IncorrectShapeError(dimension_error_msg)
-            else:
-                if len(ice_array.shape) != 3:
-                    raise IncorrectShapeError(dimension_error_msg)
+                                 'numerical arrays.')
+            if fuav.is_structured_array(ice_array):
+                raise ValueError('The ice_array list should only contain '
+                                 'unstructured arrays.')
+            if len(ice_array.shape) != 3:
+                raise IncorrectShapeError('The ice_array should be '
+                                          '3-dimensional.')
 
             if previous_shape is None:
-                previous_structured = is_structured
-                if is_structured:
-                    previous_shape = (
-                        ice_array.shape[1],
-                        ice_array.dtype.names,
-                        [ice_array.dtype[i] for i in ice_array.dtype.names]
-                    )  # yapf: disable
-                else:
-                    previous_shape = (ice_array.shape[1],
-                                      ice_array.shape[2],
-                                      ice_array.dtype)  # yapf: disable
-            else:
-                if previous_structured is not is_structured:
-                    raise ValueError('All of the arrays have to be either '
-                                     'structured or unstructured.')
-                elif is_structured:
-                    if (len(previous_shape[1]) != len(ice_array.dtype.names)
-                            or previous_shape[0] != ice_array.shape[1]):
-                        raise ValueError(dimension_mismatch_msg)
-                    for idx, name in enumerate(ice_array.dtype.names):
-                        if (previous_shape[2][idx] != ice_array.dtype[name]
-                                or previous_shape[1][idx] != name):
-                            raise ValueError(dimension_mismatch_msg)
-                else:
-                    if (previous_shape[:2] != ice_array.shape[1:]
-                            or previous_shape[2] != ice_array.dtype):
-                        raise ValueError(dimension_mismatch_msg)
+                previous_shape = (ice_array.shape[1], ice_array.shape[2],
+                                  ice_array.dtype)  # yapf: disable
+            elif (previous_shape[:2] != ice_array.shape[1:]
+                  or previous_shape[2] != ice_array.dtype):
+                raise ValueError('All of the ICE arrays need to be '
+                                 'constructed for the same number of classes '
+                                 'and the same number of samples for the '
+                                 'selected feature (the second and the third '
+                                 'dimension of the ice array).')
     else:
         raise TypeError('The ice_arrays_list should be a list of numpy arrays '
                         'that represent Individual Conditional Expectation.')

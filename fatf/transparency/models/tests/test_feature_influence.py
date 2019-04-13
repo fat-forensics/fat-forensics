@@ -473,8 +473,6 @@ def test_filter_rows():
     assert np.array_equal(rows, empty)
 
 
-# TODO: ice cannot be structured, has to be base type
-# (categorical for future classification tasks)
 def test_merge_ice_arrays():
     """
     Tests :func:`fatf.transparency.models.feature_influence.merge_ice_arrays`.
@@ -482,15 +480,15 @@ def test_merge_ice_arrays():
     type_error = ('The ice_arrays_list should be a list of numpy arrays that '
                   'represent Individual Conditional Expectation.')
     value_error_empty = 'Cannot merge 0 arrays.'
-    value_error_base = ('The ice_array list should only contain arrays of a '
-                        'base type.')
+    value_error_numerical = ('The ice_array list should only contain '
+                             'numerical arrays.')
+    value_error_struct = ('The ice_array list should only contain '
+                          'unstructured arrays.')
     incorrect_shape_3d = 'The ice_array should be 3-dimensional.'
     value_error_shape = ('All of the ICE arrays need to be constructed for '
                          'the same number of classes and the same number of '
                          'samples for the selected feature (the second and '
                          'the third dimension of the ice array).')
-    value_error_struct = ('All of the arrays have to be either structured or '
-                          'unstructured.')
 
     with pytest.raises(TypeError) as exin:
         ftmfi.merge_ice_arrays('string')
@@ -499,16 +497,15 @@ def test_merge_ice_arrays():
         ftmfi.merge_ice_arrays([])
     assert str(exin.value) == value_error_empty
     with pytest.raises(ValueError) as exin:
-        ftmfi.merge_ice_arrays([np.array([None, None, None])])
-    assert str(exin.value) == value_error_base
-
-    with pytest.raises(IncorrectShapeError) as exin:
-        ftmfi.merge_ice_arrays([np.array([[[4]]]), np.array([2])])
-    assert str(exin.value) == incorrect_shape_3d
-    with pytest.raises(IncorrectShapeError) as exin:
+        ftmfi.merge_ice_arrays([np.array([1, 2, 'a', 4, 5])])
+    assert str(exin.value) == value_error_numerical
+    with pytest.raises(ValueError) as exin:
         ftmfi.merge_ice_arrays(
             [np.array([[[4]]]),
              np.array([(1, )], dtype=[('a', int)])])
+    assert str(exin.value) == value_error_struct
+    with pytest.raises(IncorrectShapeError) as exin:
+        ftmfi.merge_ice_arrays([np.array([[[4]]]), np.array([2])])
     assert str(exin.value) == incorrect_shape_3d
 
     arr_1 = np.array([[[1, 2, 3, 4], [5, 6, 7, 8], [9, 0, 9, 8]],
@@ -525,36 +522,6 @@ def test_merge_ice_arrays():
     with pytest.raises(ValueError) as exin:
         ftmfi.merge_ice_arrays([arr_3, arr_3, arr_4])
     assert str(exin.value) == value_error_shape
-
-    # yapf: disable
-    sarr_1 = np.array([[(1, 2, 3, 4), (5, 6, 7, 8), (9, 0, 9, 8)],
-                       [(7, 6, 5, 4), (3, 2, 1, 0), (1, 2, 3, 4)]],
-                      dtype=[('a', int), ('b', int), ('c', int), ('d', int)])
-    # yapf: enable
-    sarr_2 = np.array([[(7, 6, 5), (3, 2, 1), (1, 2, 3)]],
-                      dtype=[('a', int), ('b', int), ('c', int)])
-    sarr_3 = np.array([[(7, 6, 5, 4), (3, 2, 1, 0)]],
-                      dtype=[('a', int), ('b', int), ('c', int), ('d', int)])
-    sarr_4 = np.array([[(7, 6, 5, 4), (3, 2, 1, 0)]],
-                      dtype=[('a', int), ('b', int), ('f', int), ('d', int)])
-    sarr_5 = np.array([[(7, 6, 5, 4), (3, 2, 1, 0)]],
-                      dtype=[('a', int), ('b', int), ('c', float), ('d', int)])
-    with pytest.raises(ValueError) as exin:
-        ftmfi.merge_ice_arrays([sarr_1, sarr_1, sarr_2])
-    assert str(exin.value) == value_error_shape
-    with pytest.raises(ValueError) as exin:
-        ftmfi.merge_ice_arrays([sarr_3, sarr_2, sarr_1])
-    assert str(exin.value) == value_error_shape
-    with pytest.raises(ValueError) as exin:
-        ftmfi.merge_ice_arrays([sarr_3, sarr_4, sarr_3])
-    assert str(exin.value) == value_error_shape
-    with pytest.raises(ValueError) as exin:
-        ftmfi.merge_ice_arrays([sarr_4, sarr_4, sarr_5])
-    assert str(exin.value) == value_error_shape
-
-    with pytest.raises(ValueError) as exin:
-        ftmfi.merge_ice_arrays([arr_1, arr_1, sarr_1])
-    assert str(exin.value) == value_error_struct
 
     # Unstructured ICE arrays
     selected_column_index = 1
@@ -576,38 +543,6 @@ def test_merge_ice_arrays():
 
         arr_i = concat.copy()
         arr_i[:, selected_column_index] = i
-        arr_c.append(arr_i)
-    unstructured_array_a = np.stack(arr_a, axis=1)
-    unstructured_array_b = np.stack(arr_b, axis=1)
-    unstructured_array_c = np.stack(arr_c, axis=1)
-
-    comp = ftmfi.merge_ice_arrays([unstructured_array_a, unstructured_array_b])
-    assert np.array_equal(comp, unstructured_array_c)
-
-    # Structured ICE arrays
-    selected_column_index = 'b'
-    # yapf: disable
-    smaller_mixed_array = np.array(
-        [(0, 'a', 0.08, 'a'),
-         (0, 'f', 0.03, 'bb'),
-         (1, 'c', 0.99, 'aa')],
-        dtype=[('a', 'i'), ('b', 'U1'), ('c', 'f'), ('d', 'U2')])
-    # yapf: enable
-    concat = np.concatenate([MIXED_ARRAY, smaller_mixed_array])
-    arr_a = []
-    arr_b = []
-    arr_c = []
-    for i in ['a', 'c', 'f']:
-        arr_i = MIXED_ARRAY.copy()
-        arr_i[selected_column_index] = i
-        arr_a.append(arr_i)
-
-        arr_i = smaller_mixed_array.copy()
-        arr_i[selected_column_index] = i
-        arr_b.append(arr_i)
-
-        arr_i = concat.copy()
-        arr_i[selected_column_index] = i
         arr_c.append(arr_i)
     unstructured_array_a = np.stack(arr_a, axis=1)
     unstructured_array_b = np.stack(arr_b, axis=1)

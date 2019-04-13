@@ -26,16 +26,6 @@ __all__ = ['individual_conditional_expectation',
            'partial_dependence']  # yapf: disable
 
 
-def _steps_number_warning() -> None:
-    """
-    Emits a warning when ``steps_number`` is used for categorical features.
-    """
-    warnings.warn(
-        'The steps_number parameter will be ignored as the feature is being '
-        'treated as categorical.',
-        category=UserWarning)
-
-
 def _input_is_valid(dataset: np.ndarray,
                     model: object,
                     feature_index: Union[int, str],
@@ -81,12 +71,8 @@ def _input_is_valid(dataset: np.ndarray,
         raise TypeError('steps_number parameter has to either be None or an '
                         'integer.')
 
-    if isinstance(treat_as_categorical, bool):
-        if treat_as_categorical and steps_number is not None:
-            _steps_number_warning()
-    elif treat_as_categorical is None:
-        pass
-    else:
+    if (not isinstance(treat_as_categorical, bool)
+            and treat_as_categorical is not None):
         raise TypeError('treat_as_categorical has to either be None or a '
                         'boolean.')
 
@@ -122,10 +108,12 @@ def _interpolate_array(
         interpolation will be computed.
     treat_as_categorical : boolean
         Whether to treat the selected feature as categorical or numerical.
-    steps_number : integer, optional (default=100)
+    steps_number : Union[integer, None]
         The number of evenly spaced samples between the minimum and the maximum
         value of the selected feature for which the model's prediction will be
-        evaluated. (This parameter applies only to numerical features.)
+        evaluated. This parameter applies only to numerical features, for
+        categorical features regardless whether it is a number or ``None``, it
+        will be ignored.
 
     Returns
     -------
@@ -155,12 +143,24 @@ def _interpolate_array(
 
     if treat_as_categorical:
         interpolated_values = np.unique(column)
+        interpolated_values.sort()
         # Ignoring steps number -- not needed for categorical.
         steps_number = interpolated_values.shape[0]
     else:
         assert isinstance(steps_number, int), 'Steps number must be an int.'
         interpolated_values = np.linspace(column.min(), column.max(),
                                           steps_number)
+
+        # Give float type to this column if it is a structured array
+        if (is_structured
+                and dataset.dtype[feature_index] != interpolated_values.dtype):
+            new_types = []
+            for name in dataset.dtype.names:
+                if name == feature_index:
+                    new_types.append((name, interpolated_values.dtype))
+                else:
+                    new_types.append((name, dataset.dtype[name]))
+            dataset = dataset.astype(new_types)
 
     interpolated_data = np.repeat(dataset[:, np.newaxis], steps_number, axis=1)
     assert len(interpolated_values) == steps_number, 'Required for broadcast.'
@@ -233,7 +233,7 @@ def _filter_rows(include_rows: Union[None, int, List[int]],
         for i in include_rows:
             if not isinstance(i, int):
                 raise TypeError(
-                    'Include rows element {} is not an integer.'.format(i))
+                    'Include rows element *{}* is not an integer.'.format(i))
             assert within_bounds('Include', i), 'Every index is within bounds.'
     else:
         raise TypeError('The include_rows parameters must be either None or a '
@@ -249,7 +249,7 @@ def _filter_rows(include_rows: Union[None, int, List[int]],
         for i in exclude_rows:
             if not isinstance(i, int):
                 raise TypeError(
-                    'Exclude rows element {} is not an integer.'.format(i))
+                    'Exclude rows element *{}* is not an integer.'.format(i))
             assert within_bounds('Exclude', i), 'Every index is within bounds.'
     else:
         raise TypeError('The exclude_rows parameters must be either None or a '
@@ -390,7 +390,7 @@ def individual_conditional_expectation(
     elif fuav.is_textual_array(column):
         is_categorical_column = True
     else:
-        assert False, 'This should be an array of a base type.'
+        assert False, 'Must be an array of a base type.'  # pragma: nocover
 
     # If needed, infer the column type.
     if treat_as_categorical is None:
@@ -402,9 +402,13 @@ def individual_conditional_expectation(
                    'treated as categorical.')
         warnings.warn(message, category=UserWarning)
         treat_as_categorical = True
+        steps_number = None
 
     if treat_as_categorical and steps_number is not None:
-        _steps_number_warning()
+        warnings.warn(
+            'The steps_number parameter will be ignored as the feature is '
+            'being treated as categorical.',
+            category=UserWarning)
 
     # If needed, get the default steps number.
     if not treat_as_categorical and steps_number is None:
@@ -442,12 +446,13 @@ def merge_ice_arrays(ice_arrays_list: List[np.ndarray]) -> np.ndarray:
     IncorrectShapeError
         One of the ICE arrays is not 3-dimensional.
     TypeError
-        The ``ice_arrays_list`` input parameter is not a list. One of the ICE
-        arrays is a structured numpy array.
+        The ``ice_arrays_list`` input parameter is not a list.
     ValueError
         The list of ICE arrays to be merged is empty. One of the ICE arrays is
-        not purely numerical. Some of the ICE arrays do not share the same
-        second (number of steps) or third (number of classes) dimension.
+        not of a base type. Some of the ICE arrays do not share the same second
+        (number of steps) or third (number of classes) dimension or type -- for
+        structured arrays the dtype names and types also have to match. Some of
+        the arrays are structured while other are not structured.
 
     Returns
     -------
@@ -455,28 +460,60 @@ def merge_ice_arrays(ice_arrays_list: List[np.ndarray]) -> np.ndarray:
         All of the ICE arrays merged together alongside the first dimension
         (number of instances).
     """
+    dimension_error_msg = 'The ice_array should be 3-dimensional.'
+    dimension_mismatch_msg = ('All of the ICE arrays need to be constructed '
+                              'for the same number of classes and the same '
+                              'number of samples for the selected feature '
+                              '(the second and the third dimension of the ice '
+                              'array).')
+
     if isinstance(ice_arrays_list, list):
         if not ice_arrays_list:
             raise ValueError('Cannot merge 0 arrays.')
 
         previous_shape = None
         for ice_array in ice_arrays_list:
-            if fuav.is_structured_array(ice_array):
-                raise TypeError('The ice_array should not be structured.')
-            if not fuav.is_numerical_array(ice_array):
-                raise ValueError('The ice_array should be purely numerical.')
-            if len(ice_array.shape) != 3:
-                raise IncorrectShapeError('The ice_array should be '
-                                          '3-dimensional.')
+            if not fuav.is_base_array(ice_array):
+                raise ValueError('The ice_array list should only contain '
+                                 'arrays of a base type.')
+
+            is_structured = fuav.is_structured_array(ice_array)
+
+            if is_structured:
+                if len(ice_array.shape) != 2:
+                    raise IncorrectShapeError(dimension_error_msg)
+            else:
+                if len(ice_array.shape) != 3:
+                    raise IncorrectShapeError(dimension_error_msg)
 
             if previous_shape is None:
-                previous_shape = ice_array.shape[1:]
-            elif previous_shape != ice_array.shape[1:]:
-                raise ValueError('All of the ICE arrays need to be '
-                                 'constructed for the same number of classess '
-                                 'and the same number of samples for the '
-                                 'selected feature (the second and the third '
-                                 'dimension of the ice array).')
+                previous_structured = is_structured
+                if is_structured:
+                    previous_shape = (
+                        ice_array.shape[1],
+                        ice_array.dtype.names,
+                        [ice_array.dtype[i] for i in ice_array.dtype.names]
+                    )  # yapf: disable
+                else:
+                    previous_shape = (ice_array.shape[1],
+                                      ice_array.shape[2],
+                                      ice_array.dtype)  # yapf: disable
+            else:
+                if previous_structured is not is_structured:
+                    raise ValueError('All of the arrays have to be either '
+                                     'structured or unstructured.')
+                elif is_structured:
+                    if (len(previous_shape[1]) != len(ice_array.dtype.names)
+                            or previous_shape[0] != ice_array.shape[1]):
+                        raise ValueError(dimension_mismatch_msg)
+                    for idx, name in enumerate(ice_array.dtype.names):
+                        if (previous_shape[2][idx] != ice_array.dtype[name]
+                                or previous_shape[1][idx] != name):
+                            raise ValueError(dimension_mismatch_msg)
+                else:
+                    if (previous_shape[:2] != ice_array.shape[1:]
+                            or previous_shape[2] != ice_array.dtype):
+                        raise ValueError(dimension_mismatch_msg)
     else:
         raise TypeError('The ice_arrays_list should be a list of numpy arrays '
                         'that represent Individual Conditional Expectation.')
@@ -521,12 +558,12 @@ def partial_dependence_ice(
     IncorrectShapeError
         The input array is not a 3-dimensional numpy array.
     TypeError
-        The ``ice_array`` is not a normal numpy array. Either ``include_rows``
-        or ``exclude_rows`` parameter is not ``None``, an integer or a list of
-        integers.
+        Either ``include_rows`` or ``exclude_rows`` parameter is not ``None``,
+        an integer or a list of integers.
     ValueError
-        The ``ice_array`` is not a numerical array. One of the ``include_rows``
-        or ``exclude_rows`` indices is not valid for the input array.
+        The ``ice_array`` is not an unstructured numpy array or it is not a
+        numerical array. One of the ``include_rows`` or ``exclude_rows``
+        indices is not valid for the input array.
 
     Returns
     -------
@@ -536,7 +573,7 @@ def partial_dependence_ice(
         points).
     """
     if fuav.is_structured_array(ice_array):
-        raise TypeError('The ice_array should not be structured.')
+        raise ValueError('The ice_array should not be structured.')
     if not fuav.is_numerical_array(ice_array):
         raise ValueError('The ice_array should be purely numerical.')
     if len(ice_array.shape) != 3:
@@ -554,7 +591,7 @@ def partial_dependence_ice(
 def partial_dependence(dataset: np.ndarray,
                        model: object,
                        feature_index: Union[int, str],
-                       treat_as_categorical: Optional[bool] = False,
+                       treat_as_categorical: Optional[bool] = None,
                        steps_number: Optional[int] = None,
                        include_rows: Optional[Union[int, List[int]]] = None,
                        exclude_rows: Optional[Union[int, List[int]]] = None
@@ -596,8 +633,10 @@ def partial_dependence(dataset: np.ndarray,
         dataset,
         model,
         feature_index,
-        treat_as_categorical,
-        steps_number=steps_number)
+        treat_as_categorical=treat_as_categorical,
+        steps_number=steps_number,
+        include_rows=include_rows,
+        exclude_rows=exclude_rows)
 
     partial_dependence_array = partial_dependence_ice(ice_array)
 

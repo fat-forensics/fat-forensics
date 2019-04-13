@@ -1,213 +1,172 @@
 """
-A wrapper for the LIME package to work with tabular data.
-"""
+Wraps the LIME_ tabular data explainer.
 
+.. _LIME: https://github.com/marcotcr/lime
+"""
 # Author: Alex Hepburn <ah13558@bristol.ac.uk>
+#         Kacper Sokol <k.sokol@bristol.ac.uk>
 # License: new BSD
 
-from typing import Dict, List, Tuple, Optional
-import warnings
+from typing import Dict, List, Optional, Tuple
 
 import numpy as np
 
+import fatf.utils.array.tools as fuat
 import fatf.utils.array.validation as fuav
 import fatf.utils.models.validation as fumv
-import fatf.utils.array.tools as fuat
+
 from fatf.exceptions import IncompatibleModelError, IncorrectShapeError
 
 try:
-    import lime
-    from lime.lime_tabular import LimeTabularExplainer
+    import lime.lime_tabular
 except ImportError:
-    _warning_msg = ( # pylint: disable=invalid-name
+    import warnings
+    _warning_msg = (  # pylint: disable=invalid-name
         'Lime package is not installed on your system. You must install it in '
-        'order to use the fatf.transparency.Lime class. One possibility is to '
-        'install Lime alongside this package with: pip install fatf[vis].')
+        'order to use the fatf.transparency.lime module. One possibility is '
+        'to install LIME alongside this package with: pip install fatf[lime].')
     warnings.warn(_warning_msg, ImportWarning)
+    del warnings
 
 
 class Lime(object):
     """
-    Wrapper for LimeTabularExplainer class from package implemented in
-    https://github.com/marcotcr/lime
+    Wraps `LIME package's`__ ``lime.lime_tabular.LimeTabularExplainer`` class.
+
+    .. warning:: contracly to LIME this atually does lcoal explanatinos TODO
+
+    __ https://github.com/marcotcr/lime
 
     Parameters
     ----------
-   data: numpy.array
-        The 2-D data matrix to be used.
+    data: numpy.ndarray
+        A 2-dimensional numpy array with a dataset to be used.
     model : object
-        Object that contains method predict(x) that outputs predictions
-        and predict_proba(x) that outputs probability vectors corresponding to
-        the probability of an instance belonging to each class.
-    categorical_indices : numpy.array
-        Indices that user would like to specify as categorical. Defaults to
-        np.array([]).
-    class_names : List[string]
-        List of class names in the order the model is using. Defaults to None
-        so names will be '0', '1', ....
-    feature_names : List[string]
-        specifying feature names in the order the model is using. Defaults to
-        None so names will be 'feature0', 'feature1', ...
-    num_samples : integer
-        Number of samples to generate arounddatain LIME algorithm.
+        An object that contains ``predict`` -- outputs predictions -- and
+        ``predict_proba`` -- outputs probability vectors corresponding to the
+        probability of an instance belonging to each class -- methods.
+    categorical_indices : numpy.ndarray
+        Column indices that should be treated as categorical features.
+        Defaults to np.array([]).
+    class_names : List[string], optional (default=None)
+        List of class names in the same order as the one in the model's output.
+        By default (``class_names=None``) the names will be assigned as
+        consecutive numbers starting with 0.
+    feature_names : List[string], optional (default=None)
+        specifying feature names in the order they appear in the ``data``
+        parameter. By defaults (``feature_names=None``) the names will be
+        assigned names conforming to the following pattern: 'feature_0',
+        'feature_1', etc.
+    num_samples : integer, optional (default=5000)
+        Number of samples that LIME will generate to probe selected region.
         Defaults to 5000.
-    num_features : integer
-        Max number of features to use in LIME algorithm (takes top-n features)
-        Defaults to None to use all features.
-    distance_metric : string
+    num_features : integer, optional (default=None)
+        The maximum number of features (takes top-n features) that LIME can use
+        for an explanation. By default (``num_features=None``) it will use all
+        of the features.
+
+
+    distance_metric : string, optional (default='euclidean')
+        Specifies
         Defining distance to use in LIME algorithm, has to be valid metric for
         use in scipy.spatial.distance.pdist. Defaults to 'euclidean' check for
         pdist function if can't take any function.
     random_state : int
         Random state to be used in LIME algorithm when sampling data.
+
+    Raises
+    ------
+    NotImplementedError:
+        The inputdatais a numpy structured array and not ndarray with same
+        data type.
+    IncorrectShapeError:
+        The input data is not a 2-D array.
+    IncompatibleModelError:
+        The model parameter does not contain a peridct_proba() method that
+        is needed for LIME algorithm.
+    ValueError:
+        Index given in categorical_indices parameter is out of range for
+        features given indataor number of feature names given does not
+        equal to number of features indataor number of class names given
+        does not equal number of classes that model has been trained with.
+
     Attributes
     ----------
-    tabular_explainer: LimeTabularExplainer
+    tabular_explainer: lime.lime_tabular.LimeTabularExplainer
         Tabular explainer object whose methods will be called inside the class.
     """
 
+    INIT_PARAMS = []
+    EXPLAIN_INSTANCE_PARAMS = []
+
     def __init__(self,
-                 data: np.array,
+                 data: np.ndarray,
+
+
                  model: object,
-                 categorical_indices: np.array = np.array([]),
-                 class_names: List[str] = None,
-                 feature_names: List[str] = None,
+
+                 local_explanation=True,
+
+
+                 # Initialiser
+                 categorical_indices: np.ndarray = None,
+
+                 # This is the explainer
                  num_samples: int = 5000,
-                 num_features: int = 0,
+                 num_features: Optional[int] = None,
                  distance_metric: str = 'euclidean',
-                 random_state: int = None):
-        assert self._validate_input(data, model, categorical_indices, 
-                                    class_names, feature_names, 
-                                    check_class_names=False)
+
+                 **kwargs) -> None:
+        """
+        Initialises a tabular LIME wrapper.
+        """
+        # Check data
+        if not fuav.is_2d_array(data):
+            raise IncorrectShapeError('data must be 2-D array.')
+        if not fuav.is_numerical_array(data):
+            raise ValueError('LIME does not support non-numerical arrays.')
+
+        # Check categorical indices
+        if categorical_indices is not None:
+            if not fuat.are_indices_valid(data, categorical_indices):
+                raise ValueError(
+                    'Indices given in categorical_indices not valid for '
+                    'input array data')
+
+        # Honour native local explanation keyword
+        local_explanation_keyword = 'sample_around_instance'
+        if local_explanation_keyword not in kwargs:
+            kwargs[local_explanation_keyword] = local_explanation
+
         if fuav.is_structured_array(data):
-            self._data = fuat.as_unstructured(data)
-            self._categorical = np.array([data.dtype.names.index(y) for y in
-                                          categorical_indices])
-        else:
-            self._data = data
-            self._categorical = categorical_indices
-        self._num_classes = model.predict_proba(self._data[[0], :]).shape[1]
-        assert self._validate_input(self._data, model, self._categorical, 
-                                    class_names, feature_names, False, False, 
-                                    False, False, True)
-        self._common_type = self._data.dtype
-        self.model = model
+            if categorical_indices is not None:
+                categorical_indices = np.array([data.dtype.names.index(y) for y in
+                                              categorical_indices])
+            data = fuat.as_unstructured(data)
+
+        self.tabular_explainer = lime.lime_tabular.LimeTabularExplainer(
+            data, categorical_features=categorical_indices, **kwargs)
+
+
+
+
+
+        # Check model
+        if not fumv.check_model_functionality(model, True,
+                                              suppress_warning=True):
+            raise IncompatibleModelError(
+                'LIME requires model object to have method '
+                'predict_proba().')
+
+        self._num_classes = model.predict_proba(data[[0], :]).shape[1]
+        # TODO: if feature_names are none assign feature_0, feature_1, etc
+        # TODO: num_features > 0
         self.num_features = num_features
         self.num_samples = num_samples
         self.distance_metric = distance_metric
-        self.class_names = class_names
-        self.feature_names = feature_names
-        self._model = model
-        if not self.num_features:
-            self.num_features = self._data.shape[1]
-        self.tabular_explainer = LimeTabularExplainer(
-            self._data,
-            feature_names=self.feature_names,
-            categorical_features=self._categorical,
-            class_names=self.class_names,
-            discretize_continuous=True,
-            sample_around_instance=True,
-            random_state=random_state)
-
-
-    def _validate_input(self,
-                        data: np.array,
-                        model: object,
-                        categorical_indices: np.array,
-                        class_names: List[str],
-                        feature_names: List[str],
-                        check_data: bool = True,
-                        check_model: bool = True,
-                        check_categorical_indices: bool = True,
-                        check_feature_names: bool = True,
-                        check_class_names: bool = True) -> bool:
-        """
-        Checks input data and model is valid for LIME algorithm
-
-        Parameters
-        ----------
-       data : numpy.array
-            The 2-D data matrix to be used.
-        model : object
-            Object that contains method predict(x) that outputs predictions
-            and predict_proba(x) that outputs probability vectors corresponding
-            to the probability of an instance belonging to each class.
-        categorical_indices : numpy.array
-            Indices that user would like to specify as categorical.
-        class_names : List[str]
-            List of class names in the order the model is using. Defaults to
-            None so names will be '0', '1', ....
-        feature_names : List[str]
-            specifying feature names in the order the model is using. Defaults
-            to None so names will be 'feature0', 'feature1', ...
-        check_data : boolean
-            If true then data will be checked. Defaults to True.
-        check_model : boolean
-            If true then model will be checked. Defaults to True.
-        check_categorical_indices : boolean
-            If true then categorical_indices will be checked. Defaults to True.
-        check_feature_names : boolean
-            If true then feature names will be checked. Defaults to True.
-        check_class_names : boolean
-            If true then class names will be checked. Defaults to True.
-
-        Raises
-        ------
-        NotImplementedError:
-            The inputdatais a numpy structured array and not ndarray with same
-            data type.
-        IncorrectShapeError:
-            The input data is not a 2-D array.
-        IncompatibleModelError:
-            The model parameter does not contain a peridct_proba() method that
-            is needed for LIME algorithm.
-        ValueError:
-            Index given in categorical_indices parameter is out of range for
-            features given indataor number of feature names given does not
-            equal to number of features indataor number of class names given
-            does not equal number of classes that model has been trained with.
-        
-        Returns
-        -------
-        input_is_valid : boolean
-            ``True`` if the input is valid, ``False`` otherwise.
-        """
-        input_is_valid = False
-        if check_data:
-            if not fuav.is_2d_array(data):
-                raise IncorrectShapeError('data must be 2-D array.')
-            numerical_ind, categorical_ind = fuat.indices_by_type(data)
-            if not np.array_equal(categorical_ind, np.array([])):
-                raise NotImplementedError(
-                    'LIME not implemented for non-numerical arrays.')
-        if check_model:
-            if not fumv.check_model_functionality(model, True,
-                                                  suppress_warning=True):
-                raise IncompatibleModelError(
-                    'LIME requires model object to have method '
-                    'predict_proba().')
-        if check_categorical_indices:
-            if not np.array_equal(categorical_indices, np.array([])):
-                if not fuat.are_indices_valid(data, categorical_indices):
-                    raise ValueError(
-                        'Indices given in categorical_indices not valid for '
-                        'input array data')
-        # need numerical version ofdatafor use in model.predict_proba
-        if check_feature_names:
-            if feature_names is not None:
-                if len(feature_names) != numerical_ind.shape[0]:
-                    raise ValueError(
-                        'Number of feature names given does not correspond to '
-                        'input array')
-        if check_class_names:
-            if class_names is not None:
-                if len(class_names) != self._num_classes:
-                    raise ValueError(
-                        'Number of class names given does not correspond to '
-                        'model')
-        input_is_valid = True
-        return input_is_valid
-
+        self.model = model
+        if self.num_features is None:
+            self.num_features = data.shape[1]
 
     def explain_instance(self,
                          instance: np.ndarray,
@@ -257,3 +216,48 @@ class Lime(object):
         for lab in labels:
             explained[exp.class_names[lab]] = exp.as_list(label=lab)
         return explained
+
+
+def _validate_input(data: np.array,
+                    model: object,
+                    categorical_indices: np.array) -> bool:
+    """
+    Checks input data and model is valid for LIME algorithm
+
+    Parameters
+    ----------
+   data : numpy.array
+        The 2-D data matrix to be used.
+    model : object
+        Object that contains method predict(x) that outputs predictions
+        and predict_proba(x) that outputs probability vectors corresponding
+        to the probability of an instance belonging to each class.
+    categorical_indices : numpy.array
+        Indices that user would like to specify as categorical.
+    feature_names : List[str]
+        specifying feature names in the order the model is using. Defaults
+        to None so names will be 'feature0', 'feature1', ...
+
+    Raises
+    ------
+    NotImplementedError:
+        The inputdatais a numpy structured array and not ndarray with same
+        data type.
+    IncorrectShapeError:
+        The input data is not a 2-D array.
+    IncompatibleModelError:
+        The model parameter does not contain a peridct_proba() method that
+        is needed for LIME algorithm.
+    ValueError:
+        Index given in categorical_indices parameter is out of range for
+        features given indataor number of feature names given does not
+        equal to number of features indataor number of class names given
+        does not equal number of classes that model has been trained with.
+
+    Returns
+    -------
+    input_is_valid : boolean
+        ``True`` if the input is valid, ``False`` otherwise.
+    """
+    input_is_valid = True
+    return input_is_valid

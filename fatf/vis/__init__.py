@@ -16,6 +16,11 @@ except ImportError:
         'visualisation dependencies with: pip install fatf[vis].')
     warnings.warn(_warning_msg, ImportWarning)
 else:
+    # Setup matplotlib style
+    import matplotlib.pyplot as plt
+    plt.style.use('seaborn')
+    del plt
+
     del matplotlib
 finally:
     del warnings

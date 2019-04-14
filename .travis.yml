@@ -59,8 +59,8 @@ matrix:
 
 install:
   - make dependencies-dev  # Install python development dependencies
-  - pip install matplotlib
   - pip install lime
+  - pip install matplotlib>=3.0.0
 #  - pip install scikit-learn
 #  - make install-sans-dep
 

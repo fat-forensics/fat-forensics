@@ -60,7 +60,7 @@ matrix:
 install:
   - make dependencies-dev  # Install python development dependencies
   - pip install matplotlib
-#  - pip install lime
+  - pip install lime
 #  - pip install scikit-learn
 #  - make install-sans-dep
 

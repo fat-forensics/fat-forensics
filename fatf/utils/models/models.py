@@ -24,8 +24,11 @@ class Model(abc.ABC):
     """
     An abstract class used to implement predictive models.
 
-    This abstract class requires a ``fit`` and ``predict`` methods and defines
+    This abstract class requires ``fit`` and ``predict`` methods and defines
     an optional ``predict_proba`` method.
+
+    This is a scikit-learn-inspired model specification and it is being relied
+    on through out this package.
 
     Raises
     ------

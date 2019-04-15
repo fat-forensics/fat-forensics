@@ -60,12 +60,12 @@ def test_plot_lime_classification():
                    ('0.07 < feat2 <= 0.22', 0.0392),
                    ('0.34 < feat3 <= 0.58', 0.025)]
     }  # yapf: disable
-    classes = list(data.keys())
+    classes = sorted(list(data.keys()))
     x_range = [-0.45, 0.43]  # min/max + 0.035 from the data above
 
     # All the classes have the same feature bounds so the plot should share the
     # y axis -- the first axis has the correct labels, the rest is empty
-    y_labels = [x[0] for x in data[classes[0]]]
+    y_labels = [x[0] for x in data['class0']]
     widths = [[-0.415, -0.280, 0.0377, -0.007], [0.019, 0.202, -0.076, -0.018],
               [0.395, 0.0775, 0.0392, 0.025]]
     colours = [[RED, RED, GREEN, RED], [GREEN, GREEN, RED, RED],
@@ -74,9 +74,14 @@ def test_plot_lime_classification():
     fig = fvl.plot_lime(data)
     assert len(fig.axes) == len(classes)
 
-    for i in range(len(fig.axes)):
-        bar_data = futv.get_bar_data(fig.axes[i])
+    for axis_index in range(len(fig.axes)):
+        bar_data = futv.get_bar_data(fig.axes[axis_index])
         title, x_ticks, x_rng, y_ticks, y_rng, width, colour = bar_data
+
+        # In case the axes are not returned in the right order figure it out.
+        # This is needed for Python 3.5
+        i = classes.index(title)
+        #
         assert title == classes[i]
         #
         for j in x_ticks:
@@ -85,7 +90,7 @@ def test_plot_lime_classification():
         assert len(x_rng) == 2
         assert abs((x_range[1] - x_range[0]) - (x_rng[1] - x_rng[0])) < 0.02
         #
-        if i == 0:
+        if axis_index == 0:
             assert len(y_labels) == len(y_ticks)
             for j in range(len(y_ticks)):
                 assert y_labels[j] == y_ticks[j]
@@ -107,16 +112,21 @@ def test_plot_lime_classification():
     # Test when sharey is False and the yticklabels are unique for each axis
     del data['class1'][2]
     y_labels = [[x[0] for x in data[i]] for i in classes]
-    widths = [[value[1] for value in array] for array in data.values()]
+    widths = [[x[1] for x in data[i]] for i in classes]
     colours = [[RED, RED, GREEN, RED], [GREEN, RED, RED],
                [GREEN, GREEN, GREEN, GREEN]]
 
     fig = fvl.plot_lime(data)
     assert len(fig.axes) == len(classes)
 
-    for i in range(len(fig.axes)):
-        bar_data = futv.get_bar_data(fig.axes[i])
+    for axis_index in range(len(fig.axes)):
+        bar_data = futv.get_bar_data(fig.axes[axis_index])
         title, x_ticks, x_rng, y_ticks, y_rng, width, colour = bar_data
+
+        # In case the axes are not returned in the right order figure it out.
+        # This is needed for Python 3.5
+        i = classes.index(title)
+        #
         assert title == classes[i]
         #
         for j in x_ticks:

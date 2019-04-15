@@ -79,7 +79,7 @@ def plot_lime(
                         '(for classification) or a list (for regression).')
 
     # Collect all of the class names and their number
-    class_names = list(lime_explanation.keys())
+    class_names = sorted(list(lime_explanation.keys()))
     class_n = len(class_names)
 
     # Check whether all of the explanations share the same key names

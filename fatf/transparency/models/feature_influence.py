@@ -542,6 +542,9 @@ def partial_dependence_ice(
         A 2-dimensional array of (steps_number, n_classes) shape representing
         Partial Dependence for all of the classes for selected rows (data
         points).
+    variance : numpy.ndarray
+        A 1-d dimeionsal array of (steps_number, ) shape with the values for
+        the variance of the predictions of data points for selected rows.
     """
     if fuav.is_structured_array(ice_array):
         raise ValueError('The ice_array should not be structured.')
@@ -555,8 +558,9 @@ def partial_dependence_ice(
     filtered_ice_array = ice_array[include_r]
 
     partial_dependence_array = filtered_ice_array.mean(axis=0)
+    variance = filtered_ice_array.var(axis=0)
 
-    return partial_dependence_array
+    return partial_dependence_array, variance
 
 
 def partial_dependence(dataset: np.ndarray,
@@ -599,6 +603,9 @@ def partial_dependence(dataset: np.ndarray,
         A one-dimensional array -- (steps_number, ) -- with the values for
         which the selected feature was substituted when the dataset was
         evaluated with the specified model.
+    variance : numpy.ndarray
+        A 1-d dimeionsal array of (steps_number, ) shape with the values for
+        the variance of the predictions of data points for selected rows.
     """
     ice_array, feature_linespace = individual_conditional_expectation(
         dataset,
@@ -609,6 +616,6 @@ def partial_dependence(dataset: np.ndarray,
         include_rows=include_rows,
         exclude_rows=exclude_rows)
 
-    partial_dependence_array = partial_dependence_ice(ice_array)
+    partial_dependence_array, variance = partial_dependence_ice(ice_array)
 
-    return partial_dependence_array, feature_linespace
+    return partial_dependence_array, feature_linespace, variance

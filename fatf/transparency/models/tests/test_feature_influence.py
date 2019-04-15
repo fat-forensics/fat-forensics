@@ -91,6 +91,15 @@ NUMERICAL_NP_PD_100 = np.array(
 NUMERICAL_NP_LINESPACE = np.array([0.32, 0.41, 0.5])
 NUMERICAL_NP_LINESPACE_CAT = np.array([0.32, 0.5])
 NUMERICAL_NP_LINESPACE_100 = np.linspace(0.32, 0.5, 100)
+NUMERICAL_NP_VARIANCE = np.array([
+    [0.25, 0., 0.25],
+    [0.0625, 0., 0.0625],
+    [0.0625, 0., 0.0625]])
+NUMERICAL_NP_VARIANCE_CAT = np.array([
+    [0.25, 0., 0.25],
+    [0.0625, 0., 0.0625]])
+NUMERICAL_NP_VARIANCE_100 = np.array(
+    46 * [[0.25, 0., 0.25]] + 54 * [[0.0625, 0., 0.0625]])
 
 CATEGORICAL_NP_ARRAY_TEST = np.array([
     ['a', 'f', 'g'],
@@ -109,6 +118,9 @@ CATEGORICAL_NP_PD = np.array([
     [0.25, 0.75],
     [0.25, 0.75]])
 CATEGORICAL_NP_LINESPACE = np.array(['c', 'g'])
+CATEGORICAL_NP_VARIANCE = np.array([
+    [0.0625, 0.0625],
+    [0.0625, 0.0625]])
 
 MIXED_ARRAY_TEST = np.array(
     [(0, 'a', 0.08, 'a'),
@@ -128,6 +140,11 @@ MIXED_PD_NUMERICAL = np.array([
     [0.5, 0.25, 0.25],
     [0.5, 0.25, 0.25]])
 MIXED_LINESPACE_NUMERICAL = np.array([0, 0.5, 1])
+MIXED_VARIANCE_NUMERICAL = np.array([
+    [0.25, 0.0625, 0.0625],
+    [0.25, 0.0625, 0.0625],
+    [0.25, 0.0625, 0.0625]])
+
 MIXED_ICE_CATEGORICAL = np.array([
     [[1.0, 0.0, 0.0],
      [0.5, 0.5, 0.0]],
@@ -137,6 +154,9 @@ MIXED_PD_CATEGORICAL = np.array([
     [0.75, 0.0, 0.25],
     [0.25, 0.5, 0.25]])
 MIXED_LINESPACE_CATEGORICAL = np.array(['a', 'f'])
+MIXED_VARIANCE_CATEGORICAL = np.array([
+    [0.0625, 0., 0.0625],
+    [0.0625, 0., 0.0625]])
 # yapf: enable
 
 
@@ -746,40 +766,53 @@ def test_partial_dependence_ice():
     assert str(exin.value) == incorrect_shape_error
 
     # Test PD
-    pd = ftmfi.partial_dependence_ice(NUMERICAL_NP_ICE)
+    pd, var = ftmfi.partial_dependence_ice(NUMERICAL_NP_ICE)
     assert np.array_equal(pd, NUMERICAL_NP_PD)
+    assert np.array_equal(var, NUMERICAL_NP_VARIANCE)
 
-    pd = ftmfi.partial_dependence_ice(NUMERICAL_NP_ICE_CAT)
+    pd, var = ftmfi.partial_dependence_ice(NUMERICAL_NP_ICE_CAT)
     assert np.array_equal(pd, NUMERICAL_NP_PD_CAT)
+    assert np.array_equal(var, NUMERICAL_NP_VARIANCE_CAT)
 
-    pd = ftmfi.partial_dependence_ice(NUMERICAL_NP_ICE_100)
+    pd, var = ftmfi.partial_dependence_ice(NUMERICAL_NP_ICE_100)
     assert np.array_equal(pd, NUMERICAL_NP_PD_100)
+    assert np.array_equal(var, NUMERICAL_NP_VARIANCE_100)
 
-    pd = ftmfi.partial_dependence_ice(CATEGORICAL_NP_ICE)
+    pd, var = ftmfi.partial_dependence_ice(CATEGORICAL_NP_ICE)
     assert np.array_equal(pd, CATEGORICAL_NP_PD)
+    assert np.array_equal(var, CATEGORICAL_NP_VARIANCE)
 
-    pd = ftmfi.partial_dependence_ice(MIXED_ICE_NUMERICAL)
+    pd, var = ftmfi.partial_dependence_ice(MIXED_ICE_NUMERICAL)
     assert np.array_equal(pd, MIXED_PD_NUMERICAL)
+    assert np.array_equal(var, MIXED_VARIANCE_NUMERICAL)
 
-    pd = ftmfi.partial_dependence_ice(MIXED_ICE_CATEGORICAL)
+    pd, var = ftmfi.partial_dependence_ice(MIXED_ICE_CATEGORICAL)
     assert np.array_equal(pd, MIXED_PD_CATEGORICAL)
+    assert np.array_equal(var, MIXED_VARIANCE_CATEGORICAL)
 
     # Test row exclusion
-    pd = ftmfi.partial_dependence_ice(MIXED_ICE_CATEGORICAL, include_rows=0)
+    pd, var = ftmfi.partial_dependence_ice(MIXED_ICE_CATEGORICAL, include_rows=0)
     assert np.array_equal(pd, MIXED_ICE_CATEGORICAL[0])
 
-    pd = ftmfi.partial_dependence_ice(MIXED_ICE_CATEGORICAL, include_rows=[0])
-    assert np.array_equal(pd, MIXED_ICE_CATEGORICAL[0])
+    assert np.array_equal(var, np.array([[0., 0., 0.], [0., 0., 0.]]))
 
-    pd = ftmfi.partial_dependence_ice(MIXED_ICE_CATEGORICAL, exclude_rows=1)
+    pd, var = ftmfi.partial_dependence_ice(MIXED_ICE_CATEGORICAL, include_rows=[0])
     assert np.array_equal(pd, MIXED_ICE_CATEGORICAL[0])
+    assert np.array_equal(var, np.array([[0., 0., 0.], [0., 0., 0.]]))
 
-    pd = ftmfi.partial_dependence_ice(MIXED_ICE_CATEGORICAL, exclude_rows=[1])
+    pd, var = ftmfi.partial_dependence_ice(MIXED_ICE_CATEGORICAL, exclude_rows=1)
     assert np.array_equal(pd, MIXED_ICE_CATEGORICAL[0])
+    assert np.array_equal(var, np.array([[0., 0., 0.], [0., 0., 0.]]))
 
-    pd = ftmfi.partial_dependence_ice(
+    pd, var = ftmfi.partial_dependence_ice(
+        MIXED_ICE_CATEGORICAL, exclude_rows=[1])
+    assert np.array_equal(pd, MIXED_ICE_CATEGORICAL[0])
+    assert np.array_equal(var, np.array([[0., 0., 0.], [0., 0., 0.]]))
+
+    pd, var = ftmfi.partial_dependence_ice(
         MIXED_ICE_CATEGORICAL, include_rows=[1, 0], exclude_rows=[1])
     assert np.array_equal(pd, MIXED_ICE_CATEGORICAL[0])
+    assert np.array_equal(var, np.array([[0., 0., 0.], [0., 0., 0.]]))
 
 
 def test_partial_dependence():
@@ -795,7 +828,7 @@ def test_partial_dependence():
     clf_struct.fit(NUMERICAL_STRUCT_ARRAY, NUMERICAL_NP_ARRAY_TARGET)
 
     # Test PD
-    pd, linespace = ftmfi.partial_dependence(
+    pd, linespace, var = ftmfi.partial_dependence(
         NUMERICAL_STRUCT_ARRAY_TEST,
         clf_struct,
         'd',
@@ -803,48 +836,54 @@ def test_partial_dependence():
         steps_number=3)
     assert np.allclose(pd, NUMERICAL_NP_PD)
     assert np.allclose(linespace, NUMERICAL_NP_LINESPACE)
+    assert np.array_equal(var, NUMERICAL_NP_VARIANCE)
 
-    pd, linespace = ftmfi.partial_dependence(
+    pd, linespace, var = ftmfi.partial_dependence(
         NUMERICAL_NP_ARRAY_TEST, clf, 3, treat_as_categorical=False)
     assert np.allclose(pd, NUMERICAL_NP_PD_100)
     assert np.allclose(linespace, NUMERICAL_NP_LINESPACE_100)
+    assert np.array_equal(var, NUMERICAL_NP_VARIANCE_100)
 
-    pd, linespace = ftmfi.partial_dependence(
+    pd, linespace, var = ftmfi.partial_dependence(
         NUMERICAL_STRUCT_ARRAY_TEST,
         clf_struct,
         'd',
         treat_as_categorical=True)
     assert np.allclose(pd, NUMERICAL_NP_PD_CAT)
     assert np.allclose(linespace, NUMERICAL_NP_LINESPACE_CAT)
+    assert np.array_equal(var, NUMERICAL_NP_VARIANCE_CAT)
 
-    pd, linespace = ftmfi.partial_dependence(
+    pd, linespace, var = ftmfi.partial_dependence(
         NUMERICAL_NP_ARRAY_TEST, clf, 3, treat_as_categorical=True)
     assert np.allclose(pd, NUMERICAL_NP_PD_CAT)
     assert np.allclose(linespace, NUMERICAL_NP_LINESPACE_CAT)
+    assert np.array_equal(var, NUMERICAL_NP_VARIANCE_CAT)
 
     clf = fum.KNN(k=2)
     clf.fit(CATEGORICAL_NP_ARRAY, CATEGORICAL_NP_ARRAY_TARGET)
     clf_struct = fum.KNN(k=2)
     clf_struct.fit(CATEGORICAL_STRUCT_ARRAY, CATEGORICAL_NP_ARRAY_TARGET)
 
-    pd, linespace = ftmfi.partial_dependence(
+    pd, linespace, var = ftmfi.partial_dependence(
         CATEGORICAL_NP_ARRAY_TEST, clf, 2, treat_as_categorical=True)
     assert np.allclose(pd, CATEGORICAL_NP_PD)
     assert np.array_equal(linespace, CATEGORICAL_NP_LINESPACE)
+    assert np.array_equal(var, CATEGORICAL_NP_VARIANCE)
 
-    pd, linespace = ftmfi.partial_dependence(
+    pd, linespace, VAR = ftmfi.partial_dependence(
         CATEGORICAL_STRUCT_ARRAY_TEST,
         clf_struct,
         'c',
         treat_as_categorical=True)
     assert np.allclose(pd, CATEGORICAL_NP_PD)
     assert np.array_equal(linespace, CATEGORICAL_NP_LINESPACE)
+    assert np.array_equal(var, CATEGORICAL_NP_VARIANCE)
 
     # Test row exclusion on a mixed array
     clf = fum.KNN(k=2)
     clf.fit(MIXED_ARRAY, MIXED_ARRAY_TARGET)
 
-    pd, linespace = ftmfi.partial_dependence(
+    pd, linespace, var = ftmfi.partial_dependence(
         MIXED_ARRAY_TEST,
         clf,
         'a',
@@ -853,8 +892,10 @@ def test_partial_dependence():
         exclude_rows=1)
     assert np.allclose(pd, MIXED_PD_NUMERICAL)
     assert np.array_equal(linespace, MIXED_LINESPACE_NUMERICAL)
+    assert np.array_equal(var, MIXED_VARIANCE_NUMERICAL)
 
-    pd, linespace = ftmfi.partial_dependence(
+    pd, linespace, var = ftmfi.partial_dependence(
         MIXED_ARRAY_TEST, clf, 'b', exclude_rows=1)
     assert np.allclose(pd, MIXED_PD_CATEGORICAL)
     assert np.array_equal(linespace, MIXED_LINESPACE_CATEGORICAL)
+    assert np.array_equal(var, MIXED_VARIANCE_CATEGORICAL)

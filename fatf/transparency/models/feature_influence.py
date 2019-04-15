@@ -225,7 +225,7 @@ def _filter_rows(include_rows: Union[None, int, List[int]],
         'Rows number must be a positive integer.'
 
     if include_rows is None:
-        include_rows = range(rows_number)
+        include_rows = list(range(rows_number))
     elif isinstance(include_rows, int):
         assert within_bounds('Include', include_rows), 'Index within bounds.'
         include_rows = [include_rows]
@@ -374,6 +374,7 @@ def individual_conditional_expectation(
         which the selected feature was substituted when the dataset was
         evaluated with the specified model.
     """
+    # pylint: disable=too-many-arguments,too-many-locals
     assert _input_is_valid(dataset, model, feature_index, treat_as_categorical,
                            steps_number), 'Input must be valid.'
 
@@ -421,7 +422,10 @@ def individual_conditional_expectation(
     sampled_data, feature_linespace = _interpolate_array(
         filtered_dataset, feature_index, treat_as_categorical, steps_number)
 
-    ice = [model.predict_proba(data_slice) for data_slice in sampled_data]
+    ice = [
+        model.predict_proba(data_slice)  # type: ignore
+        for data_slice in sampled_data
+    ]
     ice = np.stack(ice, axis=0)
 
     return ice, feature_linespace
@@ -607,6 +611,7 @@ def partial_dependence(dataset: np.ndarray,
         A 1-d dimeionsal array of (steps_number, ) shape with the values for
         the variance of the predictions of data points for selected rows.
     """
+    # pylint: disable=too-many-arguments
     ice_array, feature_linespace = individual_conditional_expectation(
         dataset,
         model,

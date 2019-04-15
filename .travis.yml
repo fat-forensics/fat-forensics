@@ -31,7 +31,7 @@ env:
     - FATF_TEST_SCIPY=1.0.1   FATF_TEST_NUMPY=1.14.6
     - FATF_TEST_SCIPY=0.19.1  FATF_TEST_NUMPY=1.13.3
     - FATF_TEST_SCIPY=0.18.1  FATF_TEST_NUMPY=1.12.1
-    - FATF_TEST_SCIPY=0.18.1  FATF_TEST_NUMPY=1.9.0
+    - FATF_TEST_SCIPY=0.18.1  FATF_TEST_NUMPY=1.10.1
     - FATF_TEST_SCIPY=latest  FATF_TEST_NUMPY=latest
 
 matrix:
@@ -44,7 +44,7 @@ matrix:
     - python: '3.7'
       env: FATF_TEST_SCIPY=0.18.1  FATF_TEST_NUMPY=1.12.1
     - python: '3.7'
-      env: FATF_TEST_SCIPY=0.18.1  FATF_TEST_NUMPY=1.9.0
+      env: FATF_TEST_SCIPY=0.18.1  FATF_TEST_NUMPY=1.10.1
     - python: '3.8-dev'
       env: FATF_TEST_SCIPY=1.0.1   FATF_TEST_NUMPY=1.14.6
     - python: '3.8-dev'
@@ -52,7 +52,7 @@ matrix:
     - python: '3.8-dev'
       env: FATF_TEST_SCIPY=0.18.1  FATF_TEST_NUMPY=1.12.1
     - python: '3.8-dev'
-      env: FATF_TEST_SCIPY=0.18.1  FATF_TEST_NUMPY=1.9.0
+      env: FATF_TEST_SCIPY=0.18.1  FATF_TEST_NUMPY=1.10.1
   allow_failures:
     - python: '3.8-dev'
     - env: FATF_TEST_SCIPY=latest  FATF_TEST_NUMPY=latest

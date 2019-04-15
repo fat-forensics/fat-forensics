@@ -83,6 +83,7 @@ REGRESSION_RESULTS = [
 
 USER_WARNING_MODEL_PRED = ('Since both, a model and a predictive function, '
                            'are provided only the latter will be used.')
+LOG_WARNING = 'The model can only be used for LIME in a regressor mode.'
 
 
 class InvalidModel(object):
@@ -370,7 +371,7 @@ def test_lime_init():
     assert str(exin.value) == value_error_explain
 
 
-def test_explain_instance_classification():
+def test_explain_instance_classification(caplog):
     """
     Tests :mod:`fatf.transparency.lime.Lime.explain_instance` method.
 
@@ -379,6 +380,9 @@ def test_explain_instance_classification():
     runtime_error_no_predictor = 'A predictive function is not available.'
     runtime_error_non_prob = ('The predictive model is not probabilistic. '
                               'Please specify a predictive function instead.')
+
+    # Check logging
+    assert len(caplog.records) == 0
 
     # Non-probabilistic model -- function -- probabilistic function
     with pytest.warns(UserWarning) as warning:
@@ -422,6 +426,12 @@ def test_explain_instance_classification():
         lime.explain_instance(SAMPLE_STRUCT)
     assert str(exin.value) == runtime_error_non_prob
 
+    # Check logging
+    assert len(caplog.records) == 4
+    for i in range(4):
+        assert caplog.records[i].levelname == 'WARNING'
+        assert caplog.records[i].getMessage() == LOG_WARNING
+
     # No model -- function -- probabilistic function
     lime = ftl.Lime(
         NUMERICAL_STRUCT_ARRAY,
@@ -453,6 +463,9 @@ def test_explain_instance_classification():
     with pytest.raises(RuntimeError) as exin:
         lime.explain_instance(SAMPLE)
     assert str(exin.value) == runtime_error_no_predictor
+
+    # Check logging
+    assert len(caplog.records) == 4
 
     # Probabilistic model -- probabilistic function -- empty call
     with pytest.warns(UserWarning) as warning:
@@ -499,6 +512,9 @@ def test_explain_instance_classification():
         SAMPLE_STRUCT, predict_fn=CLF.predict_proba)
     assert _is_explanation_equal(explained, NUMERICAL_RESULTS)
 
+    # Check logging
+    assert len(caplog.records) == 4
+
     ###########################################################################
     # Test with categorical features: feat0 and feat1
 
@@ -522,13 +538,19 @@ def test_explain_instance_classification():
     explained = lime.explain_instance(SAMPLE)
     assert _is_explanation_equal(CATEGORICAL_RESULTS, explained)
 
+    # Check logging
+    assert len(caplog.records) == 4
 
-def test_explain_instance_regression():
+
+def test_explain_instance_regression(caplog):
     """
     Tests :mod:`fatf.transparency.lime.Lime.explain_instance` method.
 
     These tests are for a regression task.
     """
+    # Check logging
+    assert len(caplog.records) == 0
+
     # Regression a non-probabilistic model
     lime = ftl.Lime(
         NUMERICAL_STRUCT_ARRAY,
@@ -538,6 +560,11 @@ def test_explain_instance_regression():
         feature_names=FEATURE_NAMES)
     explained = lime.explain_instance(SAMPLE)
     assert _is_explanation_equal({'a': explained}, {'a': REGRESSION_RESULTS})
+
+    # Check logging
+    assert len(caplog.records) == 1
+    assert caplog.records[0].levelname == 'WARNING'
+    assert caplog.records[0].getMessage() == LOG_WARNING
 
     # Regression a probabilistic model
     lime = ftl.Lime(
@@ -571,3 +598,6 @@ def test_explain_instance_regression():
         feature_names=FEATURE_NAMES)
     explained = lime.explain_instance(SAMPLE, predict_fn=CLF_NON_PROBA.predict)
     assert _is_explanation_equal({'a': explained}, {'a': REGRESSION_RESULTS})
+
+    # Check logging
+    assert len(caplog.records) == 1

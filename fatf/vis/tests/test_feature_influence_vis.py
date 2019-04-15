@@ -6,15 +6,12 @@ Tests feature influence (ICE and PD) plotting functions.
 # License: new BSD
 
 import matplotlib.legend
-import matplotlib.lines
 import pytest
-
-from numbers import Number
-from typing import List, Tuple, Union
 
 import matplotlib.pyplot as plt
 import numpy as np
 
+import fatf.utils.testing.vis as futv
 import fatf.vis.feature_influence as fvfi
 
 from fatf.exceptions import IncorrectShapeError
@@ -54,90 +51,6 @@ FAKE_PD_ARRAY = np.array([[0.50, 0.50, 0.00],
                           [0.90, 0.07, 0.03],
                           [0.20, 0.30, 0.40]])  # yapf: disable
 FAKE_LINESPACE = np.array([0, 0.2, 0.4, 0.6, 0.8, 1])
-
-
-def _get_plot_data(plot_axis: plt.Axes
-                   ) -> Tuple[str, str, List[Number], str, List[Number]]:
-    """
-    Extracts plot's title, x-axis name and range and y-axis name and range.
-
-    Parameters
-    ----------
-    plot_axis : matplotlib.pyplot.Axes
-        A matplotlib axis from which all of the aforementioned information will
-        be extracted.
-
-    Returns
-    -------
-    plot_title : string
-        Plot's title.
-    plot_x_label : string
-        Label of the plot's x-axis.
-    plot_x_range : List[Number]
-        Range of the plot's x-axis.
-    plot_y_label : string
-        Label of the plot's y-axis.
-    plot_y_range : List[Number]
-        Range of the plot's y-axis.
-    """
-    assert isinstance(plot_axis, plt.Axes), 'Must be None or matplotlib axis.'
-
-    plot_title = plot_axis.get_title()
-    plot_x_label = plot_axis.xaxis.get_label_text()
-    plot_x_range = plot_axis.xaxis.get_view_interval()
-    plot_y_label = plot_axis.yaxis.get_label_text()
-    plot_y_range = plot_axis.yaxis.get_view_interval()
-
-    return plot_title, plot_x_label, plot_x_range, plot_y_label, plot_y_range
-
-
-def _get_line_data(
-        line_plot: Union[matplotlib.lines.Line2D,  # yapf: disable
-                         matplotlib.collections.LineCollection],
-        is_collection: bool = False
-) -> Tuple[Union[np.ndarray, List[np.ndarray]], str, float, str, float]:
-    """
-    Extracts line's data array, colour, alpha channel, label and width.
-
-    Parameters
-    ----------
-    line_plot : Union[matplotlib.lines.Line2D,
-                      matplotlib.collections.LineCollection]
-        A matplotlib line object extracted from a plot's axis.
-    is_collection : boolean, optional (default=False)
-        If ``True``, the ``line_plot`` will be treated as a ``LineCollection``.
-        Otherwise, it will be treated as a ``Line2D``.
-
-    Returns
-    -------
-    line_data : Union[numpy.ndarray, List[numpy.ndarray]]
-        For ``Line2D`` this will be a numpy array representing x-axis and
-        y-axis values used to interpolate a line. On the other hand, for a
-        ``LineCollection`` this will be a list of numpy arrays, each
-        representing a single line in the collection.
-    line_colour : string
-        Line colour.
-    line_alpha : float
-        Line transparency expressed as the alpha channel.
-    line_label : string
-        Line label used for the plot's legend.
-    line_width : float
-        Line width.
-    """
-    assert isinstance(line_plot, (matplotlib.lines.Line2D,
-                                  matplotlib.collections.LineCollection)), \
-        'Must be a line.'
-
-    if is_collection:
-        line_data = line_plot.get_segments()
-    else:
-        line_data = line_plot.get_xydata()
-    line_colour = line_plot.get_color()
-    line_alpha = line_plot.get_alpha()
-    line_label = line_plot.get_label()
-    line_width = line_plot.get_linewidth()
-
-    return line_data, line_colour, line_alpha, line_label, line_width
 
 
 def test_validate_input():
@@ -284,7 +197,8 @@ def test_prepare_a_canvas():
     figure, plot = fvfi._prepare_a_canvas(
         title, axis, class_index, class_name_s, feature_name_n, x_range)
     assert isinstance(figure, plt.Figure)
-    p_title, p_x_label, p_x_range, p_y_label, p_y_range = _get_plot_data(plot)
+    p_title, p_x_label, p_x_range, p_y_label, p_y_range = futv.get_plot_data(
+        plot)
     # ...check title
     assert p_title == title
     # ...check x range
@@ -299,7 +213,8 @@ def test_prepare_a_canvas():
     figure, plot = fvfi._prepare_a_canvas(
         title, axis, class_index, class_name_n, feature_name_s, x_range)
     assert isinstance(figure, plt.Figure)
-    p_title, p_x_label, p_x_range, p_y_label, p_y_range = _get_plot_data(plot)
+    p_title, p_x_label, p_x_range, p_y_label, p_y_range = futv.get_plot_data(
+        plot)
     # ...check title
     assert p_title == title
     # ...check x range
@@ -339,7 +254,8 @@ def test_prepare_a_canvas():
     figure, plot = fvfi._prepare_a_canvas('', axis, class_index, class_name_s,
                                           feature_name_s, x_range)
     assert figure is None
-    p_title, p_x_label, p_x_range, p_y_label, p_y_range = _get_plot_data(plot)
+    p_title, p_x_label, p_x_range, p_y_label, p_y_range = futv.get_plot_data(
+        plot)
     # ...check title
     assert p_title == title_custom
     # ...check x range
@@ -356,7 +272,8 @@ def test_prepare_a_canvas():
     figure, plot = fvfi._prepare_a_canvas('', plot, class_index, class_name_n,
                                           feature_name_n, x_range)
     assert figure is None
-    p_title, p_x_label, p_x_range, p_y_label, p_y_range = _get_plot_data(plot)
+    p_title, p_x_label, p_x_range, p_y_label, p_y_range = futv.get_plot_data(
+        plot)
     # ...check title
     assert p_title == title_custom
     # ...check x range
@@ -375,7 +292,8 @@ def test_prepare_a_canvas():
     figure, plot = fvfi._prepare_a_canvas(
         'extension', axis, class_index, class_name_n, feature_name_n, x_range)
     assert figure is None
-    p_title, p_x_label, p_x_range, p_y_label, p_y_range = _get_plot_data(plot)
+    p_title, p_x_label, p_x_range, p_y_label, p_y_range = futv.get_plot_data(
+        plot)
     # ...check title
     assert p_title == '{} &\nextension'.format(title_custom)
     # ...check x range
@@ -405,7 +323,8 @@ def test_plot_individual_conditional_expectation():
         FAKE_ICE_ARRAY, FAKE_LINESPACE, class_index, feature_name, class_name)
 
     assert isinstance(figure, plt.Figure)
-    p_title, p_x_label, p_x_range, p_y_label, p_y_range = _get_plot_data(axis)
+    p_title, p_x_label, p_x_range, p_y_label, p_y_range = futv.get_plot_data(
+        axis)
     # ...check title
     assert p_title == 'Individual Conditional Expectation'
     # ...check x range
@@ -419,7 +338,7 @@ def test_plot_individual_conditional_expectation():
 
     # Test the line
     assert len(axis.collections) == 1
-    l_data, l_colour, l_alpha, l_label, l_width = _get_line_data(
+    l_data, l_colour, l_alpha, l_label, l_width = futv.get_line_data(
         axis.collections[0], is_collection=True)
     assert len(l_data) == FAKE_ICE_ARRAY.shape[0]
     for i, line_array in enumerate(l_data):
@@ -456,7 +375,8 @@ def test_plot_partial_dependence():
         FAKE_PD_ARRAY, FAKE_LINESPACE, class_index, feature_name, class_name)
 
     assert isinstance(figure, plt.Figure)
-    p_title, p_x_label, p_x_range, p_y_label, p_y_range = _get_plot_data(axis)
+    p_title, p_x_label, p_x_range, p_y_label, p_y_range = futv.get_plot_data(
+        axis)
     # ...check title
     assert p_title == 'Partial Dependence'
     # ...check x range
@@ -470,7 +390,8 @@ def test_plot_partial_dependence():
 
     # Test the line
     assert len(axis.lines) == 1
-    l_data, l_colour, l_alpha, l_label, l_width = _get_line_data(axis.lines[0])
+    l_data, l_colour, l_alpha, l_label, l_width = futv.get_line_data(
+        axis.lines[0])
     line_data = np.stack([FAKE_LINESPACE, FAKE_PD_ARRAY[:, class_index]],
                          axis=1)
     assert np.array_equal(l_data, line_data)
@@ -509,7 +430,8 @@ def test_ice_pd_overlay():
     assert isinstance(axis, plt.Axes)
 
     # Inspect the canvas
-    p_title, p_x_label, p_x_range, p_y_label, p_y_range = _get_plot_data(axis)
+    p_title, p_x_label, p_x_range, p_y_label, p_y_range = futv.get_plot_data(
+        axis)
     # ...check title
     assert p_title == ('Individual Conditional Expectation &\nPartial '
                        'Dependence')
@@ -524,7 +446,7 @@ def test_ice_pd_overlay():
 
     # Check ICE
     assert len(axis.collections) == 1
-    l_data, l_colour, l_alpha, l_label, l_width = _get_line_data(
+    l_data, l_colour, l_alpha, l_label, l_width = futv.get_line_data(
         axis.collections[0], is_collection=True)
     assert len(l_data) == FAKE_ICE_ARRAY.shape[0]
     for i, line_array in enumerate(l_data):
@@ -540,7 +462,8 @@ def test_ice_pd_overlay():
 
     # Check PD
     assert len(axis.lines) == 1
-    l_data, l_colour, l_alpha, l_label, l_width = _get_line_data(axis.lines[0])
+    l_data, l_colour, l_alpha, l_label, l_width = futv.get_line_data(
+        axis.lines[0])
     line_data = np.stack([FAKE_LINESPACE, FAKE_PD_ARRAY[:, c_index]], axis=1)
     assert np.array_equal(l_data, line_data)
     assert l_colour == 'lightsalmon'

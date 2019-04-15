@@ -27,6 +27,7 @@ def _validate_input(ice_pdp_array: np.ndarray,
                     feature_name: Union[None, str],
                     class_name: Union[None, str],
                     plot_axis: Union[None, plt.Axes],
+                    variance: Union[None, np.ndarray],
                     test_partial_dependence: bool = False) -> bool:
     """
     Validates input parameters for ICE and PD plotting functions.
@@ -50,6 +51,9 @@ def _validate_input(ice_pdp_array: np.ndarray,
         The name of the class that ``class_index`` parameter points to.
     plot_axis : matplotlib.pyplot.Axes or None
         A matplotlib axis object to plot on top of.
+    variance : numpy.ndarray
+        An array that contains variance in prediction values used in PD plot.
+        This will only be validated if test_partial_dependence = True.
     test_partial_dependence : boolean
         Whether to treat the input array as PD or ICE calculation result.
 
@@ -91,6 +95,13 @@ def _validate_input(ice_pdp_array: np.ndarray,
             raise IncorrectShapeError('plot_partial_depenedence expects a '
                                       '2-dimensional array of shape (n_steps, '
                                       'n_classes).')
+        if isinstance(variance, np.ndarray):
+            if variance.shape[0] != ice_pdp_array.shape[-2]:
+                raise ValueError(
+                    'The length of the variance array ({}) does agree with '
+                    'the number of linespace steps ({}) in the input '
+                    'array.'.format(variance.shape[0], 
+                                    ice_pdp_array.shape[-2]))
     else:
         if len(ice_pdp_array.shape) != 3:
             raise IncorrectShapeError('plot_individual_condtional_expectation '
@@ -319,7 +330,7 @@ def plot_individual_conditional_expectation(
     # pylint: disable=too-many-arguments
     assert _validate_input(ice_array, feature_linespace, class_index,
                            feature_name, class_name, plot_axis,
-                           False), 'Input is invalid.'
+                           None, False), 'Input is invalid.'
 
     plot_title = 'Individual Conditional Expectation'
     x_range = [feature_linespace[0], feature_linespace[-1]]
@@ -342,6 +353,7 @@ def plot_individual_conditional_expectation(
 def plot_partial_dependence(pd_array: np.ndarray,
                             feature_linespace: np.ndarray,
                             class_index: int,
+                            variance: Optional[np.ndarray] = None,
                             feature_name: Optional[str] = None,
                             class_name: Optional[str] = None,
                             plot_axis: Optional[plt.Axes] = None
@@ -371,6 +383,13 @@ def plot_partial_dependence(pd_array: np.ndarray,
     class_index : integer
         The index of the class for which PD will be plotted, taken from the
         original dataset.
+    variance : numpy.ndarray, optional (default=None)
+        A one-dimensional array -- (steps_number, ) -- with the values for the
+        variance of the predictions of data points used to compute Partial
+        Dependence. This should be the output of the :func:`fatf.transparency.
+        models.feature_influence.partial_dependence` or :func:`
+        fatf.transparency.models.feature_influence.partial_dependence_ice`
+        function.
     feature_name : string, optional (default=None)
         The name of the feature for which PD was originally calculated.
     class_name : string, optional (default=None)
@@ -394,7 +413,7 @@ def plot_partial_dependence(pd_array: np.ndarray,
     # pylint: disable=too-many-arguments
     assert _validate_input(pd_array, feature_linespace, class_index,
                            feature_name, class_name, plot_axis,
-                           True), 'Input is invalid.'
+                           variance, True), 'Input is invalid.'
 
     plot_title = 'Partial Dependence'
     x_range = [feature_linespace[0], feature_linespace[-1]]
@@ -408,6 +427,20 @@ def plot_partial_dependence(pd_array: np.ndarray,
         linewidth=7,
         alpha=0.6,
         label='PD')
+
+    if isinstance(variance, np.ndarray):
+        plot_axis.errorbar(
+            feature_linespace,
+            pd_array[:, class_index],
+            yerr=variance[:, class_index],
+            alpha=0.6,
+            ecolor='lightsalmon',
+            fmt='none',
+            capsize=5,
+            elinewidth=2,
+            markeredgewidth=2,
+            label='Variance')
+
     plot_axis.legend()
 
     return plot_figure, plot_axis

@@ -51,7 +51,12 @@ FAKE_PD_ARRAY = np.array([[0.50, 0.50, 0.00],
                           [0.90, 0.07, 0.03],
                           [0.20, 0.30, 0.40]])  # yapf: disable
 FAKE_LINESPACE = np.array([0, 0.2, 0.4, 0.6, 0.8, 1])
-
+FAKE_VARIANCE = np.array([[0.20, 0.05, 0.10],
+                          [0.10, 0.05, 0.15],
+                          [0.05, 0.01, 0.09],
+                          [0.26, 0.15, 0.21],
+                          [0.24, 0.19, 0.22],
+                          [0.15, 0.10, 0.17]])
 
 def test_validate_input():
     """
@@ -59,20 +64,21 @@ def test_validate_input():
     """
     msg = 'test_partial_dependence is not a boolean.'
     with pytest.raises(AssertionError) as exin:
-        fvfi._validate_input(None, None, None, None, None, None, 1)
+        fvfi._validate_input(None, None, None, None, None, None, None, 1)
     assert str(exin.value) == msg
 
     msg = 'The input array cannot be a structured array.'
     struct_array = np.array([(4, 2), (2, 4)], dtype=[('a', int), ('b', int)])
     with pytest.raises(ValueError) as exin:
-        fvfi._validate_input(struct_array, None, None, None, None, None, False)
+        fvfi._validate_input(struct_array, None, None, None, None, None, None, 
+                             False)
     assert str(exin.value) == msg
 
     msg = 'The input array has to be a numerical array.'
     non_numerical_array = np.array([[4, 'a'], [2, 'b']])
     with pytest.raises(ValueError) as exin:
         fvfi._validate_input(non_numerical_array, None, None, None, None, None,
-                             False)
+                             None, False)
     assert str(exin.value) == msg
 
     numerical_2d_array = np.array([[4, 2], [2, 4], [4, 2]])
@@ -85,77 +91,83 @@ def test_validate_input():
            'array of shape (n_samples, n_steps, n_classes).')
     with pytest.raises(IncorrectShapeError) as exin:
         fvfi._validate_input(numerical_2d_array, None, None, None, None, None,
-                             False)
+                             None, False)
     assert str(exin.value) == msg
     # For Partial Dependence
     msg = ('plot_partial_depenedence expects a 2-dimensional array of shape '
            '(n_steps, n_classes).')
     with pytest.raises(IncorrectShapeError) as exin:
         fvfi._validate_input(numerical_3d_array, None, None, None, None, None,
-                             True)
+                             None, True)
     assert str(exin.value) == msg
 
     # Linespace
     msg = 'The linespace array cannot be a structured array.'
     with pytest.raises(ValueError) as exin:
         fvfi._validate_input(numerical_2d_array, struct_array, None, None,
-                             None, None, True)
+                             None, None, None, True)
     assert str(exin.value) == msg
     #
     msg = ('The linespace array has to be a 1-dimensional array of shape '
            '(n_steps, ).')
     with pytest.raises(IncorrectShapeError) as exin:
         fvfi._validate_input(numerical_3d_array, numerical_2d_array, None,
-                             None, None, None, False)
+                             None, None, None, None, False)
     assert str(exin.value) == msg
     #
     msg = 'The linespace array has to be numerical.'
     with pytest.raises(ValueError) as exin:
         fvfi._validate_input(numerical_2d_array, non_numerical_array[0], None,
-                             None, None, None, True)
+                             None, None, None, None, True)
     assert str(exin.value) == msg
     # Linespace vector not matching ICE/ PDP dimensions
     msg = ('The length of the linespace array ({}) does not agree with the '
            'number of linespace steps ({}) in the input array.')
     with pytest.raises(ValueError) as exin:
         fvfi._validate_input(numerical_2d_array, numerical_2d_array[0, :],
-                             None, None, None, None, True)
+                             None, None, None, None, None, True)
     assert str(exin.value) == msg.format(2, 3)
     with pytest.raises(ValueError) as exin:
         fvfi._validate_input(numerical_3d_array, numerical_2d_array[0, :],
-                             None, None, None, None, False)
+                             None, None, None, None, None, False)
     assert str(exin.value) == msg.format(2, 3)
-
+    # Variance vector not matching ICE/ PDP dimensions
+    msg = ('The length of the variance array ({}) does agree with the number '
+           'of linespace steps ({}) in the input array.')
+    with pytest.raises(ValueError) as exin:
+        fvfi._validate_input(numerical_2d_array, numerical_2d_array[:, 0], 1,
+                             None, None, None, numerical_2d_array[0, :], True)
+    assert str(exin.value) == msg.format(2, 3)
     # Index
     msg = 'Class index has to be an integer.'
     with pytest.raises(TypeError) as exin:
         fvfi._validate_input(numerical_3d_array, numerical_2d_array[:, 0],
-                             None, None, None, None, False)
+                             None, None, None, None, None, False)
     assert str(exin.value) == msg
     #
     msg = ('Class index {} is not a valid index for the input array. There '
            'are only {} classes available.')
     with pytest.raises(IndexError) as exin:
         fvfi._validate_input(numerical_3d_array, numerical_2d_array[:, 0], -1,
-                             None, None, None, False)
+                             None, None, None, None, False)
     assert str(exin.value) == msg.format(-1, 2)
     with pytest.raises(IndexError) as exin:
         fvfi._validate_input(numerical_2d_array, numerical_2d_array[:, 0], 2,
-                             None, None, None, True)
+                             None, None, None, None, True)
     assert str(exin.value) == msg.format(2, 2)
 
     # Feature name
     msg = 'The feature name has to be either None or a string.'
     with pytest.raises(TypeError) as exin:
         fvfi._validate_input(numerical_2d_array, numerical_2d_array[:, 0], 1,
-                             42, None, None, True)
+                             42, None, None, None, True)
     assert str(exin.value) == msg
 
     # Class name
     msg = 'The class name has to be either None or a string.'
     with pytest.raises(TypeError) as exin:
         fvfi._validate_input(numerical_3d_array, numerical_2d_array[:, 0], 0,
-                             None, 42, None, False)
+                             None, 42, None, None, False)
     assert str(exin.value) == msg
 
     # Plot axis
@@ -163,15 +175,16 @@ def test_validate_input():
            'type object.')
     with pytest.raises(TypeError) as exin:
         fvfi._validate_input(numerical_2d_array, numerical_2d_array[:, 0], 1,
-                             'feature name', None, 42, True)
+                             'feature name', None, 42, None, True)
     assert str(exin.value) == msg
 
     # All OK
     assert fvfi._validate_input(numerical_2d_array, numerical_2d_array[:, 0],
-                                1, 'feature name', 'class name', None, True)
+                                1, 'feature name', 'class name', None, 
+                                numerical_2d_array[:, 0], True)
     fig, my_plot = plt.subplots(1, 1)
     assert fvfi._validate_input(numerical_3d_array, numerical_2d_array[:, 0],
-                                1, 'feature name', 'class name', my_plot,
+                                1, 'feature name', 'class name', my_plot, None,
                                 False)
 
 
@@ -371,8 +384,89 @@ def test_plot_partial_dependence():
     class_index = 1
     class_name = 'middle'
 
+    # Test with variance plot
     figure, axis = fvfi.plot_partial_dependence(
-        FAKE_PD_ARRAY, FAKE_LINESPACE, class_index, feature_name, class_name)
+        FAKE_PD_ARRAY, FAKE_LINESPACE, class_index, FAKE_VARIANCE,
+        feature_name, class_name)
+
+    assert isinstance(figure, plt.Figure)
+    p_title, p_x_label, p_x_range, p_y_label, p_y_range = futv.get_plot_data(
+        axis)
+    # ...check title
+    assert p_title == 'Partial Dependence'
+    # ...check x range
+    assert np.array_equal(p_x_range, [FAKE_LINESPACE[0], FAKE_LINESPACE[-1]])
+    # ...check x label
+    assert p_x_label == feature_name
+    # ...check y range
+    assert np.array_equal(p_y_range, [-0.05, 1.05])
+    # ...check y label
+    assert p_y_label == '{} class probability'.format(class_name)
+
+    # Test the line
+    assert len(axis.lines) == 3
+    l_data, l_colour, l_alpha, l_label, l_width = futv.get_line_data(
+        axis.lines[0])
+    line_data = np.stack([FAKE_LINESPACE, FAKE_PD_ARRAY[:, class_index]],
+                         axis=1)
+    assert np.array_equal(l_data, line_data)
+    assert l_colour == 'lightsalmon'
+    assert l_alpha == 0.6
+    assert l_label == 'PD'
+    assert l_width == 7
+
+    # Test variance lines
+    line_data = np.stack([FAKE_LINESPACE, FAKE_PD_ARRAY[:, class_index] -
+                              FAKE_VARIANCE[:, class_index]], axis=1)
+    l_data, l_colour, l_alpha, l_label, l_width = futv.get_line_data(
+        axis.lines[1])
+    assert np.array_equal(l_data, line_data)
+    assert l_colour == 'lightsalmon'
+    assert l_alpha == 0.6
+    assert l_label == '_nolegend_'
+    assert l_width == 1.75
+
+    line_data = np.stack([FAKE_LINESPACE, FAKE_PD_ARRAY[:, class_index] +
+                              FAKE_VARIANCE[:, class_index]], axis=1)
+    l_data, l_colour, l_alpha, l_label, l_width = futv.get_line_data(
+        axis.lines[2])
+    assert np.array_equal(l_data, line_data)
+    assert l_colour == 'lightsalmon'
+    assert l_alpha == 0.6
+    assert l_label == '_nolegend_'
+    assert l_width == 1.75
+
+    assert len(axis.collections) == 1
+    # Test variance line collection
+    l_data, l_colour, l_alpha, l_label, l_width = futv.get_line_data(
+        axis.collections[0], is_collection=True)
+    line_data = np.stack([
+        np.stack([FAKE_LINESPACE, FAKE_PD_ARRAY[:, class_index] -
+                  FAKE_VARIANCE[:, class_index]], axis=1),
+        np.stack([FAKE_LINESPACE, FAKE_PD_ARRAY[:, class_index] +
+                  FAKE_VARIANCE[:, class_index]], axis=1)])
+    l_data = np.stack(l_data, axis=1)
+    assert np.array_equal(l_data, line_data)
+    assert np.allclose(l_colour, np.array([1., 0.62, 0.47, 0.6]), atol=1e-2)
+    assert l_alpha == 0.6
+    assert l_label == '_nolegend_'
+    assert l_width == 2
+
+    # Validate plot legend
+    legend = [
+        i for i in axis.get_children()
+        if isinstance(i, matplotlib.legend.Legend)
+    ]
+    assert len(legend) == 1
+    legend_texts = legend[0].get_texts()
+    assert len(legend_texts) == 2
+    assert legend_texts[0].get_text() == 'PD'
+    assert legend_texts[1].get_text() == 'Variance'
+
+    # Test without variance plot
+    figure, axis = fvfi.plot_partial_dependence(
+        FAKE_PD_ARRAY, FAKE_LINESPACE, class_index, None,
+        feature_name, class_name)
 
     assert isinstance(figure, plt.Figure)
     p_title, p_x_label, p_x_range, p_y_label, p_y_range = futv.get_plot_data(
@@ -425,7 +519,8 @@ def test_ice_pd_overlay():
     assert isinstance(axis, plt.Axes)
 
     none, axis = fvfi.plot_partial_dependence(FAKE_PD_ARRAY, FAKE_LINESPACE,
-                                              c_index, f_name, c_name, axis)
+                                              c_index, FAKE_VARIANCE, f_name, 
+                                              c_name, axis)
     assert none is None
     assert isinstance(axis, plt.Axes)
 
@@ -445,7 +540,7 @@ def test_ice_pd_overlay():
     assert p_y_label == '{} class probability'.format(c_name)
 
     # Check ICE
-    assert len(axis.collections) == 1
+    assert len(axis.collections) == 2
     l_data, l_colour, l_alpha, l_label, l_width = futv.get_line_data(
         axis.collections[0], is_collection=True)
     assert len(l_data) == FAKE_ICE_ARRAY.shape[0]
@@ -461,7 +556,7 @@ def test_ice_pd_overlay():
     assert l_width == 1.75
 
     # Check PD
-    assert len(axis.lines) == 1
+    assert len(axis.lines) == 3
     l_data, l_colour, l_alpha, l_label, l_width = futv.get_line_data(
         axis.lines[0])
     line_data = np.stack([FAKE_LINESPACE, FAKE_PD_ARRAY[:, c_index]], axis=1)
@@ -471,6 +566,42 @@ def test_ice_pd_overlay():
     assert l_label == 'PD'
     assert l_width == 7
 
+    # Test variance lines
+    line_data = np.stack([FAKE_LINESPACE, FAKE_PD_ARRAY[:, c_index] -
+                              FAKE_VARIANCE[:, c_index]], axis=1)
+    l_data, l_colour, l_alpha, l_label, l_width = futv.get_line_data(
+        axis.lines[1])
+    assert np.array_equal(l_data, line_data)
+    assert l_colour == 'lightsalmon'
+    assert l_alpha == 0.6
+    assert l_label == '_nolegend_'
+    assert l_width == 1.75
+
+    line_data = np.stack([FAKE_LINESPACE, FAKE_PD_ARRAY[:, c_index] +
+                              FAKE_VARIANCE[:, c_index]], axis=1)
+    l_data, l_colour, l_alpha, l_label, l_width = futv.get_line_data(
+        axis.lines[2])
+    
+    assert np.array_equal(l_data, line_data)
+    assert l_colour == 'lightsalmon'
+    assert l_alpha == 0.6
+    assert l_label == '_nolegend_'
+    assert l_width == 1.75
+
+    # Test variance line collection
+    l_data, l_colour, l_alpha, l_label, l_width = futv.get_line_data(
+        axis.collections[1], is_collection=True)
+    line_data = np.stack([
+        np.stack([FAKE_LINESPACE, FAKE_PD_ARRAY[:, c_index] -
+                  FAKE_VARIANCE[:, c_index]], axis=1),
+        np.stack([FAKE_LINESPACE, FAKE_PD_ARRAY[:, c_index] +
+                  FAKE_VARIANCE[:, c_index]], axis=1)])
+    l_data = np.stack(l_data, axis=1)
+    assert np.array_equal(l_data, line_data)
+    assert np.allclose(l_colour, np.array([1., 0.62, 0.47, 0.6]), atol=1e-2)
+    assert l_alpha == 0.6
+    assert l_label == '_nolegend_'
+    assert l_width == 2
     # Validate plot legend
     legend = [
         i for i in axis.get_children()
@@ -478,6 +609,7 @@ def test_ice_pd_overlay():
     ]
     assert len(legend) == 1
     legend_texts = legend[0].get_texts()
-    assert len(legend_texts) == 2
+    assert len(legend_texts) == 3
     assert legend_texts[0].get_text() == 'PD'
     assert legend_texts[1].get_text() == 'ICE'
+    assert legend_texts[2].get_text() == 'Variance'

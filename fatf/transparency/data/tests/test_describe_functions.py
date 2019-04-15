@@ -20,13 +20,6 @@ _NUMPY_1_14_4 = fut.at_least_verion([1, 14, 4], _NUMPY_VERSION)
 _NUMPY_1_11 = fut.at_least_verion([1, 11], _NUMPY_VERSION)
 _NUMPY_1_10 = fut.at_least_verion([1, 10], _NUMPY_VERSION)
 
-NUMERICAL_KEYS = [
-    'count', 'mean', 'std', 'max', 'min', '25%', '50%', '75%', 'nan_count'
-]
-CATEGORICAL_KEYS = [
-    'count', 'unique', 'unique_counts', 'top', 'freq', 'is_top_unique'
-]
-
 
 def test_describe_numerical_array():
     """
@@ -67,16 +60,16 @@ def test_describe_numerical_array():
                    'min': 4, '25%': 9.25, '50%': 16.5, '75%': 24.75,
                    'nan_count': 2}  # yapf: disable
     array_description = ftddf.describe_numerical_array(array[0])
-    assert set(NUMERICAL_KEYS) == set(description.keys())
-    assert set(NUMERICAL_KEYS) == set(array_description.keys())
-    for i in NUMERICAL_KEYS:
+    assert set(ftddf.NUMERICAL_KEYS) == set(description.keys())
+    assert set(ftddf.NUMERICAL_KEYS) == set(array_description.keys())
+    for i in ftddf.NUMERICAL_KEYS:
         assert pytest.approx(array_description[i], abs=1e-3) == description[i]
     # ...
     array_description = ftddf.describe_numerical_array(
         array[0], skip_nans=True)
-    assert set(NUMERICAL_KEYS) == set(description.keys())
-    assert set(NUMERICAL_KEYS) == set(array_description.keys())
-    for i in NUMERICAL_KEYS:
+    assert set(ftddf.NUMERICAL_KEYS) == set(description.keys())
+    assert set(ftddf.NUMERICAL_KEYS) == set(array_description.keys())
+    for i in ftddf.NUMERICAL_KEYS:
         assert pytest.approx(array_description[i], abs=1e-3) == description[i]
 
     # Array with nans -- classic array; do not ignore nans
@@ -110,9 +103,9 @@ def test_describe_numerical_array():
                        }  # yapf: disable
         array_description = ftddf.describe_numerical_array(
             array, skip_nans=False)
-    assert set(NUMERICAL_KEYS) == set(description.keys())
-    assert set(NUMERICAL_KEYS) == set(array_description.keys())
-    for i in NUMERICAL_KEYS:
+    assert set(ftddf.NUMERICAL_KEYS) == set(description.keys())
+    assert set(ftddf.NUMERICAL_KEYS) == set(array_description.keys())
+    for i in ftddf.NUMERICAL_KEYS:
         true = description[i]
         computed = array_description[i]
         if np.isnan(true) and np.isnan(computed):
@@ -126,16 +119,16 @@ def test_describe_numerical_array():
                    'min': 4, '25%': 9.25, '50%': 16.5, '75%': 24.75,
                    'nan_count': 0}  # yapf: disable
     array_description = ftddf.describe_numerical_array(array, skip_nans=True)
-    assert set(NUMERICAL_KEYS) == set(description.keys())
-    assert set(NUMERICAL_KEYS) == set(array_description.keys())
-    for i in NUMERICAL_KEYS:
+    assert set(ftddf.NUMERICAL_KEYS) == set(description.keys())
+    assert set(ftddf.NUMERICAL_KEYS) == set(array_description.keys())
+    for i in ftddf.NUMERICAL_KEYS:
         assert pytest.approx(array_description[i], abs=1e-3) == description[i]
 
     # Array without nans -- classic array; do not ignore nans
     array_description = ftddf.describe_numerical_array(array, skip_nans=False)
-    assert set(NUMERICAL_KEYS) == set(description.keys())
-    assert set(NUMERICAL_KEYS) == set(array_description.keys())
-    for i in NUMERICAL_KEYS:
+    assert set(ftddf.NUMERICAL_KEYS) == set(description.keys())
+    assert set(ftddf.NUMERICAL_KEYS) == set(array_description.keys())
+    for i in ftddf.NUMERICAL_KEYS:
         assert pytest.approx(array_description[i], abs=1e-3) == description[i]
 
 
@@ -144,9 +137,11 @@ def test_describe_categorical_array():
     Tests :func:`fatf.transparency.data.describe.describe_categorical_array`.
     """
     incorrect_shape_error = 'The input array should be 1-dimensional.'
-    value_error_non_numerical = 'The input array should be purely categorical.'
     value_error_empty = 'The input array cannot be empty.'
-
+    user_warning_non_numerical = ('The input array is not purely categorical. '
+                                  'Converting the input array into a textual '
+                                  'type to facilitate a categorical '
+                                  'description.')
     # Wrong shape
     array = np.array([[5, 33], [22, 17]])
     with pytest.raises(IncorrectShapeError) as exin:
@@ -159,11 +154,25 @@ def test_describe_categorical_array():
         ftddf.describe_categorical_array(array)
     assert str(exin.value) == value_error_empty
 
-    # Wrong type
-    array = np.array([5, 33])
-    with pytest.raises(ValueError) as exin:
-        ftddf.describe_categorical_array(array)
-    assert str(exin.value) == value_error_non_numerical
+    # Wrong type -- will be treated as textual
+    array = np.array([5, 33, 5])
+    description = {'count': 3, 'unique': np.array(['33', '5']),
+                   'unique_counts': np.array([1, 2]), 'top': '5',
+                   'freq': 2, 'is_top_unique': True}  # yapf: disable
+    with pytest.warns(UserWarning) as w:
+        array_description = ftddf.describe_categorical_array(array)
+    assert len(w) == 1
+    assert str(w[0].message) == user_warning_non_numerical
+    #
+    assert set(ftddf.CATEGORICAL_KEYS) == set(description.keys())
+    assert set(ftddf.CATEGORICAL_KEYS) == set(array_description.keys())
+    for i in ftddf.CATEGORICAL_KEYS:
+        if isinstance(description[i], (str, bool, int)):
+            assert array_description[i] == description[i]
+        elif isinstance(description[i], np.ndarray):
+            assert np.array_equal(array_description[i], description[i])
+        else:  # pragma: no cover
+            assert False, 'Unrecognised type!'
 
     # Structured row
     array = np.array([('aa', 'bb', 'abc', 'd', 'bb')],
@@ -173,9 +182,9 @@ def test_describe_categorical_array():
                    'unique_counts': np.array([1, 1, 2, 1]), 'top': 'bb',
                    'freq': 2, 'is_top_unique': True}  # yapf: disable
     array_description = ftddf.describe_categorical_array(array[0])
-    assert set(CATEGORICAL_KEYS) == set(description.keys())
-    assert set(CATEGORICAL_KEYS) == set(array_description.keys())
-    for i in CATEGORICAL_KEYS:
+    assert set(ftddf.CATEGORICAL_KEYS) == set(description.keys())
+    assert set(ftddf.CATEGORICAL_KEYS) == set(array_description.keys())
+    for i in ftddf.CATEGORICAL_KEYS:
         if isinstance(description[i], (str, bool, int)):
             assert array_description[i] == description[i]
         elif isinstance(description[i], np.ndarray):
@@ -189,9 +198,9 @@ def test_describe_categorical_array():
                    'unique_counts': np.array([1, 2, 2]), 'top': 'bb',
                    'freq': 2, 'is_top_unique': False}  # yapf: disable
     array_description = ftddf.describe_categorical_array(array)
-    assert set(CATEGORICAL_KEYS) == set(description.keys())
-    assert set(CATEGORICAL_KEYS) == set(array_description.keys())
-    for i in CATEGORICAL_KEYS:
+    assert set(ftddf.CATEGORICAL_KEYS) == set(description.keys())
+    assert set(ftddf.CATEGORICAL_KEYS) == set(array_description.keys())
+    for i in ftddf.CATEGORICAL_KEYS:
         if isinstance(description[i], (str, bool, int)):
             assert array_description[i] == description[i]
         elif isinstance(description[i], np.ndarray):
@@ -246,9 +255,9 @@ def test_describe_array():
                    'unique_counts': np.array([2, 2]), 'top': '2', 'freq': 2,
                    'is_top_unique': False}  # yapf: disable
     array_description = ftddf.describe_array(array)
-    assert set(CATEGORICAL_KEYS) == set(description.keys())
-    assert set(CATEGORICAL_KEYS) == set(array_description.keys())
-    for i in CATEGORICAL_KEYS:
+    assert set(ftddf.CATEGORICAL_KEYS) == set(description.keys())
+    assert set(ftddf.CATEGORICAL_KEYS) == set(array_description.keys())
+    for i in ftddf.CATEGORICAL_KEYS:
         if isinstance(description[i], (str, bool, int)):
             assert array_description[i] == description[i]
         elif isinstance(description[i], np.ndarray):
@@ -257,9 +266,9 @@ def test_describe_array():
             assert False, 'Unrecognised type!'
     # Skip nans
     array_description = ftddf.describe_array(array, skip_nans=False)
-    assert set(CATEGORICAL_KEYS) == set(description.keys())
-    assert set(CATEGORICAL_KEYS) == set(array_description.keys())
-    for i in CATEGORICAL_KEYS:
+    assert set(ftddf.CATEGORICAL_KEYS) == set(description.keys())
+    assert set(ftddf.CATEGORICAL_KEYS) == set(array_description.keys())
+    for i in ftddf.CATEGORICAL_KEYS:
         if isinstance(description[i], (str, bool, int)):
             assert array_description[i] == description[i]
         elif isinstance(description[i], np.ndarray):
@@ -277,9 +286,9 @@ def test_describe_array():
     assert len(w) == 1
     assert str(w[0].message) == user_warning
     #
-    assert set(CATEGORICAL_KEYS) == set(description.keys())
-    assert set(CATEGORICAL_KEYS) == set(array_description.keys())
-    for i in CATEGORICAL_KEYS:
+    assert set(ftddf.CATEGORICAL_KEYS) == set(description.keys())
+    assert set(ftddf.CATEGORICAL_KEYS) == set(array_description.keys())
+    for i in ftddf.CATEGORICAL_KEYS:
         if isinstance(description[i], (str, bool, int)):
             assert array_description[i] == description[i]
         elif isinstance(description[i], np.ndarray):
@@ -300,9 +309,9 @@ def test_describe_array():
     assert len(w) == 1
     assert str(w[0].message) == user_warning
     #
-    assert set(NUMERICAL_KEYS) == set(description.keys())
-    assert set(NUMERICAL_KEYS) == set(array_description.keys())
-    for i in NUMERICAL_KEYS:
+    assert set(ftddf.NUMERICAL_KEYS) == set(description.keys())
+    assert set(ftddf.NUMERICAL_KEYS) == set(array_description.keys())
+    for i in ftddf.NUMERICAL_KEYS:
         assert pytest.approx(array_description[i], abs=1e-3) == description[i]
 
     # 1D numerical array -- include & not exclude -- do not filter nans
@@ -346,9 +355,9 @@ def test_describe_array():
         assert len(w) == 1
         assert str(w[0].message) == user_warning
     #
-    assert set(NUMERICAL_KEYS) == set(description.keys())
-    assert set(NUMERICAL_KEYS) == set(array_description.keys())
-    for i in NUMERICAL_KEYS:
+    assert set(ftddf.NUMERICAL_KEYS) == set(description.keys())
+    assert set(ftddf.NUMERICAL_KEYS) == set(array_description.keys())
+    for i in ftddf.NUMERICAL_KEYS:
         true = description[i]
         computed = array_description[i]
         if np.isnan(true) and np.isnan(computed):
@@ -407,9 +416,10 @@ def test_describe_array():
     assert set(description) == set(array_struct.dtype.names)
     for col_id, column_description in description.items():
         if col_id in numerical_indices_struct:
-            assert set(NUMERICAL_KEYS) == set(column_description.keys())
-            assert set(NUMERICAL_KEYS) == set(description_num[col_id].keys())
-            for i in NUMERICAL_KEYS:
+            assert set(ftddf.NUMERICAL_KEYS) == set(column_description.keys())
+            assert set(ftddf.NUMERICAL_KEYS) == set(
+                description_num[col_id].keys())
+            for i in ftddf.NUMERICAL_KEYS:
                 col_d = column_description[i]
                 gt_d = description_num[col_id][i]
                 if np.isnan(col_d) and np.isnan(gt_d):  # pragma: no cover
@@ -417,9 +427,11 @@ def test_describe_array():
                 else:
                     assert pytest.approx(col_d, abs=1e-3) == gt_d
         else:
-            assert set(CATEGORICAL_KEYS) == set(column_description.keys())
-            assert set(CATEGORICAL_KEYS) == set(description_cat[col_id].keys())
-            for i in CATEGORICAL_KEYS:
+            assert set(ftddf.CATEGORICAL_KEYS) == set(
+                column_description.keys())
+            assert set(ftddf.CATEGORICAL_KEYS) == set(
+                description_cat[col_id].keys())
+            for i in ftddf.CATEGORICAL_KEYS:
                 col_d = column_description[i]
                 gt_d = description_cat[col_id][i]
                 if isinstance(col_d, (str, bool, int, np.int64, np.bool_)):
@@ -455,10 +467,10 @@ def test_describe_array():
     assert set(description) == set(array_struct.dtype.names)
     for col_id, column_description in description.items():
         if col_id in numerical_indices_struct:
-            assert set(NUMERICAL_KEYS) == set(column_description.keys())
-            assert set(NUMERICAL_KEYS) == set(
+            assert set(ftddf.NUMERICAL_KEYS) == set(column_description.keys())
+            assert set(ftddf.NUMERICAL_KEYS) == set(
                 description_num_test[col_id].keys())
-            for i in NUMERICAL_KEYS:
+            for i in ftddf.NUMERICAL_KEYS:
                 col_d = column_description[i]
                 gt_d = description_num_test[col_id][i]
                 if np.isnan(col_d) and np.isnan(gt_d):
@@ -466,9 +478,11 @@ def test_describe_array():
                 else:
                     assert pytest.approx(col_d, abs=1e-3) == gt_d
         else:
-            assert set(CATEGORICAL_KEYS) == set(column_description.keys())
-            assert set(CATEGORICAL_KEYS) == set(description_cat[col_id].keys())
-            for i in CATEGORICAL_KEYS:
+            assert set(ftddf.CATEGORICAL_KEYS) == set(
+                column_description.keys())
+            assert set(ftddf.CATEGORICAL_KEYS) == set(
+                description_cat[col_id].keys())
+            for i in ftddf.CATEGORICAL_KEYS:
                 col_d = column_description[i]
                 gt_d = description_cat[col_id][i]
                 if isinstance(col_d, (str, bool, int, np.int64, np.bool_)):
@@ -483,9 +497,10 @@ def test_describe_array():
         array_struct, include='categorical', exclude='c')
     assert set(description) == set(['e'])
     for col_id, column_description in description.items():
-        assert set(CATEGORICAL_KEYS) == set(column_description.keys())
-        assert set(CATEGORICAL_KEYS) == set(description_cat[col_id].keys())
-        for i in CATEGORICAL_KEYS:
+        assert set(ftddf.CATEGORICAL_KEYS) == set(column_description.keys())
+        assert set(ftddf.CATEGORICAL_KEYS) == set(
+            description_cat[col_id].keys())
+        for i in ftddf.CATEGORICAL_KEYS:
             col_d = column_description[i]
             gt_d = description_cat[col_id][i]
             if isinstance(col_d, (str, bool, int, np.int64, np.bool_)):
@@ -500,9 +515,10 @@ def test_describe_array():
         array_struct, include='numerical', exclude=['a', 'b', 'c', 'e'])
     assert set(description) == set('d')
     for col_id, column_description in description.items():
-        assert set(NUMERICAL_KEYS) == set(column_description.keys())
-        assert set(NUMERICAL_KEYS) == set(description_num_nan[col_id].keys())
-        for i in NUMERICAL_KEYS:
+        assert set(ftddf.NUMERICAL_KEYS) == set(column_description.keys())
+        assert set(ftddf.NUMERICAL_KEYS) == set(
+            description_num_nan[col_id].keys())
+        for i in ftddf.NUMERICAL_KEYS:
             col_d = column_description[i]
             gt_d = description_num_nan[col_id][i]
             if np.isnan(col_d) and np.isnan(gt_d):  # pragma: no cover
@@ -559,9 +575,10 @@ def test_describe_array():
         array_struct, include=['a', 'd'], exclude='categorical')
     assert set(description) == set(['a', 'd'])
     for col_id, column_description in description.items():
-        assert set(NUMERICAL_KEYS) == set(column_description.keys())
-        assert set(NUMERICAL_KEYS) == set(description_num_nan[col_id].keys())
-        for i in NUMERICAL_KEYS:
+        assert set(ftddf.NUMERICAL_KEYS) == set(column_description.keys())
+        assert set(ftddf.NUMERICAL_KEYS) == set(
+            description_num_nan[col_id].keys())
+        for i in ftddf.NUMERICAL_KEYS:
             col_d = column_description[i]
             gt_d = description_num_nan[col_id][i]
             if np.isnan(col_d) and np.isnan(gt_d):  # pragma: no cover
@@ -573,9 +590,10 @@ def test_describe_array():
     description = ftddf.describe_array(array_struct, include='a')
     assert set(description) == set(['a'])
     for col_id, column_description in description.items():
-        assert set(NUMERICAL_KEYS) == set(column_description.keys())
-        assert set(NUMERICAL_KEYS) == set(description_num_nan[col_id].keys())
-        for i in NUMERICAL_KEYS:
+        assert set(ftddf.NUMERICAL_KEYS) == set(column_description.keys())
+        assert set(ftddf.NUMERICAL_KEYS) == set(
+            description_num_nan[col_id].keys())
+        for i in ftddf.NUMERICAL_KEYS:
             col_d = column_description[i]
             gt_d = description_num_nan[col_id][i]
             if np.isnan(col_d) and np.isnan(gt_d):  # pragma: no cover
@@ -587,9 +605,10 @@ def test_describe_array():
     description = ftddf.describe_array(array_struct, include='categorical')
     assert set(description) == set(['c', 'e'])
     for col_id, column_description in description.items():
-        assert set(CATEGORICAL_KEYS) == set(column_description.keys())
-        assert set(CATEGORICAL_KEYS) == set(description_cat[col_id].keys())
-        for i in CATEGORICAL_KEYS:
+        assert set(ftddf.CATEGORICAL_KEYS) == set(column_description.keys())
+        assert set(ftddf.CATEGORICAL_KEYS) == set(
+            description_cat[col_id].keys())
+        for i in ftddf.CATEGORICAL_KEYS:
             col_d = column_description[i]
             gt_d = description_cat[col_id][i]
             if isinstance(col_d, (str, bool, int, np.int64, np.bool_)):
@@ -603,9 +622,10 @@ def test_describe_array():
     description = ftddf.describe_array(array_struct, include='numerical')
     assert set(description) == set(['a', 'b', 'd'])
     for col_id, column_description in description.items():
-        assert set(NUMERICAL_KEYS) == set(column_description.keys())
-        assert set(NUMERICAL_KEYS) == set(description_num[col_id].keys())
-        for i in NUMERICAL_KEYS:
+        assert set(ftddf.NUMERICAL_KEYS) == set(column_description.keys())
+        assert set(ftddf.NUMERICAL_KEYS) == set(
+            description_num[col_id].keys())
+        for i in ftddf.NUMERICAL_KEYS:
             col_d = column_description[i]
             gt_d = description_num[col_id][i]
             if np.isnan(col_d) and np.isnan(gt_d):  # pragma: no cover
@@ -617,9 +637,10 @@ def test_describe_array():
     description = ftddf.describe_array(array_struct, exclude='categorical')
     assert set(description) == set(['a', 'b', 'd'])
     for col_id, column_description in description.items():
-        assert set(NUMERICAL_KEYS) == set(column_description.keys())
-        assert set(NUMERICAL_KEYS) == set(description_num[col_id].keys())
-        for i in NUMERICAL_KEYS:
+        assert set(ftddf.NUMERICAL_KEYS) == set(column_description.keys())
+        assert set(ftddf.NUMERICAL_KEYS) == set(
+            description_num[col_id].keys())
+        for i in ftddf.NUMERICAL_KEYS:
             col_d = column_description[i]
             gt_d = description_num[col_id][i]
             if np.isnan(col_d) and np.isnan(gt_d):  # pragma: no cover
@@ -631,9 +652,10 @@ def test_describe_array():
     description = ftddf.describe_array(array_struct, exclude='numerical')
     assert set(description) == set(['c', 'e'])
     for col_id, column_description in description.items():
-        assert set(CATEGORICAL_KEYS) == set(column_description.keys())
-        assert set(CATEGORICAL_KEYS) == set(description_cat[col_id].keys())
-        for i in CATEGORICAL_KEYS:
+        assert set(ftddf.CATEGORICAL_KEYS) == set(column_description.keys())
+        assert set(ftddf.CATEGORICAL_KEYS) == set(
+            description_cat[col_id].keys())
+        for i in ftddf.CATEGORICAL_KEYS:
             col_d = column_description[i]
             gt_d = description_cat[col_id][i]
             if isinstance(col_d, (str, bool, int, np.int64, np.bool_)):
@@ -652,9 +674,10 @@ def test_describe_array():
     description = ftddf.describe_array(array_num, exclude=1)
     assert set(description) == set([0, 2])
     for col_id, column_description in description.items():
-        assert set(NUMERICAL_KEYS) == set(column_description.keys())
-        assert set(NUMERICAL_KEYS) == set(description_num[col_id].keys())
-        for i in NUMERICAL_KEYS:
+        assert set(ftddf.NUMERICAL_KEYS) == set(column_description.keys())
+        assert set(ftddf.NUMERICAL_KEYS) == set(
+            description_num[col_id].keys())
+        for i in ftddf.NUMERICAL_KEYS:
             col_d = column_description[i]
             gt_d = description_num[col_id][i]
             if np.isnan(col_d) and np.isnan(gt_d):  # pragma: no cover
@@ -666,9 +689,10 @@ def test_describe_array():
     description = ftddf.describe_array(array_num, include=[0, 2])
     assert set(description) == set([0, 2])
     for col_id, column_description in description.items():
-        assert set(NUMERICAL_KEYS) == set(column_description.keys())
-        assert set(NUMERICAL_KEYS) == set(description_num[col_id].keys())
-        for i in NUMERICAL_KEYS:
+        assert set(ftddf.NUMERICAL_KEYS) == set(column_description.keys())
+        assert set(ftddf.NUMERICAL_KEYS) == set(
+            description_num[col_id].keys())
+        for i in ftddf.NUMERICAL_KEYS:
             col_d = column_description[i]
             gt_d = description_num[col_id][i]
             if np.isnan(col_d) and np.isnan(gt_d):  # pragma: no cover
@@ -685,9 +709,10 @@ def test_describe_array():
     description = ftddf.describe_array(array_cat, exclude=0)
     assert set(description) == set([1])
     for col_id, column_description in description.items():
-        assert set(CATEGORICAL_KEYS) == set(column_description.keys())
-        assert set(CATEGORICAL_KEYS) == set(description_cat[col_id].keys())
-        for i in CATEGORICAL_KEYS:
+        assert set(ftddf.CATEGORICAL_KEYS) == set(column_description.keys())
+        assert set(ftddf.CATEGORICAL_KEYS) == set(
+            description_cat[col_id].keys())
+        for i in ftddf.CATEGORICAL_KEYS:
             col_d = column_description[i]
             gt_d = description_cat[col_id][i]
             if isinstance(col_d, (str, bool, int, np.int64, np.bool_)):
@@ -702,9 +727,10 @@ def test_describe_array():
         array_cat, include=1, exclude='numerical')
     assert set(description) == set([1])
     for col_id, column_description in description.items():
-        assert set(CATEGORICAL_KEYS) == set(column_description.keys())
-        assert set(CATEGORICAL_KEYS) == set(description_cat[col_id].keys())
-        for i in CATEGORICAL_KEYS:
+        assert set(ftddf.CATEGORICAL_KEYS) == set(column_description.keys())
+        assert set(ftddf.CATEGORICAL_KEYS) == set(
+            description_cat[col_id].keys())
+        for i in ftddf.CATEGORICAL_KEYS:
             col_d = column_description[i]
             gt_d = description_cat[col_id][i]
             if isinstance(col_d, (str, bool, int, np.int64, np.bool_)):

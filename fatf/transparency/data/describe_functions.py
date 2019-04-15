@@ -22,6 +22,13 @@ __all__ = ['describe_array',
 
 IndicesType = Set[Union[str, int]]
 
+NUMERICAL_KEYS = [
+    'count', 'mean', 'std', 'max', 'min', '25%', '50%', '75%', 'nan_count'
+]
+CATEGORICAL_KEYS = [
+    'count', 'unique', 'unique_counts', 'top', 'freq', 'is_top_unique'
+]
+
 
 def describe_array(
         array: np.ndarray,
@@ -304,8 +311,13 @@ def describe_categorical_array(
     IncorrectShapeError
         The input array is not 1-dimensinoal.
     ValueError
-        The input array is not categorical (at least one string-like component)
-        or it is empty.
+        The input array is empty.
+
+    Warns
+    -----
+    UserWarning
+        When the input array is not purely textual it needs to be converted to
+        a string type before it can be described.
 
     Returns
     -------
@@ -322,7 +334,12 @@ def describe_categorical_array(
     if not classic_array.shape[0]:
         raise ValueError('The input array cannot be empty.')
     if not fuav.is_textual_array(classic_array):
-        raise ValueError('The input array should be purely categorical.')
+        warnings.warn(
+            'The input array is not purely categorical. Converting the input '
+            'array into a textual type to facilitate a categorical '
+            'description.',
+            category=UserWarning)
+        classic_array = classic_array.astype(str)
 
     unique, unique_counts = np.unique(classic_array, return_counts=True)
 

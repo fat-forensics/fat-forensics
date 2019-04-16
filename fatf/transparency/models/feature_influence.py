@@ -13,6 +13,7 @@ from typing import List, Optional, Tuple, Union
 import warnings
 
 import numpy as np
+import scipy.stats as stats
 
 import fatf.utils.array.tools as fuat
 import fatf.utils.array.validation as fuav
@@ -22,6 +23,7 @@ from fatf.exceptions import IncompatibleModelError, IncorrectShapeError
 
 __all__ = ['individual_conditional_expectation',
            'merge_ice_arrays',
+           'get_feature_distribution'
            'partial_dependence_ice',
            'partial_dependence']  # yapf: disable
 
@@ -258,6 +260,87 @@ def _filter_rows(include_rows: Union[None, int, List[int]],
 
     filtered_rows = sorted(set(include_rows).difference(exclude_rows))
     return filtered_rows
+
+
+def get_feature_distribution(
+        dataset: np.ndarray,
+        feature_index: Union[int, str],
+        density_estimation_method: str = 'bins',
+        number_bins: Optional[int] = None) -> np.ndarray:
+    """
+    Calculated distribution of values for a selected feature.
+
+    Parameters
+    ----------
+    dataset : numpy.ndarray
+        A dataset based on which ICE will be computed.
+    feature_index : Union[integer, string]
+        An index of the feature column in the input dataset for which ICE will
+        be computed.
+    density_estimation_method : string
+
+    number_bins : integer
+        Number of bins to use to calculate the distribution. (Default=10)
+
+    Raises
+    ------
+    IncorrectShapeError
+        The input dataset is not a 2-dimensional numpy array.
+    IndexError
+        Provided feature (column) index is invalid for the input dataset.
+    
+    Returns
+    -------
+    feature_distribution : numpy.ndarray
+        An array 
+    """
+    #TODO: finish functions
+    assert isinstance(bins, int), 'Bins -> int.'
+    if not fuav.is_2d_array(dataset):
+        raise IncorrectShapeError('The input dataset must be a 2-dimensional '
+                                  'array.')
+
+    if not fuav.is_base_array(dataset):
+        raise ValueError('The input dataset must only contain base types '
+                         '(textual and numerical).')
+
+    if not fuat.are_indices_valid(dataset, np.array([feature_index])):
+        raise IndexError('Provided feature index is not valid for the input '
+                         'dataset.')
+    is_structured = fuav.is_structured_array(dataset)
+
+    if is_structured:
+        column = dataset[feature_index]
+    else:
+        column = dataset[:, feature_index]
+    assert fuav.is_1d_array(column), 'Column must be a 1-dimensional array.'
+
+    if fuav.is_numerical_array(column):
+        is_categorical_column = False
+    elif fuav.is_textual_array(column):
+        is_categorical_column = True
+    else:
+        assert False, 'Must be an array of a base type.'  # pragma: nocover
+
+    # If needed, infer the column type.
+    if treat_as_categorical is None:
+        treat_as_categorical = is_categorical_column
+    elif not treat_as_categorical and is_categorical_column:
+        message = ('Selected feature is categorical (string-base elements), '
+                   'however the treat_as_categorical was set to False. Such '
+                   'a combination is not possible. The feature will be '
+                   'treated as categorical.')
+        warnings.warn(message, category=UserWarning)
+        treat_as_categorical = True
+        steps_number = None
+
+    if treat_as_categorical and steps_number is not None:
+        warnings.warn(
+            'The steps_number parameter will be ignored as the feature is '
+            'being treated as categorical.',
+            category=UserWarning)
+    
+    return False
 
 
 def individual_conditional_expectation(

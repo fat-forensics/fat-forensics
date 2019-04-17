@@ -23,7 +23,7 @@ from fatf.exceptions import IncompatibleModelError, IncorrectShapeError
 
 __all__ = ['individual_conditional_expectation',
            'merge_ice_arrays',
-           'get_feature_distribution',
+           'compute_feature_distribution',
            'partial_dependence_ice',
            'partial_dependence']  # yapf: disable
 
@@ -39,8 +39,6 @@ def _input_is_valid(dataset: np.ndarray,
     documentation of the :func`fatf.transparency.model.feature_influence.
     individual_conditional_expectation` function.
 
-    .. note:: Model may be None for use in :func`fatf.transparency.model.
-        get_feature_distribution` function
     Returns
     -------
     is_input_ok : boolean
@@ -258,7 +256,7 @@ def _filter_rows(include_rows: Union[None, int, List[int]],
     return filtered_rows
 
 
-def get_feature_distribution(
+def compute_feature_distribution(
         dataset: np.ndarray,
         feature_index: Union[int, str],
         treat_as_categorical: Optional[bool] = None,

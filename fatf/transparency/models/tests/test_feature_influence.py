@@ -560,33 +560,33 @@ def test_merge_ice_arrays():
     assert np.array_equal(comp, unstructured_array_c)
 
 
-def test_get_feature_distribution():
+def test_compute_feature_distribution():
     """
     Tests :func:`fatf.transparency.models.feature_influence.
-    get_feature_distribution` function.
+    compute_feature_distribution` function.
     """
     fatf.setup_random_seed()
     msg = ('kde must be a boolean.')
     with pytest.raises(AssertionError) as exin:
-        ftmfi.get_feature_distribution(None, None, False, 1, None)
+        ftmfi.compute_feature_distribution(None, None, False, 1, None)
     assert str(exin.value) == msg
 
     msg = ('samples must be an integer.')
     with pytest.raises(AssertionError) as exin:
-        ftmfi.get_feature_distribution(None, None, False, False, '1')
+        ftmfi.compute_feature_distribution(None, None, False, False, '1')
     assert str(exin.value) == msg
 
     msg = ('treat_as_categorical was set to True and kde was set to True. '
            'Gaussian kernel estimation cannot be used on categorical data.')
     with pytest.raises(ValueError) as exin:
-        ftmfi.get_feature_distribution(NUMERICAL_NP_ARRAY, 0, True, True)
+        ftmfi.compute_feature_distribution(NUMERICAL_NP_ARRAY, 0, True, True)
     assert str(exin.value) == msg
 
     msg = ('Selected feature is categorical (string-base elements), however '
            'kde was set to True. Gaussian kernel estimation cannot be used on '
            'categorical data.')
     with pytest.raises(ValueError) as exin:
-        ftmfi.get_feature_distribution(CATEGORICAL_STRUCT_ARRAY, 'c',
+        ftmfi.compute_feature_distribution(CATEGORICAL_STRUCT_ARRAY, 'c',
                                        treat_as_categorical=False, kde=True)
     assert str(exin.value) == msg
 
@@ -594,7 +594,7 @@ def test_get_feature_distribution():
            'the treat_as_categorical was set to False. Such a combination is '
            'not possible. The feature will be treated as categorical.')
     with pytest.warns(UserWarning) as warning:
-        ftmfi.get_feature_distribution(CATEGORICAL_STRUCT_ARRAY, 'c', 
+        ftmfi.compute_feature_distribution(CATEGORICAL_STRUCT_ARRAY, 'c', 
                                       treat_as_categorical=False)
     assert len(warning) == 1
     assert str(warning[0].message) == msg
@@ -603,7 +603,7 @@ def test_get_feature_distribution():
             'being treated as categorical. The number of bins will be the '
             'number of unique values in the feature.')
     with pytest.warns(UserWarning) as warning:
-        ftmfi.get_feature_distribution(CATEGORICAL_STRUCT_ARRAY, 'c',
+        ftmfi.compute_feature_distribution(CATEGORICAL_STRUCT_ARRAY, 'c',
                                        treat_as_categorical=True, samples=10)
     assert len(warning) == 1
     assert str(warning[0].message) == msg
@@ -611,13 +611,13 @@ def test_get_feature_distribution():
     # Categorical numerical (counts)
     values = np.array([0., 1., 2.,])
     counts = np.array([3., 2., 1.])
-    dist = ftmfi.get_feature_distribution(NUMERICAL_NP_ARRAY, 0,
+    dist = ftmfi.compute_feature_distribution(NUMERICAL_NP_ARRAY, 0,
                                           treat_as_categorical=True)
     assert np.array_equal(dist[0], values)
     assert np.array_equal(dist[1], counts)
 
     # Structured categorical numerical (counts)
-    dist = ftmfi.get_feature_distribution(NUMERICAL_STRUCT_ARRAY, 'a',
+    dist = ftmfi.compute_feature_distribution(NUMERICAL_STRUCT_ARRAY, 'a',
                                           treat_as_categorical=True)
     assert np.array_equal(dist[0], values)
     assert np.array_equal(dist[1], counts)
@@ -625,13 +625,13 @@ def test_get_feature_distribution():
     # Categorical string (counts)
     values = np.array(['a', 'b'])
     counts = np.array([2., 1.])
-    dist = ftmfi.get_feature_distribution(CATEGORICAL_NP_ARRAY, 0,
+    dist = ftmfi.compute_feature_distribution(CATEGORICAL_NP_ARRAY, 0,
                                           treat_as_categorical=True)
     assert np.array_equal(dist[0], values)
     assert np.array_equal(dist[1], counts)
 
     # Structured categorical string (counts)
-    dist = ftmfi.get_feature_distribution(CATEGORICAL_STRUCT_ARRAY, 'a',
+    dist = ftmfi.compute_feature_distribution(CATEGORICAL_STRUCT_ARRAY, 'a',
                                           treat_as_categorical=True)
     assert np.array_equal(dist[0], values)
     assert np.array_equal(dist[1], counts)
@@ -639,12 +639,12 @@ def test_get_feature_distribution():
     # Non-categorical numerical (histogram)
     values = np.array([0., 0.4, 0.8, 1.2, 1.6, 2.])
     counts = np.array([1.25, 0., 0.83, 0., 0.41])
-    dist = ftmfi.get_feature_distribution(NUMERICAL_NP_ARRAY, 0, samples=5)
+    dist = ftmfi.compute_feature_distribution(NUMERICAL_NP_ARRAY, 0, samples=5)
     assert np.allclose(dist[0], values, atol=1e-2)
     assert np.allclose(dist[1], counts, atol=1e-2)
 
     # Structured non-categorical numerical (histogram)
-    dist = ftmfi.get_feature_distribution(NUMERICAL_STRUCT_ARRAY, 'a',
+    dist = ftmfi.compute_feature_distribution(NUMERICAL_STRUCT_ARRAY, 'a',
                                          samples=5)
     assert np.allclose(dist[0], values, atol=1e-2)
     assert np.allclose(dist[1], counts, atol=1e-2)
@@ -652,25 +652,25 @@ def test_get_feature_distribution():
     # Non-categorical numerical (kde)
     values = np.array([0., 0.5, 1., 1.5, 2.])
     counts = np.array([0.400, 0.400, 0.333, 0.249, 0.167])
-    dist = ftmfi.get_feature_distribution(NUMERICAL_NP_ARRAY, 0, kde=True,
+    dist = ftmfi.compute_feature_distribution(NUMERICAL_NP_ARRAY, 0, kde=True,
                                           samples=5)
     assert np.array_equal(dist[0], values)
     assert np.allclose(dist[1], counts, atol=1e-2)
 
     # Structured non-categorical numerical (kde)
-    dist = ftmfi.get_feature_distribution(NUMERICAL_STRUCT_ARRAY, 'a',
+    dist = ftmfi.compute_feature_distribution(NUMERICAL_STRUCT_ARRAY, 'a',
                                           kde=True, samples=5)
     assert np.array_equal(dist[0], values)
     assert np.allclose(dist[1], counts, atol=1e-2)
 
     # Non-categorical numerical (auto bins)
-    dist = ftmfi.get_feature_distribution(NUMERICAL_NP_ARRAY, 0)
+    dist = ftmfi.compute_feature_distribution(NUMERICAL_NP_ARRAY, 0)
     assert dist[0].min() == NUMERICAL_NP_ARRAY[:, 0].min()
     assert dist[0].max() == NUMERICAL_NP_ARRAY[:, 0].max()
     assert dist[0].shape[0] == dist[1].shape[0] + 1
 
     # Structured non-categorical numerical (auto bins)
-    dist = ftmfi.get_feature_distribution(NUMERICAL_STRUCT_ARRAY, 'a')
+    dist = ftmfi.compute_feature_distribution(NUMERICAL_STRUCT_ARRAY, 'a')
     assert dist[0].min() == NUMERICAL_NP_ARRAY[:, 0].min()
     assert dist[0].max() == NUMERICAL_NP_ARRAY[:, 0].max()
     assert dist[0].shape[0] == dist[1].shape[0] + 1

@@ -13,6 +13,7 @@ import pytest
 
 import numpy as np
 
+import fatf
 import fatf.transparency.models.feature_influence as ftmfi
 import fatf.utils.models as fum
 
@@ -193,60 +194,47 @@ def test_is_valid_input():
     # Data
     msg = 'The input dataset must be a 2-dimensional array.'
     with pytest.raises(IncorrectShapeError) as exin:
-        ftmfi._input_is_valid(ONE_D_ARRAY, None, None, None, None)
+        ftmfi._input_is_valid(ONE_D_ARRAY, None, None, None)
     assert str(exin.value) == msg
 
     msg = ('The input dataset must only contain base types (textual and '
            'numerical).')
     with pytest.raises(ValueError) as exin:
-        ftmfi._input_is_valid(NOT_BASE_NP_ARRAY, None, None, None, None)
+        ftmfi._input_is_valid(NOT_BASE_NP_ARRAY, None, None, None)
     assert str(exin.value) == msg
-
-    # Model
-    msg = ('This functionality requires the model to be capable of outputting '
-           'probabilities via predict_proba method.')
-    model = InvalidModel()
-    with pytest.warns(UserWarning) as warning:
-        with pytest.raises(IncompatibleModelError) as exin:
-            ftmfi._input_is_valid(BASE_STRUCTURED_ARRAY, model, None, None,
-                                  None)
-        assert str(exin.value) == msg
-    assert len(warning) == 1
-    assert str(warning[0].message) == ('The model class is missing '
-                                       "'predict_proba' method.")
 
     # Feature index
     msg = 'Provided feature index is not valid for the input dataset.'
     with pytest.raises(IndexError) as exin:
-        ftmfi._input_is_valid(BASE_STRUCTURED_ARRAY, knn_model, 0, None, None)
+        ftmfi._input_is_valid(BASE_STRUCTURED_ARRAY, 0, None, None)
     assert str(exin.value) == msg
     with pytest.raises(IndexError) as exin:
-        ftmfi._input_is_valid(BASE_NP_ARRAY, knn_model, 'numerical', None,
+        ftmfi._input_is_valid(BASE_NP_ARRAY, 'numerical', None,
                               None)
     assert str(exin.value) == msg
 
     # Steps number
     msg = 'steps_number parameter has to either be None or an integer.'
     with pytest.raises(TypeError) as exin:
-        ftmfi._input_is_valid(BASE_NP_ARRAY, knn_model, 1, None, 'a')
+        ftmfi._input_is_valid(BASE_NP_ARRAY, 1, None, 'a')
     assert str(exin.value) == msg
 
     msg = 'steps_number has to be at least 2.'
     with pytest.raises(ValueError) as exin:
-        ftmfi._input_is_valid(BASE_NP_ARRAY, knn_model, 1, None, 1)
+        ftmfi._input_is_valid(BASE_NP_ARRAY, 1, None, 1)
     assert str(exin.value) == msg
 
     # Treat as categorical
     msg = 'treat_as_categorical has to either be None or a boolean.'
     with pytest.raises(TypeError) as exin:
-        ftmfi._input_is_valid(BASE_NP_ARRAY, knn_model, 1, 'a', None)
+        ftmfi._input_is_valid(BASE_NP_ARRAY, 1, 'a', None)
     assert str(exin.value) == msg
 
     # Functional
-    assert ftmfi._input_is_valid(BASE_NP_ARRAY, knn_model, 1, None, 2)
-    assert ftmfi._input_is_valid(BASE_NP_ARRAY, knn_model, 1, False, 5)
+    assert ftmfi._input_is_valid(BASE_NP_ARRAY, 1, None, 2)
+    assert ftmfi._input_is_valid(BASE_NP_ARRAY, 1, False, 5)
     # Steps number will be ignored anyway
-    assert ftmfi._input_is_valid(BASE_NP_ARRAY, knn_model, 1, True, 2)
+    assert ftmfi._input_is_valid(BASE_NP_ARRAY, 1, True, 2)
 
 
 def test_interpolate_array():
@@ -572,6 +560,122 @@ def test_merge_ice_arrays():
     assert np.array_equal(comp, unstructured_array_c)
 
 
+def test_get_feature_distribution():
+    """
+    Tests :func:`fatf.transparency.models.feature_influence.
+    get_feature_distribution` function.
+    """
+    fatf.setup_random_seed()
+    msg = ('kde must be a boolean.')
+    with pytest.raises(AssertionError) as exin:
+        ftmfi.get_feature_distribution(None, None, False, 1, None)
+    assert str(exin.value) == msg
+
+    msg = ('samples must be an integer.')
+    with pytest.raises(AssertionError) as exin:
+        ftmfi.get_feature_distribution(None, None, False, False, '1')
+    assert str(exin.value) == msg
+
+    msg = ('treat_as_categorical was set to True and kde was set to True. '
+           'Gaussian kernel estimation cannot be used on categorical data.')
+    with pytest.raises(ValueError) as exin:
+        ftmfi.get_feature_distribution(NUMERICAL_NP_ARRAY, 0, True, True)
+    assert str(exin.value) == msg
+
+    msg = ('Selected feature is categorical (string-base elements), however '
+           'kde was set to True. Gaussian kernel estimation cannot be used on '
+           'categorical data.')
+    with pytest.raises(ValueError) as exin:
+        ftmfi.get_feature_distribution(CATEGORICAL_STRUCT_ARRAY, 'c',
+                                       treat_as_categorical=False, kde=True)
+    assert str(exin.value) == msg
+
+    msg = ('Selected feature is categorical (string-base elements), however '
+           'the treat_as_categorical was set to False. Such a combination is '
+           'not possible. The feature will be treated as categorical.')
+    with pytest.warns(UserWarning) as warning:
+        ftmfi.get_feature_distribution(CATEGORICAL_STRUCT_ARRAY, 'c', 
+                                      treat_as_categorical=False)
+    assert len(warning) == 1
+    assert str(warning[0].message) == msg
+
+    msg = ('The samples parameter will be ignored as the feature is '
+            'being treated as categorical. The number of bins will be the '
+            'number of unique values in the feature.')
+    with pytest.warns(UserWarning) as warning:
+        ftmfi.get_feature_distribution(CATEGORICAL_STRUCT_ARRAY, 'c',
+                                       treat_as_categorical=True, samples=10)
+    assert len(warning) == 1
+    assert str(warning[0].message) == msg
+
+    # Categorical numerical (counts)
+    values = np.array([0., 1., 2.,])
+    counts = np.array([3., 2., 1.])
+    dist = ftmfi.get_feature_distribution(NUMERICAL_NP_ARRAY, 0,
+                                          treat_as_categorical=True)
+    assert np.array_equal(dist[0], values)
+    assert np.array_equal(dist[1], counts)
+
+    # Structured categorical numerical (counts)
+    dist = ftmfi.get_feature_distribution(NUMERICAL_STRUCT_ARRAY, 'a',
+                                          treat_as_categorical=True)
+    assert np.array_equal(dist[0], values)
+    assert np.array_equal(dist[1], counts)
+
+    # Categorical string (counts)
+    values = np.array(['a', 'b'])
+    counts = np.array([2., 1.])
+    dist = ftmfi.get_feature_distribution(CATEGORICAL_NP_ARRAY, 0,
+                                          treat_as_categorical=True)
+    assert np.array_equal(dist[0], values)
+    assert np.array_equal(dist[1], counts)
+
+    # Structured categorical string (counts)
+    dist = ftmfi.get_feature_distribution(CATEGORICAL_STRUCT_ARRAY, 'a',
+                                          treat_as_categorical=True)
+    assert np.array_equal(dist[0], values)
+    assert np.array_equal(dist[1], counts)
+
+    # Non-categorical numerical (histogram)
+    values = np.array([0., 0.4, 0.8, 1.2, 1.6, 2.])
+    counts = np.array([1.25, 0., 0.83, 0., 0.41])
+    dist = ftmfi.get_feature_distribution(NUMERICAL_NP_ARRAY, 0, samples=5)
+    assert np.allclose(dist[0], values, atol=1e-2)
+    assert np.allclose(dist[1], counts, atol=1e-2)
+
+    # Structured non-categorical numerical (histogram)
+    dist = ftmfi.get_feature_distribution(NUMERICAL_STRUCT_ARRAY, 'a',
+                                         samples=5)
+    assert np.allclose(dist[0], values, atol=1e-2)
+    assert np.allclose(dist[1], counts, atol=1e-2)
+
+    # Non-categorical numerical (kde)
+    values = np.array([0., 0.5, 1., 1.5, 2.])
+    counts = np.array([0.400, 0.400, 0.333, 0.249, 0.167])
+    dist = ftmfi.get_feature_distribution(NUMERICAL_NP_ARRAY, 0, kde=True,
+                                          samples=5)
+    assert np.array_equal(dist[0], values)
+    assert np.allclose(dist[1], counts, atol=1e-2)
+
+    # Structured non-categorical numerical (kde)
+    dist = ftmfi.get_feature_distribution(NUMERICAL_STRUCT_ARRAY, 'a',
+                                          kde=True, samples=5)
+    assert np.array_equal(dist[0], values)
+    assert np.allclose(dist[1], counts, atol=1e-2)
+
+    # Non-categorical numerical (auto bins)
+    dist = ftmfi.get_feature_distribution(NUMERICAL_NP_ARRAY, 0)
+    assert dist[0].min() == NUMERICAL_NP_ARRAY[:, 0].min()
+    assert dist[0].max() == NUMERICAL_NP_ARRAY[:, 0].max()
+    assert dist[0].shape[0] == dist[1].shape[0] + 1
+
+    # Structured non-categorical numerical (auto bins)
+    dist = ftmfi.get_feature_distribution(NUMERICAL_STRUCT_ARRAY, 'a')
+    assert dist[0].min() == NUMERICAL_NP_ARRAY[:, 0].min()
+    assert dist[0].max() == NUMERICAL_NP_ARRAY[:, 0].max()
+    assert dist[0].shape[0] == dist[1].shape[0] + 1
+
+
 def test_individual_conditional_expectation():
     """
     Tests Individual Conditional Expectation calculations.
@@ -585,6 +689,19 @@ def test_individual_conditional_expectation():
                     'treated as categorical.')
     steps_n_warning = ('The steps_number parameter will be ignored as the '
                        'feature is being treated as categorical.')
+
+    # Model
+    msg = ('This functionality requires the model to be capable of outputting '
+           'probabilities via predict_proba method.')
+    model = InvalidModel()
+    with pytest.warns(UserWarning) as warning:
+        with pytest.raises(IncompatibleModelError) as exin:
+            ftmfi.individual_conditional_expectation(
+                NUMERICAL_NP_ARRAY, model, 0, None)
+        assert str(exin.value) == msg
+    assert len(warning) == 1
+    assert str(warning[0].message) == ('The model class is missing '
+                                       "'predict_proba' method.")
 
     clf = fum.KNN(k=2)
     clf.fit(NUMERICAL_NP_ARRAY, NUMERICAL_NP_ARRAY_TARGET)

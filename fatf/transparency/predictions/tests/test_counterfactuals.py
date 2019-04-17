@@ -1,12 +1,7 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Mon Dec 10 17:47:33 2018
-
-@author: rp13102
-"""
 import pytest
 import numpy as np
-from fatf.transparency.predictions.counterfactuals import Explainer, combine_arrays
+import fatf.utils.array.tools as fuat
+import fatf.transparency.predictions.counterfactuals as ftpc
 
 input_array0_0 = np.array([1,2,3])
 input_array1_0 = np.array([4,5,6,7,8])
@@ -15,12 +10,11 @@ expected_output_0 = [1,4,2,5,3,6,7,8]
 @pytest.mark.parametrize("array0, array1, expected_output",
                          [(input_array0_0, input_array1_0, expected_output_0)])
 def test_combine_arrays(array0, array1, expected_output):
-    output_array = combine_arrays(array0, array1)
+    output_array = ftpc.combine_arrays(array0, array1)
     assert np.all(output_array == expected_output)
 
 
 def test_counterfactual():
-    import numpy as np
     from sklearn.linear_model import LogisticRegression
 
     data = np.array([
@@ -55,7 +49,7 @@ def test_counterfactual():
 
 
 
-    dataset_unstructured = fuar.as_unstructured(dataset)
+    dataset_unstructured = fuat.as_unstructured(dataset)
     clf = LogisticRegression(solver='lbfgs')
     clf.fit(dataset_unstructured, targets)
 
@@ -74,13 +68,19 @@ def test_counterfactual():
                       }
 
 
-    mdl = Explainer(clf,
-                    categorical_features,
-                    dataset,
-                    monotone = False,
-                    stepsizes = stepsizes,
+    mdl = ftpc.CounterfactualExplainer(
+                    model=clf,
+                    dataset=dataset,
+                    categorical_indices=categorical_features,
+                    stepsizes=stepsizes,
                     feature_ranges=feature_ranges,
-                    max_comb = 2,
-                    dist_funcs = distance_funcs
+                    max_comb=2,
+                    distance_functions=distance_funcs
                     )
-    c=mdl.generate_counterfactual(datapoint, datapoint_class)
+    c=mdl.explain_instance(datapoint, datapoint_class)
+    comp = [a == b for a, b in zip(c[0][0], (35., 73.5, 2))]
+    for i in comp: assert i
+    assert c[0][1] == 21.5
+    comp =  [a == b for a, b in zip(c[1][0], (34.5, 73.5, 2))]
+    for i in comp: assert i
+    assert c[1][1] == 22.0

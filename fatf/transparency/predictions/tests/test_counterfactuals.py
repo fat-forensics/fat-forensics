@@ -24,19 +24,7 @@ def test_counterfactual():
     from sklearn.linear_model import LogisticRegression
 
 
-    dataset, treatments, distance_funcs = create_dataset()
-    targets = dataset['Target']
-
-
-
-    def remove_field(dataset, field):
-        field_names = list(dataset.dtype.names)
-        if field in field_names:
-            field_names.remove(field)
-        return dataset[field_names]
-    dataset = remove_field(dataset, 'Target')
-
-
+    dataset, targets, treatments, distance_funcs = create_dataset()
 
     model = LogisticRegression(solver = 'lbfgs')
 
@@ -51,7 +39,7 @@ def test_counterfactual():
 
     dataset.astype(dtype=[('Age', '<f4'), ('Weight', '<f4'), ('job_type', '<f4')])
     x0 = dataset[0]
-    print(x0)
+
     pred = model.predict(np.array(x0.tolist(), dtype=float).reshape(1, -1))
     feature_ranges = {
                         'Age': {'max': x0['Age'] + 10,
@@ -81,6 +69,7 @@ def test_counterfactual():
 
 
 def create_dataset():
+    import numpy as np
     testdata3 = np.array([
             ('Heidi Mitchell', 'uboyd@hotmail.com', 35, 52, 2, '0011', 1, '03/06/2018', 1),
            ('Tina Burns', 'stevenwheeler@williams.bi',  3, 86, 1, '0011', 0, '26/09/2017', 1),
@@ -172,4 +161,11 @@ def create_dataset():
         raise ValueError('Data provided is of different length.')
 
     dataset = np.array([item for item in zip(*data)], dtype=dts)
-    return dataset, treatments, distance_funcs
+
+    targets = dataset['Target']
+    # remove targets form the dataset
+    field_names = list(dataset.dtype.names)
+    field_names.remove('Target')
+    dataset = dataset[field_names]
+
+    return dataset, targets, treatments, distance_funcs

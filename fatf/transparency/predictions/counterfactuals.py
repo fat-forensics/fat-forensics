@@ -8,7 +8,7 @@ import numpy as np
 import itertools
 from typing import Optional, List, Any, Union, Dict, Callable, Tuple
 
-def combine_arrays(array1: np.array, 
+def combine_arrays(array1: np.array,
                    array2: np.array) -> List[int]:
     """Will combine two numpy arrays in an incremental manner.
 
@@ -38,11 +38,11 @@ def combine_arrays(array1: np.array,
     for i in range(min_val):
         newlist.append(arrays[0][i])
         newlist.append(arrays[1][i])
-        
+
     return newlist + longest_list[min_val:].tolist()
 
 class Explainer(object):
-    def __init__(self, 
+    def __init__(self,
                  model: Any,
                  categorical_features: List[Union[str, int]],
                  dataset: np.ndarray,
@@ -51,7 +51,7 @@ class Explainer(object):
                  max_comb: Optional[int] = 2,
                  feature_ranges: Optional[Dict[Union[int, str], Any]] = None,
                  dist_funcs: Optional[dict] = None):
-        
+
         self.model = model
         self.monotone = monotone
         self.dataset = dataset
@@ -73,7 +73,7 @@ class Explainer(object):
             if not np.all(set0 == set1):
                 self.feature_ranges = feature_ranges
                 self.get_feature_ranges(tocomplete = diff)
-            
+
         self.max_comb: int = max_comb
         if not stepsizes:
             self.stepsizes: Dict[Union[str, int], Union[int, np.ndarray]] = {}
@@ -87,7 +87,7 @@ class Explainer(object):
             for ftr in list(set1.difference(set0)):
                 if ftr not in self.categorical_features:
                     self.stepsizes[ftr] = default_stepsize
-        else:      
+        else:
             self.stepsizes = stepsizes
 
         if not dist_funcs:
@@ -99,17 +99,17 @@ class Explainer(object):
                     self.dist_funcs[ftr] = lambda x, y: int(x != y)
         else:
             self.dist_funcs = dist_funcs
-    
-    def dist(self, 
-             v0: np.ndarray, 
+
+    def dist(self,
+             v0: np.ndarray,
              v1: np.ndarray) -> float:
         dist = 0.0
         features = v0.dtype.names
         for feature in features:
             dist += self.dist_funcs[feature](v0[feature], v1[feature])
-        return dist  
-      
-    def get_feature_ranges(self, 
+        return dist
+
+    def get_feature_ranges(self,
                            tocomplete: Optional[list] = None):
         if not tocomplete:
             features_to_complete = self.dataset.dtype.names
@@ -122,36 +122,36 @@ class Explainer(object):
                     min_val = self.feature_ranges[field_name]['min']
                 except:
                     min_val = min(self.dataset[field_name])
-                
+
                 try:
                     max_val = self.feature_ranges[field_name]['max']
                 except:
                     max_val = max(self.dataset[field_name])
-                    
-                self.feature_ranges[field_name] = {'min':min_val, 
+
+                self.feature_ranges[field_name] = {'min':min_val,
                                                    'max': max_val}
             else:
                 self.feature_ranges[field_name] = np.unique(self.dataset[field_name])
-    
-    def modify_instance(self, 
-                        x: np.ndarray, 
-                        ftrs: List[Union[str, int]], 
+
+    def modify_instance(self,
+                        x: np.ndarray,
+                        ftrs: List[Union[str, int]],
                         vals: Tuple[Any]):
         for idx, ftr in enumerate(ftrs):
             x[ftr] = vals[idx]
-    
-    def get_value_combinations(self, 
+
+    def get_value_combinations(self,
                                ftr_combination: List[Union[str, int]]) -> List[tuple]:
         list_of_values = []
         for ftr in ftr_combination:
             if ftr not in self.categorical_features:
-                
-                s0 = np.arange(self.feature_ranges[ftr]['min'], 
-                               self.instance[ftr], 
+
+                s0 = np.arange(self.feature_ranges[ftr]['min'],
+                               self.instance[ftr],
                                self.stepsizes[ftr])
-                
-                s1 = np.arange(self.instance[ftr] + self.stepsizes[ftr], 
-                               self.feature_ranges[ftr]['max'], 
+
+                s1 = np.arange(self.instance[ftr] + self.stepsizes[ftr],
+                               self.feature_ranges[ftr]['max'],
                                self.stepsizes[ftr])
 
                 combined = combine_arrays(s0[::-1], s1)
@@ -162,8 +162,8 @@ class Explainer(object):
                 t.pop(t.index(self.instance[ftr]))
                 list_of_values.append(t)
         return list(itertools.product(*list_of_values))
-    
-    def pretty_print(self, 
+
+    def pretty_print(self,
                      all_scores: list):
         order = np.argsort([item[1] for item in all_scores])
         for idx in order:
@@ -174,11 +174,11 @@ class Explainer(object):
                     sim.append('_')
                 else:
                     sim.append('*')
-            print('              ', sim)    
+            print('              ', sim)
             print('New instance: ', instance, '// Distance: ', all_scores[idx][1])
             print('\n')
-            
-    def generate_counterfactual(self, 
+
+    def generate_counterfactual(self,
                                 instance: np.ndarray,
                                 target_class: int
                                 ) -> Callable[[list], None]:
@@ -187,7 +187,7 @@ class Explainer(object):
         self.ftrs = instance.dtype.names
         ftrs_indices = list(range(len(self.ftrs)))
         all_scores = []
-        for n in range(1, self.max_comb+1):            
+        for n in range(1, self.max_comb+1):
             ftr_combinations = list(itertools.combinations(ftrs_indices, n))
             for ftr_combination_indices in ftr_combinations:
                 scores = []
@@ -195,8 +195,8 @@ class Explainer(object):
                 value_combinations = self.get_value_combinations(ftr_combination)
                 for value_combination in value_combinations:
                     test_instance = self.instance.copy(order='K')
-                    self.modify_instance(test_instance, 
-                                         ftr_combination, 
+                    self.modify_instance(test_instance,
+                                         ftr_combination,
                                          value_combination)
                     pred = self.model.predict(np.array(test_instance.tolist(), dtype=float).reshape(1, -1))
                     if pred[0] == self.target_class:
@@ -211,4 +211,4 @@ class Explainer(object):
                 except:
                     pass
         return self.pretty_print(all_scores)
-    
+

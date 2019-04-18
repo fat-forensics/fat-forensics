@@ -126,8 +126,8 @@ def _validate_input(ice_pdp_array: np.ndarray,
     if not fuav.is_1d_array(feature_linespace):
         raise IncorrectShapeError('The linespace array has to be a '
                                   '1-dimensional array of shape (n_steps, ).')
-    if not fuav.is_numerical_array(feature_linespace):
-        raise ValueError('The linespace array has to be numerical.')
+    #if not fuav.is_numerical_array(feature_linespace):
+    #    raise ValueError('The linespace array has to be numerical.')
     if feature_linespace.shape[0] != ice_pdp_array.shape[-2]:
         raise ValueError('The length of the linespace array ({}) does not '
                          'agree with the number of linespace steps ({}) in '
@@ -379,11 +379,13 @@ def plot_individual_conditional_expectation(
 def plot_partial_dependence(pd_array: np.ndarray,
                             feature_linespace: np.ndarray,
                             class_index: int,
+                            treat_as_categorical: bool = False,
                             variance: Optional[np.ndarray] = None,
                             variance_area: Optional[bool] = False,
                             feature_name: Optional[str] = None,
                             class_name: Optional[str] = None,
-                            feature_distribution : Optional[np.ndarray] = None,
+                            feature_distribution : Optional[List[np.ndarray]] 
+                                                    = None,
                             plot_axis: Optional[plt.Axes] = None
                             ) -> Tuple[Union[plt.Figure, None], plt.Axes]:
     """
@@ -412,7 +414,7 @@ def plot_partial_dependence(pd_array: np.ndarray,
         The index of the class for which PD will be plotted, taken from the
         original dataset.
     variance : numpy.ndarray, optional (default=None)
-        A one-dimensional array -- (steps_number, ) -- with the values for the
+        An array of (n_steps, n_classes) shape with the values for the
         variance of the predictions of data points used to compute Partial
         Dependence. This should be the output of the :func:`fatf.transparency.
         models.feature_influence.partial_dependence` or :func:`
@@ -448,12 +450,18 @@ def plot_partial_dependence(pd_array: np.ndarray,
                            feature_name, class_name, plot_axis,
                            variance, variance_area, True), 'Input is invalid.'
     
-    assert isinstance(feature_distribution, list), \
-        'feature_distribution -> list'
+    assert feature_distribution is None or \
+        isinstance(feature_distribution, list), 'feature_distribution -> list'
 
     plot_title = 'Partial Dependence'
-    x_range = [feature_linespace[0], feature_linespace[-1]]
-    plot_distribution = isinstance(feature_distribution[0], np.ndarray)
+    if treat_as_categorical:
+        x_locs = np.linspace(0, feature_linespace.shape[0], 
+                             len(feature_linespace))
+        x_range = [x_locs[0]-0.5, x_locs[-1]+0.5]
+    else:
+        x_range = [feature_linespace[0], feature_linespace[-1]]
+    plot_distribution = feature_distribution is not None and \
+        isinstance(feature_distribution[0], np.ndarray)
     plot_figure, plot_axis = _prepare_a_canvas(
         plot_title, plot_axis, class_index, class_name, feature_name, x_range,
         plot_distribution)
@@ -463,12 +471,23 @@ def plot_partial_dependence(pd_array: np.ndarray,
         values, counts = feature_distribution
         if values.shape[0] == counts.shape[0] + 1:
             # Histogram
-            dist_axis.set_xlim(x_range)
-            dist_axis.set_ylim(np.array([-0.05, 1.05]))
             dist_axis.set_yticklabels([])
             widths = [values[i+1]-values[i] for i in range(len(values)-1)]
             bars = dist_axis.bar(values[:-1], counts, width=widths,
                                  align='edge', alpha=0.5)
+            for bar in bars:
+                height = bar.get_height()
+                dist_axis.text(bar.get_x() + bar.get_width()/2.0, height,
+                         '%.2f' % height, ha='center', va='bottom')
+        elif set(values) == set(feature_linespace):
+            # Get counts in the same order as feature_linespace
+            xsorted = np.argsort(values)
+            ypos = np.searchsorted(values[xsorted], feature_linespace)
+            idx = xsorted[ypos]
+            values = values[idx]
+            counts = counts[idx]
+            # Bar plot
+            bars = dist_axis.bar(x_locs, counts, alpha=0.5)
             for bar in bars:
                 height = bar.get_height()
                 dist_axis.text(bar.get_x() + bar.get_width()/2.0, height,
@@ -481,35 +500,44 @@ def plot_partial_dependence(pd_array: np.ndarray,
                            linewidth=3,
                            alpha=0.5)
 
-    plot_axis.plot(
-        feature_linespace,
-        pd_array[:, class_index],
-        color='lightsalmon',
-        linewidth=7,
-        alpha=0.6,
-        label='PD')
+    if treat_as_categorical:
+        yerr = variance[:, class_index] if isinstance(variance,np.ndarray) \
+            else None
+        plot_axis.bar(x_locs, pd_array[:, class_index], yerr=yerr, capsize=10,
+                      align='center', ecolor='black')
+        plot_axis.set_xticks(x_locs)
+        plot_axis.set_xticklabels(feature_linespace)
+        plot_axis.set_ylim(np.array([0, 1.05]))
+    else:
+        plot_axis.plot(
+            feature_linespace,
+            pd_array[:, class_index],
+            color='lightsalmon',
+            linewidth=7,
+            alpha=0.6,
+            label='PD')
 
-    if isinstance(variance, np.ndarray):
-        if variance_area:
-            plot_axis.fill_between(
-                feature_linespace,
-                pd_array[:, class_index] - variance[:, class_index],
-                pd_array[:, class_index] + variance[:, class_index],
-                alpha=0.3,
-                color='lightsalmon',
-                label='Variance')
-        else:
-            plot_axis.errorbar(
-                feature_linespace,
-                pd_array[:, class_index],
-                yerr=variance[:, class_index],
-                alpha=0.6,
-                ecolor='lightsalmon',
-                fmt='none',
-                capsize=5,
-                elinewidth=2,
-                markeredgewidth=2,
-                label='Variance')
+        if isinstance(variance, np.ndarray):
+            if variance_area:
+                plot_axis.fill_between(
+                    feature_linespace,
+                    pd_array[:, class_index] - variance[:, class_index],
+                    pd_array[:, class_index] + variance[:, class_index],
+                    alpha=0.3,
+                    color='lightsalmon',
+                    label='Variance')
+            else:
+                plot_axis.errorbar(
+                    feature_linespace,
+                    pd_array[:, class_index],
+                    yerr=variance[:, class_index],
+                    alpha=0.6,
+                    ecolor='lightsalmon',
+                    fmt='none',
+                    capsize=5,
+                    elinewidth=2,
+                    markeredgewidth=2,
+                    label='Variance')
     plot_axis.legend()
 
     if plot_distribution:

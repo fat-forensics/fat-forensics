@@ -9,6 +9,7 @@ from numbers import Number
 from typing import List, Optional, Tuple, Union
 
 import matplotlib.collections
+from matplotlib import gridspec
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -162,7 +163,8 @@ def _prepare_a_canvas(
         class_index: int,
         class_name: Union[None, str],
         feature_name: Union[None, str],
-        x_range: List[Number]
+        x_range: List[Number],
+        plot_distribution: bool = False
 ) -> Tuple[Union[plt.Figure, None], plt.Axes]:  # yapf: disable
     """
     Prepares a matplotlib axis (canvas) for ICE and PDP plotting.
@@ -238,8 +240,15 @@ def _prepare_a_canvas(
             class_name = '{} (class index)'.format(class_index)
         if feature_name is None:
             feature_name = "Selected Feature's Linespace"
-
-        plot_figure, plot_axis = plt.subplots(1, 1)
+        if plot_distribution:
+            plot_figure, (plot_axis, dist_axis) = plt.subplots(
+                2, 1, gridspec_kw = {'height_ratios':[4, 1]})
+            dist_axis.set_xlabel('Distribution of Feature')
+            dist_axis.set_xlim(x_range)
+            dist_axis.set_xticklabels([])
+            dist_axis.patch.set_visible(False)
+        else:
+            plot_figure, plot_axis = plt.subplots(1, 1)
         plot_axis.set_title(plot_title)
         plot_axis.set_xlim(x_range)
         plot_axis.set_xlabel(feature_name)
@@ -283,6 +292,9 @@ def _prepare_a_canvas(
         else:
             # Overwrite y description
             plot_axis.set_ylabel('{} class probability'.format(class_name))
+
+    if plot_distribution:
+        plot_axis = (plot_axis, dist_axis)
 
     return plot_figure, plot_axis
 
@@ -359,6 +371,8 @@ def plot_individual_conditional_expectation(
     plot_axis.add_collection(line_collection)
     plot_axis.legend()
 
+    plot_figure.tight_layout()
+
     return plot_figure, plot_axis
 
 
@@ -369,6 +383,7 @@ def plot_partial_dependence(pd_array: np.ndarray,
                             variance_area: Optional[bool] = False,
                             feature_name: Optional[str] = None,
                             class_name: Optional[str] = None,
+                            feature_distribution : Optional[np.ndarray] = None,
                             plot_axis: Optional[plt.Axes] = None
                             ) -> Tuple[Union[plt.Figure, None], plt.Axes]:
     """
@@ -432,11 +447,39 @@ def plot_partial_dependence(pd_array: np.ndarray,
     assert _validate_input(pd_array, feature_linespace, class_index,
                            feature_name, class_name, plot_axis,
                            variance, variance_area, True), 'Input is invalid.'
+    
+    assert isinstance(feature_distribution, list), \
+        'feature_distribution -> list'
 
     plot_title = 'Partial Dependence'
     x_range = [feature_linespace[0], feature_linespace[-1]]
+    plot_distribution = isinstance(feature_distribution[0], np.ndarray)
     plot_figure, plot_axis = _prepare_a_canvas(
-        plot_title, plot_axis, class_index, class_name, feature_name, x_range)
+        plot_title, plot_axis, class_index, class_name, feature_name, x_range,
+        plot_distribution)
+
+    if plot_distribution:
+        (plot_axis, dist_axis) = plot_axis
+        values, counts = feature_distribution
+        if values.shape[0] == counts.shape[0] + 1:
+            # Histogram
+            dist_axis.set_xlim(x_range)
+            dist_axis.set_ylim(np.array([-0.05, 1.05]))
+            dist_axis.set_yticklabels([])
+            widths = [values[i+1]-values[i] for i in range(len(values)-1)]
+            bars = dist_axis.bar(values[:-1], counts, width=widths,
+                                 align='edge', alpha=0.5)
+            for bar in bars:
+                height = bar.get_height()
+                dist_axis.text(bar.get_x() + bar.get_width()/2.0, height,
+                         '%.2f' % height, ha='center', va='bottom')
+        else:
+            # KDE
+            dist_axis.set_xlabel('KDE fit to feature')
+            dist_axis.plot(values,
+                           counts,
+                           linewidth=3,
+                           alpha=0.5)
 
     plot_axis.plot(
         feature_linespace,
@@ -468,5 +511,10 @@ def plot_partial_dependence(pd_array: np.ndarray,
                 markeredgewidth=2,
                 label='Variance')
     plot_axis.legend()
+
+    if plot_distribution:
+        plot_axis = (plot_axis, dist_axis)
+
+    plot_figure.tight_layout()
 
     return plot_figure, plot_axis

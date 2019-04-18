@@ -51,12 +51,15 @@ FAKE_PD_ARRAY = np.array([[0.50, 0.50, 0.00],
                           [0.90, 0.07, 0.03],
                           [0.20, 0.30, 0.40]])  # yapf: disable
 FAKE_LINESPACE = np.array([0, 0.2, 0.4, 0.6, 0.8, 1])
+FAKE_LINESPACE_STRING = np.array(['0.0', '0.2', '0.4', '0.6', '0.8', '1.0'])
 FAKE_VARIANCE = np.array([[0.20, 0.05, 0.00],
                           [0.10, 0.05, 0.15],
                           [0.05, 0.01, 0.01],
                           [0.26, 0.15, 0.21],
                           [0.08, 0.05, 0.01],
                           [0.15, 0.10, 0.17]])
+FAKE_LINESPACE_CAT = np.array(['a', 'b', 'c', 'd', 'e', 'f'])
+
 
 def test_validate_input():
     """
@@ -120,12 +123,6 @@ def test_validate_input():
     with pytest.raises(IncorrectShapeError) as exin:
         fvfi._validate_input(numerical_3d_array, numerical_2d_array, None,
                              None, None, None, None, False, False)
-    assert str(exin.value) == msg
-    #
-    msg = 'The linespace array has to be numerical.'
-    with pytest.raises(ValueError) as exin:
-        fvfi._validate_input(numerical_2d_array, non_numerical_array[0], None,
-                             None, None, None, None, False, True)
     assert str(exin.value) == msg
     # Linespace vector not matching ICE/ PDP dimensions
     msg = ('The length of the linespace array ({}) does not agree with the '
@@ -202,7 +199,7 @@ def test_validate_input():
     assert fvfi._validate_input(numerical_3d_array, numerical_2d_array[:, 0],
                                 1, 'feature name', 'class name', my_plot, None,
                                 False, False)
-
+    plt.close(fig=fig)
 
 def test_prepare_a_canvas():
     """
@@ -334,6 +331,107 @@ def test_prepare_a_canvas():
     # ...check y label
     assert p_y_label == '{} (class index) class probability'.format(
         class_index)
+    plt.close(fig=figure) 
+
+def test_plot_feature_distribution():
+    # Numerical feature histogram
+    fig, axis = plt.subplots()
+    dist  = [np.array([0., .2, .4, .6, .8]), 
+             np.array([0.1, 0.3, 0.5, 0.1])]
+    axis = fvfi._plot_feature_distribution(FAKE_LINESPACE, dist, axis)
+    bars = axis.patches
+    texts = axis.texts
+    assert len(bars) == dist[0].shape[0] - 1
+    assert len(texts) == dist[0].shape[0] - 1
+
+    heights = np.array([bar.get_height() for bar in bars])
+    alphas = np.array([bar.get_alpha() for bar in bars])
+    colours = np.array([bar.get_facecolor() for bar in bars])
+    correct_colours = np.repeat(
+        np.array([0.25, 0.41, 0.88, 0.6])[np.newaxis, :], len(bars), axis=0)
+    labels = np.array([text.get_text() for text in axis.get_xticklabels()])
+    text_positions = np.array([text.get_position() for text in texts])
+    correct_text_positions = np.stack([dist[0][:-1]+0.1,
+                                       dist[1]], axis=1)
+    text_string = [text.get_text() for text in texts]
+    correct_text_string = ['%.2f'%num for num in dist[1]]
+    assert np.array_equal(dist[1], heights)
+    assert np.array_equal(np.array([0.6]*len(dist[1])), alphas)
+    assert np.allclose(correct_colours, colours, atol=1e-2)
+    assert np.array_equal(correct_text_positions, text_positions)
+    assert text_string == correct_text_string
+    plt.close(fig=fig) 
+
+    # Numerical Categorical feature
+    fig, axis = plt.subplots()
+    dist = [np.array([0, 0.2, 0.4, 0.6, 0.8, 1]),
+            np.array([0.1, 0.1, 0.3, 0.2, 0.2, 0.1])]
+    axis = fvfi._plot_feature_distribution(FAKE_LINESPACE, dist, axis)
+    bars = axis.patches
+    texts = axis.texts
+    assert len(bars) == dist[0].shape[0]
+    assert len(texts) == dist[0].shape[0]
+
+    heights = np.array([bar.get_height() for bar in bars])
+    alphas = np.array([bar.get_alpha() for bar in bars])
+    colours = np.array([bar.get_facecolor() for bar in bars])
+    correct_colours = np.repeat(
+        np.array([0.25, 0.41, 0.88, 0.6])[np.newaxis, :], len(bars), axis=0)
+    labels = np.array([text.get_text() for text in axis.get_xticklabels()])
+    text_positions = np.array([text.get_position() for text in texts])
+    x_ticks = np.linspace(0, FAKE_LINESPACE.shape[0], len(FAKE_LINESPACE))
+    correct_text_positions = np.stack([x_ticks,
+                                       dist[1]], axis=1)
+    text_string = [text.get_text() for text in texts]
+    correct_text_string = ['%.2f'%num for num in dist[1]]
+    assert np.array_equal(dist[1], heights)
+    assert np.array_equal(np.array([0.6]*len(dist[1])), alphas)
+    assert np.allclose(correct_colours, colours, atol=1e-2)
+    assert np.array_equal(correct_text_positions, text_positions)
+    assert text_string == correct_text_string
+    plt.close(fig=fig) 
+
+    # Numerical feature kde
+    fig, axis = plt.subplots()
+    dist = [np.array([0., 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]),
+            np.array([0.1, 0.2, 0.4, 0.4, 0.3, 0.2, 0.1, 0.05, 0.05, 0.05])]
+    axis = fvfi._plot_feature_distribution(FAKE_LINESPACE, dist, axis)
+    assert len(axis.lines) == 1
+    l_data, l_colour, l_alpha, l_label, l_width = futv.get_line_data(
+        axis.lines[0])
+    assert np.array_equal(np.stack(dist, axis=1), l_data)
+    assert l_colour == 'royalblue'
+    assert l_alpha == 0.6
+    assert l_width == 3.0
+
+    # Categorical feature
+    fig, axis = plt.subplots()
+    dist = [np.array(['a', 'b', 'c', 'd', 'e', 'f']),
+            np.array([0.1, 0.1, 0.3, 0.2, 0.2, 0.1])]
+    axis = fvfi._plot_feature_distribution(FAKE_LINESPACE_CAT, dist, axis)
+    bars = axis.patches
+    texts = axis.texts
+    assert len(bars) == dist[0].shape[0]
+    assert len(texts) == dist[0].shape[0]
+
+    heights = np.array([bar.get_height() for bar in bars])
+    alphas = np.array([bar.get_alpha() for bar in bars])
+    colours = np.array([bar.get_facecolor() for bar in bars])
+    correct_colours = np.repeat(
+        np.array([0.25, 0.41, 0.88, 0.6])[np.newaxis, :], len(bars), axis=0)
+    labels = np.array([text.get_text() for text in axis.get_xticklabels()])
+    text_positions = np.array([text.get_position() for text in texts])
+    x_ticks = np.linspace(0, FAKE_LINESPACE.shape[0], len(FAKE_LINESPACE))
+    correct_text_positions = np.stack([x_ticks,
+                                       dist[1]], axis=1)
+    text_string = [text.get_text() for text in texts]
+    correct_text_string = ['%.2f'%num for num in dist[1]]
+    assert np.array_equal(dist[1], heights)
+    assert np.array_equal(np.array([0.6]*len(dist[1])), alphas)
+    assert np.allclose(correct_colours, colours, atol=1e-2)
+    assert np.array_equal(correct_text_positions, text_positions)
+    assert text_string == correct_text_string
+    plt.close(fig=fig)
 
 
 def test_plot_individual_conditional_expectation():
@@ -349,7 +447,8 @@ def test_plot_individual_conditional_expectation():
     class_name = 'middle'
 
     figure, axis = fvfi.plot_individual_conditional_expectation(
-        FAKE_ICE_ARRAY, FAKE_LINESPACE, class_index, feature_name, class_name)
+        FAKE_ICE_ARRAY, FAKE_LINESPACE, class_index, False, feature_name, 
+        class_name)
 
     assert isinstance(figure, plt.Figure)
     p_title, p_x_label, p_x_range, p_y_label, p_y_range = futv.get_plot_data(
@@ -390,6 +489,108 @@ def test_plot_individual_conditional_expectation():
     legend_texts = legend[0].get_texts()
     assert len(legend_texts) == 1
     assert legend_texts[0].get_text() == 'ICE'
+    plt.close(fig=figure) 
+
+    # Test Categorical ICE
+    figure, axis = fvfi.plot_individual_conditional_expectation(
+        FAKE_ICE_ARRAY, FAKE_LINESPACE, class_index, True, feature_name, 
+        class_name)
+
+    assert isinstance(figure, plt.Figure)
+    p_title, p_x_label, p_x_range, p_y_label, p_y_range = futv.get_plot_data(
+        axis)
+    # ...check title
+    assert p_title == 'Individual Conditional Expectation'
+    # ...check x range
+    assert np.array_equal(p_x_range, [-0.5, len(FAKE_LINESPACE)+0.5])
+    # ...check x label
+    assert p_x_label == feature_name
+    # ...check y range
+    assert np.array_equal(p_y_range, [-0.05, 1.05])
+    # ...check y label
+    assert p_y_label == '{} class probability'.format(class_name)
+
+    # Test violins
+    x_ticklabels = np.array([tick.get_text() for tick in axis.get_xticklabels()])
+    assert np.array_equal(x_ticklabels, FAKE_LINESPACE_STRING)
+    polygons, lines = axis.collections[:6], axis.collections[6:]
+    correct_lines = [
+        [np.array([[-0.125, 1.],[0.125, 1.]]), 
+         np.array([[1.075, 0.9], [1.325, 0.9]]), 
+         np.array([[2.275, 1.], [2.525, 1.]]), 
+         np.array([[3.475, 0.9], [3.725, 0.9]]),
+         np.array([[4.675, 0.8], [4.925, 0.8]]),
+         np.array([[5.875, 0.7],[6.125, 0.7]])],
+        [np.array([[-0.125, 0.2], [0.125,  0.2]]),
+         np.array([[1.075, 0.3], [1.325, 0.3]]),
+         np.array([[2.275, 0.2], [2.525, 0.2]]),
+         np.array([[3.475, 0.1], [3.725, 0.1]]),
+         np.array([[4.675, 0.], [4.925, 0.]]),
+         np.array([[5.875, 0.1], [6.125, 0.1]])],
+        [np.array([[0., 0.2], [0., 1.]]),
+        np.array([[1.2, 0.3], [1.2, 0.9]]),
+        np.array([[2.4, 0.2], [2.4, 1.]]),
+        np.array([[3.6, 0.1], [3.6, 0.9]]),
+        np.array([[4.8, 0.], [4.8, 0.8]]),
+        np.array([[6., 0.1], [6., 0.7]])]]
+    for line in zip(lines, correct_lines):
+        l_data, l_colour, l_alpha, l_label, l_width = futv.get_line_data(
+            line[0], is_collection=True)
+        assert np.allclose(l_data, line[1])
+        assert np.allclose(l_colour, np.array([0.25, 0.41, 0.88, 1.]), 
+                           atol=1e-2)
+        assert l_width == 1.75
+    plt.close(fig=figure) 
+
+    # Test categorical and string linespace
+    figure, axis = fvfi.plot_individual_conditional_expectation(
+        FAKE_ICE_ARRAY, FAKE_LINESPACE_CAT, class_index, True, feature_name, 
+        class_name)
+
+    assert isinstance(figure, plt.Figure)
+    p_title, p_x_label, p_x_range, p_y_label, p_y_range = futv.get_plot_data(
+        axis)
+    # ...check title
+    assert p_title == 'Individual Conditional Expectation'
+    # ...check x range
+    assert np.array_equal(p_x_range, [-0.5, len(FAKE_LINESPACE_CAT)+0.5])
+    # ...check x label
+    assert p_x_label == feature_name
+    # ...check y range
+    assert np.array_equal(p_y_range, [-0.05, 1.05])
+    # ...check y label
+    assert p_y_label == '{} class probability'.format(class_name)
+
+    # Test violins
+    labels = np.array([text.get_text() for text in axis.get_xticklabels()])
+    assert np.array_equal(FAKE_LINESPACE_CAT, labels)
+    polygons, lines = axis.collections[:6], axis.collections[6:]
+    correct_lines = [
+        [np.array([[-0.125, 1.],[0.125, 1.]]), 
+         np.array([[1.075, 0.9], [1.325, 0.9]]), 
+         np.array([[2.275, 1.], [2.525, 1.]]), 
+         np.array([[3.475, 0.9], [3.725, 0.9]]),
+         np.array([[4.675, 0.8], [4.925, 0.8]]),
+         np.array([[5.875, 0.7],[6.125, 0.7]])],
+        [np.array([[-0.125, 0.2], [0.125,  0.2]]),
+         np.array([[1.075, 0.3], [1.325, 0.3]]),
+         np.array([[2.275, 0.2], [2.525, 0.2]]),
+         np.array([[3.475, 0.1], [3.725, 0.1]]),
+         np.array([[4.675, 0.], [4.925, 0.]]),
+         np.array([[5.875, 0.1], [6.125, 0.1]])],
+        [np.array([[0., 0.2], [0., 1.]]),
+        np.array([[1.2, 0.3], [1.2, 0.9]]),
+        np.array([[2.4, 0.2], [2.4, 1.]]),
+        np.array([[3.6, 0.1], [3.6, 0.9]]),
+        np.array([[4.8, 0.], [4.8, 0.8]]),
+        np.array([[6., 0.1], [6., 0.7]])]]
+    for line in zip(lines, correct_lines):
+        l_data, l_colour, l_alpha, l_label, l_width = futv.get_line_data(
+            line[0], is_collection=True)
+        assert np.allclose(l_data, line[1])
+        assert np.allclose(l_colour, np.array([0.25, 0.41, 0.88, 1.]), 
+                           atol=1e-2)
+        assert l_width == 1.75
 
 
 def test_plot_partial_dependence():
@@ -402,7 +603,7 @@ def test_plot_partial_dependence():
 
     # Test with variance plot
     figure, axis = fvfi.plot_partial_dependence(
-        FAKE_PD_ARRAY, FAKE_LINESPACE, class_index, FAKE_VARIANCE, False,
+        FAKE_PD_ARRAY, FAKE_LINESPACE, class_index, False, FAKE_VARIANCE, False,
         feature_name, class_name)
 
     assert isinstance(figure, plt.Figure)
@@ -478,10 +679,11 @@ def test_plot_partial_dependence():
     assert len(legend_texts) == 2
     assert legend_texts[0].get_text() == 'PD'
     assert legend_texts[1].get_text() == 'Variance'
+    plt.close(fig=figure)
 
     # Test with variance area plot
     figure, axis = fvfi.plot_partial_dependence(
-        FAKE_PD_ARRAY, FAKE_LINESPACE, class_index, FAKE_VARIANCE, True,
+        FAKE_PD_ARRAY, FAKE_LINESPACE, class_index, False, FAKE_VARIANCE, True,
         feature_name, class_name)
 
     assert isinstance(figure, plt.Figure)
@@ -548,10 +750,11 @@ def test_plot_partial_dependence():
     assert len(legend_texts) == 2
     assert legend_texts[0].get_text() == 'PD'
     assert legend_texts[1].get_text() == 'Variance'
+    plt.close(fig=figure)
 
     # Test without variance plot
     figure, axis = fvfi.plot_partial_dependence(
-        FAKE_PD_ARRAY, FAKE_LINESPACE, class_index, None,
+        FAKE_PD_ARRAY, FAKE_LINESPACE, class_index, False, None,
         False, feature_name, class_name)
 
     assert isinstance(figure, plt.Figure)
@@ -589,6 +792,119 @@ def test_plot_partial_dependence():
     legend_texts = legend[0].get_texts()
     assert len(legend_texts) == 1
     assert legend_texts[0].get_text() == 'PD'
+    plt.close(fig=figure)
+
+    # Test categorical numerical data without variance
+    figure, axis = fvfi.plot_partial_dependence(
+        FAKE_PD_ARRAY, FAKE_LINESPACE, class_index, True, None, 
+        False, feature_name, class_name)
+    assert isinstance(figure, plt.Figure)
+    p_title, p_x_label, p_x_range, p_y_label, p_y_range = futv.get_plot_data(
+        axis)
+    # ...check title
+    assert p_title == 'Partial Dependence'
+    # ...check x range
+    assert np.array_equal(p_x_range, [-0.5, len(FAKE_LINESPACE)+0.5])
+    # ...check x label
+    assert p_x_label == feature_name
+    # ...check y range
+    assert np.array_equal(p_y_range, [0, 1.05])
+    # ...check y label
+    assert p_y_label == '{} class probability'.format(class_name)
+
+    # Test bar plots
+    bars = axis.patches
+    heights = np.array([bar.get_height() for bar in bars])
+    alphas = np.array([bar.get_alpha() for bar in bars])
+    colours = np.array([bar.get_facecolor() for bar in bars])
+    correct_colours = np.repeat(
+        np.array([0.25, 0.41, 0.88, 0.6])[np.newaxis, :], len(bars), axis=0)
+    labels = [text.get_text() for text in axis.get_xticklabels()]
+    assert np.array_equal(FAKE_LINESPACE_STRING, labels)
+    assert np.array_equal(FAKE_PD_ARRAY[:, 1], heights)
+    assert np.array_equal(np.array([0.6]*len(bars)), alphas)
+    assert np.allclose(correct_colours, colours, atol=1e-2)
+
+    plt.close(fig=figure)
+    # Test categorical string data without variance
+    figure, axis = fvfi.plot_partial_dependence(
+        FAKE_PD_ARRAY, FAKE_LINESPACE_CAT, class_index, True, None, 
+        False, feature_name, class_name)
+    assert isinstance(figure, plt.Figure)
+    p_title, p_x_label, p_x_range, p_y_label, p_y_range = futv.get_plot_data(
+        axis)
+    # ...check title
+    assert p_title == 'Partial Dependence'
+    # ...check x range
+    assert np.array_equal(p_x_range, [-0.5, len(FAKE_LINESPACE_CAT)+0.5])
+    # ...check x label
+    assert p_x_label == feature_name
+    # ...check y range
+    assert np.array_equal(p_y_range, [0, 1.05])
+    # ...check y label
+    assert p_y_label == '{} class probability'.format(class_name)
+
+    # Test bar plots
+    bars = axis.patches
+    heights = np.array([bar.get_height() for bar in bars])
+    alphas = np.array([bar.get_alpha() for bar in bars])
+    colours = np.array([bar.get_facecolor() for bar in bars])
+    correct_colours = np.repeat(
+        np.array([0.25, 0.41, 0.88, 0.6])[np.newaxis, :], len(bars), axis=0)
+    labels = np.array([text.get_text() for text in axis.get_xticklabels()])
+    assert np.array_equal(FAKE_LINESPACE_CAT, labels)
+    assert np.array_equal(FAKE_PD_ARRAY[:, 1], heights)
+    assert np.array_equal(np.array([0.6]*len(bars)), alphas)
+    assert np.allclose(correct_colours, colours, atol=1e-2)
+
+    plt.close(fig=figure)
+    # Test categorical data with variance
+    figure, axis = fvfi.plot_partial_dependence(
+        FAKE_PD_ARRAY, FAKE_LINESPACE_CAT, class_index, True, FAKE_VARIANCE, 
+        False, feature_name, class_name)
+    assert isinstance(figure, plt.Figure)
+    p_title, p_x_label, p_x_range, p_y_label, p_y_range = futv.get_plot_data(
+        axis)
+    # ...check title
+    assert p_title == 'Partial Dependence'
+    # ...check x range
+    assert np.array_equal(p_x_range, [-0.5, len(FAKE_LINESPACE_CAT)+0.5])
+    # ...check x label
+    assert p_x_label == feature_name
+    # ...check y range
+    assert np.array_equal(p_y_range, [0, 1.05])
+    # ...check y label
+    assert p_y_label == '{} class probability'.format(class_name)
+
+    # Test bar plots
+    bars = axis.patches
+    heights = np.array([bar.get_height() for bar in bars])
+    alphas = np.array([bar.get_alpha() for bar in bars])
+    colours = np.array([bar.get_facecolor() for bar in bars])
+    correct_colours = np.repeat(
+        np.array([0.25, 0.41, 0.88, 0.6])[np.newaxis, :], len(bars), axis=0)
+    labels = np.array([text.get_text() for text in axis.get_xticklabels()])
+    assert np.array_equal(FAKE_LINESPACE_CAT, labels)
+    assert np.array_equal(FAKE_PD_ARRAY[:, 1], heights)
+    assert np.array_equal(np.array([0.6]*len(bars)), alphas)
+    assert np.allclose(correct_colours, colours, atol=1e-2)
+
+    assert len(axis.collections) == 1
+    # Test variance line collection
+    l_data, l_colour, l_alpha, l_label, l_width = futv.get_line_data(
+        axis.collections[0], is_collection=True)
+    bar_locs = np.linspace(0, FAKE_LINESPACE_CAT.shape[0], 
+                           len(FAKE_LINESPACE_CAT))
+    line_data = np.stack([
+        np.stack([bar_locs, FAKE_PD_ARRAY[:, class_index] -
+                  FAKE_VARIANCE[:, class_index]], axis=1),
+        np.stack([bar_locs, FAKE_PD_ARRAY[:, class_index] +
+                  FAKE_VARIANCE[:, class_index]], axis=1)])
+    l_data = np.stack(l_data, axis=1)
+    assert np.array_equal(l_data, line_data)
+    assert np.allclose(l_colour, np.array([0., 0., 0., 1.]), atol=1e-2)
+    assert l_label == '_nolegend_'
+    assert l_width == 1.75
 
 
 def test_ice_pd_overlay():
@@ -601,13 +917,14 @@ def test_ice_pd_overlay():
 
     # Overall with partial dependence variance error bars
     figure, axis = fvfi.plot_individual_conditional_expectation(
-        FAKE_ICE_ARRAY, FAKE_LINESPACE, c_index, f_name, c_name)
+        FAKE_ICE_ARRAY, FAKE_LINESPACE, c_index, False, f_name, c_name)
     assert isinstance(figure, plt.Figure)
     assert isinstance(axis, plt.Axes)
 
     none, axis = fvfi.plot_partial_dependence(FAKE_PD_ARRAY, FAKE_LINESPACE,
-                                              c_index, FAKE_VARIANCE, False, 
-                                              f_name, c_name, axis)
+                                              c_index, False, FAKE_VARIANCE, 
+                                              False, f_name, c_name, None, 
+                                              axis)
     assert none is None
     assert isinstance(axis, plt.Axes)
 
@@ -703,13 +1020,14 @@ def test_ice_pd_overlay():
 
     # Overlay with partial dependence with variance area
     figure, axis = fvfi.plot_individual_conditional_expectation(
-        FAKE_ICE_ARRAY, FAKE_LINESPACE, c_index, f_name, c_name)
+        FAKE_ICE_ARRAY, FAKE_LINESPACE, c_index, False, f_name, c_name)
     assert isinstance(figure, plt.Figure)
     assert isinstance(axis, plt.Axes)
 
     none, axis = fvfi.plot_partial_dependence(FAKE_PD_ARRAY, FAKE_LINESPACE,
-                                              c_index, FAKE_VARIANCE, True, 
-                                              f_name, c_name, axis)
+                                              c_index, False, FAKE_VARIANCE,
+                                              True, f_name, c_name, None,
+                                              axis)
     assert none is None
     assert isinstance(axis, plt.Axes)
 

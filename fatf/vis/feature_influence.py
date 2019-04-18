@@ -165,7 +165,7 @@ def _prepare_a_canvas(
         feature_name: Union[None, str],
         x_range: List[Number],
         plot_distribution: bool = False
-) -> Tuple[Union[plt.Figure, None], plt.Axes]:  # yapf: disable
+) -> Tuple[Union[plt.Figure, None], Union[plt.Axes, Tuple[plt.Axes]]]: # yapf: disable
     """
     Prepares a matplotlib axis (canvas) for ICE and PDP plotting.
 
@@ -201,6 +201,9 @@ def _prepare_a_canvas(
         A list of 2 numbers where the first one determines the minimum of the
         x-axis range and the second one determines the maximum of the x-axis
         range.
+    plot_distribution: boolean (default=False)
+        Whether to have another axis for plotting feature distribution
+        underneath PD or ICE plot.
 
     Raises
     ------
@@ -217,7 +220,9 @@ def _prepare_a_canvas(
         when a blank plot is created, this is a figure object holding the plot
         axis (``plot_axis``).
     plot_axis : matplotlib.pyplot.Axes
-        A matplotlib axes with x- and y-axes description and a plot title.
+        A matplotlib axes with x- and y-axes description and a plot title
+        or a tuple of axes where plot_axis[0] is the axis for plotting PD
+        or ICE and plot_axis[1] is the axis for plotting feature distribution.
     """
     # pylint: disable=too-many-arguments,too-many-branches
     assert isinstance(plot_title, str), 'Must be string.'
@@ -294,17 +299,66 @@ def _prepare_a_canvas(
             plot_axis.set_ylabel('{} class probability'.format(class_name))
 
     if plot_distribution:
-        plot_axis = (plot_axis, dist_axis)
+        plot_axis = [plot_axis, dist_axis]
 
     return plot_figure, plot_axis
+
+
+def _plot_feature_distribution(feature_linespace: np.ndarray,
+                               feature_distribution : List[np.ndarray],
+                               plot_axis: plt.Axes) -> plt.Axes:
+    """
+    Plots a feature distribution onto a provided plt.Axes.
+    """
+
+    assert isinstance(plot_axis, plt.Axes), 'plot_axis -> plt.Axes'
+
+    values, counts = feature_distribution
+    if values.shape[0] == counts.shape[0] + 1:
+        # Histogram
+        plot_axis.set_yticklabels([])
+        widths = [values[i+1]-values[i] for i in range(len(values)-1)]
+        bars = plot_axis.bar(values[:-1], counts, width=widths,
+                                align='edge', alpha=0.6, color='royalblue')
+        for bar in bars:
+            height = bar.get_height()
+            plot_axis.text(bar.get_x() + bar.get_width()/2.0, height,
+                        '%.2f' % height, ha='center', va='bottom')
+    elif set(values) == set(feature_linespace):
+        # Get counts in the same order as feature_linespace
+        xsorted = np.argsort(values)
+        ypos = np.searchsorted(values[xsorted], feature_linespace)
+        idx = xsorted[ypos]
+        values = values[idx]
+        counts = counts[idx]
+        # Bar plot
+        x_locs = np.linspace(0, feature_linespace.shape[0], 
+                             len(feature_linespace))
+        bars = plot_axis.bar(x_locs, counts, alpha=0.6, color='royalblue')
+        for bar in bars:
+            height = bar.get_height()
+            plot_axis.text(bar.get_x() + bar.get_width()/2.0, height,
+                        '%.2f' % height, ha='center', va='bottom')
+    else:
+        # KDE
+        plot_axis.set_xlabel('KDE fit to feature')
+        plot_axis.plot(values,
+                        counts,
+                        linewidth=3,
+                        alpha=0.6,
+                        color='royalblue')
+
+    return plot_axis
 
 
 def plot_individual_conditional_expectation(
         ice_array: np.ndarray,
         feature_linespace: np.ndarray,
         class_index: int,
+        treat_as_categorical: bool = False,
         feature_name: Optional[str] = None,
         class_name: Optional[str] = None,
+        feature_distribution : Optional[List[np.ndarray]] = None,
         plot_axis: Optional[plt.Axes] = None
 ) -> Tuple[Union[plt.Figure, None], plt.Axes]:
     """
@@ -355,23 +409,49 @@ def plot_individual_conditional_expectation(
     assert _validate_input(ice_array, feature_linespace, class_index,
                            feature_name, class_name, plot_axis,
                            None, False, False), 'Input is invalid.'
-
+    assert isinstance(treat_as_categorical, bool), 'treat_as_categorical -> bool'
+    assert feature_distribution is None or \
+        isinstance(feature_distribution, list), 'feature_distribution -> list'
+    if treat_as_categorical:
+        x_range = [-0.5, len(feature_linespace)+0.5]
+        x_locs = np.linspace(0, feature_linespace.shape[0], 
+                             len(feature_linespace))
+    else:
+        x_range = [feature_linespace[0], feature_linespace[-1]]
+    plot_distribution = feature_distribution is not None and \
+        isinstance(feature_distribution[0], np.ndarray)
     plot_title = 'Individual Conditional Expectation'
-    x_range = [feature_linespace[0], feature_linespace[-1]]
     plot_figure, plot_axis = _prepare_a_canvas(
-        plot_title, plot_axis, class_index, class_name, feature_name, x_range)
+        plot_title, plot_axis, class_index, class_name, feature_name, x_range,
+        plot_distribution)
 
-    lines = np.zeros((ice_array.shape[0], ice_array.shape[1], 2),
-                     dtype=ice_array.dtype)
-    lines[:, :, 1] = ice_array[:, :, class_index]
-    lines[:, :, 0] = feature_linespace
+    if plot_distribution:
+        (plot_axis, dist_axis) = plot_axis
+        dist_axis = _plot_feature_distribution(
+            feature_linespace, feature_distribution, dist_axis)
+    if treat_as_categorical:
+        data = ice_array[:, :, class_index]
+        parts = plot_axis.violinplot(data, positions=x_locs)
+        for key in ['cmaxes', 'cmins', 'cbars']:
+            parts[key].set_color('royalblue')
+        for part in parts['bodies']:
+            part.set_facecolor('royalblue')
+            part.set_alpha(0.4)
+        plot_axis.set_xticks(x_locs)
+        plot_axis.set_xticklabels(feature_linespace)
+    else:
+        lines = np.zeros((ice_array.shape[0], ice_array.shape[1], 2),
+                        dtype=ice_array.dtype)
+        lines[:, :, 1] = ice_array[:, :, class_index]
+        lines[:, :, 0] = feature_linespace
 
-    line_collection = matplotlib.collections.LineCollection(
-        lines, label='ICE', color='dimgray', alpha=0.5)
-    plot_axis.add_collection(line_collection)
-    plot_axis.legend()
+        line_collection = matplotlib.collections.LineCollection(
+            lines, label='ICE', color='dimgray', alpha=0.5)
+        plot_axis.add_collection(line_collection)
+        plot_axis.legend()
 
-    plot_figure.tight_layout()
+    if isinstance(plot_figure, plt.Figure):
+        plot_figure.tight_layout()
 
     return plot_figure, plot_axis
 
@@ -449,15 +529,15 @@ def plot_partial_dependence(pd_array: np.ndarray,
     assert _validate_input(pd_array, feature_linespace, class_index,
                            feature_name, class_name, plot_axis,
                            variance, variance_area, True), 'Input is invalid.'
-    
+    assert isinstance(treat_as_categorical, bool), 'treat_as_categorical -> bool'
     assert feature_distribution is None or \
         isinstance(feature_distribution, list), 'feature_distribution -> list'
 
     plot_title = 'Partial Dependence'
     if treat_as_categorical:
+        x_range = [-0.5, len(feature_linespace)+0.5]
         x_locs = np.linspace(0, feature_linespace.shape[0], 
                              len(feature_linespace))
-        x_range = [x_locs[0]-0.5, x_locs[-1]+0.5]
     else:
         x_range = [feature_linespace[0], feature_linespace[-1]]
     plot_distribution = feature_distribution is not None and \
@@ -468,43 +548,15 @@ def plot_partial_dependence(pd_array: np.ndarray,
 
     if plot_distribution:
         (plot_axis, dist_axis) = plot_axis
-        values, counts = feature_distribution
-        if values.shape[0] == counts.shape[0] + 1:
-            # Histogram
-            dist_axis.set_yticklabels([])
-            widths = [values[i+1]-values[i] for i in range(len(values)-1)]
-            bars = dist_axis.bar(values[:-1], counts, width=widths,
-                                 align='edge', alpha=0.5)
-            for bar in bars:
-                height = bar.get_height()
-                dist_axis.text(bar.get_x() + bar.get_width()/2.0, height,
-                         '%.2f' % height, ha='center', va='bottom')
-        elif set(values) == set(feature_linespace):
-            # Get counts in the same order as feature_linespace
-            xsorted = np.argsort(values)
-            ypos = np.searchsorted(values[xsorted], feature_linespace)
-            idx = xsorted[ypos]
-            values = values[idx]
-            counts = counts[idx]
-            # Bar plot
-            bars = dist_axis.bar(x_locs, counts, alpha=0.5)
-            for bar in bars:
-                height = bar.get_height()
-                dist_axis.text(bar.get_x() + bar.get_width()/2.0, height,
-                         '%.2f' % height, ha='center', va='bottom')
-        else:
-            # KDE
-            dist_axis.set_xlabel('KDE fit to feature')
-            dist_axis.plot(values,
-                           counts,
-                           linewidth=3,
-                           alpha=0.5)
+        dist_axis = _plot_feature_distribution(
+            feature_linespace, feature_distribution, dist_axis)
 
     if treat_as_categorical:
         yerr = variance[:, class_index] if isinstance(variance,np.ndarray) \
             else None
         plot_axis.bar(x_locs, pd_array[:, class_index], yerr=yerr, capsize=10,
-                      align='center', ecolor='black')
+                      align='center', ecolor='black', alpha=0.6, 
+                      color='royalblue')
         plot_axis.set_xticks(x_locs)
         plot_axis.set_xticklabels(feature_linespace)
         plot_axis.set_ylim(np.array([0, 1.05]))
@@ -538,11 +590,12 @@ def plot_partial_dependence(pd_array: np.ndarray,
                     elinewidth=2,
                     markeredgewidth=2,
                     label='Variance')
-    plot_axis.legend()
+        plot_axis.legend()
 
     if plot_distribution:
-        plot_axis = (plot_axis, dist_axis)
+        plot_axis = [plot_axis, dist_axis]
 
-    plot_figure.tight_layout()
+    if isinstance(plot_figure, plt.Figure):
+        plot_figure.tight_layout()
 
     return plot_figure, plot_axis

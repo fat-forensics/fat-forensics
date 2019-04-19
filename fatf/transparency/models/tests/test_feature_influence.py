@@ -611,6 +611,7 @@ def test_compute_feature_distribution():
     # Categorical numerical (counts)
     values = np.array([0., 1., 2.,])
     counts = np.array([3., 2., 1.])
+    counts = counts / np.sum(counts)
     dist = ftmfi.compute_feature_distribution(NUMERICAL_NP_ARRAY, 0,
                                           treat_as_categorical=True)
     assert np.array_equal(dist[0], values)
@@ -625,6 +626,7 @@ def test_compute_feature_distribution():
     # Categorical string (counts)
     values = np.array(['a', 'b'])
     counts = np.array([2., 1.])
+    counts = counts / np.sum(counts)
     dist = ftmfi.compute_feature_distribution(CATEGORICAL_NP_ARRAY, 0,
                                           treat_as_categorical=True)
     assert np.array_equal(dist[0], values)
@@ -639,6 +641,7 @@ def test_compute_feature_distribution():
     # Non-categorical numerical (histogram)
     values = np.array([0., 0.4, 0.8, 1.2, 1.6, 2.])
     counts = np.array([1.25, 0., 0.83, 0., 0.41])
+    counts = counts / np.sum(counts)
     dist = ftmfi.compute_feature_distribution(NUMERICAL_NP_ARRAY, 0, samples=5)
     assert np.allclose(dist[0], values, atol=1e-2)
     assert np.allclose(dist[1], counts, atol=1e-2)

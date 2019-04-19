@@ -67,28 +67,28 @@ def test_validate_input():
     """
     msg = 'test_partial_dependence is not a boolean.'
     with pytest.raises(AssertionError) as exin:
-        fvfi._validate_input(None, None, None, None, None, None, None, False, 
-                             1)
+        fvfi._validate_input(None, None, None, None, None, None, None, None,
+                             False, 1)
     assert str(exin.value) == msg
 
     msg = 'variance_area is not a boolean.'
     with pytest.raises(AssertionError) as exin:
-        fvfi._validate_input(None, None, None, None, None, None, None, 1, 
-                             True)
+        fvfi._validate_input(None, None, None, None, None, None, None, None,
+                             1, True)
     assert str(exin.value) == msg
 
     msg = 'The input array cannot be a structured array.'
     struct_array = np.array([(4, 2), (2, 4)], dtype=[('a', int), ('b', int)])
     with pytest.raises(ValueError) as exin:
         fvfi._validate_input(struct_array, None, None, None, None, None, None,
-                             False, False)
+                             None, False, False)
     assert str(exin.value) == msg
 
     msg = 'The input array has to be a numerical array.'
     non_numerical_array = np.array([[4, 'a'], [2, 'b']])
     with pytest.raises(ValueError) as exin:
         fvfi._validate_input(non_numerical_array, None, None, None, None, None,
-                             None, False, False)
+                             None, None, False, False)
     assert str(exin.value) == msg
 
     numerical_2d_array = np.array([[4, 2], [2, 4], [4, 2]])
@@ -101,46 +101,46 @@ def test_validate_input():
            'array of shape (n_samples, n_steps, n_classes).')
     with pytest.raises(IncorrectShapeError) as exin:
         fvfi._validate_input(numerical_2d_array, None, None, None, None, None,
-                             None, False, False)
+                             None, None, False, False)
     assert str(exin.value) == msg
     # For Partial Dependence
     msg = ('plot_partial_depenedence expects a 2-dimensional array of shape '
            '(n_steps, n_classes).')
     with pytest.raises(IncorrectShapeError) as exin:
         fvfi._validate_input(numerical_3d_array, None, None, None, None, None,
-                             None, False, True)
+                             None, None, False, True)
     assert str(exin.value) == msg
 
     # Linespace
     msg = 'The linespace array cannot be a structured array.'
     with pytest.raises(ValueError) as exin:
         fvfi._validate_input(numerical_2d_array, struct_array, None, None,
-                             None, None, None, False, True)
+                             None, None, None, None, False, True)
     assert str(exin.value) == msg
     #
     msg = ('The linespace array has to be a 1-dimensional array of shape '
            '(n_steps, ).')
     with pytest.raises(IncorrectShapeError) as exin:
         fvfi._validate_input(numerical_3d_array, numerical_2d_array, None,
-                             None, None, None, None, False, False)
+                             None, None, None, None, None, False, False)
     assert str(exin.value) == msg
     # Linespace vector not matching ICE/ PDP dimensions
     msg = ('The length of the linespace array ({}) does not agree with the '
            'number of linespace steps ({}) in the input array.')
     with pytest.raises(ValueError) as exin:
         fvfi._validate_input(numerical_2d_array, numerical_2d_array[0, :],
-                             None, None, None, None, None, False, True)
+                             None, None, None, None, None, None, False, True)
     assert str(exin.value) == msg.format(2, 3)
     with pytest.raises(ValueError) as exin:
         fvfi._validate_input(numerical_3d_array, numerical_2d_array[0, :],
-                             None, None, None, None, None, False, False)
+                             None, None, None, None, None, None, False, False)
     assert str(exin.value) == msg.format(2, 3)
     # Variance vector not matching ICE/ PDP dimensions
     msg = ('The length of the variance array ({}) does agree with the number '
            'of linespace steps ({}) in the input array.')
     with pytest.raises(ValueError) as exin:
         fvfi._validate_input(numerical_2d_array, numerical_2d_array[:, 0], 1,
-                             None, None, None, numerical_2d_array[0, :], 
+                             None, None, None, None, numerical_2d_array[0, :], 
                              False, True)
     assert str(exin.value) == msg.format(2, 3)
     # variance_area is True but no variance vector supplied
@@ -149,38 +149,38 @@ def test_validate_input():
            'vector.')
     with pytest.raises(ValueError) as exin:
         fvfi._validate_input(numerical_2d_array, numerical_2d_array[:, 0], 1,
-                             None, None, None, None, True, True)
+                             None, None, None, None, None, True, True)
     assert str(exin.value) == msg
     # Index
     msg = 'Class index has to be an integer.'
     with pytest.raises(TypeError) as exin:
         fvfi._validate_input(numerical_3d_array, numerical_2d_array[:, 0],
-                             None, None, None, None, None, False, False)
+                             None, None, None, None, None, None, False, False)
     assert str(exin.value) == msg
     #
     msg = ('Class index {} is not a valid index for the input array. There '
            'are only {} classes available.')
     with pytest.raises(IndexError) as exin:
         fvfi._validate_input(numerical_3d_array, numerical_2d_array[:, 0], -1,
-                             None, None, None, None, False, False)
+                             None, None, None, None, None, False, False)
     assert str(exin.value) == msg.format(-1, 2)
     with pytest.raises(IndexError) as exin:
         fvfi._validate_input(numerical_2d_array, numerical_2d_array[:, 0], 2,
-                             None, None, None, None, False, True)
+                             None, None, None, None, None, False, True)
     assert str(exin.value) == msg.format(2, 2)
 
     # Feature name
     msg = 'The feature name has to be either None or a string.'
     with pytest.raises(TypeError) as exin:
         fvfi._validate_input(numerical_2d_array, numerical_2d_array[:, 0], 1,
-                             42, None, None, None, False, True)
+                             None, 42, None, None, None, False, True)
     assert str(exin.value) == msg
 
     # Class name
     msg = 'The class name has to be either None or a string.'
     with pytest.raises(TypeError) as exin:
         fvfi._validate_input(numerical_3d_array, numerical_2d_array[:, 0], 0,
-                             None, 42, None, None, False, False)
+                             None, None, 42, None, None, False, False)
     assert str(exin.value) == msg
 
     # Plot axis
@@ -188,16 +188,39 @@ def test_validate_input():
            'type object.')
     with pytest.raises(TypeError) as exin:
         fvfi._validate_input(numerical_2d_array, numerical_2d_array[:, 0], 1,
-                             'feature name', None, 42, None, False, True)
+                             None, 'feature name', None, 42, None, False, True)
+    assert str(exin.value) == msg
+
+    # Treat as categorical
+    msg = ('treat_as_categorical is not a boolean')
+    with pytest.raises(TypeError) as exin:
+        fvfi._validate_input(None, None, 1, 10, None, None, None, None,
+                             False, True)
+    assert str(exin.value) == msg
+
+    # Variance cannot be structured
+    msg = ('The variance array cannot be a structured array.')
+    with pytest.raises(ValueError) as exin:
+        fvfi._validate_input(numerical_2d_array, numerical_2d_array[:, 0],
+                             1, False, 'feature name', 'class name', None,
+                            struct_array, False, True)
+    assert str(exin.value) == msg
+
+    # Variance has to be numerical
+    msg = ('The variance array has to be a numerical array.')
+    with pytest.raises(ValueError) as exin:
+        fvfi._validate_input(numerical_2d_array, numerical_2d_array[:, 0],
+                             1, False, 'feature name', 'class name', None,
+                            non_numerical_array, False, True)
     assert str(exin.value) == msg
 
     # All OK
     assert fvfi._validate_input(numerical_2d_array, numerical_2d_array[:, 0],
-                                1, 'feature name', 'class name', None, 
+                                1, False, 'feature name', 'class name', None, 
                                 numerical_2d_array[:, 0], True, True)
     fig, my_plot = plt.subplots(1, 1)
     assert fvfi._validate_input(numerical_3d_array, numerical_2d_array[:, 0],
-                                1, 'feature name', 'class name', my_plot, None,
+                                1, False, 'feature name', 'class name', my_plot, None,
                                 False, False)
     plt.close(fig=fig)
 
@@ -333,12 +356,96 @@ def test_prepare_a_canvas():
         class_index)
     plt.close(fig=figure) 
 
-def test_plot_feature_distribution():
-    # Numerical feature histogram
-    fig, axis = plt.subplots()
-    dist  = [np.array([0., .2, .4, .6, .8]), 
-             np.array([0.1, 0.3, 0.5, 0.1])]
-    axis = fvfi._plot_feature_distribution(FAKE_LINESPACE, dist, axis)
+
+def testplot_feature_distribution():
+    """
+    Tests feature distribution plotting.
+
+    Tests
+    :func:`fatf.vis.feature_influence.plot_feature_distribution` function.
+    """
+    # Invalid plot axis
+    msg = ('The plot axis has to be either None or a matplotlib.'
+           'pyplot.Axes type object.')
+    with pytest.raises(TypeError) as exin:
+        fvfi.plot_feature_distribution(np.array([]), None, None, 'plot')
+    assert str(exin.value) == msg
+
+    # Invalid feature name
+    msg = ('The feature name has to be either None or a string.')
+    with pytest.raises(TypeError) as exin:
+        fvfi.plot_feature_distribution(np.array([]), None, 12, None)
+    assert str(exin.value) == msg
+
+    # Invalid feature distribution type
+    msg = ('Feature distribution has to be a list')
+    with pytest.raises(TypeError) as exin:
+        fvfi.plot_feature_distribution(np.array([]), 0, None, None)
+    assert str(exin.value) == msg
+
+    # Invalid feature distribution
+    msg = ('Feature distribution has to be a list of length 2 where the first '
+           'element is a values array and the second element is a counts '
+           'array.')
+    with pytest.raises(ValueError) as exin:
+        fvfi.plot_feature_distribution(np.array([]), [np.array([])]*4, None,
+                                       None)
+    assert str(exin.value) == msg
+
+    # List of none np.array as feature distribution
+    msg = ('The {} element in feature_distribution array must be of type '
+           'np.ndarray.')
+    with pytest.raises(TypeError) as exin:
+        fvfi.plot_feature_distribution(np.array([]), [np.array([]), 1], None,
+                                       None)
+    assert str(exin.value) == msg.format(1)
+
+    # Invalid shapes of feature distribution arrays
+    msg = ('Values shape {} and counts shape {} do not agree. In order to '
+           'define histograms, values has to be of shape '
+           '(counts.shape[0]+1, ). In rder to define categorical counts, the '
+           'set of values given has to be equal to the set of '
+           'feature_linespace. In order to define Gaussian Kernel, values and '
+           'counts must be of the same shape.')
+    with pytest.raises(ValueError) as exin:
+        fvfi.plot_feature_distribution(
+            np.array([]), [np.array([1, 2, 3,]), np.array([1])], None, None)
+    assert str(exin.value) == msg.format(3, 1)
+
+    # Distribution above 1 should be rejected for histogram
+    dist  = [np.array([0., .2, .4, .6, .8, 1.]), 
+             np.array([0.1, 0.2, 0.5, 0.1, 1.1,])]
+    msg = ('Distribution cannot have value more than 1.0')
+    with pytest.raises(ValueError) as exin:
+        fvfi.plot_feature_distribution(FAKE_LINESPACE, dist, 'feat')
+    assert str(exin.value) == msg
+
+    # Distribution above 1 should be rejected for categorical data
+    dist = [np.array([0, 0.2, 0.4, 0.6, 0.8, 1]),
+            np.array([0.1, 0.1, 0.3, 0.2, 0.2, 1.1])]
+    msg = ('Distribution cannot have value more than 1.0')
+    with pytest.raises(ValueError) as exin:
+        fvfi.plot_feature_distribution(FAKE_LINESPACE, dist, 'feat')
+    assert str(exin.value) == msg
+
+
+    dist  = [np.array([0., .2, .4, .6, .8, 1.]), 
+             np.array([0.1, 0.2, 0.5, 0.1, 0.1])]
+    # Without passing axis
+    fig, axis = fvfi.plot_feature_distribution(FAKE_LINESPACE, dist, 'feat')
+    assert isinstance(fig, plt.Figure)
+    p_title, p_x_label, p_x_range, p_y_label, p_y_range = futv.get_plot_data(
+        axis)
+    # ...check title
+    assert p_title == 'Feature Distribution for feat'
+    # ...check x range
+    assert np.array_equal(p_x_range, [0., 1.])
+    # ...check x label
+    assert p_x_label == 'feat'
+    # ...check y label
+    assert p_y_label == 'Density'
+    # ...check y range
+    assert np.array_equal(p_y_range, [0, 1.05])
     bars = axis.patches
     texts = axis.texts
     assert len(bars) == dist[0].shape[0] - 1
@@ -362,11 +469,35 @@ def test_plot_feature_distribution():
     assert text_string == correct_text_string
     plt.close(fig=fig) 
 
+    # Numerical feature histogram
+    fig, axis = plt.subplots()
+    _, axis = fvfi.plot_feature_distribution(
+        FAKE_LINESPACE, dist, None, axis)
+    p_title, p_x_label, p_x_range, p_y_label, p_y_range = futv.get_plot_data(
+        axis)
+    # ...check title
+    assert p_title == ''
+    # ...check x range
+    assert np.array_equal(p_x_range, [0., 1.,])
+    # ...check y range
+    assert np.array_equal(p_y_range, [0., 1.05])
+    bars = axis.patches
+    texts = axis.texts
+    assert len(bars) == dist[0].shape[0] - 1
+    assert len(texts) == dist[0].shape[0] - 1
+    assert np.array_equal(dist[1], heights)
+    assert np.array_equal(np.array([0.6]*len(dist[1])), alphas)
+    assert np.allclose(correct_colours, colours, atol=1e-2)
+    assert np.array_equal(correct_text_positions, text_positions)
+    assert text_string == correct_text_string
+    plt.close(fig=fig) 
+
     # Numerical Categorical feature
     fig, axis = plt.subplots()
     dist = [np.array([0, 0.2, 0.4, 0.6, 0.8, 1]),
             np.array([0.1, 0.1, 0.3, 0.2, 0.2, 0.1])]
-    axis = fvfi._plot_feature_distribution(FAKE_LINESPACE, dist, axis)
+    _, axis = fvfi.plot_feature_distribution(
+        FAKE_LINESPACE, dist, None, axis)
     bars = axis.patches
     texts = axis.texts
     assert len(bars) == dist[0].shape[0]
@@ -395,7 +526,8 @@ def test_plot_feature_distribution():
     fig, axis = plt.subplots()
     dist = [np.array([0., 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]),
             np.array([0.1, 0.2, 0.4, 0.4, 0.3, 0.2, 0.1, 0.05, 0.05, 0.05])]
-    axis = fvfi._plot_feature_distribution(FAKE_LINESPACE, dist, axis)
+    _, axis = fvfi.plot_feature_distribution(
+        FAKE_LINESPACE, dist, None, axis)
     assert len(axis.lines) == 1
     l_data, l_colour, l_alpha, l_label, l_width = futv.get_line_data(
         axis.lines[0])
@@ -408,7 +540,8 @@ def test_plot_feature_distribution():
     fig, axis = plt.subplots()
     dist = [np.array(['a', 'b', 'c', 'd', 'e', 'f']),
             np.array([0.1, 0.1, 0.3, 0.2, 0.2, 0.1])]
-    axis = fvfi._plot_feature_distribution(FAKE_LINESPACE_CAT, dist, axis)
+    _, axis = fvfi.plot_feature_distribution(
+        FAKE_LINESPACE_CAT, dist, None, axis)
     bars = axis.patches
     texts = axis.texts
     assert len(bars) == dist[0].shape[0]

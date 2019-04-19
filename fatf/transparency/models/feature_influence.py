@@ -392,6 +392,7 @@ def compute_feature_distribution(
         samples = 'fd'
     if treat_as_categorical:
         values, counts = np.unique(column, return_counts=True)
+        counts = counts / np.sum(counts)
     else:
         if kde:
             kernel = scipy.stats.gaussian_kde(column)
@@ -400,7 +401,7 @@ def compute_feature_distribution(
         else:
             counts, values = np.histogram(column, bins=samples,
                                                 density=True)
-
+            counts = counts / np.sum(counts)
     return values, counts
 
 

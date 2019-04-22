@@ -5,12 +5,14 @@ Implements a counterfactual prediction explainer of a black-box classifier.
 #         Rafael Poyiadzi <rp13102@bristol.ac.uk>
 # License: new BSD
 
+# pylint: disable=too-many-lines
+
 import inspect
 import itertools
 import warnings
 
 from numbers import Number
-from typing import Dict, List, Optional, Set, Tuple, Union
+from typing import Callable, Dict, List, Optional, Set, Tuple, Union
 
 import numpy as np
 
@@ -20,10 +22,10 @@ import fatf.utils.array.validation as fuav
 
 from fatf.exceptions import IncorrectShapeError
 
+FeatureRange = Union[Tuple[Number, Number], List[Union[Number, str]]]
 Index = Union[int, str]
 
-__all__ = ['textualise_counterfactuals',
-           'CounterfactualExplainer']
+__all__ = ['textualise_counterfactuals', 'CounterfactualExplainer']
 
 
 class CounterfactualExplainer(object):
@@ -66,14 +68,15 @@ class CounterfactualExplainer(object):
 
     For a given feature combination only the counterfactual(s) closest to the
     specified data point will be retrieved. By default the distance for every
-    numerical feature is taken to be :math:`abs(x_i - \hat{x}_i)` and for every
-    categorical feature it is an identity function, i.e. :math:`1` if the value
-    does not agree and :math:`0` if it agrees. If custom distance functions are
-    desired, the user may specify these via the ``distance_functions``
-    parameter. Each distance function has to be a ``callable`` with two input
-    parameters. Finally, the distance can be normalised, please see the
-    documentation of the :func:`fatf.transparency.predictions.counterfactuals.
-    CounterfactualExplainer._get_distance` for details.
+    numerical feature is taken to be :math:`abs(x_i - \\hat{x}_i)` and for
+    every categorical feature it is an identity function, i.e. :math:`1` if the
+    value does not agree and :math:`0` if it agrees. If custom distance
+    functions are desired, the user may specify these via the
+    ``distance_functions`` parameter. Each distance function has to be a
+    ``Callable`` with two input parameters. Finally, the distance can be
+    normalised, please see the documentation of the :func:`fatf.transparency.
+    predictions.counterfactuals.CounterfactualExplainer._get_distance` for
+    details.
 
     Last but not least, when doing grid search through the features to discover
     counterfactual data points the user may define the step size between the
@@ -87,7 +90,7 @@ class CounterfactualExplainer(object):
     ----------
     model : object, optional (default=None)
         A predictive model object that has a ``predict`` method.
-    predictive_function : callable, optional (default=None)
+    predictive_function : Callable, optional (default=None)
         A function that takes in a 2-dimensional data array and returns class
         predictions. (Alternative to the ``model`` parameter.)
     dataset : numpy.ndarray, optional (default=None)
@@ -116,10 +119,10 @@ class CounterfactualExplainer(object):
         **list** of all the values that to be tested for this feature. If set
         to ``None``, a ``dataset`` has to be provided to calculate these
         ranges.
-    distance_functions : Dictionary[column indices, callable],
+    distance_functions : Dictionary[column indices, Callable],
                          optional (default=None)
         A dictionary with keys representing the column (feature) indices and
-        the values representing Python functions -- a callable that takes two
+        the values representing Python functions -- a Callable that takes two
         arguments -- that will be used to calculate the distance for this
         particular feature.
     step_sizes : Dictionary[column indices, Number],
@@ -141,31 +144,71 @@ class CounterfactualExplainer(object):
 
     Raises
     ------
+    AttributeError
+        The ``predictive_function`` parameter, if given, does not require 2
+        non-optional parameters. One of the distance functions provided via the
+        ``distance_functions`` parameter does not require 2 non-optional
+        parameters.
+    IncorrectShapeError
+        The ``dataset`` array is not 2-dimensional.
     IndexError
-        The union of categorical and numerical indices does not form a series
-        of consecutive integers when the data array is a classic numpy array.
-        Some of the indices (dictionary keys) in the ``feature_ranges``,
+        Some of the ``categorical_indices`` or ``numerical_indices`` are not
+        valid for the input ``dataset``, when the latter is given. The union of
+        categorical and numerical indices does not form a series of consecutive
+        integers when the ``dataset`` array is a classic numpy array. Some of
+        the ``counterfactual_feature_indices`` are not valid. Some of the
+        indices (dictionary keys) in the ``feature_ranges``,
         ``distance_functions`` or ``step_sizes`` parameters are not valid
-        (consistent with the provided array indices).
+        (consistent with the provided column indices).
+    RuntimeError
+        The ``model`` object, if provided, lacks a ``predict`` method. Neither
+        ``model`` nor ``predictive_function`` was specified -- one of these is
+        required.
     TypeError
-        A feature range is not a list for a categorical feature or a feature
-        range is not a tuple for a numerical feature. One of the numerical
-        range tuple elements is not a number or all of the elements of a
-        categorical feature range do not share the same type.
+        The ``predictive_function`` parameter is not Python callable, i.e. a
+        Python function. The ``categorical_indices`` parameter is neither a
+        list nor ``None``. The ``numerical_indices`` parameter is neither a
+        list nor ``None``. Some of the indices given in these two lists do not
+        share a common type -- only all strings or all integers are allowed.
+        The ``counterfactual_feature_indices parameter`` is neither a list nor
+        ``None``. The ``max_counterfactual_length`` parameter is not an
+        integer. The ``feature_ranges`` parameter is neither a dictionary nor
+        nor ``None``. A feature range is not a list for a categorical feature
+        or a feature range is not a tuple for a numerical feature. One of the
+        numerical range tuple elements is not a number or all of the elements
+        of a categorical feature range do not share the same type. The
+        ``distance_functions`` parameter is not a dictionary. One of the
+        distance functions defined via the ``distance_functions`` parameter is
+        not a Python callable. The ``step_sizes`` parameter is not dictionary.
+        One of the step sizes defined via the ``step_sizes`` parameter is not
+        a number. The ``default_numerical_step_size`` parameter is not a
+        number.
     ValueError
+        Some of the categorical (textual) features in the ``dataset`` array
+        (when given) are not indicated by the user -- given via the
+        ``categorical_indices`` parameter -- to be categorical (it is not
+        possible to treat textual fields as numerical features. Some of the
+        categorical features in the ``dataset`` array are selected to be
+        numerical via the ``numerical_indices`` parameter.
         ``categorical_indices`` and ``numerical_indices`` parameters were not
-        provided in the absence of a ``dataset``. One of the categorical ranges
-        provided is an empty list. One of the numerical ranges is a tuple of
-        length different than 2 or the second element of the range tuple is not
-        strictly larger than the first one.
+        provided in the absence of a ``dataset``. The ``dataset`` array is not
+        of a base type (strings and/or numbers). Both ``categorical_indices``
+        and ``numerical_indices`` parameters are empty lists. Both of these
+        lists share some common indices. The ``counterfactual_feature_indices``
+        parameter is an empty list. The ``max_counterfactual_length`` parameter
+        is not a non-negative integer. The ``feature_ranges`` parameter is an
+        empty dictionary. One of the categorical ranges provided is an empty
+        list. One of the numerical ranges is a tuple of length different than 2
+        or the second element of the range tuple is not strictly larger than
+        the first one. The ``distance_functions`` parameter is an empty
+        dictionary. The ``step_sizes`` parameter is an empty dictionary. Some
+        of the step sizes specified via the ``step_sizes`` dictionary are not
+        strictly positive numbers. The ``default_numerical_step_size``
+        parameter is not a strictly positive number.
 
     Attributes
     ----------
-    _CATEGORICAL_DISTANCE : callable
-        The default distance used for categorical features (``int(x != y)``).
-    _NUMERICAL_DISTANCE : callable
-        The default distance used for numerical features (``abs(x - y)``).
-    predict : callable
+    predict : Callable
         A function used to predict the class of counterfactuals.
     all_indices : Set[column indices]
         A set of all the column (feature) indices in the data set from which
@@ -183,48 +226,45 @@ class CounterfactualExplainer(object):
     max_counterfactual_length : Number
         The maximum length -- the number of features altered -- of a
         counterfactual instance.
-    distance_functions : Dictionary[column indices, callable]
+    distance_functions : Dictionary[column indices, Callable]
         A dictionary with distance functions for all of the
         ``cf_feature_indices``.
     step_sizes : Dictionary[column indices, Numbers]
         A dictionary with step sizes for all of the numerical features in the
         ``cf_feature_indices``.
     """
+    # pylint: disable=useless-object-inheritance,too-many-instance-attributes
+    # pylint: disable=too-few-public-methods
+
     __all__ = ['explain_instance']
 
-    _CATEGORICAL_DISTANCE = lambda x, y: int(x != y)
-    _NUMERICAL_DISTANCE = lambda x, y: abs(x - y)
-
-    def __init__(
+    def __init__(  # type: ignore
             self,
             model: Optional[object] = None,
-            predictive_function: Optional[callable] = None,
+            predictive_function: Optional[Callable] = None,
             dataset: Optional[np.ndarray] = None,
             categorical_indices: Optional[List[Index]] = None,
             numerical_indices: Optional[List[Index]] = None,
             counterfactual_feature_indices: Optional[List[Index]] = None,
             max_counterfactual_length: int = 2,
-            feature_ranges: Optional[Dict[Index, Union[Tuple[Number, Number],
-                                                       List[Union[Number, str]]
-                                                       ]]] = None,
-            distance_functions: Optional[Dict[Index, callable]] = None,
+            feature_ranges: Optional[Dict[Index, FeatureRange]] = None,
+            distance_functions: Optional[Dict[Index, Callable]] = None,
             step_sizes: Optional[Dict[Index, Number]] = None,
-            default_numerical_step_size: Number = 1) -> None:
+            default_numerical_step_size: Number = 1.0) -> None:
         """
         Initialises a counterfactual explainer.
         """
+        # pylint: disable=too-many-arguments,too-many-locals,too-many-branches
+        # pylint: disable=too-many-statements
+
         # Validate input
-        assert _validate_input(model, predictive_function, dataset,
-                               categorical_indices, numerical_indices,
-                               counterfactual_feature_indices,
-                               max_counterfactual_length, feature_ranges,
-                               distance_functions, step_sizes,
-                               default_numerical_step_size
-                               ), 'The input must be valid.'
+        assert _validate_input_one(
+            model, predictive_function, dataset, categorical_indices,
+            numerical_indices), 'The input must be valid.'
 
         # Select a predictive function
         if predictive_function is None:
-            self.predict = model.predict
+            self.predict = model.predict  # type: ignore
         else:
             self.predict = predictive_function
 
@@ -237,20 +277,44 @@ class CounterfactualExplainer(object):
             all_indices = num_ind.union(cat_ind)
 
             if categorical_indices is None and numerical_indices is not None:
-                categorical_indices = all_indices.difference(numerical_indices)
+                _numerical_indices = set(numerical_indices)
+                _categorical_indices = all_indices.difference(
+                    _numerical_indices)
+                # They have to be valid indices for the array
+                if _numerical_indices.difference(all_indices):
+                    raise IndexError('Some of the numerical_indices are not '
+                                     'valid for the given array.')
             elif categorical_indices is not None and numerical_indices is None:
-                numerical_indices = all_indices.difference(categorical_indices)
+                _categorical_indices = set(categorical_indices)
+                _numerical_indices = all_indices.difference(
+                    _categorical_indices)
+                # They have to be valid indices for the array
+                if _categorical_indices.difference(all_indices):
+                    raise IndexError('Some of the categorical_indices are not '
+                                     'valid for the given array.')
             else:
-                categorical_indices = cat_ind
-                numerical_indices = num_ind
+                _categorical_indices = cat_ind
+                _numerical_indices = num_ind
+
+            if cat_ind.difference(_categorical_indices):
+                raise ValueError('Some of the categorical indices (textual '
+                                 'columns) in the array were not indicated to '
+                                 'be categorical by the user. Textual columns '
+                                 'must not be treated as numerical features.')
+            if cat_ind.intersection(_numerical_indices):
+                raise ValueError('Some of the categorical fields in the input '
+                                 'data set were indicated to be numerical '
+                                 'indices via the numerical_indices '
+                                 'parameter. Textual columns must not be '
+                                 'treated as numerical features.')
         else:
             if categorical_indices is None or numerical_indices is None:
                 raise ValueError('If a dataset is not given, both '
                                  'categorical_indices and numerical_indices '
                                  'parameters have to be defined.')
-            categorical_indices = set(categorical_indices)
-            numerical_indices = set(numerical_indices)
-            all_indices = categorical_indices.union(numerical_indices)
+            _categorical_indices = set(categorical_indices)
+            _numerical_indices = set(numerical_indices)
+            all_indices = _categorical_indices.union(_numerical_indices)
         # ...unstructured numpy array's indices should be consecutive numbers
         if isinstance(next(iter(all_indices)), int):
             if all_indices != set(range(max(all_indices) + 1)):
@@ -259,8 +323,14 @@ class CounterfactualExplainer(object):
                                  'consecutive integers. This is required for '
                                  'an classic (unstructured) numpy array.')
         self.all_indices = all_indices
-        self.categorical_indices = categorical_indices
-        self.numerical_indices = numerical_indices
+        self.categorical_indices = _categorical_indices
+        self.numerical_indices = _numerical_indices
+
+        assert _validate_input_two(
+            _numerical_indices, _categorical_indices, all_indices,
+            counterfactual_feature_indices, max_counterfactual_length,
+            feature_ranges, distance_functions, step_sizes,
+            default_numerical_step_size), 'The input must be valid.'
 
         # Get feature indices to be used for counterfactual generation
         if counterfactual_feature_indices is None:
@@ -272,49 +342,6 @@ class CounterfactualExplainer(object):
         if feature_ranges is None:
             feature_ranges = self._get_feature_ranges(dataset)
         else:
-            if set(feature_ranges.keys()).difference(self.all_indices):
-                raise IndexError('Some of the indices (dictionary keys) in '
-                                 'the feature_ranges parameter are not valid.')
-            # Verify supplied ranges
-            for column_index, column_range in feature_ranges.items():
-                if column_index in self.categorical_indices:
-                    if not isinstance(column_range, list):
-                        raise TypeError('Categorical column range should be a '
-                                        'list of values to be used for the '
-                                        'counterfactuals generation process.')
-                    if not column_range:
-                        raise ValueError('A list specifying the possible '
-                                         'values of a categorical feature '
-                                         'should not be empty.')
-                    range_type = type(column_range[0])
-                    for i in column_range:
-                        if not isinstance(i, range_type):
-                            raise TypeError('The possible values defined for '
-                                            'the *{}* feature do not share '
-                                            'the same type.')
-                elif column_index in self.numerical_indices:
-                    if not isinstance(column_range, tuple):
-                        raise TypeError('Numerical column range should be a '
-                                        'pair of numbers defining the lower '
-                                        'and the upper limit of the range.')
-                    if len(column_range) != 2:
-                        raise ValueError('Numerical column range tuple should '
-                                         'just contain 2 numbers: the lower '
-                                         'and the upper bounds of the range '
-                                         'to be searched.')
-                    if (not isinstance(column_range[0], Number)
-                            or not isinstance(column_range[1], Number)):
-                        raise TypeError('Both the lower and the upper bound '
-                                        "of defining a column's range should "
-                                        'numbers.')
-                    if column_range[1] < column_range[0]:
-                        raise ValueError('The second element of a tuple '
-                                         'defining a numerical range should '
-                                         'be strictly larger than the first '
-                                         'element.')
-                else:
-                    assert False, 'Unknown index.'
-
             # Get needed ranges
             needed_ranges_indices = self.cf_feature_indices.difference(
                 feature_ranges.keys())
@@ -341,21 +368,19 @@ class CounterfactualExplainer(object):
 
         # Sort out step sizes
         if step_sizes is None:
-            step_sizes = {numerical_feature_idx: default_numerical_step_size
-                          for numerical_feature_idx in self.numerical_indices
-                          if numerical_feature_idx in self.cf_feature_indices}
+            step_sizes = {
+                numerical_feature_idx: default_numerical_step_size
+                for numerical_feature_idx in self.numerical_indices
+                if numerical_feature_idx in self.cf_feature_indices
+            }
         else:
             step_sizes = dict(step_sizes)  # Make a copy since we are editing
             steps_indices = set(step_sizes.keys())
-            if steps_indices.difference(self.all_indices):
-                raise IndexError('Some of the indices (dictionary keys) in '
-                                 'the step_sizes parameter are not valid.')
             cat_steps_idcs = steps_indices.difference(self.numerical_indices)
             if cat_steps_idcs:
                 warnings.warn(
                     'Step size was provided for one of the categorical '
-                    'features. Ignoring these ranges.',
-                    UserWarning)
+                    'features. Ignoring these ranges.', UserWarning)
                 steps_indices = steps_indices.difference(cat_steps_idcs)
                 for idx in cat_steps_idcs:
                     del step_sizes[idx]
@@ -370,30 +395,25 @@ class CounterfactualExplainer(object):
             distance_functions = dict()
             for idx in self.cf_feature_indices:
                 if idx in self.categorical_indices:
-                    distance_functions[idx] = self._CATEGORICAL_DISTANCE
+                    distance_functions[idx] = _categorical_distance
                 else:
-                    distance_functions[idx] = self._NUMERICAL_DISTANCE
+                    distance_functions[idx] = _numerical_distance
         else:
             distance_functions = dict(distance_functions)  # Copy, gets edited
             functions_indices = set(distance_functions.keys())
-            if functions_indices.difference(self.all_indices):
-                raise IndexError('Some of the indices (dictionary keys) in '
-                                 'the distance_functions parameter are '
-                                 'invalid.')
             missing_functions = self.cf_feature_indices.difference(
                 functions_indices)
             for idx in missing_functions:
                 if idx in self.categorical_indices:
-                    distance_functions[idx] = self._CATEGORICAL_DISTANCE
+                    distance_functions[idx] = _categorical_distance
                 else:
-                    distance_functions[idx] = self._NUMERICAL_DISTANCE
+                    distance_functions[idx] = _numerical_distance
         self.distance_functions = distance_functions
 
-    def _get_feature_ranges(
-            self,
-            dataset: Union[None, np.ndarray],
-            column_indices: Optional[Set[Index]] = None
-    ) -> Dict[Index, Union[Tuple[Number, Number], List[Union[Number, str]]]]:
+    def _get_feature_ranges(self,
+                            dataset: Union[None, np.ndarray],
+                            column_indices: Optional[Set[Index]] = None
+                            ) -> Dict[Index, FeatureRange]:
         """
         Calculates ranges of selected features based on the ``dataset`` array.
 
@@ -447,7 +467,7 @@ class CounterfactualExplainer(object):
             'Requested indices are invalid.'
 
         dataset_is_structured = fuav.is_structured_array(dataset)
-        ranges = dict()
+        ranges: Dict[Index, FeatureRange] = dict()
 
         if column_indices is None:
             column_indices = self.cf_feature_indices
@@ -514,8 +534,7 @@ class CounterfactualExplainer(object):
         return distance
 
     def _get_neighbouring_instances(
-            self,
-            instance: Union[np.ndarray, np.void],
+            self, instance: Union[np.ndarray, np.void],
             features_combination: Tuple[Union[str, int], ...]) -> np.ndarray:
         """
         Generates all neighbouring instances with ranges of selected features.
@@ -543,9 +562,10 @@ class CounterfactualExplainer(object):
         for feature in features_combination:
             if feature in self.categorical_indices:
                 # Get all other possible categorical values
-                possible_features_ranges.append(
-                    [i for i in self.feature_ranges[feature]
-                     if i != instance[feature]])
+                possible_features_ranges.append([
+                    i for i in self.feature_ranges[feature]
+                    if i != instance[feature]
+                ])
             else:
                 feature_range_min = self.feature_ranges[feature][0]
                 feature_range_max = self.feature_ranges[feature][1]
@@ -556,14 +576,12 @@ class CounterfactualExplainer(object):
                     warning_msg = ('The value ({}) of *{}* feature for this '
                                    'instance is out of the specified min-max '
                                    'range: {}-{}.')
-                    warning_msg = warning_msg.format(feature_value,
-                                                     feature,
+                    warning_msg = warning_msg.format(feature_value, feature,
                                                      feature_range_min,
                                                      feature_range_max)
                     warnings.warn(warning_msg, UserWarning)
 
-                feature_range = np.arange(feature_range_min,
-                                          feature_range_max,
+                feature_range = np.arange(feature_range_min, feature_range_max,
                                           self.step_sizes[feature])
 
                 possible_features_ranges.append(feature_range)
@@ -644,6 +662,7 @@ class CounterfactualExplainer(object):
             A 1-dimensional numpy array with predictions for every
             counterfactual data point.
         """
+        # pylint: disable=too-many-locals,too-many-branches,too-many-statements
         if not fuav.is_1d_like(instance):
             raise IncorrectShapeError('The instance to be explained should be '
                                       'a 1-dimensional numpy array or a row '
@@ -652,8 +671,8 @@ class CounterfactualExplainer(object):
         if not fuav.is_base_array(instance_2d):
             raise ValueError('The instance should be of a base type -- a '
                              'mixture of numerical and textual types.')
-        if not fuat.are_indices_valid(
-                instance_2d, np.array(list(self.all_indices))):
+        if not fuat.are_indices_valid(instance_2d,
+                                      np.array(list(self.all_indices))):
             raise IndexError('The indices used to initialise this class are '
                              'not valid for this data point.')
         if counterfactual_class is not None:
@@ -726,32 +745,75 @@ class CounterfactualExplainer(object):
         counterfactuals_predictions = counterfactuals_predictions[sorting]
 
         # Remove duplicates
-        counterfactuals, unique_idx = np.unique(counterfactuals,
-                                                return_index=True)
+        counterfactuals, unique_idx = np.unique(
+            counterfactuals, return_index=True)
         counterfactuals_distances = counterfactuals_distances[unique_idx]
         counterfactuals_predictions = counterfactuals_predictions[unique_idx]
 
-        return (counterfactuals,
-                counterfactuals_distances,
+        return (counterfactuals, counterfactuals_distances,
                 counterfactuals_predictions)
 
 
-def _validate_input(
-        model: Union[object, None],
-        predictive_function: Union[callable, None],
-        dataset: Union[np.ndarray, None],
-        categorical_indices: Union[List[Index], None],
-        numerical_indices: Union[List[Index], None],
-        counterfactual_feature_indices: Union[List[Index], None],
-        max_counterfactual_length: int,
-        feature_ranges: Union[Dict[Index, Union[Tuple[Number, Number],
-                                                List[Union[Number, str]]]],
-                              None],
-        distance_functions: Union[Dict[Index, callable], None],
-        step_sizes: Union[Dict[Index, Number], None],
-        default_numerical_step_size: Number) -> bool:
+def _categorical_distance(first_value: Union[Number, str],
+                          second_value: Union[Number, str]) -> int:
     """
-    Validates input given to initialise a ``CounterfactualExplainer`` class.
+    Defines the default categorical distance.
+
+    This distance simply checks whether values of both features are identical
+    -- 0 distance -- or different -- 1 distance.
+
+    Parameters
+    ----------
+    first_value : number or string
+        The first value to compare.
+    second_value : number or string
+        The second value to compare.
+
+    Returns
+    -------
+    distance : integer
+        A distance between the two input parameters.
+    """
+    assert isinstance(first_value, (Number, str)), 'Must be string or number.'
+    assert isinstance(second_value, (Number, str)), 'Must be string or number.'
+
+    distance = int(first_value != second_value)
+    return distance
+
+
+def _numerical_distance(first_value: Number, second_value: Number) -> Number:
+    """
+    Defines the default numerical distance.
+
+    This distance is simply the absolute value of the difference between the
+    two input parameters.
+
+    Parameters
+    ----------
+    first_value : number
+        The first value to compare.
+    second_value : number
+        The second value to compare.
+
+    Returns
+    -------
+    distance : number
+        A distance between the two input parameters.
+    """
+    assert isinstance(first_value, Number), 'Must be a number.'
+    assert isinstance(second_value, Number), 'Must be a number.'
+
+    distance = abs(first_value - second_value)  # type: ignore
+    return distance
+
+
+def _validate_input_one(model: Union[object, None],
+                        predictive_function: Union[Callable, None],
+                        dataset: Union[np.ndarray, None],
+                        categorical_indices: Union[List[Index], None],
+                        numerical_indices: Union[List[Index], None]) -> bool:
+    """
+    Validates the first part of input given to initialise the cf class.
 
     For the input parameters, warnings and the exceptions raised in this
     function please see the documentation of :class:`fatf.transparency.
@@ -762,91 +824,259 @@ def _validate_input(
     input_is_valid : boolean
         ``True`` if the input is valid, ``False`` otherwise.
     """
+    # pylint: disable=too-many-branches
+
     input_is_valid = False
+
     # Validate model/predictive function
     if model is not None:
         if not fumv.check_model_functionality(model):
-            raise RuntimeError('The model object requires a predict '
-                               'method to be used with this explainer.')
-        if predictive_function is not None:
-            if not isinstance(predictive_function, callable):
-                raise TypeError('The predictive_function parameter should be '
-                                'a python function.')
-            # The predictive function is to have one non-optional parameter
+            raise RuntimeError('The model object requires a "predict" method '
+                               'to be used with this explainer.')
+    if predictive_function is not None:
+        if not callable(predictive_function):
+            raise TypeError('The predictive_function parameter should be a '
+                            'Python function.')
+        # The predictive function is to have one non-optional parameter
+        required_param_n = 0
+        params = inspect.signature(predictive_function).parameters
+        for param in params:
+            if params[param].default is params[param].empty:
+                required_param_n += 1
+        if required_param_n != 1:
+            raise AttributeError('The predictive function requires exactly 1 '
+                                 'non-optional parameter: a data array to be '
+                                 'predicted.')
+
+    if model is None and predictive_function is None:
+        raise RuntimeError('You either need to specify a model or a '
+                           'predictive_function parameter to initialise a '
+                           'counterfactual explainer.')
+    elif model is not None and predictive_function is not None:
+        warnings.warn(
+            'Both a model and a predictive_function parameters were supplied. '
+            'A predictive functions takes the precedence during the '
+            'execution.', UserWarning)
+
+    # Validate data
+    if dataset is not None:
+        if not fuav.is_base_array(dataset):
+            raise ValueError('The dataset has to be of a base type (strings '
+                             'and/or numbers).')
+        if not fuav.is_2d_array(dataset):
+            raise IncorrectShapeError('The data array has to be '
+                                      '2-dimensional.')
+
+    # Validate categorical and numerical indices
+    if categorical_indices is not None:
+        if not isinstance(categorical_indices, list):
+            raise TypeError('categorical_indices parameter either has to be a '
+                            'list of indices or None.')
+    if numerical_indices is not None:
+        if not isinstance(numerical_indices, list):
+            raise TypeError('numerical_indices parameter either has to be a '
+                            'list of indices or None.')
+    # If both lists are given both cannot be empty, only one can be empty and
+    # they have to be disjoin
+    if categorical_indices is not None and numerical_indices is not None:
+        all_indices = categorical_indices + numerical_indices
+        if not all_indices:
+            raise ValueError('Both categorical_indices and numerical_indices '
+                             'parameters cannot be empty lists. If you want '
+                             'them to be inferred from a data array please '
+                             'leave these parameters set to None.')
+        if set(categorical_indices).intersection(numerical_indices):
+            raise ValueError('Some of the indices in the categorical_indices '
+                             'and numerical_indices parameters are repeated.')
+
+        indices_type = type(all_indices[0])
+        incorrect_type = False
+        # They have to be integers (non-structured) or strings (structured)
+        for i in all_indices:
+            if not isinstance(i, indices_type):
+                incorrect_type = True
+                break
+        if incorrect_type or indices_type not in (str, int):
+            raise TypeError('Some of the indices given in the '
+                            'categorical_indices and/or numerical_indices '
+                            'parameters do not share the same type. It is '
+                            'expected that indices for a classic numpy array '
+                            'will all be integers and for a structured numpy '
+                            'array they will be strings.')
+
+    input_is_valid = True
+    return input_is_valid
+
+
+def _validate_input_two(
+        numerical_indices: Set[Index],
+        categorical_indices: Set[Index],
+        all_indices: Set[Index],
+        counterfactual_feature_indices: Union[List[Index], None],
+        max_counterfactual_length: int,
+        feature_ranges: Union[Dict[Index, FeatureRange], None],
+        distance_functions: Union[Dict[Index, Callable], None],
+        step_sizes: Union[Dict[Index, Number], None],
+        default_numerical_step_size: Number) -> bool:  # yapf: disable
+    """
+    Validates the second part of input given to initialise the cf class.
+
+    For the input parameters, warnings and the exceptions raised in this
+    function please see the documentation of :class:`fatf.transparency.
+    predictions.counterfactuals.CounterfactualExplainer` class.
+
+    Returns
+    -------
+    input_is_valid : boolean
+        ``True`` if the input is valid, ``False`` otherwise.
+    """
+    # pylint: disable=too-many-branches,too-many-arguments,too-many-locals
+    # pylint: disable=too-many-statements
+
+    input_is_valid = False
+
+    assert isinstance(numerical_indices, set), 'Must be a set of indices.'
+    assert isinstance(categorical_indices, set), 'Must be a set of indices.'
+    assert isinstance(all_indices, set), 'Must be a set of indices.'
+    assert (numerical_indices.union(categorical_indices) == all_indices
+            and not numerical_indices.intersection(categorical_indices)), \
+        'Indices must be valid.'
+
+    # Validate that counterfactual_feature_indices are valid or None
+    if counterfactual_feature_indices is not None:
+        if not isinstance(counterfactual_feature_indices, list):
+            raise TypeError('counterfactual_feature_indices parameter either '
+                            'has to be a list of indices or None.')
+        if not counterfactual_feature_indices:
+            raise ValueError('counterfactual_feature_indices parameter cannot '
+                             'be an empty list. If you want all of the '
+                             'features to be used for counterfactuals '
+                             'generation leave this parameter unset or set it '
+                             'explicitly to None.')
+        if set(counterfactual_feature_indices).difference(all_indices):
+            raise IndexError('counterfactual_feature_indices list contains '
+                             'invalid indices.')
+
+    # max_counterfactual_length should be non-negative int
+    if not isinstance(max_counterfactual_length, int):
+        raise TypeError('The max_counterfactual_length parameter should be an '
+                        'integer.')
+    if max_counterfactual_length < 0:
+        raise ValueError('The max_counterfactual_length parameter should be a '
+                         'non-negative integer. If you want to generate '
+                         'counterfactuals with a full length (number of '
+                         'features), set this parameter to 0.')
+
+    # Feature ranges should either be None or a non-empty dictionary,
+    # with valid indices as keys and 2-tuples or lists as values
+    if feature_ranges is not None:
+        if not isinstance(feature_ranges, dict):
+            raise TypeError('The feature_ranges parameter has to be a '
+                            'dictionary or None.')
+        if not feature_ranges:
+            raise ValueError('The feature_ranges parameter cannot be an empty '
+                             'dictionary.')
+
+        if set(feature_ranges.keys()).difference(all_indices):
+            raise IndexError('Some of the indices (dictionary keys) in '
+                             'the feature_ranges parameter are not valid.')
+        # Verify supplied ranges
+        for column_index, column_range in feature_ranges.items():
+            if column_index in categorical_indices:
+                if not isinstance(column_range, list):
+                    raise TypeError('Categorical column range should be a '
+                                    'list of values to be used for the '
+                                    'counterfactuals generation process.')
+                if not column_range:
+                    raise ValueError('A list specifying the possible '
+                                     'values of a categorical feature '
+                                     'should not be empty.')
+                range_type = type(column_range[0])
+                for i in column_range:
+                    if not isinstance(i, range_type):
+                        raise TypeError('The possible values defined for '
+                                        'the *{}* feature do not share '
+                                        'the same type.'.format(column_index))
+            elif column_index in numerical_indices:
+                if not isinstance(column_range, tuple):
+                    raise TypeError('Numerical column range should be a '
+                                    'pair of numbers defining the lower '
+                                    'and the upper limits of the range.')
+                if len(column_range) != 2:
+                    raise ValueError('Numerical column range tuple should '
+                                     'just contain 2 numbers: the lower '
+                                     'and the upper bounds of the range '
+                                     'to be searched.')
+                if (not isinstance(column_range[0], Number)
+                        or not isinstance(column_range[1], Number)):
+                    raise TypeError('Both the lower and the upper bound '
+                                    "defining column's range should numbers.")
+                if column_range[1] < column_range[0]:  # type: ignore
+                    raise ValueError('The second element of a tuple '
+                                     'defining a numerical range should '
+                                     'be strictly larger than the first '
+                                     'element.')
+            else:
+                assert False, 'Unknown index.'
+
+    # Distance functions need to be defined for valid indices and
+    # they need to be Callable with two parameters
+    if distance_functions is not None:
+        if not isinstance(distance_functions, dict):
+            raise TypeError('The distance_functions parameter has to be a '
+                            'dictionary.')
+        if not distance_functions:
+            raise ValueError('The distance_functions parameter cannot be an '
+                             'empty dictionary.')
+
+        if set(distance_functions.keys()).difference(all_indices):
+            raise IndexError('Some of the indices (dictionary keys) in the '
+                             'distance_functions parameter are invalid.')
+
+        for key in distance_functions:
+            if not callable(distance_functions[key]):
+                raise TypeError('All of the distance functions defined via '
+                                'the distance_functions parameter have to be '
+                                'Python callable.')
             required_param_n = 0
-            params = inspect.signature(predictive_function).parameters
+            params = inspect.signature(distance_functions[key]).parameters
             for param in params:
                 if params[param].default is params[param].empty:
                     required_param_n += 1
-            if required_param_n != 1:
-                raise AttributeError('The predictive function requires '
-                                     'exactly 1 non-optional parameter: a '
-                                     'data array to be predicted.')
+            if required_param_n != 2:
+                raise AttributeError('Every distance function requires '
+                                     'exactly 2 non-optional parameters.')
 
-        if model is None and predictive_function is None:
-            raise RuntimeError('You either need to specify a model or a '
-                               'predictive_function parameter to initialise '
-                               'a counterfactual explainer.')
-        elif model is not None and predictive_function is not None:
-            warnings.warn(
-                'Both a model and a predictive_function parameters '
-                'were supplied. A predictive functions takes the '
-                'precedence during the execution.',
-                UserWarning)
+    # Check whether the keys in step sizes dictionary are valid indices and
+    # step sizes have to be positive numbers.
+    if step_sizes is not None:
+        if not isinstance(step_sizes, dict):
+            raise TypeError('The step_sizes parameter has to be a '
+                            'dictionary.')
+        if not step_sizes:
+            raise ValueError('The step_sizes parameter cannot be an empty '
+                             'dictionary.')
+        if set(step_sizes.keys()).difference(all_indices):
+            raise IndexError('Some of the indices (dictionary keys) in '
+                             'the step_sizes parameter are not valid.')
+        for i in step_sizes.values():
+            if not isinstance(i, Number):
+                raise TypeError('All of the step values contained in the '
+                                'step_sizes must be numbers.')
+            if i <= 0:  # type: ignore
+                raise ValueError('All of the step values contained in the '
+                                 'step_sizes must be positive numbers.')
 
-        # Validate data
-        if dataset is not None:
-            if not fuav.is_base_array(dataset):
-                raise ValueError('The dataset has to be of a base type '
-                                 '(strings and numbers).')
-            if not fuav.is_2d_array(dataset):
-                raise IncorrectShapeError('The data array has to be '
-                                          '2-dimensional.')
-            structured_dataset = fuav.is_structured_array(dataset)
-        else:
-            structured_dataset = None
+    # The default numerical step size has to be a positive number
+    if not isinstance(default_numerical_step_size, Number):
+        raise TypeError('The default_numerical_step_size parameter has to be '
+                        'a number.')
+    if default_numerical_step_size <= 0:  # type: ignore
+        raise ValueError('The default_numerical_step_size parameter has to be '
+                         'a positive number.')
 
-        # TODO
-        # Validate categorical and numerical indices
-        if categorical_indices is not None:
-            if not isinstance(categorical_indices, list):
-                raise TypeError('categorical_indices parameter either has to '
-                                'be a list or None.')
-        if numerical_indices is not None:
-            if not isinstance(numerical_indices, list):
-                raise TypeError('numerical_indices parameter either has to '
-                                'be a list or None.')
-        # All have to be either ints (non-structured) or strings (structured)
-        # they have to be valid for the array if given
-        # They have to be disjoin
-        # If both lists are given both cannot be empty, only one can be empty
-        # For structured array they have to be textual for normal array -- numerical
-
-
-        # Validate that counterfactual_feature_indices is either none or valid indices
-
-
-        # feature ranges should either be None or a non-empty dictionary
-        # with either nubers or srings as keys and 2-tuples or lists of the same type as values
-
-        # max_counterfactual_length should be non-negatiev int
-
-        # Check whether keys in step sizes dictinary arve valid faeatures
-
-
-        # Validate distance_finctions
-        # either None, or a non-empty dictionary
-
-        # Distances -- callabels must be with 2 parameters
-
-
-        # if not isinstance(idx_dist, Number):
-        # raise RuntimeError('The distance function defined for *{}* '
-        # 'feature does not return a number.')
-
-
-        input_is_valid = True
-        return input_is_valid
+    input_is_valid = True
+    return input_is_valid
 
 
 def textualise_counterfactuals(
@@ -880,6 +1110,8 @@ def textualise_counterfactuals(
         ``instance`` is not a 1-dimensional numpy array or any of
         ``counterfactuals``, ``counterfactuals_distances`` or
         ``counterfactuals_predictions`` is not a 2-dimensional numpy array.
+    IndexError
+        The ``counterfactuals`` and the ``instance`` column indices disagree.
     TypeError
         The ``instance_class`` parameter is neither an integer nor a string.
     ValueError
@@ -896,10 +1128,13 @@ def textualise_counterfactuals(
     textualisation : string
         A string representation of the ``counterfactuals``.
     """
+    # pylint: disable=too-many-branches,too-many-statements,too-many-locals
+
     if not fuav.is_1d_like(instance):
         raise IncorrectShapeError('The instance has to be a 1-dimensional '
                                   'numpy array.')
-    if not fuav.is_base_array(np.array([instance])):
+    instance_2d = np.array([instance])
+    if not fuav.is_base_array(instance_2d):
         raise ValueError('The instance has to be of a base type (strings '
                          'and/or numbers).')
     #
@@ -955,13 +1190,18 @@ def textualise_counterfactuals(
     else:
         feature_names = list(range(counterfactuals.shape[1]))
 
+    # These have to be valid indices for the instance
+    if not fuat.are_indices_valid(instance_2d, np.array(feature_names)):
+        raise IndexError('The counterfactuals and instance column indices do '
+                         'not agree.')
+
     if instance_class is None:
         inctance_class_str = ''
     else:
         inctance_class_str = ' (of class {})'.format(instance_class)
     output = ['Instance{}:'.format(inctance_class_str),
               '{}\n'.format(instance),
-              'Feature names: {}\n'.format(feature_names)]
+              'Feature names: {}\n'.format(feature_names)]  # yapf: disable
 
     for i in range(counterfactuals.shape[0]):
         if counterfactuals_predictions is None:
@@ -969,8 +1209,8 @@ def textualise_counterfactuals(
         else:
             cf_instance_class_str = ' (of class {})'.format(
                 counterfactuals_predictions[i])
-        output.append('Counterfactual instance{}:'.format(
-            cf_instance_class_str))
+        output.append(
+            'Counterfactual instance{}:'.format(cf_instance_class_str))
 
         if counterfactuals_distances is not None:
             output.append('Distance: {}'.format(counterfactuals_distances[i]))

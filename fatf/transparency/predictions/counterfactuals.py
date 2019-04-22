@@ -153,13 +153,16 @@ class CounterfactualExplainer(object):
         The ``dataset`` array is not 2-dimensional.
     IndexError
         Some of the ``categorical_indices`` or ``numerical_indices`` are not
-        valid for the input ``dataset``, when the latter is given. The union of
-        categorical and numerical indices does not form a series of consecutive
-        integers when the ``dataset`` array is a classic numpy array. Some of
-        the ``counterfactual_feature_indices`` are not valid. Some of the
-        indices (dictionary keys) in the ``feature_ranges``,
-        ``distance_functions`` or ``step_sizes`` parameters are not valid
-        (consistent with the provided column indices).
+        valid for the input ``dataset``, when the latter is given. When both
+        ``categorical_indices`` and ``numerical_indices`` parameters are given
+        alongside a ``dataset`` they do not cover all of the ``dataset``
+        arrays' column indices. The union of categorical and numerical indices
+        does not form a series of consecutive integers when the ``dataset``
+        array is a classic numpy array. Some of the
+        ``counterfactual_feature_indices`` are not valid. Some of the indices
+        (dictionary keys) in the ``feature_ranges``, ``distance_functions`` or
+        ``step_sizes`` parameters are not valid (consistent with the provided
+        column indices).
     RuntimeError
         The ``model`` object, if provided, lacks a ``predict`` method. Neither
         ``model`` nor ``predictive_function`` was specified -- one of these is
@@ -269,8 +272,7 @@ class CounterfactualExplainer(object):
             self.predict = predictive_function
 
         # Choose categorical and numerical indices
-        if ((categorical_indices is None or numerical_indices is None)
-                and dataset is not None):
+        if dataset is not None:
             num_ind, cat_ind = fuat.indices_by_type(dataset)
             num_ind = set(num_ind.tolist())
             cat_ind = set(cat_ind.tolist())
@@ -292,16 +294,28 @@ class CounterfactualExplainer(object):
                 if _categorical_indices.difference(all_indices):
                     raise IndexError('Some of the categorical_indices are not '
                                      'valid for the given array.')
+            elif (categorical_indices is not None
+                  and numerical_indices is not None):
+                _categorical_indices = set(categorical_indices)
+                _numerical_indices = set(numerical_indices)
+                if all_indices.difference(_categorical_indices).difference(
+                        _numerical_indices):
+                    raise IndexError('The numerical_indices and the '
+                                     'categorical_indices parameters do not '
+                                     'cover all of the columns in the given '
+                                     'dataset array.')
             else:
                 _categorical_indices = cat_ind
                 _numerical_indices = num_ind
 
-            if cat_ind.difference(_categorical_indices):
+            if (cat_ind.difference(_categorical_indices)
+                    and categorical_indices is not None):
                 raise ValueError('Some of the categorical indices (textual '
                                  'columns) in the array were not indicated to '
                                  'be categorical by the user. Textual columns '
                                  'must not be treated as numerical features.')
-            if cat_ind.intersection(_numerical_indices):
+            if (cat_ind.intersection(_numerical_indices)
+                    and numerical_indices is not None):
                 raise ValueError('Some of the categorical fields in the input '
                                  'data set were indicated to be numerical '
                                  'indices via the numerical_indices '
@@ -1011,13 +1025,13 @@ def _validate_input_two(
                         or not isinstance(column_range[1], Number)):
                     raise TypeError('Both the lower and the upper bound '
                                     "defining column's range should numbers.")
-                if column_range[1] < column_range[0]:  # type: ignore
+                if column_range[1] <= column_range[0]:  # type: ignore
                     raise ValueError('The second element of a tuple '
                                      'defining a numerical range should '
                                      'be strictly larger than the first '
                                      'element.')
             else:
-                assert False, 'Unknown index.'
+                assert False, 'Unknown index.'  # pragma: nocover
 
     # Distance functions need to be defined for valid indices and
     # they need to be Callable with two parameters
@@ -1114,6 +1128,8 @@ def textualise_counterfactuals(
         The ``counterfactuals`` and the ``instance`` column indices disagree.
     TypeError
         The ``instance_class`` parameter is neither an integer nor a string.
+        The types of the ``instance`` and the ``counterfactuals`` arrays are
+        different.
     ValueError
         The ``instance`` is not of a base type (strings and/or numbers);
         the ``counterfactuals`` is not of a base type; the
@@ -1121,7 +1137,9 @@ def textualise_counterfactuals(
         ``counterfactuals_predictions`` is not a base array. Either the length
         of the ``counterfactuals_distances`` array or of the
         ``counterfactuals_predictions`` array is not the same as the number of
-        rows in the ``counterfactuals`` array.
+        rows in the ``counterfactuals`` array. The type of the
+        ``instance_class`` is different than the type of the
+        ``counterfactuals_predictions`` array.
 
     Returns
     -------
@@ -1144,6 +1162,16 @@ def textualise_counterfactuals(
     if not fuav.is_base_array(counterfactuals):
         raise ValueError('The counterfactuals array has to be of a base type '
                          '(strings and/or numbers).')
+    #
+    if not fuav.are_similar_dtype_arrays(instance_2d, counterfactuals):
+        raise TypeError('The type of the instance and the counterfactuals '
+                        'arrays do not agree.')
+    # These have to be valid indices for the instance
+    if not fuav.is_structured_array(counterfactuals):
+        if counterfactuals.shape[1] != instance.shape[0]:
+            raise IndexError('The counterfactuals and instance column indices '
+                             'do not agree. (The two arrays have different '
+                             'number of columns.)')
     #
     if instance_class is not None:
         if not isinstance(instance_class, (int, str, np.int32, np.int64)):
@@ -1173,8 +1201,12 @@ def textualise_counterfactuals(
             raise ValueError('The counterfactuals_predictions array should be '
                              'of the same length as the number of rows in the '
                              'counterfactuals array.')
-
-    cf_template = '    feature *{}*: "{}" -> "{}"'
+        if instance_class is not None:
+            if not fuav.are_similar_dtype_arrays(
+                    np.array([instance_class]), counterfactuals_predictions):
+                raise ValueError('The type of the instance_class is different '
+                                 'than the type of the '
+                                 'counterfactuals_predictions array.')
 
     # Sort the counterfactuals in case they are not sorted
     if counterfactuals_distances is not None:
@@ -1190,24 +1222,21 @@ def textualise_counterfactuals(
     else:
         feature_names = list(range(counterfactuals.shape[1]))
 
-    # These have to be valid indices for the instance
-    if not fuat.are_indices_valid(instance_2d, np.array(feature_names)):
-        raise IndexError('The counterfactuals and instance column indices do '
-                         'not agree.')
-
     if instance_class is None:
         inctance_class_str = ''
     else:
-        inctance_class_str = ' (of class {})'.format(instance_class)
+        inctance_class_str = ' (of class *{}*)'.format(instance_class)
     output = ['Instance{}:'.format(inctance_class_str),
               '{}\n'.format(instance),
               'Feature names: {}\n'.format(feature_names)]  # yapf: disable
+
+    cf_template = '    feature *{}*: *{}* -> *{}*'
 
     for i in range(counterfactuals.shape[0]):
         if counterfactuals_predictions is None:
             cf_instance_class_str = ''
         else:
-            cf_instance_class_str = ' (of class {})'.format(
+            cf_instance_class_str = ' (of class *{}*)'.format(
                 counterfactuals_predictions[i])
         output.append(
             'Counterfactual instance{}:'.format(cf_instance_class_str))

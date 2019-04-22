@@ -49,6 +49,8 @@ def _validate_input(ice_pdp_array: np.ndarray,
         sampled.
     class_index : integer
         The index of the class for which the plot will be created.
+    treat_as_categorical : boolean
+        Whether or not to treat the feature as categorical
     feature_name : string or None
         The name of the feature for which ICE or PD was originally calculated.
     class_name : string or None
@@ -97,7 +99,7 @@ def _validate_input(ice_pdp_array: np.ndarray,
 
     if (treat_as_categorical is not None and 
             not isinstance(treat_as_categorical, bool)):
-        raise TypeError('treat_as_categorical is not a boolean') 
+        raise TypeError('treat_as_categorical is not a boolean.') 
 
     if fuav.is_structured_array(ice_pdp_array):
         raise ValueError('The input array cannot be a structured array.')
@@ -174,6 +176,8 @@ def _validate_input(ice_pdp_array: np.ndarray,
 def _validate_feature(feature_distribution: List[np.ndarray],
                       treat_as_categorical: bool,
                       feature_name: Union[None, str],
+                      feature_linespace: Union[None, np.ndarray],
+                      test_feature_linespace: bool,
                       plot_axis: Union[None, plt.Axes]) -> bool:
     """
     Validates input for feature distribution function.
@@ -185,6 +189,15 @@ def _validate_feature(feature_distribution: List[np.ndarray],
     ----------
     feature_distribution : List[numpy.ndarray]
         A list of numpy.ndarray 
+    treat_as_categorical : boolean
+        Whether or not to treat the feature as categorical
+    feature_name : string or None
+        The name of the feature for which ICE or PD was originally calculated.
+    feature_linespace : numpy.ndarray
+        An array that contains the values for which the selected feature was
+        sampled.
+    test_feature_linespace : boolean
+        Whether to not to test if feature_linespace agrees with 
     Returns
     -------
     input_is_valid : boolean
@@ -199,11 +212,14 @@ def _validate_feature(feature_distribution: List[np.ndarray],
     if feature_name is not None and not isinstance(feature_name, str):
         raise TypeError('The feature name has to be either None or a string.')
 
+    if not isinstance(test_feature_linespace, bool):
+        raise TypeError('test_feature_linespace is not a boolean.')
+
     if not isinstance(treat_as_categorical, bool):
-        raise TypeError('treat_as_categorical is not a boolean')
+        raise TypeError('treat_as_categorical is not a boolean.')
 
     if not isinstance(feature_distribution, list):
-        raise TypeError('Feature distribution has to be a list')
+        raise TypeError('Feature distribution has to be a list.')
 
     if len(feature_distribution) != 2:
         raise ValueError('Feature distribution has to be a list of length 2 '
@@ -244,6 +260,16 @@ def _validate_feature(feature_distribution: List[np.ndarray],
                              'to define Gaussian Kernel, values and counts '
                              'must be of the same shape.'.format(
                              values.shape[0], counts.shape[0]))
+    # test_feature_linespace only called from PD and ICE plotting functions
+    # so feature_linespace has already been validated.
+    if test_feature_linespace and treat_as_categorical:
+        # Need to test if treat_as_Categorical then value should be identical
+        # to feature_linespace
+        if not set(values) == set(feature_linespace):
+            raise ValueError('To plot the feature distribution of categorical '
+                             'features, the values array in '
+                             'feature_distribution[0] must contain all values '
+                             'of feature_linespace in it.')
     input_is_valid = True
     return input_is_valid
 
@@ -449,8 +475,9 @@ def plot_feature_distribution(
     plot_axis : matplotlib.pyplot.Axes
         A matplotlib axes with the feature distribution plot.
     """
-    assert _validate_feature(feature_distribution, treat_as_categorical,
-                             feature_name, plot_axis), 'Input is invalid.'
+    assert _validate_feature(
+        feature_distribution, treat_as_categorical, feature_name, None, 
+        False, plot_axis), 'Input is invalid.'
     values, counts = feature_distribution
     x_range = [values[0], values[-1]]
     if plot_axis is None:
@@ -508,7 +535,7 @@ def plot_individual_conditional_expectation(
         class_name: Optional[str] = None,
         feature_distribution : Optional[List[np.ndarray]] = None,
         plot_axis: Optional[plt.Axes] = None
-) -> Tuple[Union[plt.Figure, None], plt.Axes]:
+) -> Tuple[Union[plt.Figure, None], Union[plt.Axes, List[plt.Axes]]]:
     """
     Plots Individual Conditional Expectation for a selected class.
 
@@ -565,6 +592,13 @@ def plot_individual_conditional_expectation(
                            treat_as_categorical, feature_name, class_name,
                            plot_axis, None, False,
                            False), 'Input is invalid.'
+    plot_distribution = feature_distribution is not None and \
+        isinstance(feature_distribution[0], np.ndarray)
+    if plot_distribution:
+        assert _validate_feature(
+            feature_distribution, treat_as_categorical, feature_name,
+            feature_linespace, True, None), 'Input is invalid'
+
     assert isinstance(treat_as_categorical, bool), 'treat_as_categorical -> bool'
     assert feature_distribution is None or \
         isinstance(feature_distribution, list), 'feature_distribution -> list'
@@ -574,8 +608,6 @@ def plot_individual_conditional_expectation(
                              len(feature_linespace))
     else:
         x_range = [feature_linespace[0], feature_linespace[-1]]
-    plot_distribution = feature_distribution is not None and \
-        isinstance(feature_distribution[0], np.ndarray)
     plot_title = 'Individual Conditional Expectation'
     plot_figure, plot_axis = _prepare_a_canvas(
         plot_title, plot_axis, class_index, class_name, feature_name, x_range,
@@ -592,8 +624,9 @@ def plot_individual_conditional_expectation(
             counts = counts[idx]
             feature_distribution = [values, counts]
         (plot_axis, dist_axis) = plot_axis
-        dist_axis = plot_feature_distribution(feature_distribution, None,
-                                              plot_axis=dist_axis)
+        _, dist_axis = plot_feature_distribution(
+            feature_distribution, treat_as_categorical, None, 
+            plot_axis=dist_axis)
     if treat_as_categorical:
         data = ice_array[:, :, class_index]
         parts = plot_axis.violinplot(data, positions=x_locs)
@@ -615,24 +648,27 @@ def plot_individual_conditional_expectation(
         plot_axis.add_collection(line_collection)
         plot_axis.legend()
 
+    if plot_distribution:
+        plot_axis = [plot_axis, dist_axis]
+
     if isinstance(plot_figure, plt.Figure):
         plot_figure.tight_layout()
 
     return plot_figure, plot_axis
 
 
-def plot_partial_dependence(pd_array: np.ndarray,
-                            feature_linespace: np.ndarray,
-                            class_index: int,
-                            treat_as_categorical: bool = False,
-                            variance: Optional[np.ndarray] = None,
-                            variance_area: Optional[bool] = False,
-                            feature_name: Optional[str] = None,
-                            class_name: Optional[str] = None,
-                            feature_distribution : Optional[List[np.ndarray]] 
-                                                    = None,
-                            plot_axis: Optional[plt.Axes] = None
-                            ) -> Tuple[Union[plt.Figure, None], plt.Axes]:
+def plot_partial_dependence(
+        pd_array: np.ndarray,
+        feature_linespace: np.ndarray,
+        class_index: int,
+        treat_as_categorical: bool = False,
+        variance: Optional[np.ndarray] = None,
+        variance_area: Optional[bool] = False,
+        feature_name: Optional[str] = None,
+        class_name: Optional[str] = None,
+        feature_distribution : Optional[List[np.ndarray]] = None,
+        plot_axis: Optional[plt.Axes] = None
+) -> Tuple[Union[plt.Figure, None], Union[plt.Axes, List[plt.Axes]]]:
     """
     Plots Partial Dependence for a selected class.
 
@@ -702,6 +738,13 @@ def plot_partial_dependence(pd_array: np.ndarray,
                            treat_as_categorical, feature_name, class_name,
                            plot_axis, variance, variance_area,
                            True), 'Input is invalid.'
+    plot_distribution = feature_distribution is not None and \
+        isinstance(feature_distribution[0], np.ndarray)
+    if plot_distribution:
+        assert _validate_feature(
+            feature_distribution, treat_as_categorical, feature_name,
+            feature_linespace, True, None), 'Input is invalid'
+
     assert isinstance(treat_as_categorical, bool), \
         'treat_as_categorical -> bool'
     assert feature_distribution is None or \
@@ -714,8 +757,6 @@ def plot_partial_dependence(pd_array: np.ndarray,
                              len(feature_linespace))
     else:
         x_range = [feature_linespace[0], feature_linespace[-1]]
-    plot_distribution = feature_distribution is not None and \
-        isinstance(feature_distribution[0], np.ndarray)
     plot_figure, plot_axis = _prepare_a_canvas(
         plot_title, plot_axis, class_index, class_name, feature_name, x_range,
         plot_distribution)
@@ -731,8 +772,8 @@ def plot_partial_dependence(pd_array: np.ndarray,
             values = values[idx]
             counts = counts[idx]
             feature_distribution = [values, counts]
-        dist_axis = plot_feature_distribution(
-            feature_linespace, feature_distribution, None, plot_axis=dist_axis)
+        _, dist_axis = plot_feature_distribution(
+            feature_distribution, treat_as_categorical, None, dist_axis)
 
     if treat_as_categorical:
         yerr = variance[:, class_index] if isinstance(variance,np.ndarray) \

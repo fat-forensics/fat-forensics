@@ -171,6 +171,83 @@ def _validate_input(ice_pdp_array: np.ndarray,
     return input_is_valid
 
 
+def _validate_feature(feature_distribution: List[np.ndarray],
+                      treat_as_categorical: bool,
+                      feature_name: Union[None, str],
+                      plot_axis: Union[None, plt.Axes]) -> bool:
+    """
+    Validates input for feature distribution function.
+
+    Validates input parameters for
+    :func:`fatf.vis.feature_influence.plot_feature_distribution`
+
+    Parameters
+    ----------
+    feature_distribution : List[numpy.ndarray]
+        A list of numpy.ndarray 
+    Returns
+    -------
+    input_is_valid : boolean
+        ``True`` if the input is valid, ``False`` otherwise.
+    """
+    input_is_valid = False
+
+    if plot_axis is not None and not isinstance(plot_axis, plt.Axes):
+        raise TypeError('The plot axis has to be either None or a matplotlib.'
+                        'pyplot.Axes type object.')
+    
+    if feature_name is not None and not isinstance(feature_name, str):
+        raise TypeError('The feature name has to be either None or a string.')
+
+    if not isinstance(treat_as_categorical, bool):
+        raise TypeError('treat_as_categorical is not a boolean')
+
+    if not isinstance(feature_distribution, list):
+        raise TypeError('Feature distribution has to be a list')
+
+    if len(feature_distribution) != 2:
+        raise ValueError('Feature distribution has to be a list of length 2 '
+                         'where the first element is a values array and the '
+                         'second element is a counts array.')
+
+    for i in range(2):
+        if not isinstance(feature_distribution[i], np.ndarray):
+            raise TypeError('The {} element in feature_distribution array '
+                            'must be of type np.ndarray.'.format(i))
+        if fuav.is_structured_array(feature_distribution[i]):
+            raise TypeError('The {} element in feature_distribution array '
+                            'cannot be a structured array.'.format(i))
+
+    values, counts = feature_distribution
+    if not fuav.is_numerical_array(counts):
+        raise ValueError('The 1 element of feature_distribution has to be a '
+                         'numerical array.')
+    if treat_as_categorical:
+        if values.shape[0] != counts.shape[0]:
+            raise ValueError('For categorical data, values and counts array '
+                             'must be of the same shape.')
+        else:
+            if counts.max() > 1.0:
+                raise ValueError('Distribution cannot have value more than '
+                                 '1.0')
+    else:
+        # Histogram or bar plot
+        if (values.shape[0] == counts.shape[0] + 1):
+            if counts.max() > 1.0:
+                raise ValueError('Distribution cannot have value more than '
+                                 '1.0')
+        # KDE needs to have values.shape[0] == counts.shape[0]
+        elif not values.shape[0] == counts.shape[0]:
+            raise ValueError('Values shape {} and counts shape {} do not '
+                             'agree. In order to define histograms, values has '
+                             'to be of shape (counts.shape[0]+1, ). In order '
+                             'to define Gaussian Kernel, values and counts '
+                             'must be of the same shape.'.format(
+                             values.shape[0], counts.shape[0]))
+    input_is_valid = True
+    return input_is_valid
+
+
 def _prepare_a_canvas(
         plot_title: str,
         plot_axis: Union[None, plt.Axes],
@@ -319,25 +396,19 @@ def _prepare_a_canvas(
 
 
 def plot_feature_distribution(
-        feature_linespace: np.ndarray,
         feature_distribution : List[np.ndarray],
+        treat_as_categorical: bool = False,
         feature_name: Optional[str] = None,
         plot_axis: Optional[plt.Axes] = None
 ) -> Tuple[Union[plt.Figure, None], plt.Axes]:
     """
     Plots a feature distribution.
 
-    For additional exceptions raised by this function please see the
-    documentation of :func:`fatf.vis.feature_influence._prepare_a_canvas`
+    For  exceptions raised by this function please see the documentation of 
+    :func:`fatf.vis.feature_influence._validate_feature`
 
     explain different configurations of plotting the feature distribution
 
-    Raises
-    ------
-    TypeError:
-        If `plot_axis` is not None or plt.Axes, if `feature_name` is not None
-        or string and if `feature_distribution` is not a List of length 2 both
-        of type numpy.ndarray.
 
     Parameters
     ----------
@@ -378,36 +449,8 @@ def plot_feature_distribution(
     plot_axis : matplotlib.pyplot.Axes
         A matplotlib axes with the feature distribution plot.
     """
-    if plot_axis is not None and not isinstance(plot_axis, plt.Axes):
-        raise TypeError('The plot axis has to be either None or a matplotlib.'
-                        'pyplot.Axes type object.')
-    
-    if feature_name is not None and not isinstance(feature_name, str):
-        raise TypeError('The feature name has to be either None or a string.')
-
-    if not isinstance(feature_linespace, np.ndarray):
-        raise TypeError('Feature_linespace must be numpy.ndarray.')
-
-    if fuav.is_structured_array(feature_linespace):
-        raise ValueError('The linespace array cannot be a structured array.')
-
-    if not fuav.is_1d_array(feature_linespace):
-        raise IncorrectShapeError('The linespace array has to be a '
-                                  '1-dimensional array of shape (n_steps, ).')
-
-    if not isinstance(feature_distribution, list):
-        raise TypeError('Feature distribution has to be a list')
-
-    if len(feature_distribution) != 2:
-        raise ValueError('Feature distribution has to be a list of length 2 '
-                         'where the first element is a values array and the '
-                         'second element is a counts array.')
-
-    for i in range(2):
-        if not isinstance(feature_distribution[i], np.ndarray):
-            raise TypeError('The {} element in feature_distribution array '
-                            'must be of type np.ndarray.'.format(i))
-
+    assert _validate_feature(feature_distribution, treat_as_categorical,
+                             feature_name, plot_axis), 'Input is invalid.'
     values, counts = feature_distribution
     x_range = [values[0], values[-1]]
     if plot_axis is None:
@@ -417,16 +460,12 @@ def plot_feature_distribution(
             plot_title, plot_axis, 0, None, feature_name, x_range,
             False)
         plot_axis.set_ylabel('Density')
-        print(plot_axis.get_xlabel())
     else:
         plot_figure = None
-
+    plot_axis.set_ylim([0, 1.05])
     if values.shape[0] == counts.shape[0] + 1:
-        if counts.max() > 1.0:
-            raise ValueError('Distribution cannot have value more than 1.0')
         # Histogram
         plot_axis.set_xlim([values[0], values[-1]])
-        plot_axis.set_ylim([0, 1.05])
         widths = [values[i+1]-values[i] for i in range(len(values)-1)]
         bars = plot_axis.bar(values[:-1], counts, width=widths,
                                 align='edge', alpha=0.6, color='royalblue')
@@ -434,18 +473,10 @@ def plot_feature_distribution(
             height = bar.get_height()
             plot_axis.text(bar.get_x() + bar.get_width()/2.0, height,
                         '%.2f' % height, ha='center', va='bottom')
-    elif set(values) == set(feature_linespace):
-        if counts.max() > 1.0:
-            raise ValueError('Distribution cannot have value more than 1.0')
-        # Get counts in the same order as feature_linespace
-        xsorted = np.argsort(values)
-        ypos = np.searchsorted(values[xsorted], feature_linespace)
-        idx = xsorted[ypos]
-        values = values[idx]
-        counts = counts[idx]
+    elif treat_as_categorical:
         # Bar plot
-        x_locs = np.linspace(0, feature_linespace.shape[0], 
-                             len(feature_linespace))
+        x_locs = np.linspace(0, values.shape[0], 
+                             len(values))
         bars = plot_axis.bar(x_locs, counts, alpha=0.6, color='royalblue')
         for bar in bars:
             height = bar.get_height()
@@ -453,25 +484,18 @@ def plot_feature_distribution(
                         '%.2f' % height, ha='center', va='bottom')
     elif values.shape[0] == counts.shape[0]:
         # KDE
+        plot_axis.set_ylim([-0.05, 1.05])
         plot_axis.set_xlabel('KDE fit to feature')
         plot_axis.plot(values,
                         counts,
                         linewidth=3,
                         alpha=0.6,
                         color='royalblue')
+        plot_axis.set_xlim([values[0], values[-1]])
         # As KDE is defined as the integral being equal to one, some values can
         # exceed 1.0 and as such we need to set the y_lim of the axes.
         if np.any(counts > 1.0):
             plot_axis.set_ylim([-0.05, np.max(counts)+0.05])
-    else:
-        raise ValueError('Values shape {} and counts shape {} do not agree. '
-                         'In order to define histograms, values has to be of '
-                         'shape (counts.shape[0]+1, ). In rder to define '
-                         'categorical counts, the set of values given has to '
-                         'be equal to the set of feature_linespace. In order '
-                         'to define Gaussian Kernel, values and counts must '
-                         'be of the same shape.'.format(values.shape[0],
-                         counts.shape[0]))
     return plot_figure, plot_axis
 
 
@@ -558,9 +582,18 @@ def plot_individual_conditional_expectation(
         plot_distribution)
 
     if plot_distribution:
+        if treat_as_categorical:
+            # Get feature_distribution in same order as feature_linespace
+            values, counts = feature_distribution
+            xsorted = np.argsort(values)
+            ypos = np.searchsorted(values[xsorted], feature_linespace)
+            idx = xsorted[ypos]
+            values = values[idx]
+            counts = counts[idx]
+            feature_distribution = [values, counts]
         (plot_axis, dist_axis) = plot_axis
-        dist_axis = plot_feature_distribution(
-            feature_linespace, feature_distribution, None, plot_axis=dist_axis)
+        dist_axis = plot_feature_distribution(feature_distribution, None,
+                                              plot_axis=dist_axis)
     if treat_as_categorical:
         data = ice_array[:, :, class_index]
         parts = plot_axis.violinplot(data, positions=x_locs)
@@ -689,6 +722,15 @@ def plot_partial_dependence(pd_array: np.ndarray,
 
     if plot_distribution:
         (plot_axis, dist_axis) = plot_axis
+        if treat_as_categorical:
+            # Get feature_distribution in same order as feature_linespace
+            values, counts = feature_distribution
+            xsorted = np.argsort(values)
+            ypos = np.searchsorted(values[xsorted], feature_linespace)
+            idx = xsorted[ypos]
+            values = values[idx]
+            counts = counts[idx]
+            feature_distribution = [values, counts]
         dist_axis = plot_feature_distribution(
             feature_linespace, feature_distribution, None, plot_axis=dist_axis)
 

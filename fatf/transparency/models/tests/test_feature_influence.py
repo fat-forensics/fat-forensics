@@ -72,21 +72,43 @@ NUMERICAL_NP_ICE = np.array([
     [[0.0, 0., 1.0],
      [0.5, 0., 0.5],
      [0.5, 0., 0.5]]])
+NUMERICAL_NP_ICE_REGRESSION = np.array([
+    [[0.],
+    [0.],
+    [0.]],
+    [[2.],
+    [1.],
+    [1.]]])
 NUMERICAL_NP_PD = np.array([
     [0.50, 0.0, 0.50],
     [0.75, 0.0, 0.25],
     [0.75, 0.0, 0.25]])
+NUMERICAL_NP_PD_REGRESSION = np.array([
+    [1.],
+    [0.5],
+    [0.5]])
 NUMERICAL_NP_ICE_CAT = np.array([
     [[1., 0., 0.],
      [1., 0., 0.]],
     [[0.0, 0., 1.0],
      [0.5, 0., 0.5]]])
+NUMERICAL_NP_ICE_CAT_REGRESSION = np.array([
+    [[0.],
+    [0.]],
+    [[2.],
+    [1.]]])
 NUMERICAL_NP_PD_CAT = np.array([
     [0.50, 0.0, 0.50],
     [0.75, 0.0, 0.25]])
+NUMERICAL_NP_PD_CAT_REGRESSION = np.array([
+    [1.],
+    [0.5]])
 NUMERICAL_NP_ICE_100 = np.array(
     [100 * [[1.0, 0.0, 0.0]],
      46 * [[0.0, 0.0, 1.0]] + 54 * [[0.5, 0.0, 0.5]]])
+NUMERICAL_NP_ICE_100_REGRESSION = np.array(
+    [100 * [[0.0]],
+     46 * [[2.0]] + 54 * [[1.0]]])
 NUMERICAL_NP_PD_100 = np.array(
     46 * [[0.5, 0.0, 0.5]] + 54 * [[0.75, 0.00, 0.25]])
 NUMERICAL_NP_LINESPACE = np.array([0.32, 0.41, 0.5])
@@ -115,6 +137,11 @@ CATEGORICAL_NP_ICE = np.array([
      [0.5, 0.5]],
     [[0.0, 1.0],
      [0.0, 1.0]]])
+CATEGORICAL_NP_ICE_REGRESSION = np.array([
+    [[0.5,],
+     [0.5]],
+    [[1.0],
+     [1.0]]])
 CATEGORICAL_NP_PD = np.array([
     [0.25, 0.75],
     [0.25, 0.75]])
@@ -129,6 +156,7 @@ MIXED_ARRAY_TEST = np.array(
      (1, 'f', 0.07, 'bb')],
     dtype=[('a', 'i'), ('b', 'U1'), ('c', 'f'), ('d', 'U2')])
 MIXED_ARRAY_TARGET = np.array(['a', 'b', 'c', 'a', 'b', 'c'])
+MIXED_ARRAY_TARGET_REGRESSION = np.array([0, 1, 2, 0, 1, 2])
 MIXED_ICE_NUMERICAL = np.array([
     [[1.0, 0.0, 0.0],
      [1.0, 0.0, 0.0],
@@ -136,6 +164,13 @@ MIXED_ICE_NUMERICAL = np.array([
     [[0.0, 0.5, 0.5],
      [0.0, 0.5, 0.5],
      [0.0, 0.5, 0.5]]])
+MIXED_ICE_NUMERICAL_REGRESSION = np.array([
+    [[0.0],
+     [0.0],
+     [0.0]],
+    [[1.5],
+     [1.5],
+     [1.5]]])
 MIXED_PD_NUMERICAL = np.array([
     [0.5, 0.25, 0.25],
     [0.5, 0.25, 0.25],
@@ -145,12 +180,16 @@ MIXED_VARIANCE_NUMERICAL = np.array([
     [0.25, 0.0625, 0.0625],
     [0.25, 0.0625, 0.0625],
     [0.25, 0.0625, 0.0625]])
-
 MIXED_ICE_CATEGORICAL = np.array([
     [[1.0, 0.0, 0.0],
      [0.5, 0.5, 0.0]],
     [[0.5, 0.0, 0.5],
      [0.0, 0.5, 0.5]]])
+MIXED_ICE_CATEGORICAL_REGRESSION = np.array([
+    [[0.0],
+     [0.5]],
+    [[1.0],
+     [1.5]]])
 MIXED_PD_CATEGORICAL = np.array([
     [0.75, 0.0, 0.25],
     [0.25, 0.5, 0.25]])
@@ -859,6 +898,79 @@ def test_individual_conditional_expectation():
     ice, linespace = ftmfi.individual_conditional_expectation(
         MIXED_ARRAY_TEST, clf, 'b', include_rows=[0, 2], exclude_rows=1)
     assert np.allclose(ice, MIXED_ICE_CATEGORICAL)
+    assert np.array_equal(linespace, MIXED_LINESPACE_CATEGORICAL)
+
+    # Test Regression
+    clf = fum.KNN(k=2, mode='regressor')
+    clf.fit(NUMERICAL_NP_ARRAY, NUMERICAL_NP_ARRAY_TARGET.astype(np.float32))
+
+    ice, linespace = ftmfi.individual_conditional_expectation(
+        NUMERICAL_NP_ARRAY_TEST, clf, 3, 'regressor', steps_number=3)
+    assert np.allclose(ice, NUMERICAL_NP_ICE_REGRESSION)
+    assert np.allclose(linespace, NUMERICAL_NP_LINESPACE)
+
+    ice, linespace = ftmfi.individual_conditional_expectation(
+        NUMERICAL_NP_ARRAY_TEST, clf, 3, 'regressor', treat_as_categorical=True)
+    assert np.allclose(ice, NUMERICAL_NP_ICE_CAT_REGRESSION)
+    assert np.allclose(linespace, NUMERICAL_NP_LINESPACE_CAT)
+
+    ice, linespace = ftmfi.individual_conditional_expectation(
+        NUMERICAL_NP_ARRAY_TEST, clf, 3, 'regressor')
+    assert np.allclose(ice, NUMERICAL_NP_ICE_100_REGRESSION)
+    assert np.allclose(linespace, NUMERICAL_NP_LINESPACE_100)
+
+    clf = fum.KNN(k=2, mode='regressor')
+    clf.fit(NUMERICAL_STRUCT_ARRAY, 
+            NUMERICAL_NP_ARRAY_TARGET.astype(np.float32))
+
+    ice, linespace = ftmfi.individual_conditional_expectation(
+        NUMERICAL_STRUCT_ARRAY_TEST, clf, 'd', 'regressor', steps_number=3)
+    assert np.allclose(ice, NUMERICAL_NP_ICE_REGRESSION)
+    assert np.allclose(linespace, NUMERICAL_NP_LINESPACE)
+
+    ice, linespace = ftmfi.individual_conditional_expectation(
+        NUMERICAL_STRUCT_ARRAY_TEST, clf, 'd', 'regressor',
+        treat_as_categorical=True)
+    assert np.allclose(ice, NUMERICAL_NP_ICE_CAT_REGRESSION)
+    assert np.allclose(linespace, NUMERICAL_NP_LINESPACE_CAT)
+
+    ice, linespace = ftmfi.individual_conditional_expectation(
+        NUMERICAL_STRUCT_ARRAY_TEST, clf, 'd', 'regressor')
+    assert np.allclose(ice, NUMERICAL_NP_ICE_100_REGRESSION)
+    assert np.allclose(linespace, NUMERICAL_NP_LINESPACE_100)
+
+    clf = fum.KNN(k=2, mode='regressor')
+    clf.fit(CATEGORICAL_NP_ARRAY, 
+            CATEGORICAL_NP_ARRAY_TARGET.astype(np.float32))
+    
+    ice, linespace = ftmfi.individual_conditional_expectation(
+        CATEGORICAL_NP_ARRAY_TEST, clf, 2, 'regressor')
+    assert np.allclose(ice, CATEGORICAL_NP_ICE_REGRESSION)
+    assert np.array_equal(linespace, CATEGORICAL_NP_LINESPACE)
+
+    clf = fum.KNN(k=2, mode='regressor')
+    clf.fit(CATEGORICAL_STRUCT_ARRAY, 
+            CATEGORICAL_NP_ARRAY_TARGET.astype(np.float32))
+
+    ice, linespace = ftmfi.individual_conditional_expectation(
+        CATEGORICAL_STRUCT_ARRAY_TEST, clf, 'c', 'regressor')
+    assert np.allclose(ice, CATEGORICAL_NP_ICE_REGRESSION)
+    assert np.array_equal(linespace, CATEGORICAL_NP_LINESPACE)
+
+    clf = fum.KNN(k=2, mode='regressor')
+    clf.fit(MIXED_ARRAY, 
+            MIXED_ARRAY_TARGET_REGRESSION)
+
+    ice, linespace = ftmfi.individual_conditional_expectation(
+        MIXED_ARRAY_TEST, clf, 'a', 'regressor', steps_number=3, 
+        exclude_rows=1)
+    assert np.allclose(ice, MIXED_ICE_NUMERICAL_REGRESSION)
+    assert np.array_equal(linespace, MIXED_LINESPACE_NUMERICAL)
+
+    ice, linespace = ftmfi.individual_conditional_expectation(
+        MIXED_ARRAY_TEST, clf, 'b', 'regressor', exclude_rows=1)
+    print(ice)
+    assert np.allclose(ice, MIXED_ICE_CATEGORICAL_REGRESSION)
     assert np.array_equal(linespace, MIXED_LINESPACE_CATEGORICAL)
 
 

@@ -409,6 +409,7 @@ def individual_conditional_expectation(
         dataset: np.ndarray,
         model: object,
         feature_index: Union[int, str],
+        mode: Optional[str] = 'classifier',
         treat_as_categorical: Optional[bool] = None,
         steps_number: Optional[int] = None,
         include_rows: Optional[Union[int, List[int]]] = None,
@@ -454,6 +455,9 @@ def individual_conditional_expectation(
     feature_index : Union[integer, string]
         An index of the feature column in the input dataset for which ICE will
         be computed.
+    mode : string, optional (default='classifier)
+        Specifies whether the model should be treated as classifier or
+        regressor.
     treat_as_categorical : boolean, optional (default=None)
         Whether to treat the selected feature as categorical or numerical.
     steps_number : integer, optional (default=None, i.e. 100)
@@ -511,9 +515,10 @@ def individual_conditional_expectation(
         number of rows selected from the dataset for the ICE computation,
         steps_number is the number of generated samples for the selected
         feature and n_classes is the number of classes in the target of the
-        dataset. The numbers in this array represent the probability of every
-        class for every selected data point when the selected feature is fixed
-        to one of the values in the generated feature linespace (see below).
+        dataset. If `mode` parameter is regressor, n_classes will be 1. The
+        numbers in this array represent the probability of every class for
+        every selected data point when the selected feature is fixed to one of
+        the values in the generated feature linespace (see below).
     feature_linespace : numpy.ndarray
         A one-dimensional array -- (steps_number, ) -- with the values for
         which the selected feature was substituted when the dataset was
@@ -526,6 +531,11 @@ def individual_conditional_expectation(
         raise IncompatibleModelError('This functionality requires the model '
                                      'to be capable of outputting '
                                      'probabilities via predict_proba method.')
+    if mode not in ['classifier', 'regressor']:
+        raise ValueError('')
+
+    function = model.predict_proba if mode is 'classifier' else model.predict
+
     is_structured = fuav.is_structured_array(dataset)
 
     if is_structured:
@@ -570,12 +580,14 @@ def individual_conditional_expectation(
     sampled_data, feature_linespace = _interpolate_array(
         filtered_dataset, feature_index, treat_as_categorical, steps_number)
 
+    # Predict returns one value so it's easier to treat regressor and
+    # classifier the same if we add an axis to regression value.
     ice = [
-        model.predict_proba(data_slice)  # type: ignore
+        function(data_slice)[:, np.newaxis] if mode=='regressor'# type: ignore
+        else function(data_slice)
         for data_slice in sampled_data
     ]
     ice = np.stack(ice, axis=0)
-
     return ice, feature_linespace
 
 

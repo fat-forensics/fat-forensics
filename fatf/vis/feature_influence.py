@@ -7,6 +7,7 @@ Partial Dependence and Individual Conditional Expectation plotting functions.
 
 from numbers import Number
 from typing import List, Optional, Tuple, Union
+import warnings
 
 import matplotlib.collections
 from matplotlib import gridspec
@@ -156,8 +157,10 @@ def _validate_input(ice_pdp_array: np.ndarray,
     if class_index < 0 or class_index >= ice_pdp_array.shape[-1]:
         raise IndexError('Class index {} is not a valid index for the '
                          'input array. There are only {} classes '
-                         'available.'.format(class_index,
-                                             ice_pdp_array.shape[-1]))
+                         'available. For plotting data computed using a '
+                         'regression model, use '
+                         'class_index=0.'.format(class_index,
+                                                 ice_pdp_array.shape[-1]))
 
     if feature_name is not None and not isinstance(feature_name, str):
         raise TypeError('The feature name has to be either None or a string.')
@@ -559,7 +562,8 @@ def plot_individual_conditional_expectation(
         individual_conditional_expectation` function.
     class_index : integer
         The index of the class for which ICE will be plotted, taken from the
-        original dataset.
+        original dataset. For ICE's computed using a regression model,
+        `class_index` should be 0.
     feature_name : string, optional (default=None)
         The name of the feature for which ICE was originally calculated.
     class_name : string, optional (default=None)
@@ -599,9 +603,30 @@ def plot_individual_conditional_expectation(
             feature_distribution, treat_as_categorical, feature_name,
             feature_linespace, True, None), 'Input is invalid'
 
-    assert isinstance(treat_as_categorical, bool), 'treat_as_categorical -> bool'
+    assert treat_as_categorical is None or \
+        isinstance(treat_as_categorical, bool), 'treat_as_categorical -> bool'
     assert feature_distribution is None or \
         isinstance(feature_distribution, list), 'feature_distribution -> list'
+
+    if fuav.is_numerical_array(feature_linespace):
+        is_categorical_column = False
+    elif fuav.is_textual_array(feature_linespace):
+        is_categorical_column = True
+    else:
+        assert False, 'Must be an array of a base type.' # pragma: nocover
+
+    # If needed, infer the column type.
+    # TODO: put this in utils and then we can call function maybe?
+    if treat_as_categorical is None:
+        treat_as_categorical = is_categorical_column
+    elif not treat_as_categorical and is_categorical_column:
+        message = ('Selected feature is categorical (string-base elements), '
+                   'however the treat_as_categorical was set to False. Such '
+                   'a combination is not possible. The feature will be '
+                   'treated as categorical.')
+        warnings.warn(message, category=UserWarning)
+        treat_as_categorical = True
+
     if treat_as_categorical:
         x_range = [-0.5, len(feature_linespace)+0.5]
         x_locs = np.linspace(0, feature_linespace.shape[0], 
@@ -661,7 +686,7 @@ def plot_partial_dependence(
         pd_array: np.ndarray,
         feature_linespace: np.ndarray,
         class_index: int,
-        treat_as_categorical: bool = False,
+        treat_as_categorical: Optional[bool] = None,
         variance: Optional[np.ndarray] = None,
         variance_area: Optional[bool] = False,
         feature_name: Optional[str] = None,
@@ -693,7 +718,8 @@ def plot_partial_dependence(
         individual_conditional_expectation` function.
     class_index : integer
         The index of the class for which PD will be plotted, taken from the
-        original dataset.
+        original dataset. For PD computed using a regression model,
+        `class_index` should be 0.
     variance : numpy.ndarray, optional (default=None)
         An array of (n_steps, n_classes) shape with the values for the
         variance of the predictions of data points used to compute Partial
@@ -745,10 +771,28 @@ def plot_partial_dependence(
             feature_distribution, treat_as_categorical, feature_name,
             feature_linespace, True, None), 'Input is invalid'
 
-    assert isinstance(treat_as_categorical, bool), \
-        'treat_as_categorical -> bool'
+    assert treat_as_categorical is None or \
+        isinstance(treat_as_categorical, bool), 'treat_as_categorical -> bool'
     assert feature_distribution is None or \
         isinstance(feature_distribution, list), 'feature_distribution -> list'
+
+    if fuav.is_numerical_array(feature_linespace):
+        is_categorical_column = False
+    elif fuav.is_textual_array(feature_linespace):
+        is_categorical_column = True
+    else:
+        assert False, 'Must be an array of a base type.' # pragma: nocover
+
+    # If needed, infer the column type.
+    if treat_as_categorical is None:
+        treat_as_categorical = is_categorical_column
+    elif not treat_as_categorical and is_categorical_column:
+        message = ('Selected feature is categorical (string-base elements), '
+                   'however the treat_as_categorical was set to False. Such '
+                   'a combination is not possible. The feature will be '
+                   'treated as categorical.')
+        warnings.warn(message, category=UserWarning)
+        treat_as_categorical = True
 
     plot_title = 'Partial Dependence'
     if treat_as_categorical:

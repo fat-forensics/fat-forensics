@@ -159,7 +159,8 @@ def test_validate_input():
     assert str(exin.value) == msg
     #
     msg = ('Class index {} is not a valid index for the input array. There '
-           'are only {} classes available.')
+           'are only {} classes available. For plotting data computed using '
+           'a regression model, use class_index=0.')
     with pytest.raises(IndexError) as exin:
         fvfi._validate_input(NUMERICAL_3D_ARRAY, NUMERICAL_2D_ARRAY[:, 0], -1,
                              None, None, None, None, None, False, False)
@@ -594,6 +595,7 @@ def test_plot_feature_distribution():
     assert l_colour == 'royalblue'
     assert l_alpha == 0.6
     assert l_width == 3.0
+    plt.close(fig=fig)
 
     # Categorical feature
     fig, axis = plt.subplots()
@@ -646,6 +648,7 @@ def test_plot_feature_distribution():
     assert l_colour == 'royalblue'
     assert l_alpha == 0.6
     assert l_width == 3.0
+    plt.close(fig=fig)
 
 
 def test_plot_individual_conditional_expectation():
@@ -805,6 +808,77 @@ def test_plot_individual_conditional_expectation():
         assert np.allclose(l_colour, np.array([0.25, 0.41, 0.88, 1.]), 
                            atol=1e-2)
         assert l_width == 1.75
+    plt.close(fig=figure)
+
+    # Test for string data being treated as not categorical
+    msg = ('Selected feature is categorical (string-base elements), however '
+           'the treat_as_categorical was set to False. Such a combination is '
+           'not possible. The feature will be treated as categorical.')
+    with pytest.warns(UserWarning) as warning:
+        figure, axis = fvfi.plot_individual_conditional_expectation(
+            FAKE_ICE_ARRAY, FAKE_LINESPACE_CAT, class_index, False, feature_name,
+            class_name)
+    assert len(warning) == 1
+    assert str(warning[0].message) == msg
+
+    assert isinstance(figure, plt.Figure)
+    p_title, p_x_label, p_x_range, p_y_label, p_y_range = futv.get_plot_data(
+        axis)
+    # ...check title
+    assert p_title == 'Individual Conditional Expectation'
+    # ...check x range
+    assert np.array_equal(p_x_range, [-0.5, len(FAKE_LINESPACE_CAT)+0.5])
+    # ...check x label
+    assert p_x_label == feature_name
+    # ...check y range
+    assert np.array_equal(p_y_range, [-0.05, 1.05])
+    # ...check y label
+    assert p_y_label == '{} class probability'.format(class_name)
+
+    labels = np.array([text.get_text() for text in axis.get_xticklabels()])
+    assert np.array_equal(FAKE_LINESPACE_CAT, labels)
+    polygons, lines = axis.collections[:6], axis.collections[6:]
+    for line in zip(lines, correct_lines):
+        l_data, l_colour, l_alpha, l_label, l_width = futv.get_line_data(
+            line[0], is_collection=True)
+        assert np.allclose(l_data, line[1])
+        assert np.allclose(l_colour, np.array([0.25, 0.41, 0.88, 1.]), 
+                           atol=1e-2)
+        assert l_width == 1.75
+    plt.close(fig=figure)
+
+    # Test with treat_as_categorical=None to infer type
+    figure, axis = fvfi.plot_individual_conditional_expectation(
+            FAKE_ICE_ARRAY, FAKE_LINESPACE_CAT, class_index, None, feature_name,
+            class_name)
+    assert len(warning) == 1
+    assert str(warning[0].message) == msg
+
+    assert isinstance(figure, plt.Figure)
+    p_title, p_x_label, p_x_range, p_y_label, p_y_range = futv.get_plot_data(
+        axis)
+    # ...check title
+    assert p_title == 'Individual Conditional Expectation'
+    # ...check x range
+    assert np.array_equal(p_x_range, [-0.5, len(FAKE_LINESPACE_CAT)+0.5])
+    # ...check x label
+    assert p_x_label == feature_name
+    # ...check y range
+    assert np.array_equal(p_y_range, [-0.05, 1.05])
+    # ...check y label
+    assert p_y_label == '{} class probability'.format(class_name)
+
+    labels = np.array([text.get_text() for text in axis.get_xticklabels()])
+    assert np.array_equal(FAKE_LINESPACE_CAT, labels)
+    polygons, lines = axis.collections[:6], axis.collections[6:]
+    for line in zip(lines, correct_lines):
+        l_data, l_colour, l_alpha, l_label, l_width = futv.get_line_data(
+            line[0], is_collection=True)
+        assert np.allclose(l_data, line[1])
+        assert np.allclose(l_colour, np.array([0.25, 0.41, 0.88, 1.]), 
+                           atol=1e-2)
+        assert l_width == 1.75
+    plt.close(fig=figure)
 
     # Test ICE with plot_distribution (just simple histogram)
     dist  = [np.array([0., .2, .4, .6, .8, 1.]), 
@@ -853,7 +927,6 @@ def test_plot_individual_conditional_expectation():
     legend_texts = legend[0].get_texts()
     assert len(legend_texts) == 1
     assert legend_texts[0].get_text() == 'ICE'
-    plt.close(fig=figure)
 
     # Test plot_distribution axis
     p_title, p_x_label, p_x_range, p_y_label, p_y_range = futv.get_plot_data(
@@ -891,6 +964,7 @@ def test_plot_individual_conditional_expectation():
     assert np.allclose(correct_colours, colours, atol=1e-2)
     assert np.array_equal(correct_text_positions, text_positions)
     assert text_string == correct_text_string
+    plt.close(fig=figure)
 
     # Test ICE with categorical plot_distribution (to test reording of 
     # plot_distribution to match the order of feature_linespace)
@@ -964,6 +1038,7 @@ def test_plot_individual_conditional_expectation():
     assert np.allclose(correct_colours, colours, atol=1e-2)
     assert np.allclose(correct_text_positions, text_positions, atol=1e-2)
     assert text_string == correct_text_string
+    plt.close(fig=figure)
 
 
 def test_plot_partial_dependence():
@@ -1197,8 +1272,8 @@ def test_plot_partial_dependence():
     assert np.array_equal(FAKE_PD_ARRAY[:, 1], heights)
     assert np.array_equal(np.array([0.6]*len(bars)), alphas)
     assert np.allclose(correct_colours, colours, atol=1e-2)
-
     plt.close(fig=figure)
+
     # Test categorical string data without variance
     figure, axis = fvfi.plot_partial_dependence(
         FAKE_PD_ARRAY, FAKE_LINESPACE_CAT, class_index, True, None, 
@@ -1229,8 +1304,8 @@ def test_plot_partial_dependence():
     assert np.array_equal(FAKE_PD_ARRAY[:, 1], heights)
     assert np.array_equal(np.array([0.6]*len(bars)), alphas)
     assert np.allclose(correct_colours, colours, atol=1e-2)
-
     plt.close(fig=figure)
+
     # Test categorical data with variance
     figure, axis = fvfi.plot_partial_dependence(
         FAKE_PD_ARRAY, FAKE_LINESPACE_CAT, class_index, True, FAKE_VARIANCE, 
@@ -1278,6 +1353,77 @@ def test_plot_partial_dependence():
     assert np.allclose(l_colour, np.array([0., 0., 0., 1.]), atol=1e-2)
     assert l_label == '_nolegend_'
     assert l_width == 1.75
+    plt.close(fig=figure)
+
+    # Test categorical data with treat_as_categorical = False
+    msg = ('Selected feature is categorical (string-base elements), however '
+           'the treat_as_categorical was set to False. Such a combination is '
+           'not possible. The feature will be treated as categorical.')
+    with pytest.warns(UserWarning) as warning:
+        figure, axis = fvfi.plot_partial_dependence(
+            FAKE_PD_ARRAY, FAKE_LINESPACE_CAT, class_index, False, None, 
+            False, feature_name, class_name)
+    assert len(warning) == 1
+    assert str(warning[0].message) == msg
+
+    assert isinstance(figure, plt.Figure)
+    p_title, p_x_label, p_x_range, p_y_label, p_y_range = futv.get_plot_data(
+        axis)
+    # ...check title
+    assert p_title == 'Partial Dependence'
+    # ...check x range
+    assert np.array_equal(p_x_range, [-0.5, len(FAKE_LINESPACE_CAT)+0.5])
+    # ...check x label
+    assert p_x_label == feature_name
+    # ...check y range
+    assert np.array_equal(p_y_range, [0, 1.05])
+    # ...check y label
+    assert p_y_label == '{} class probability'.format(class_name)
+
+    # Test bar plots
+    bars = axis.patches
+    heights = np.array([bar.get_height() for bar in bars])
+    alphas = np.array([bar.get_alpha() for bar in bars])
+    colours = np.array([bar.get_facecolor() for bar in bars])
+    labels = np.array([text.get_text() for text in axis.get_xticklabels()])
+    assert np.array_equal(FAKE_LINESPACE_CAT, labels)
+    assert np.array_equal(FAKE_PD_ARRAY[:, 1], heights)
+    assert np.array_equal(np.array([0.6]*len(bars)), alphas)
+    assert np.allclose(correct_colours, colours, atol=1e-2)
+    plt.close(fig=figure)
+
+    # Test with treat_as_categorical=None 
+    figure, axis = fvfi.plot_partial_dependence(
+            FAKE_PD_ARRAY, FAKE_LINESPACE_CAT, class_index, None, None, 
+            False, feature_name, class_name)
+    assert len(warning) == 1
+    assert str(warning[0].message) == msg
+
+    assert isinstance(figure, plt.Figure)
+    p_title, p_x_label, p_x_range, p_y_label, p_y_range = futv.get_plot_data(
+        axis)
+    # ...check title
+    assert p_title == 'Partial Dependence'
+    # ...check x range
+    assert np.array_equal(p_x_range, [-0.5, len(FAKE_LINESPACE_CAT)+0.5])
+    # ...check x label
+    assert p_x_label == feature_name
+    # ...check y range
+    assert np.array_equal(p_y_range, [0, 1.05])
+    # ...check y label
+    assert p_y_label == '{} class probability'.format(class_name)
+
+    # Test bar plots
+    bars = axis.patches
+    heights = np.array([bar.get_height() for bar in bars])
+    alphas = np.array([bar.get_alpha() for bar in bars])
+    colours = np.array([bar.get_facecolor() for bar in bars])
+    labels = np.array([text.get_text() for text in axis.get_xticklabels()])
+    assert np.array_equal(FAKE_LINESPACE_CAT, labels)
+    assert np.array_equal(FAKE_PD_ARRAY[:, 1], heights)
+    assert np.array_equal(np.array([0.6]*len(bars)), alphas)
+    assert np.allclose(correct_colours, colours, atol=1e-2)
+    plt.close(fig=figure)
 
     # Test without variance plot
     dist  = [np.array([0., .2, .4, .6, .8, 1.]), 
@@ -1359,6 +1505,7 @@ def test_plot_partial_dependence():
     assert np.allclose(correct_colours, colours, atol=1e-2)
     assert np.array_equal(correct_text_positions, text_positions)
     assert text_string == correct_text_string
+    plt.close(fig=figure)
 
     # Test PD with categorical plot_distribution (to test reording of 
     # plot_distribution to match the order of feature_linespace)
@@ -1544,6 +1691,7 @@ def test_ice_pd_overlay():
     assert legend_texts[0].get_text() == 'PD'
     assert legend_texts[1].get_text() == 'ICE'
     assert legend_texts[2].get_text() == 'Variance'
+    plt.close(fig=figure)
 
     # Overlay with partial dependence with variance area
     figure, axis = fvfi.plot_individual_conditional_expectation(
@@ -1638,3 +1786,4 @@ def test_ice_pd_overlay():
     assert legend_texts[0].get_text() == 'PD'
     assert legend_texts[1].get_text() == 'ICE'
     assert legend_texts[2].get_text() == 'Variance'
+    plt.close(fig=figure)

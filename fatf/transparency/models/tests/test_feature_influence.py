@@ -224,6 +224,24 @@ class InvalidModel(object):
         return X  # pragma: nocover
 
 
+class InvalidModelRegression(object):
+    """
+    Tests for exceptions when model kacs the ``predict`` method.
+    """
+
+    def __init__(self):
+        """
+        Initialises not-a-model.
+        """
+        pass
+
+    def fit(self, X, y):
+        """
+        Fits not-a-model.
+        """
+        return X, y # pragma: nocover
+
+
 def test_is_valid_input():
     """
     Tests :func:`fatf.transparency.models.feature_influence._is_valid_input`.
@@ -733,17 +751,36 @@ def test_individual_conditional_expectation():
                        'feature is being treated as categorical.')
 
     # Model
-    msg = ('This functionality requires the model to be capable of outputting '
-           'probabilities via predict_proba method.')
+    msg = ('This functionality requires the classification model to be '
+           'capable of outputting probabilities via predict_proba method.')
     model = InvalidModel()
     with pytest.warns(UserWarning) as warning:
         with pytest.raises(IncompatibleModelError) as exin:
             ftmfi.individual_conditional_expectation(
-                NUMERICAL_NP_ARRAY, model, 0, None)
+                NUMERICAL_NP_ARRAY, model, 0, 'classifier')
         assert str(exin.value) == msg
     assert len(warning) == 1
     assert str(warning[0].message) == ('The model class is missing '
                                        "'predict_proba' method.")
+
+    msg = ('This functionaility requires the regression model to be '
+           'capable of outputting predictions via predict method')
+    model = InvalidModelRegression()
+    with pytest.warns(UserWarning) as warning:
+        with pytest.raises(IncompatibleModelError) as exin:
+            ftmfi.individual_conditional_expectation(
+                NUMERICAL_NP_ARRAY, model, 0, 'regressor', None)
+        assert str(exin.value) == msg
+    assert len(warning) == 1
+    assert str(warning[0].message) == ('The model class is missing '
+                                       "'predict' method.")
+
+    msg = ('Mode {} is not a valid mode. Mode should be \'classifier\' for '
+           'classification model or \'regressor\' for regression model.')
+    with pytest.raises(ValueError) as exin:
+        ftmfi.individual_conditional_expectation(
+            NUMERICAL_NP_ARRAY, model, 0, 'mode')
+    assert str(exin.value) == msg.format('mode')
 
     clf = fum.KNN(k=2)
     clf.fit(NUMERICAL_NP_ARRAY, NUMERICAL_NP_ARRAY_TARGET)

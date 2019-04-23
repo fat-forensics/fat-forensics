@@ -527,14 +527,24 @@ def individual_conditional_expectation(
     # pylint: disable=too-many-arguments,too-many-locals
     assert _input_is_valid(dataset, feature_index, treat_as_categorical,
                            steps_number), 'Input must be valid.'
-    if not fumv.check_model_functionality(model, require_probabilities=True):
-        raise IncompatibleModelError('This functionality requires the model '
-                                     'to be capable of outputting '
-                                     'probabilities via predict_proba method.')
     if mode not in ['classifier', 'regressor']:
-        raise ValueError('')
+        raise ValueError('Mode {} is not a valid mode. Mode should be '
+                         '\'classifier\' for classification model or '
+                         '\'regressor\' for regression model.'.format(mode))
+    is_classifier = True if mode == 'classifier' else False
+    if not fumv.check_model_functionality(
+            model, require_probabilities=is_classifier):
+        if is_classifier:
+            raise IncompatibleModelError(
+                'This functionality requires the classification model to be '
+                'capable of outputting probabilities via predict_proba '
+                'method.')
+        else:
+            raise IncompatibleModelError(
+                'This functionaility requires the regression model to be '
+                'capable of outputting predictions via predict method')
 
-    function = model.predict_proba if mode is 'classifier' else model.predict
+    function = model.predict_proba if is_classifier else model.predict
 
     is_structured = fuav.is_structured_array(dataset)
 
@@ -583,7 +593,7 @@ def individual_conditional_expectation(
     # Predict returns one value so it's easier to treat regressor and
     # classifier the same if we add an axis to regression value.
     ice = [
-        function(data_slice)[:, np.newaxis] if mode=='regressor'# type: ignore
+        function(data_slice)[:, np.newaxis] if not is_classifier# type: ignore
         else function(data_slice)
         for data_slice in sampled_data
     ]

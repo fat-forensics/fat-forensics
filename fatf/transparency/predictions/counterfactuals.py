@@ -459,6 +459,10 @@ class CounterfactualExplainer(object):
             array) and the values representing ranges of a given column
             feature.
         """
+        ranges: Dict[Index, FeatureRange] = dict()
+        if column_indices is not None and not column_indices:
+            return ranges
+
         if dataset is None:
             raise ValueError('A dataset is needed to fill in feature ranges '
                              'for features selected for counterfactuals that '
@@ -467,7 +471,6 @@ class CounterfactualExplainer(object):
                              'provide a dataset please specify counterfactual '
                              'feature ranges via feature_ranges parameter.')
         assert isinstance(dataset, np.ndarray), 'Dataset is not a numpy array.'
-        assert isinstance(column_indices, set), 'Column indices is not a set.'
         # Needed object attributes are in place
         assert self.all_indices is not None, 'All indices missing.'
         assert self.numerical_indices is not None, \
@@ -476,12 +479,14 @@ class CounterfactualExplainer(object):
             'Categorical indices missing.'
         assert self.cf_feature_indices is not None, \
             'Counterfactual indices missing.'
-        # Requested indices are valid
-        assert not column_indices.difference(self.all_indices), \
-            'Requested indices are invalid.'
+        if column_indices is not None:
+            assert isinstance(column_indices, set), \
+                'Column indices is not a set.'
+            # Requested indices are valid
+            assert not column_indices.difference(self.all_indices), \
+                'Requested indices are invalid.'
 
         dataset_is_structured = fuav.is_structured_array(dataset)
-        ranges: Dict[Index, FeatureRange] = dict()
 
         if column_indices is None:
             column_indices = self.cf_feature_indices
@@ -502,7 +507,7 @@ class CounterfactualExplainer(object):
                     column_unique = np.unique(dataset[:, column_index])
                 column_range = column_unique.tolist()
             else:
-                assert False, 'Invalid column index.'
+                assert False, 'Invalid column index.'  # pragma: nocover
             ranges[column_index] = column_range
         return ranges
 

@@ -222,6 +222,37 @@ class TestCounterfactualExplainer(object):
     This function tests the :class:`fatf.transparency.predictions.
     counterfactuals.CounterfactualExplainer` class.
     """
+    TARGET = np.array(
+        ['good', 'good', 'bad', 'mediocre', 'bad', 'mediocre', 'good'])
+    DATASET_NUM = np.array([[0, 0b1000, 35.70, 0b0011],
+                            [1, 0b0100, 22.22, 0b0011],
+                            [2, 0b0000, 11.11, 0b0011],
+                            [3, 0b1101, 41.27, 0b0011],
+                            [4, 0b0001, 12.57, 0b1100],
+                            [5, 0b1111, 05.33, 0b1100],
+                            [6, 0b0110, 17.29, 0b1100]])
+    KNN_NUM = fum.KNN(k=1)
+    KNN_NUM.fit(DATASET_NUM, TARGET)
+    DATASET_STR = np.array([['a', 'a@a.com', '3', '0011'],
+                            ['b', 'b@a.com', '2', '0011'],
+                            ['c', 'c@a.com', '1', '0011'],
+                            ['d', 'd@b.com', '4', '0011'],
+                            ['e', 'e@b.com', '1', '1100'],
+                            ['f', 'f@c.com', '0', '1100'],
+                            ['g', 'g@d.com', '1', '1100']])
+    KNN_STR = fum.KNN(k=1)
+    KNN_STR.fit(DATASET_STR, TARGET)
+    DATASET_STRUCT = np.array([('a', 'a@a.com', 35.70, '0011'),
+                               ('b', 'b@a.com', 22.22, '0011'),
+                               ('c', 'c@a.com', 11.11, '0011'),
+                               ('d', 'd@b.com', 41.27, '0011'),
+                               ('e', 'e@b.com', 12.57, '1100'),
+                               ('f', 'f@c.com', 05.33, '1100'),
+                               ('g', 'g@d.com', 17.29, '1100')],
+                              dtype=[('name', 'U1'), ('email', 'U7'),
+                                     ('q', float), ('postcode', 'U4')])
+    KNN_STRUCT = fum.KNN(k=1)
+    KNN_STRUCT.fit(DATASET_STRUCT, TARGET)
 
     @staticmethod
     def test_init_errors_one():
@@ -372,6 +403,12 @@ class TestCounterfactualExplainer(object):
             'indicated to be numerical indices via the numerical_indices '
             'parameter. Textual columns must not be treated as numerical '
             'features.')
+        value_error_feature_range_fill = (
+            'A dataset is needed to fill in feature ranges for features '
+            'selected for counterfactuals that were not provided with ranges '
+            'via feature_ranges parameter. If you do not want to provide a '
+            'dataset please specify counterfactual feature ranges via '
+            'feature_ranges parameter.')
 
         knn = fum.KNN()
         dataset = np.array([[0, 1, 2, 3, 4]])
@@ -422,6 +459,14 @@ class TestCounterfactualExplainer(object):
                 numerical_indices=['a', 'c'],
                 categorical_indices=['d', 'e', 'f'])
         assert str(exin.value) == index_error_num_cat_incomplete
+
+        # Feature ranges fill-in
+        with pytest.raises(ValueError) as exin:
+            ftpc.CounterfactualExplainer(
+                model=knn,
+                numerical_indices=['a', 'b', 'c'],
+                categorical_indices=['d', 'e'])
+        assert str(exin.value) == value_error_feature_range_fill
 
     @staticmethod
     def test_init_errors_two():
@@ -677,17 +722,135 @@ class TestCounterfactualExplainer(object):
                 default_numerical_step_size=-7)
         assert str(exin.value) == value_error_default_num_ss
 
-    @staticmethod
-    def _test_counterfactuals():
+    def test_counterfactuals_automatic(self):
         """
         Tests counterfactuals generation with the ``CounterfactualExplainer``.
+
+        The parameters will be "auto-tuned".
+        """
+        cfe = ftpc.CounterfactualExplainer(
+            model=self.KNN_NUM,
+            dataset=self.DATASET_NUM,
+            categorical_indices=[0, 1, 3])
+        # TODO: assert counterfactuals
+
+        cfe = ftpc.CounterfactualExplainer(
+            predictive_function=self.KNN_STR.predict, dataset=self.DATASET_STR)
+        # TODO: assert counterfactuals
+
+        cfe = ftpc.CounterfactualExplainer(
+            model=self.KNN_STRUCT,
+            dataset=self.DATASET_STRUCT,
+            counterfactual_feature_indices=['q', 'postcode'])
+        # TODO: assert counterfactuals
+
+    def test_counterfactuals_manual(self):
+        """
+        Tests counterfactuals generation with the ``CounterfactualExplainer``.
+
+        The parameters will be set manually.
+        """
+        user_warning_cf_length = (
+            'The value of the max_counterfactual_length parameter is larger '
+            'than the number of features. It will be clipped.')
+        user_warning_categorical_step = (
+            'Step size was provided for one of the categorical features. '
+            'Ignoring these ranges.')
+
+        def email_cat_dist(x, y):
+            x_split = x.spli('@')
+            y_split = y.spli('@')
+            assert len(x_split) == 2
+            assert len(y_split) == 2
+            x_split = x_split[1]
+            y_split = y_split[1]
+            return int(x_split == y_split)
+
+        def email_num_dist(x, y):
+            x_domain = '_@{}'.format('{0:b}'.format(x & 0b11).zfill(2))
+            y_domain = '_@{}'.format('{0:b}'.format(y & 0b11).zfill(2))
+            return email_cat_dist(x_domain, y_domain)
+
+        def postcode_cat_dist(x, y):
+            assert len(x) == len(y)
+            identity_vector = [i[0] != i[1] for i in zip(x, y)]
+            return sum(identity_vector) / len(x)
+
+        def postcode_num_dist(x, y):
+            x_binary = '{0:b}'.format(x).zfill(4)
+            y_binary = '{0:b}'.format(y).zfill(4)
+            return postcode_cat_dist(x_binary, y_binary)
+
+        struct_feature_ranges = {'q': (0, 45), 'postcode': ['0011', '1100']}
+        feature_steps = {2: 1.75}
+        feature_distance_functions_num = {
+            1: email_num_dist,
+            3: postcode_num_dist
+        }
+        feature_distance_functions_cat = {
+            1: email_cat_dist,
+            3: postcode_cat_dist
+        }
+        feature_distance_functions_mix = {
+            'postcode': postcode_cat_dist,
+            'email': email_cat_dist
+        }
+
+        with pytest.warns(UserWarning) as w:
+            cfe = ftpc.CounterfactualExplainer(
+                model=self.KNN_NUM,
+                dataset=self.DATASET_NUM,
+                categorical_indices=[0, 1, 3],
+                max_counterfactual_length=5,
+                step_sizes=feature_steps,
+                distance_functions=feature_distance_functions_num)
+        assert len(w) == 1
+        assert str(w[0].message) == user_warning_cf_length
+        # TODO: assert counterfactuals
+
+        with pytest.warns(UserWarning) as w:
+            cfe = ftpc.CounterfactualExplainer(
+                predictive_function=self.KNN_STR.predict,
+                dataset=self.DATASET_STR,
+                numerical_indices=[],
+                max_counterfactual_length=0,
+                step_sizes=feature_steps,
+                distance_functions=feature_distance_functions_cat)
+        assert len(w) == 1
+        assert str(w[0].message) == user_warning_categorical_step
+        # TODO: assert counterfactuals
+
+        cfe = ftpc.CounterfactualExplainer(
+            model=self.KNN_STRUCT,
+            dataset=self.DATASET_STRUCT,
+            categorical_indices=['name', 'email', 'postcode'],
+            numerical_indices=['q'],
+            counterfactual_feature_indices=['email', 'q', 'postcode'],
+            feature_ranges=struct_feature_ranges,
+            distance_functions=feature_distance_functions_mix)
+        # TODO: assert counterfactuals
+
+        cfe = ftpc.CounterfactualExplainer(
+            model=self.KNN_STRUCT,
+            categorical_indices=['name', 'email', 'postcode'],
+            numerical_indices=['q'],
+            counterfactual_feature_indices=['q', 'postcode'],
+            feature_ranges=struct_feature_ranges)
+        # TODO: assert counterfactuals
+
+    @staticmethod
+    def _test_counterfactuals_manual():
+        """
+        Tests counterfactuals generation with the ``CounterfactualExplainer``.
+
+        The parameters will be set manually.
         """
         # Get feature ranges exception tested
         data = np.array([
             ('Heidi Mitchell', 'uboyd@hotmail.com', 35, 52, 2, '0011', '03/06/2018', 1),
             ('Tina Burns', 'stevenwheeler@williams.bi',  3, 86, 1, '0011', '26/09/2017', 1),
             ('Justin Brown', 'velasquezjake@gmail.com', 3, 86, 2, '0011', '31/12/2015', 0),
-            ('Brent Parker', 'kennethsingh@strong-foley', 70, 57, 0, '0011', '02/10/2011', 0),
+            ('Brent Parker', 'kennethsingh@strong-foley.lv', 70, 57, 0, '0011', '02/10/2011', 0),
             ('Bryan Norton', 'erica36@hotmail.com', 48, 57, 3, '1100', '09/09/2012', 1),
             ('Ms. Erin Craig', 'ritterluke@gmail.com', 30, 98, 0, '1100', '04/11/2006', 1),
             ('Gerald Park', 'larrylee@hayes-brown.net', 41, 73, 1, '1100', '15/12/2015', 0),
@@ -748,6 +911,6 @@ class TestCounterfactualExplainer(object):
         for i in comp: assert i
         assert dist[0] == 7
 
-        comp =  [a == b for a, b in zip(cfs[3], (35., 84.5, 2))]
+        comp =  [a == b for a, b in zip(cfs[1], (35., 84.5, 2))]
         for i in comp: assert i
-        assert dist[3] == 32.5
+        assert dist[1] == 32.5

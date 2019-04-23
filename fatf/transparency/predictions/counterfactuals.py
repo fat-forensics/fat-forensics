@@ -192,22 +192,24 @@ class CounterfactualExplainer(object):
         ``categorical_indices`` parameter -- to be categorical (it is not
         possible to treat textual fields as numerical features. Some of the
         categorical features in the ``dataset`` array are selected to be
-        numerical via the ``numerical_indices`` parameter.
-        ``categorical_indices`` and ``numerical_indices`` parameters were not
-        provided in the absence of a ``dataset``. The ``dataset`` array is not
-        of a base type (strings and/or numbers). Both ``categorical_indices``
-        and ``numerical_indices`` parameters are empty lists. Both of these
-        lists share some common indices. The ``counterfactual_feature_indices``
-        parameter is an empty list. The ``max_counterfactual_length`` parameter
-        is not a non-negative integer. The ``feature_ranges`` parameter is an
-        empty dictionary. One of the categorical ranges provided is an empty
-        list. One of the numerical ranges is a tuple of length different than 2
-        or the second element of the range tuple is not strictly larger than
-        the first one. The ``distance_functions`` parameter is an empty
-        dictionary. The ``step_sizes`` parameter is an empty dictionary. Some
-        of the step sizes specified via the ``step_sizes`` dictionary are not
-        strictly positive numbers. The ``default_numerical_step_size``
-        parameter is not a strictly positive number.
+        numerical via the ``numerical_indices`` parameter. Some of the feature
+        ranges are missing and need to be computed from a ``dataset`` but none
+        is given. ``categorical_indices`` and ``numerical_indices``
+        parameters were not provided in the absence of a ``dataset``. The
+        ``dataset`` array is not of a base type (strings and/or numbers). Both
+        ``categorical_indices`` and ``numerical_indices`` parameters are empty
+        lists. Both of these lists share some common indices. The
+        ``counterfactual_feature_indices`` parameter is an empty list. The
+        ``max_counterfactual_length`` parameter is not a non-negative integer.
+        The ``feature_ranges`` parameter is an empty dictionary. One of the
+        categorical ranges provided is an empty list. One of the numerical
+        ranges is a tuple of length different than 2 or the second element of
+        the range tuple is not strictly larger than the first one. The
+        ``distance_functions`` parameter is an empty dictionary. The
+        ``step_sizes`` parameter is an empty dictionary. Some of the step sizes
+        specified via the ``step_sizes`` dictionary are not strictly positive
+        numbers. The ``default_numerical_step_size`` parameter is not a
+        strictly positive number.
 
     Attributes
     ----------
@@ -240,6 +242,10 @@ class CounterfactualExplainer(object):
     # pylint: disable=too-few-public-methods
 
     __all__ = ['explain_instance']
+
+    # Whether out-of-range warning has been issued for a particular feature.
+    # Used to avoid duplicated feature warnings.
+    _feature_warned: Dict[Index, bool] = dict()
 
     def __init__(  # type: ignore
             self,
@@ -407,7 +413,7 @@ class CounterfactualExplainer(object):
         # Sort out distance functions
         if distance_functions is None:
             distance_functions = dict()
-            for idx in self.cf_feature_indices:
+            for idx in self.all_indices:
                 if idx in self.categorical_indices:
                     distance_functions[idx] = _categorical_distance
                 else:
@@ -415,8 +421,7 @@ class CounterfactualExplainer(object):
         else:
             distance_functions = dict(distance_functions)  # Copy, gets edited
             functions_indices = set(distance_functions.keys())
-            missing_functions = self.cf_feature_indices.difference(
-                functions_indices)
+            missing_functions = self.all_indices.difference(functions_indices)
             for idx in missing_functions:
                 if idx in self.categorical_indices:
                     distance_functions[idx] = _categorical_distance
@@ -577,27 +582,39 @@ class CounterfactualExplainer(object):
             A 2-dimensional numpy array with neighbouring data points or an
             empty array if none could be generated.
         """
+        # pylint: disable=too-many-locals
+        warning_msg = ('The value ({}) of *{}* feature for this instance is '
+                       'out of the specified {}.')
         possible_features_ranges = []
         for feature in features_combination:
             if feature in self.categorical_indices:
+                feature_value = instance[feature]
+                feature_ranges = self.feature_ranges[feature]
                 # Get all other possible categorical values
-                possible_features_ranges.append([
-                    i for i in self.feature_ranges[feature]
-                    if i != instance[feature]
-                ])
+                possible_features_ranges.append(
+                    [i for i in feature_ranges if i != feature_value])
+
+                if (feature_value not in feature_ranges
+                        and not self._feature_warned[feature]):
+                    self._feature_warned[feature] = True
+                    complement = 'values: {}'.format(feature_ranges)
+                    warning_msg = warning_msg.format(feature_value, feature,
+                                                     complement)
+                    warnings.warn(warning_msg, UserWarning)
+
             else:
                 feature_range_min = self.feature_ranges[feature][0]
                 feature_range_max = self.feature_ranges[feature][1]
                 feature_value = instance[feature]
 
-                if (feature_value < feature_range_min
-                        or feature_value > feature_range_max):
-                    warning_msg = ('The value ({}) of *{}* feature for this '
-                                   'instance is out of the specified min-max '
-                                   'range: {}-{}.')
+                if ((feature_value < feature_range_min
+                     or feature_value > feature_range_max)
+                        and not self._feature_warned[feature]):
+                    self._feature_warned[feature] = True
+                    complement = 'min-max range: {}-{}'.format(
+                        feature_range_min, feature_range_max)
                     warning_msg = warning_msg.format(feature_value, feature,
-                                                     feature_range_min,
-                                                     feature_range_max)
+                                                     complement)
                     warnings.warn(warning_msg, UserWarning)
 
                 feature_range = np.arange(feature_range_min, feature_range_max,
@@ -702,6 +719,9 @@ class CounterfactualExplainer(object):
             raise TypeError('The normalise_distance parameter should be a '
                             'boolean.')
 
+        # Prepare out-of-range warnings
+        self._feature_warned = {key: False for key in self.cf_feature_indices}
+
         if counterfactual_class is None:
             # Predict the class, counterfactuals will be of any different class
             current_prediction = self.predict(instance_2d)
@@ -751,23 +771,31 @@ class CounterfactualExplainer(object):
                         counterfactuals_predictions.append(
                             cf_predictions[dists_min_mask])
 
-        # Put counterfactuals together
-        counterfactuals = np.concatenate(counterfactuals)
-        counterfactuals_distances = np.concatenate(counterfactuals_distances)
-        counterfactuals_predictions = np.concatenate(
-            counterfactuals_predictions)
+        if counterfactuals:
+            # Put counterfactuals together
+            counterfactuals = np.concatenate(counterfactuals)
+            counterfactuals_distances = np.concatenate(
+                counterfactuals_distances)
+            counterfactuals_predictions = np.concatenate(
+                counterfactuals_predictions)
 
-        # Sort them to get the closest ones first
-        sorting = np.argsort(counterfactuals_distances)
-        counterfactuals = counterfactuals[sorting]
-        counterfactuals_distances = counterfactuals_distances[sorting]
-        counterfactuals_predictions = counterfactuals_predictions[sorting]
+            # Remove duplicates
+            counterfactuals, uniq_idx = np.unique(
+                counterfactuals, return_index=True, axis=0)
+            counterfactuals_distances = counterfactuals_distances[uniq_idx]
+            counterfactuals_predictions = counterfactuals_predictions[uniq_idx]
 
-        # Remove duplicates
-        counterfactuals, unique_idx = np.unique(
-            counterfactuals, return_index=True)
-        counterfactuals_distances = counterfactuals_distances[unique_idx]
-        counterfactuals_predictions = counterfactuals_predictions[unique_idx]
+            # Sort them to get the closest ones first
+            sorting = np.argsort(counterfactuals_distances)
+            counterfactuals = counterfactuals[sorting]
+            counterfactuals_distances = counterfactuals_distances[sorting]
+            counterfactuals_predictions = counterfactuals_predictions[sorting]
+        else:
+            assert not counterfactuals_distances, 'Should be an empty list.'
+            assert not counterfactuals_predictions, 'Should be an empty list.'
+            counterfactuals = np.array([])
+            counterfactuals_distances = np.array([])
+            counterfactuals_predictions = np.array([])
 
         return (counterfactuals, counterfactuals_distances,
                 counterfactuals_predictions)

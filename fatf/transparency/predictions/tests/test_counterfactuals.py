@@ -302,14 +302,14 @@ class TestCounterfactualExplainer(object):
                 pass
 
             def fit(self, X, y):
-                pass
+                pass  # pragma: nocover
 
-        with pytest.raises(RuntimeError) as exin:
-            with pytest.warns(UserWarning) as w:
+        with pytest.warns(UserWarning) as w:
+            with pytest.raises(RuntimeError) as exin:
                 ftpc.CounterfactualExplainer(model=Dummy())
-            assert len(w) == 1
-            assert str(w[0].message) == user_warning_model
-        assert str(exin.value) == runtime_error_model
+            assert str(exin.value) == runtime_error_model
+        assert len(w) == 1
+        assert str(w[0].message) == user_warning_model
 
         # Incorrect predictive function
         with pytest.raises(TypeError) as exin:
@@ -317,7 +317,7 @@ class TestCounterfactualExplainer(object):
         assert str(exin.value) == type_error_predictive_function
 
         def func(i, j):
-            return i + j
+            return i + j  # pragma: nocover
 
         with pytest.raises(AttributeError) as exin:
             ftpc.CounterfactualExplainer(predictive_function=func)
@@ -330,15 +330,15 @@ class TestCounterfactualExplainer(object):
 
         # Model and predictive function + non-base dataset
         knn = fum.KNN()
-        with pytest.raises(ValueError) as exin:
-            with pytest.warns(UserWarning) as w:
+        with pytest.warns(UserWarning) as w:
+            with pytest.raises(ValueError) as exin:
                 ftpc.CounterfactualExplainer(
                     model=knn,
                     predictive_function=knn.predict,
                     dataset=np.array([0, None]))
-            assert len(w) == 1
-            assert str(w[0].message) == user_warning_model_predictive_function
-        assert str(exin.value) == value_error_dataset_type
+            assert str(exin.value) == value_error_dataset_type
+        assert len(w) == 1
+        assert str(w[0].message) == user_warning_model_predictive_function
 
         # Non-2-D dataset
         with pytest.raises(IncorrectShapeError) as exin:
@@ -672,7 +672,7 @@ class TestCounterfactualExplainer(object):
         assert str(exin.value) == type_error_dist_func_inst
 
         def unattribed(x):
-            return x
+            return x  # pragma: nocover
 
         with pytest.raises(AttributeError) as exin:
             ftpc.CounterfactualExplainer(
@@ -722,6 +722,46 @@ class TestCounterfactualExplainer(object):
                 default_numerical_step_size=-7)
         assert str(exin.value) == value_error_default_num_ss
 
+    def test_explain_instance_errors(self):
+        """
+        Tests for error in ``explain_instance`` method.
+        """
+        incorrect_shape_error = ('The instance to be explained should be a '
+                                 '1-dimensional numpy array or a row of a '
+                                 'structured array (numpy.void).')
+        value_error_type = ('The instance should be of a base type -- a '
+                            'mixture of numerical and textual types.')
+        index_error = ('The indices used to initialise this class are not '
+                       'valid for this data point.')
+        type_error_cf_class = ('The counterfactual class should be either an '
+                               'integer or a string.')
+        type_error_normalise = ('The normalise_distance parameter should be a '
+                                'boolean.')
+
+        cfe = ftpc.CounterfactualExplainer(
+            model=self.KNN_NUM, dataset=self.DATASET_NUM)
+
+        with pytest.raises(IncorrectShapeError) as exin:
+            cfe.explain_instance(self.DATASET_NUM)
+        assert str(exin.value) == incorrect_shape_error
+
+        with pytest.raises(ValueError) as exin:
+            cfe.explain_instance(np.array([None, 42]))
+        assert str(exin.value) == value_error_type
+
+        with pytest.raises(IndexError) as exin:
+            cfe.explain_instance(np.array([0]))
+        assert str(exin.value) == index_error
+
+        with pytest.raises(TypeError) as exin:
+            cfe.explain_instance(
+                np.array([0, 7, 4, 2]), counterfactual_class=7.0)
+        assert str(exin.value) == type_error_cf_class
+
+        with pytest.raises(TypeError) as exin:
+            cfe.explain_instance(np.array([0, 7, 4, 2]), normalise_distance=1)
+        assert str(exin.value) == type_error_normalise
+
     def test_counterfactuals_automatic(self):
         """
         Tests counterfactuals generation with the ``CounterfactualExplainer``.
@@ -732,17 +772,53 @@ class TestCounterfactualExplainer(object):
             model=self.KNN_NUM,
             dataset=self.DATASET_NUM,
             categorical_indices=[0, 1, 3])
-        # TODO: assert counterfactuals
+        cfs, cfs_dist, cfs_pred = cfe.explain_instance(self.DATASET_NUM[2])
+        #
+        t_cfs = np.array([[2, 15, 11.11, 3], [2, 13, 11.11, 3],
+                          [2, 15, 11.33, 3], [2, 13, 11.33, 3],
+                          [5, 15, 11.11, 3], [5, 13, 11.11, 3],
+                          [4, 15, 11.11, 3], [4, 13, 11.11, 3],
+                          [3, 15, 11.11, 3], [3, 13, 11.11, 3],
+                          [2, 15, 11.11, 12], [6, 15, 11.11, 3],
+                          [2, 13, 11.11, 12], [1, 15, 11.11, 3],
+                          [1, 13, 11.11, 3], [0, 15, 11.11, 3],
+                          [0, 13, 11.11, 3], [6, 13, 11.11, 3],
+                          [2, 0, 18.33, 3], [0, 0, 17.33, 3],
+                          [2, 0, 20.33, 12]])  # yapf: disable
+        t_dist = np.array([1, 1, 1.22, 1.22] + 14 * [2] + [7.22, 7.22, 10.22])
+        t_pred = np.array(18 * ['mediocre'] + 3 * ['good'])
+        assert np.array_equal(cfs, t_cfs)
+        assert np.allclose(cfs_dist, t_dist)
+        assert np.array_equal(cfs_pred, t_pred)
 
         cfe = ftpc.CounterfactualExplainer(
             predictive_function=self.KNN_STR.predict, dataset=self.DATASET_STR)
-        # TODO: assert counterfactuals
+        cfs, cfs_dist, cfs_pred = cfe.explain_instance(
+            self.DATASET_STR[2], counterfactual_class='mediocre')
+        #
+        t_cfs = np.array([['c', 'd@b.com', '4', '0011'],
+                          ['d', 'c@a.com', '4', '0011'],
+                          ['d', 'd@b.com', '1', '0011']])
+        t_dist = np.array(3 * [2])
+        t_pred = np.array(3 * ['mediocre'])
+        assert np.array_equal(cfs, t_cfs)
+        assert np.allclose(cfs_dist, t_dist)
+        assert np.array_equal(cfs_pred, t_pred)
 
         cfe = ftpc.CounterfactualExplainer(
             model=self.KNN_STRUCT,
             dataset=self.DATASET_STRUCT,
             counterfactual_feature_indices=['q', 'postcode'])
-        # TODO: assert counterfactuals
+        cfs, cfs_dist, cfs_pred = cfe.explain_instance(self.DATASET_STRUCT[2])
+        #
+        t_cfs = np.array([('c', 'c@a.com', 6.33, '0011'),
+                          ('c', 'c@a.com', 7.33, '1100')],
+                         dtype=self.DATASET_STRUCT.dtype)
+        t_dist = np.array(2 * [4.78])
+        t_pred = np.array(2 * ['mediocre'])
+        assert np.array_equal(cfs, t_cfs)
+        assert np.allclose(cfs_dist, t_dist)
+        assert np.array_equal(cfs_pred, t_pred)
 
     def test_counterfactuals_manual(self):
         """
@@ -756,10 +832,16 @@ class TestCounterfactualExplainer(object):
         user_warning_categorical_step = (
             'Step size was provided for one of the categorical features. '
             'Ignoring these ranges.')
+        user_warning_cf_out_of_range = (
+            'The value ({}) of *{}* feature for this instance is out of the '
+            'specified min-max range: {}-{}.')
+        user_warning_cf_out_of_values = (
+            'The value ({}) of *{}* feature for this instance is out of the '
+            'specified values: {}.')
 
         def email_cat_dist(x, y):
-            x_split = x.spli('@')
-            y_split = y.spli('@')
+            x_split = x.split('@')
+            y_split = y.split('@')
             assert len(x_split) == 2
             assert len(y_split) == 2
             x_split = x_split[1]
@@ -767,8 +849,10 @@ class TestCounterfactualExplainer(object):
             return int(x_split == y_split)
 
         def email_num_dist(x, y):
-            x_domain = '_@{}'.format('{0:b}'.format(x & 0b11).zfill(2))
-            y_domain = '_@{}'.format('{0:b}'.format(y & 0b11).zfill(2))
+            assert int(x) == x
+            assert int(y) == y
+            x_domain = '_@{}'.format('{0:b}'.format(int(x) & 0b11).zfill(2))
+            y_domain = '_@{}'.format('{0:b}'.format(int(y) & 0b11).zfill(2))
             return email_cat_dist(x_domain, y_domain)
 
         def postcode_cat_dist(x, y):
@@ -777,11 +861,14 @@ class TestCounterfactualExplainer(object):
             return sum(identity_vector) / len(x)
 
         def postcode_num_dist(x, y):
-            x_binary = '{0:b}'.format(x).zfill(4)
-            y_binary = '{0:b}'.format(y).zfill(4)
+            assert int(x) == x
+            assert int(y) == y
+            x_binary = '{0:b}'.format(int(x)).zfill(4)
+            y_binary = '{0:b}'.format(int(y)).zfill(4)
             return postcode_cat_dist(x_binary, y_binary)
 
-        struct_feature_ranges = {'q': (0, 45), 'postcode': ['0011', '1100']}
+        str_feature_ranges = {0: ['d'], 1: ['d@b.com', 'e@b.com'], 2: ['4']}
+        struct_feature_ranges = {'q': (35, 45), 'postcode': ['0011']}
         feature_steps = {2: 1.75}
         feature_distance_functions_num = {
             1: email_num_dist,
@@ -806,7 +893,23 @@ class TestCounterfactualExplainer(object):
                 distance_functions=feature_distance_functions_num)
         assert len(w) == 1
         assert str(w[0].message) == user_warning_cf_length
-        # TODO: assert counterfactuals
+        # Outside of categorical range + no counterfactuals
+        with pytest.warns(UserWarning) as w:
+            cfs, cfs_dist, cfs_pred = cfe.explain_instance(
+                np.array([8, 0b0001, 12.57, 0b1100]))
+            cfs, cfs_dist, cfs_pred = cfe.explain_instance(
+                np.array([8, 0b0001, 12.57, 0b1100]),
+                counterfactual_class='non-existing')
+        assert len(w) == 2
+        rng = ', '.join(['{}.0'.format(i) for i in range(7)])
+        rng = '[{}]'.format(rng)
+        wmsg = user_warning_cf_out_of_values.format('8.0', 0, rng)
+        assert str(w[0].message) == wmsg
+        assert str(w[1].message) == wmsg
+        #
+        assert np.array_equal(cfs, np.array([]))
+        assert np.array_equal(cfs_dist, np.array([]))
+        assert np.array_equal(cfs_pred, np.array([]))
 
         with pytest.warns(UserWarning) as w:
             cfe = ftpc.CounterfactualExplainer(
@@ -815,10 +918,18 @@ class TestCounterfactualExplainer(object):
                 numerical_indices=[],
                 max_counterfactual_length=0,
                 step_sizes=feature_steps,
+                feature_ranges=str_feature_ranges,
                 distance_functions=feature_distance_functions_cat)
         assert len(w) == 1
         assert str(w[0].message) == user_warning_categorical_step
-        # TODO: assert counterfactuals
+        # No answers
+        cfs, cfs_dist, cfs_pred = cfe.explain_instance(
+            np.array(['d', 'd@b.com', '4', '0011']),
+            counterfactual_class='good')
+        #
+        assert np.array_equal(cfs, np.array([]))
+        assert np.array_equal(cfs_dist, np.array([]))
+        assert np.array_equal(cfs_pred, np.array([]))
 
         cfe = ftpc.CounterfactualExplainer(
             model=self.KNN_STRUCT,
@@ -827,8 +938,25 @@ class TestCounterfactualExplainer(object):
             numerical_indices=['q'],
             counterfactual_feature_indices=['email', 'q', 'postcode'],
             feature_ranges=struct_feature_ranges,
+            max_counterfactual_length=1,
             distance_functions=feature_distance_functions_mix)
-        # TODO: assert counterfactuals
+        # Normalise distance + outside of numerical range
+        instance = np.array([('f', 'f@c.com', 45.5, '0011')],
+                            dtype=self.DATASET_STRUCT.dtype)[0]
+        with pytest.warns(UserWarning) as w:
+            cfs, cfs_dist, cfs_pred = cfe.explain_instance(
+                instance, normalise_distance=True)
+        assert len(w) == 1
+        wmsg = user_warning_cf_out_of_range.format('45.5', 'q', 35, 45)
+        assert str(w[0].message) == wmsg
+        #
+        t_cfs = np.array([('f', 'f@c.com', 38, '0011')],
+                         dtype=self.DATASET_STRUCT.dtype)
+        t_dist = np.array([7.56637298])
+        t_pred = np.array(['good'])
+        assert np.array_equal(cfs, t_cfs)
+        assert np.allclose(cfs_dist, t_dist)
+        assert np.array_equal(cfs_pred, t_pred)
 
         cfe = ftpc.CounterfactualExplainer(
             model=self.KNN_STRUCT,
@@ -836,81 +964,14 @@ class TestCounterfactualExplainer(object):
             numerical_indices=['q'],
             counterfactual_feature_indices=['q', 'postcode'],
             feature_ranges=struct_feature_ranges)
-        # TODO: assert counterfactuals
-
-    @staticmethod
-    def _test_counterfactuals_manual():
-        """
-        Tests counterfactuals generation with the ``CounterfactualExplainer``.
-
-        The parameters will be set manually.
-        """
-        # Get feature ranges exception tested
-        data = np.array([
-            ('Heidi Mitchell', 'uboyd@hotmail.com', 35, 52, 2, '0011', '03/06/2018', 1),
-            ('Tina Burns', 'stevenwheeler@williams.bi',  3, 86, 1, '0011', '26/09/2017', 1),
-            ('Justin Brown', 'velasquezjake@gmail.com', 3, 86, 2, '0011', '31/12/2015', 0),
-            ('Brent Parker', 'kennethsingh@strong-foley.lv', 70, 57, 0, '0011', '02/10/2011', 0),
-            ('Bryan Norton', 'erica36@hotmail.com', 48, 57, 3, '1100', '09/09/2012', 1),
-            ('Ms. Erin Craig', 'ritterluke@gmail.com', 30, 98, 0, '1100', '04/11/2006', 1),
-            ('Gerald Park', 'larrylee@hayes-brown.net', 41, 73, 1, '1100', '15/12/2015', 0),
-        ], dtype=[('name', '<U16'), ('email', '<U25'), ('age', '<f4'),
-                  ('weight', '<f4'), ('job_type', '<i4'), ('zipcode', '<U6'),
-                  ('dob', '<U10'), ('prediction', '<i4')])
-        targets = np.array([1, 0, 1, 1, 0, 1, 0])
-        targets_name = 'target'
-        distance_functions = {
-            'age': lambda x, y: abs(x - y),
-            'weight': lambda x, y: abs(x - y),
-            'target': lambda x, y: x == y,
-            'zipcode': lambda x, y: 1 - sum([item[0] == item[1] for item in zip(x, y)])/len(x),
-            'job_type': lambda x, y: int(x != y),
-            'prediction': None
-        }
-
-        selected_columns = ['age', 'weight', 'job_type']
-
-        dataset = data[selected_columns]
-        targets = targets
-        distance_funcs = {key: distance_functions[key] for key in selected_columns}
-
-
-
-        clf = fum.KNN(k=5)
-        clf.fit(dataset, targets)
-
-        categorical_features = ['job_type']
-
-        stepsizes = {'age': 0.50,
-                     'weight': 0.50}
-
-
-        datapoint = dataset[0]
-        datapoint_class = 0
-
-        feature_ranges = {'age': (datapoint['age'] - 10, datapoint['age'] + 10),
-                          'job_type': [datapoint['job_type']]}
-
-
-        mdl = ftpc.CounterfactualExplainer(
-                        model=clf,
-                        dataset=dataset,
-                        categorical_indices=categorical_features,
-                        step_sizes=stepsizes,
-                        feature_ranges=feature_ranges,
-                        max_counterfactual_length=2,
-                        distance_functions=distance_funcs
-                        )
-        c=mdl.explain_instance(datapoint, datapoint_class)
-        cfs, dist, preds = c
-        print(c)
-        ic = clf.predict(np.array([datapoint]))[0]
-        print(ftpc.textualise_counterfactuals(datapoint, cfs, ic, dist, preds))
-
-        comp = [a == b for a, b in zip(cfs[0], (28., 52., 2))]
-        for i in comp: assert i
-        assert dist[0] == 7
-
-        comp =  [a == b for a, b in zip(cfs[1], (35., 84.5, 2))]
-        for i in comp: assert i
-        assert dist[1] == 32.5
+        instance = np.array([('f', 'f@c.com', 36.66, '0011')],
+                            dtype=self.DATASET_STRUCT.dtype)[0]
+        cfs, cfs_dist, cfs_pred = cfe.explain_instance(instance)
+        #
+        t_cfs = np.array([('f', 'f@c.com', 39, '0011')],
+                         dtype=self.DATASET_STRUCT.dtype)
+        t_dist = np.array([2.34])
+        t_pred = np.array(['mediocre'])
+        assert np.array_equal(cfs, t_cfs)
+        assert np.allclose(cfs_dist, t_dist)
+        assert np.array_equal(cfs_pred, t_pred)

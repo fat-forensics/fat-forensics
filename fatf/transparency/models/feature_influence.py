@@ -409,7 +409,7 @@ def individual_conditional_expectation(
         dataset: np.ndarray,
         model: object,
         feature_index: Union[int, str],
-        mode: Optional[str] = 'classifier',
+        mode: str = 'classifier',
         treat_as_categorical: Optional[bool] = None,
         steps_number: Optional[int] = None,
         include_rows: Optional[Union[int, List[int]]] = None,
@@ -455,7 +455,7 @@ def individual_conditional_expectation(
     feature_index : Union[integer, string]
         An index of the feature column in the input dataset for which ICE will
         be computed.
-    mode : string, optional (default='classifier)
+    mode : string (default='classifier)
         Specifies whether the model should be treated as classifier or
         regressor.
     treat_as_categorical : boolean, optional (default=None)
@@ -740,6 +740,7 @@ def partial_dependence_ice(
 def partial_dependence(dataset: np.ndarray,
                        model: object,
                        feature_index: Union[int, str],
+                       mode: str = 'classifier',
                        treat_as_categorical: Optional[bool] = None,
                        steps_number: Optional[int] = None,
                        include_rows: Optional[Union[int, List[int]]] = None,
@@ -786,11 +787,10 @@ def partial_dependence(dataset: np.ndarray,
         dataset,
         model,
         feature_index,
+        mode,
         treat_as_categorical=treat_as_categorical,
         steps_number=steps_number,
         include_rows=include_rows,
         exclude_rows=exclude_rows)
-
     partial_dependence_array, variance = partial_dependence_ice(ice_array)
-
     return partial_dependence_array, feature_linespace, variance

@@ -111,6 +111,8 @@ NUMERICAL_NP_ICE_100_REGRESSION = np.array(
      46 * [[2.0]] + 54 * [[1.0]]])
 NUMERICAL_NP_PD_100 = np.array(
     46 * [[0.5, 0.0, 0.5]] + 54 * [[0.75, 0.00, 0.25]])
+NUMERICAL_NP_PD_100_REGRESSION = np.array(
+    46 * [[1.0]] + 54 * [[0.5]])
 NUMERICAL_NP_LINESPACE = np.array([0.32, 0.41, 0.5])
 NUMERICAL_NP_LINESPACE_CAT = np.array([0.32, 0.5])
 NUMERICAL_NP_LINESPACE_100 = np.linspace(0.32, 0.5, 100)
@@ -118,12 +120,20 @@ NUMERICAL_NP_VARIANCE = np.array([
     [0.25, 0., 0.25],
     [0.0625, 0., 0.0625],
     [0.0625, 0., 0.0625]])
+NUMERICAL_NP_VARIANCE_REGRESSION = np.array([
+    [1.0],
+    [0.25],
+    [0.25]])
 NUMERICAL_NP_VARIANCE_CAT = np.array([
     [0.25, 0., 0.25],
     [0.0625, 0., 0.0625]])
+NUMERICAL_NP_VARIANCE_CAT_REGRESSION = np.array([
+    [1.0],
+    [0.25]])
 NUMERICAL_NP_VARIANCE_100 = np.array(
     46 * [[0.25, 0., 0.25]] + 54 * [[0.0625, 0., 0.0625]])
-
+NUMERICAL_NP_VARIANCE_100_REGRESSION = np.array(
+    46 * [[1.0]] + 54 * [[0.25]])
 CATEGORICAL_NP_ARRAY_TEST = np.array([
     ['a', 'f', 'g'],
     ['b', 'f', 'c']])
@@ -145,11 +155,16 @@ CATEGORICAL_NP_ICE_REGRESSION = np.array([
 CATEGORICAL_NP_PD = np.array([
     [0.25, 0.75],
     [0.25, 0.75]])
+CATEGORICAL_NP_PD_REGRESSION = np.array([
+    [0.75],
+    [0.75]])
 CATEGORICAL_NP_LINESPACE = np.array(['c', 'g'])
 CATEGORICAL_NP_VARIANCE = np.array([
     [0.0625, 0.0625],
     [0.0625, 0.0625]])
-
+CATEGORICAL_NP_VARIANCE_REGRESSION = np.array([
+    [0.0625],
+    [0.0625]])
 MIXED_ARRAY_TEST = np.array(
     [(0, 'a', 0.08, 'a'),
      (1, 'a', 0.88, 'bb'),
@@ -175,11 +190,19 @@ MIXED_PD_NUMERICAL = np.array([
     [0.5, 0.25, 0.25],
     [0.5, 0.25, 0.25],
     [0.5, 0.25, 0.25]])
+MIXED_PD_NUMERICAL_REGRESSION = np.array([
+    [0.75],
+    [0.75],
+    [0.75]])
 MIXED_LINESPACE_NUMERICAL = np.array([0, 0.5, 1])
 MIXED_VARIANCE_NUMERICAL = np.array([
     [0.25, 0.0625, 0.0625],
     [0.25, 0.0625, 0.0625],
     [0.25, 0.0625, 0.0625]])
+MIXED_VARIANCE_NUMERICAL_REGRESSION = np.array([
+    [0.5625],
+    [0.5625],
+    [0.5625]])
 MIXED_ICE_CATEGORICAL = np.array([
     [[1.0, 0.0, 0.0],
      [0.5, 0.5, 0.0]],
@@ -193,10 +216,16 @@ MIXED_ICE_CATEGORICAL_REGRESSION = np.array([
 MIXED_PD_CATEGORICAL = np.array([
     [0.75, 0.0, 0.25],
     [0.25, 0.5, 0.25]])
+MIXED_PD_CATEGORICAL_REGRESSION = np.array([
+    [0.5],
+    [1.0]])
 MIXED_LINESPACE_CATEGORICAL = np.array(['a', 'f'])
 MIXED_VARIANCE_CATEGORICAL = np.array([
     [0.0625, 0., 0.0625],
     [0.0625, 0., 0.0625]])
+MIXED_VARIANCE_CATEGORICAL_REGRESSION = np.array([
+    [0.25],
+    [0.25]])
 # yapf: enable
 
 
@@ -1006,7 +1035,6 @@ def test_individual_conditional_expectation():
 
     ice, linespace = ftmfi.individual_conditional_expectation(
         MIXED_ARRAY_TEST, clf, 'b', 'regressor', exclude_rows=1)
-    print(ice)
     assert np.allclose(ice, MIXED_ICE_CATEGORICAL_REGRESSION)
     assert np.array_equal(linespace, MIXED_LINESPACE_CATEGORICAL)
 
@@ -1168,3 +1196,86 @@ def test_partial_dependence():
     assert np.allclose(pd, MIXED_PD_CATEGORICAL)
     assert np.array_equal(linespace, MIXED_LINESPACE_CATEGORICAL)
     assert np.array_equal(var, MIXED_VARIANCE_CATEGORICAL)
+
+     # Test Regression
+    clf = fum.KNN(k=2, mode='regressor')
+    clf.fit(NUMERICAL_NP_ARRAY, NUMERICAL_NP_ARRAY_TARGET.astype(np.float32))
+
+    pd, linespace, var = ftmfi.partial_dependence(
+        NUMERICAL_NP_ARRAY_TEST, clf, 3, 'regressor', steps_number=3)
+    assert np.allclose(pd, NUMERICAL_NP_PD_REGRESSION)
+    assert np.allclose(linespace, NUMERICAL_NP_LINESPACE)
+    assert np.allclose(var, NUMERICAL_NP_VARIANCE_REGRESSION)
+
+    pd, linespace, var = ftmfi.partial_dependence(
+        NUMERICAL_NP_ARRAY_TEST, clf, 3, 'regressor', treat_as_categorical=True)
+    assert np.allclose(pd, NUMERICAL_NP_PD_CAT_REGRESSION)
+    assert np.allclose(linespace, NUMERICAL_NP_LINESPACE_CAT)
+    assert np.allclose(var, NUMERICAL_NP_VARIANCE_CAT_REGRESSION)
+
+    pd, linespace, var = ftmfi.partial_dependence(
+        NUMERICAL_NP_ARRAY_TEST, clf, 3, 'regressor')
+    assert np.allclose(pd, NUMERICAL_NP_PD_100_REGRESSION)
+    assert np.allclose(linespace, NUMERICAL_NP_LINESPACE_100)
+    assert np.allclose(var, NUMERICAL_NP_VARIANCE_100_REGRESSION)
+
+    clf = fum.KNN(k=2, mode='regressor')
+    clf.fit(NUMERICAL_STRUCT_ARRAY, 
+            NUMERICAL_NP_ARRAY_TARGET.astype(np.float32))
+
+    pd, linespace, var = ftmfi.partial_dependence(
+        NUMERICAL_STRUCT_ARRAY_TEST, clf, 'd', 'regressor', steps_number=3)
+    assert np.allclose(pd, NUMERICAL_NP_PD_REGRESSION)
+    assert np.allclose(linespace, NUMERICAL_NP_LINESPACE)
+    assert np.allclose(var, NUMERICAL_NP_VARIANCE_REGRESSION)
+
+    pd, linespace, var = ftmfi.partial_dependence(
+        NUMERICAL_STRUCT_ARRAY_TEST, clf, 'd', 'regressor',
+        treat_as_categorical=True)
+    assert np.allclose(pd, NUMERICAL_NP_PD_CAT_REGRESSION)
+    assert np.allclose(linespace, NUMERICAL_NP_LINESPACE_CAT)
+    assert np.allclose(var, NUMERICAL_NP_VARIANCE_CAT_REGRESSION)
+
+    pd, linespace, var = ftmfi.partial_dependence(
+        NUMERICAL_STRUCT_ARRAY_TEST, clf, 'd', 'regressor')
+    assert np.allclose(pd, NUMERICAL_NP_PD_100_REGRESSION)
+    assert np.allclose(linespace, NUMERICAL_NP_LINESPACE_100)
+    assert np.allclose(var, NUMERICAL_NP_VARIANCE_100_REGRESSION)
+
+    clf = fum.KNN(k=2, mode='regressor')
+    clf.fit(CATEGORICAL_NP_ARRAY, 
+            CATEGORICAL_NP_ARRAY_TARGET.astype(np.float32))
+    
+    pd, linespace, var = ftmfi.partial_dependence(
+        CATEGORICAL_NP_ARRAY_TEST, clf, 2, 'regressor')
+    assert np.allclose(pd, CATEGORICAL_NP_PD_REGRESSION)
+    assert np.array_equal(linespace, CATEGORICAL_NP_LINESPACE)
+    assert np.allclose(var, CATEGORICAL_NP_VARIANCE_REGRESSION)
+
+    clf = fum.KNN(k=2, mode='regressor')
+    clf.fit(CATEGORICAL_STRUCT_ARRAY, 
+            CATEGORICAL_NP_ARRAY_TARGET.astype(np.float32))
+
+    pd, linespace, var = ftmfi.partial_dependence(
+        CATEGORICAL_STRUCT_ARRAY_TEST, clf, 'c', 'regressor')
+    assert np.allclose(pd, CATEGORICAL_NP_PD_REGRESSION)
+    assert np.array_equal(linespace, CATEGORICAL_NP_LINESPACE)
+    assert np.allclose(var, CATEGORICAL_NP_VARIANCE_REGRESSION)
+
+    clf = fum.KNN(k=2, mode='regressor')
+    clf.fit(MIXED_ARRAY, 
+            MIXED_ARRAY_TARGET_REGRESSION)
+
+    pd, linespace, var = ftmfi.partial_dependence(
+        MIXED_ARRAY_TEST, clf, 'a', 'regressor', steps_number=3, 
+        exclude_rows=1)
+    assert np.allclose(pd, MIXED_PD_NUMERICAL_REGRESSION)
+    assert np.array_equal(linespace, MIXED_LINESPACE_NUMERICAL)
+    assert np.array_equal(var, MIXED_VARIANCE_NUMERICAL_REGRESSION)
+
+    pd, linespace, var = ftmfi.partial_dependence(
+        MIXED_ARRAY_TEST, clf, 'b', 'regressor', exclude_rows=1)
+    print(pd)
+    print(var)
+    assert np.allclose(pd, MIXED_PD_CATEGORICAL_REGRESSION)
+    assert np.array_equal(linespace, MIXED_LINESPACE_CATEGORICAL)

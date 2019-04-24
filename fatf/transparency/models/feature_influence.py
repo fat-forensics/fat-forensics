@@ -187,17 +187,17 @@ def _interpolate_array_2d(
         dataset, feature_index[0], treat_as_categorical[0],
         steps_number[0])
 
-     assert isinstance(feature_index[1], (int, str)), \
+    assert isinstance(feature_index[1], (int, str)), \
          'Feature index -> str/ int.'
     assert isinstance(treat_as_categorical[1], bool), 'As categorical -> bool.'
-    assert steps_number is None or isinstance(steps_number[1], int), \
+    assert steps_number[1] is None or isinstance(steps_number[1], int), \
         'Steps number -> None/ int.'
 
     # Find interpolated_values for other feature
     if is_structured:
         column = dataset[feature_index[1]]
     else:
-        column = dataset[:, feature_index[2]]
+        column = dataset[:, feature_index[1]]
 
     if treat_as_categorical[1]:
         interpolated_values_2 = np.unique(column)
@@ -205,13 +205,13 @@ def _interpolate_array_2d(
         # Ignoring steps number -- not needed for categorical.
         steps_number[1] = interpolated_values_2.shape[0]
     else:
-        assert isinstance(steps_number, int), 'Steps number must be an int.'
+        assert isinstance(steps_number[1], int), 'Steps number must be an int.'
         interpolated_values_2 = np.linspace(column.min(), column.max(),
                                             steps_number[1])
 
     interpolated_data = np.repeat(sampled_data[:, :, np.newaxis],
                                   steps_number[1], axis=2)
-    assert len(interpolated_values_2) == steps_number, \
+    assert len(interpolated_values_2) == steps_number[1], \
         'Required for broadcast.'
 
     for i in range(interpolated_data.shape[0]):

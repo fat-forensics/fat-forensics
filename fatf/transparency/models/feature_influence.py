@@ -147,16 +147,23 @@ def _interpolate_array(
         interpolated_values = np.linspace(column.min(), column.max(),
                                           steps_number)
 
-    # Give float type to this column if it is a structured array
-    if (is_structured
-            and dataset.dtype[feature_index] != interpolated_values.dtype):
-        new_types = []
-        for name in dataset.dtype.names:
-            if name == feature_index:
-                new_types.append((name, interpolated_values.dtype))
-            else:
-                new_types.append((name, dataset.dtype[name]))
-        dataset = dataset.astype(new_types)
+        # Give float type to this column if it is a structured array
+        if (is_structured
+                and dataset.dtype[feature_index] != interpolated_values.dtype):
+            new_types = []
+            for name in dataset.dtype.names:
+                if name == feature_index:
+                    dtype = fuat.generalise_dtype(interpolated_values.dtype,
+                                                  dataset.dtype[name])
+                    new_types.append((name, dtype))
+                else:
+                    new_types.append((name, dataset.dtype[name]))
+            dataset = dataset.astype(new_types)
+        elif not is_structured and dataset.dtype != interpolated_values.dtype:
+            dtype = fuat.generalise_dtype(interpolated_values.dtype,
+                                          dataset.dtype)
+            dataset = dataset.astype(dtype)
+
     interpolated_data = np.repeat(dataset[:, np.newaxis], steps_number, axis=1)
     assert len(interpolated_values) == steps_number, 'Required for broadcast.'
     if is_structured:

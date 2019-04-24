@@ -157,7 +157,6 @@ def _interpolate_array(
                 else:
                     new_types.append((name, dataset.dtype[name]))
             dataset = dataset.astype(new_types)
-
     interpolated_data = np.repeat(dataset[:, np.newaxis], steps_number, axis=1)
     assert len(interpolated_values) == steps_number, 'Required for broadcast.'
     if is_structured:
@@ -169,6 +168,58 @@ def _interpolate_array(
         interpolated_data[:, :, feature_index] = interpolated_values
 
     return interpolated_data, interpolated_values
+
+
+def _interpolate_array_2d(
+        dataset: np.ndarray,
+        feature_index: Union[List[int], List[str]],  # yapf: disable
+        treat_as_categorical: Optional[Union[bool, List[bool]]] = [None, None],
+        steps_number: Optional[Union[int, List[int]]] = [None, None]
+) -> Tuple[np.ndarray, np.ndarray]:
+    """
+    Generated 4-D array with interpolated values for the two selected features.
+    """
+
+    is_structured = fuav.is_structured_array(dataset)
+
+    # Interpolate across one dimension
+    sampled_data, feature_linespace_1 = _interpolate_array(
+        dataset, feature_index[0], treat_as_categorical[0],
+        steps_number[0])
+
+     assert isinstance(feature_index[1], (int, str)), \
+         'Feature index -> str/ int.'
+    assert isinstance(treat_as_categorical[1], bool), 'As categorical -> bool.'
+    assert steps_number is None or isinstance(steps_number[1], int), \
+        'Steps number -> None/ int.'
+
+    # Find interpolated_values for other feature
+    if is_structured:
+        column = dataset[feature_index[1]]
+    else:
+        column = dataset[:, feature_index[2]]
+
+    if treat_as_categorical[1]:
+        interpolated_values_2 = np.unique(column)
+        interpolated_values_2.sort()
+        # Ignoring steps number -- not needed for categorical.
+        steps_number[1] = interpolated_values_2.shape[0]
+    else:
+        assert isinstance(steps_number, int), 'Steps number must be an int.'
+        interpolated_values_2 = np.linspace(column.min(), column.max(),
+                                            steps_number[1])
+
+    interpolated_data = np.repeat(sampled_data[:, :, np.newaxis],
+                                  steps_number[1], axis=2)
+    assert len(interpolated_values_2) == steps_number, \
+        'Required for broadcast.'
+
+    for i in range(interpolated_data.shape[0]):
+        interpolated_data[i, :, :, feature_index[1]] = interpolated_values_2
+    interpolated_values = [feature_linespace_1, interpolated_values_2]
+
+    return interpolated_data, interpolated_values
+
 
 
 def _filter_rows(include_rows: Union[None, int, List[int]],
@@ -596,6 +647,62 @@ def individual_conditional_expectation(
         function(data_slice)[:, np.newaxis] if not is_classifier# type: ignore
         else function(data_slice)
         for data_slice in sampled_data
+    ]
+    ice = np.stack(ice, axis=0)
+    return ice, feature_linespace
+
+
+def individual_conditional_expectation_2D(
+        dataset: np.ndarray,
+        model: object,
+        feature_index: Union[List[int], List[str]],
+        mode: str = 'classifier',
+        treat_as_categorical: Optional[Union[bool, List[bool]]] = [None, None],
+        steps_number: Optional[Union[int, List[int]]] = [None, None],
+        include_rows: Optional[Union[int, List[int]]] = None,
+        exclude_rows: Optional[Union[int, List[int]]] = None
+) -> Tuple[np.ndarray, np.ndarray]:
+    """
+    2-D ICE
+    """
+    assert _input_is_valid(dataset, feature_index[0], treat_as_categorical[0],
+                           steps_number[0]), 'Input must be valid.'
+    assert _input_is_valid(dataset, feature_index[1], treat_as_categorical[1],
+                           steps_number[1]), 'Input must be valid.'
+    if mode not in ['classifier', 'regressor']:
+        raise ValueError('Mode {} is not a valid mode. Mode should be '
+                         '\'classifier\' for classification model or '
+                         '\'regressor\' for regression model.'.format(mode))
+    is_classifier = True if mode == 'classifier' else False
+    if not fumv.check_model_functionality(
+            model, require_probabilities=is_classifier):
+        if is_classifier:
+            raise IncompatibleModelError(
+                'This functionality requires the classification model to be '
+                'capable of outputting probabilities via predict_proba '
+                'method.')
+        else:
+            raise IncompatibleModelError(
+                'This functionaility requires the regression model to be '
+                'capable of outputting predictions via predict method')
+    
+    function = model.predict_proba if is_classifier else model.predict
+
+    if treat_as_categorical == [None, None]:
+        treat_as_categorical = [False, False]
+    if steps_number == [None, None] and treat_as_categorical == [False, False]:
+        steps_number = [100, 100]
+
+    rows_number = dataset.shape[0]
+    include_r = _filter_rows(include_rows, exclude_rows, rows_number)
+    filtered_dataset = dataset[include_r]
+
+    sampled_data, feature_linespace = _interpolate_array_2D(
+        filtered_dataset, feature_index, treat_as_categorical, steps_number)
+    ice = [[
+        function(data_slice)[:, np.newaxis] if not is_classifier# type:ignore
+        else function(data_slice)
+        for data_slice in data] for data in sampled_data
     ]
     ice = np.stack(ice, axis=0)
     return ice, feature_linespace

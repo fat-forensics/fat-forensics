@@ -76,6 +76,57 @@ def _input_is_valid(dataset: np.ndarray,
     return is_input_ok
 
 
+def _generalise_dataset_type(
+        dataset: np.ndarray,
+        feature_index: Union[int, str],  # yapf: disable
+        interpolated_values: np.ndarray,
+        is_structured: bool) -> np.ndarray:
+    # Give float type to this column if it is a structured array
+    if (is_structured
+            and dataset.dtype[feature_index] != interpolated_values.dtype):
+        new_types = []
+        for name in dataset.dtype.names:
+            if name == feature_index:
+                dtype = fuat.generalise_dtype(interpolated_values.dtype,
+                                                dataset.dtype[name])
+                new_types.append((name, dtype))
+            else:
+                new_types.append((name, dataset.dtype[name]))
+        dataset = dataset.astype(new_types)
+    elif not is_structured and dataset.dtype != interpolated_values.dtype:
+        dtype = fuat.generalise_dtype(interpolated_values.dtype,
+                                        dataset.dtype)
+        dataset = dataset.astype(dtype)
+    return dataset
+
+
+def _get_feature_range(
+        dataset: np.ndarray,
+        feature_index: Union[int, str],  # yapf: disable
+        treat_as_categorical: bool,
+        steps_number: Union[int, None],
+        is_structured: bool) -> np.ndarray:
+    """
+    Gets feature range
+    """
+    if is_structured:
+        column = dataset[feature_index]
+    else:
+        column = dataset[:, feature_index]
+
+    if treat_as_categorical:
+        interpolated_values = np.unique(column)
+        interpolated_values.sort()
+        # Ignoring steps number -- not needed for categorical.
+        steps_number = interpolated_values.shape[0]
+    else:
+        assert isinstance(steps_number, int), 'Steps number must be an int.'
+        interpolated_values = np.linspace(column.min(), column.max(),
+                                          steps_number)
+    assert len(interpolated_values) == steps_number, 'Required for broadcast.'
+    return interpolated_values, steps_number
+
+
 def _interpolate_array(
         dataset: np.ndarray,
         feature_index: Union[int, str],  # yapf: disable
@@ -132,40 +183,13 @@ def _interpolate_array(
 
     is_structured = fuav.is_structured_array(dataset)
 
-    if is_structured:
-        column = dataset[feature_index]
-    else:
-        column = dataset[:, feature_index]
-
-    if treat_as_categorical:
-        interpolated_values = np.unique(column)
-        interpolated_values.sort()
-        # Ignoring steps number -- not needed for categorical.
-        steps_number = interpolated_values.shape[0]
-    else:
-        assert isinstance(steps_number, int), 'Steps number must be an int.'
-        interpolated_values = np.linspace(column.min(), column.max(),
-                                          steps_number)
-
-        # Give float type to this column if it is a structured array
-        if (is_structured
-                and dataset.dtype[feature_index] != interpolated_values.dtype):
-            new_types = []
-            for name in dataset.dtype.names:
-                if name == feature_index:
-                    dtype = fuat.generalise_dtype(interpolated_values.dtype,
-                                                  dataset.dtype[name])
-                    new_types.append((name, dtype))
-                else:
-                    new_types.append((name, dataset.dtype[name]))
-            dataset = dataset.astype(new_types)
-        elif not is_structured and dataset.dtype != interpolated_values.dtype:
-            dtype = fuat.generalise_dtype(interpolated_values.dtype,
-                                          dataset.dtype)
-            dataset = dataset.astype(dtype)
+    interpolated_values, steps_number = _get_feature_range(
+        dataset, feature_index, treat_as_categorical, steps_number,
+        is_structured)
+    dataset = _generalise_dataset_type(
+        dataset, feature_index, interpolated_values, is_structured)
 
     interpolated_data = np.repeat(dataset[:, np.newaxis], steps_number, axis=1)
-    assert len(interpolated_values) == steps_number, 'Required for broadcast.'
     if is_structured:
         for idx in range(steps_number):
             # Broadcast the new value.
@@ -190,7 +214,7 @@ def _interpolate_array_2d(
     is_structured = fuav.is_structured_array(dataset)
 
     # Interpolate across one dimension
-    sampled_data, feature_linespace_1 = _interpolate_array(
+    sampled_data, feature_linespace = _interpolate_array(
         dataset, feature_index[0], treat_as_categorical[0],
         steps_number[0])
 
@@ -200,29 +224,15 @@ def _interpolate_array_2d(
     assert steps_number[1] is None or isinstance(steps_number[1], int), \
         'Steps number -> None/ int.'
 
-    # Find interpolated_values for other feature
-    if is_structured:
-        column = dataset[feature_index[1]]
-    else:
-        column = dataset[:, feature_index[1]]
-
-    if treat_as_categorical[1]:
-        interpolated_values_2 = np.unique(column)
-        interpolated_values_2.sort()
-        # Ignoring steps number -- not needed for categorical.
-        steps_number[1] = interpolated_values_2.shape[0]
-    else:
-        assert isinstance(steps_number[1], int), 'Steps number must be an int.'
-        interpolated_values_2 = np.linspace(column.min(), column.max(),
-                                            steps_number[1])
+    interpolated_values, steps_number[1] = _get_feature_range(
+        dataset, feature_index[1], treat_as_categorical[1], steps_number[1],
+        is_structured)
 
     interpolated_data = np.repeat(sampled_data[:, :, np.newaxis],
                                   steps_number[1], axis=2)
-    assert len(interpolated_values_2) == steps_number[1], \
-        'Required for broadcast.'
 
-    interpolated_data[:, :, :, feature_index[1]] = interpolated_values_2
-    interpolated_values = [feature_linespace_1, interpolated_values_2]
+    interpolated_data[:, :, :, feature_index[1]] = interpolated_values
+    interpolated_values = [feature_linespace, interpolated_values]
 
     return interpolated_data, interpolated_values
 

@@ -61,6 +61,10 @@ MIXED_ARRAY = np.array(
 NUMERICAL_NP_ARRAY_TEST_INT = np.array([
     [1, 0, 0, 0],
     [0, 0, 0, 0]])
+NUMERICAL_STRUCT_ARRAY_TEST_INT = np.array([
+    [1, 0, 0, 0],
+    [0, 0, 0, 0]],
+    dtype=[('a', 'i'), ('b', 'i'), ('c', 'i'), ('d', 'i')])
 NUMERICAL_NP_ARRAY_TEST = np.array([
     [1, 0, 0.03, 0.5],
     [0, 0, 0.56, 0.32]])
@@ -326,6 +330,108 @@ def test_is_valid_input():
     assert ftmfi._input_is_valid(BASE_NP_ARRAY, 1, True, 2)
 
 
+def test_generalise_dataset_type():
+    """
+    Tests dataset generalisation
+
+    This function tests :func:`fatf.transparency.models.feature_influence.
+    _generalise_dataset_type`.
+    """
+    # Test for type generalisation int -> float for classic arrays
+    generalised_dataset = ftmfi._generalise_dataset_type(
+        NUMERICAL_NP_ARRAY_TEST_INT, 0, np.array([0, 0.5, 1.]), False)
+
+    assert generalised_dataset.dtype == np.float64
+    assert np.array_equal(generalised_dataset,
+                          NUMERICAL_NP_ARRAY_TEST_INT.astype(np.float64))
+    
+    # Test for type generalisation int -> float for structured arrays
+    new_dtypes = [('a', '<f8'), ('b', 'i'), ('c', 'i'), ('d', 'i')]
+    generalised_dataset = ftmfi._generalise_dataset_type(
+        NUMERICAL_STRUCT_ARRAY_TEST_INT, 'a', np.array([0, 0.5, 1.]), True)
+    assert generalised_dataset.dtype == new_dtypes
+    assert np.array_equal(generalised_dataset, 
+                          NUMERICAL_STRUCT_ARRAY_TEST_INT.astype(new_dtypes))
+    
+    # Test for type generalisation int -> float for mixed arrays
+    new_dtypes = [('a', '<f8'), ('b', 'U1'), ('c', 'f'), ('d', 'U2')]
+    generalised_dataset = ftmfi._generalise_dataset_type(
+        MIXED_ARRAY_TEST, 'a', np.array([0, 0.5, 1.]), True)
+    assert generalised_dataset.dtype == new_dtypes
+    assert np.array_equal(generalised_dataset,
+                          MIXED_ARRAY_TEST.astype(new_dtypes))
+    
+    # Test for type generalised <U1 -> <U2 for classic arrays
+    generalised_dataset = ftmfi._generalise_dataset_type(
+        CATEGORICAL_NP_ARRAY_TEST, 'a', np.array(['ab', 'cd', 'ef']), False)
+    assert generalised_dataset.dtype == '<U2'
+    assert np.array_equal(generalised_dataset,
+                          CATEGORICAL_NP_ARRAY_TEST.astype('<U2'))
+    
+     # Test for type generalised <U1 -> <U2 for structured arrays
+    new_dtypes = [('a', '<U2'), ('b', 'U1'), ('c', 'U1')]
+    generalised_dataset = ftmfi._generalise_dataset_type(
+        CATEGORICAL_STRUCT_ARRAY_TEST, 'a', np.array(['ab', 'cd', 'ef']), True)
+    assert generalised_dataset.dtype == new_dtypes
+    assert np.array_equal(generalised_dataset,
+                          CATEGORICAL_STRUCT_ARRAY_TEST.astype(new_dtypes))
+
+
+def test_get_feature_range():
+    """
+    Tests feature range calculation.
+
+    This function tests
+    :func:`fatf.transparency.models.feature_influence._get_feature_range`.
+    """
+    # Numerical interpolations with classic array
+    values = np.array([0., 1., 2.])
+    steps = 3
+    interpolated_values, steps_number = ftmfi._get_feature_range(
+        NUMERICAL_NP_ARRAY, 0, False, 3, False)
+    assert np.array_equal(interpolated_values, values)
+    assert steps_number == steps
+
+    # Numerical interpolations with structured array
+    interpolated_values, steps_number = ftmfi._get_feature_range(
+        NUMERICAL_STRUCT_ARRAY, 'a', False, 3, True)
+    assert np.array_equal(interpolated_values, values)
+    assert steps_number == steps
+
+    # Numerical interpolations with mixed array
+    values = np.array([0., 0.5, 1.])
+    interpolated_values, steps_number = ftmfi._get_feature_range(
+        MIXED_ARRAY, 'a', False, 3, True)
+    assert np.array_equal(interpolated_values, values)
+    assert steps_number == steps
+
+    # Categorical interpolation with classic array
+    values = np.array(['b', 'c', 'f'])
+    interpolated_values, steps_number = ftmfi._get_feature_range(
+        CATEGORICAL_NP_ARRAY, 1, True, 3, False)
+    assert np.array_equal(interpolated_values, values)
+    assert steps_number == steps
+
+    # Categorical interpolation with classic array and wrong step number
+    interpolated_values, steps_number = ftmfi._get_feature_range(
+        CATEGORICAL_NP_ARRAY, 1, True, 100, False)
+    assert np.array_equal(interpolated_values, values)
+    assert steps_number == steps
+
+    # Categorical interpolation with structured array
+    interpolated_values, steps_number = ftmfi._get_feature_range(
+        CATEGORICAL_STRUCT_ARRAY, 'b', True, 3, True)
+    assert np.array_equal(interpolated_values, values)
+    assert steps_number == steps
+
+    # Categorical interpolation with mixed array
+    values = np.array(['a', 'c', 'f'])
+    interpolated_values, steps_number = ftmfi._get_feature_range(
+        MIXED_ARRAY, 'b', True, 3, True)
+    assert np.array_equal(interpolated_values, values)
+    assert steps_number == steps
+
+
 def test_interpolate_array():
     """
     Tests array interpolation.
@@ -504,7 +610,6 @@ def test_interpolate_array_2d():
                           interpolated_data[:, :, :, numerical_columns[0]])
     assert np.array_equal(numerical_interpolate_2,
                           interpolated_data[:, :, :, numerical_columns[1]])
-    assert False
 
 
 def test_filter_rows():

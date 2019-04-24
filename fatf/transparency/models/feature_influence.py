@@ -147,16 +147,16 @@ def _interpolate_array(
         interpolated_values = np.linspace(column.min(), column.max(),
                                           steps_number)
 
-        # Give float type to this column if it is a structured array
-        if (is_structured
-                and dataset.dtype[feature_index] != interpolated_values.dtype):
-            new_types = []
-            for name in dataset.dtype.names:
-                if name == feature_index:
-                    new_types.append((name, interpolated_values.dtype))
-                else:
-                    new_types.append((name, dataset.dtype[name]))
-            dataset = dataset.astype(new_types)
+    # Give float type to this column if it is a structured array
+    if (is_structured
+            and dataset.dtype[feature_index] != interpolated_values.dtype):
+        new_types = []
+        for name in dataset.dtype.names:
+            if name == feature_index:
+                new_types.append((name, interpolated_values.dtype))
+            else:
+                new_types.append((name, dataset.dtype[name]))
+        dataset = dataset.astype(new_types)
     interpolated_data = np.repeat(dataset[:, np.newaxis], steps_number, axis=1)
     assert len(interpolated_values) == steps_number, 'Required for broadcast.'
     if is_structured:
@@ -214,12 +214,10 @@ def _interpolate_array_2d(
     assert len(interpolated_values_2) == steps_number[1], \
         'Required for broadcast.'
 
-    for i in range(interpolated_data.shape[0]):
-        interpolated_data[i, :, :, feature_index[1]] = interpolated_values_2
+    interpolated_data[:, :, :, feature_index[1]] = interpolated_values_2
     interpolated_values = [feature_linespace_1, interpolated_values_2]
 
     return interpolated_data, interpolated_values
-
 
 
 def _filter_rows(include_rows: Union[None, int, List[int]],

@@ -480,6 +480,30 @@ def test_interpolate_array():
                               numerical_interpolation_num[:, :][column])
 
 
+def test_interpolate_array_2d():
+    """
+    Tests array interpolation across two features.
+
+    This function tests
+    :func:`fatf.transparency.models.feature_influence._interpolate_array_2d`.
+    """
+    # For a structured and an unstructured *numerical* arrays...
+    numerical_columns = [0, 1]
+    categorical_columns = ['a', 'b']
+    numerical_linespace = np.array([[0., 1., 2.,], [0., 0.5, 1.]])
+    numerical_interpolate_1 = np.array(6*[[[0.]*3, [1.]*3, [2.]*3]])
+    numerical_interpolate_2 = np.array(6*[[[0., 0.5, 1]]*3])
+    interpolated_data, interpolated_values = ftmfi._interpolate_array_2d(
+        NUMERICAL_NP_ARRAY, numerical_columns, [False, False], [3, 3])
+    assert np.array_equal(numerical_linespace, 
+                          np.stack(interpolated_values, axis=0))
+    assert np.array_equal(numerical_interpolate_1,
+                          interpolated_data[:, :, :, numerical_columns[0]])
+    assert np.array_equal(numerical_interpolate_2,
+                          interpolated_data[:, :, :, numerical_columns[1]])
+    assert False
+
+
 def test_filter_rows():
     """
     Tests :func:`fatf.transparency.models.feature_influence._filter_rows`.

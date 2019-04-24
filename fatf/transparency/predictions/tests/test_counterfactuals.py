@@ -722,6 +722,31 @@ class TestCounterfactualExplainer(object):
                 default_numerical_step_size=-7)
         assert str(exin.value) == value_error_default_num_ss
 
+    @staticmethod
+    def test_init_errors_auto_range():
+        """
+        Tests for errors in range calculations when initialising the class.
+        """
+        user_warning = ('There is only one unique value detected for the '
+                        'categorical feature *{}*: {}.')
+        value_error = ('The minimum and the maximum detected value for '
+                       'feature *{}* are the same ({}). Impossible to create '
+                       'a range.')
+        # Categorical type generalisation
+        data = np.array([[0, 0], [1, 0]])
+        clf = fum.KNN(k=1)
+        clf.fit(data, np.array((['good', 'bad'])))
+
+        with pytest.raises(ValueError) as exin:
+            ftpc.CounterfactualExplainer(model=clf, dataset=data)
+        assert str(exin.value) == value_error.format(1, 0)
+
+        with pytest.warns(UserWarning) as w:
+            ftpc.CounterfactualExplainer(
+                model=clf, dataset=data, categorical_indices=[1])
+        assert len(w) == 1
+        assert str(w[0].message) == user_warning.format(1, '[0]')
+
     def test_explain_instance_errors(self):
         """
         Tests for error in ``explain_instance`` method.
@@ -787,9 +812,13 @@ class TestCounterfactualExplainer(object):
                           [2, 0, 20.33, 12]])  # yapf: disable
         t_dist = np.array([1, 1, 1.22, 1.22] + 14 * [2] + [7.22, 7.22, 10.22])
         t_pred = np.array(18 * ['mediocre'] + 3 * ['good'])
-        assert np.array_equal(cfs, t_cfs)
-        assert np.allclose(cfs_dist, t_dist)
         assert np.array_equal(cfs_pred, t_pred)
+        assert np.allclose(cfs_dist, t_dist)
+        uid = [[0, 1], [2, 3], list(range(4, 18)), [18, 19], [20]]
+        for i in uid:
+            srtd1 = np.sort(cfs[i], axis=0)
+            srtd2 = np.sort(t_cfs[i], axis=0)
+            assert np.array_equal(srtd1, srtd2)
 
         cfe = ftpc.CounterfactualExplainer(
             predictive_function=self.KNN_STR.predict, dataset=self.DATASET_STR)
@@ -801,9 +830,9 @@ class TestCounterfactualExplainer(object):
                           ['d', 'd@b.com', '1', '0011']])
         t_dist = np.array(3 * [2])
         t_pred = np.array(3 * ['mediocre'])
-        assert np.array_equal(cfs, t_cfs)
         assert np.allclose(cfs_dist, t_dist)
         assert np.array_equal(cfs_pred, t_pred)
+        assert np.array_equal(np.sort(cfs, axis=0), np.sort(t_cfs, axis=0))
 
         cfe = ftpc.CounterfactualExplainer(
             model=self.KNN_STRUCT,
@@ -975,3 +1004,34 @@ class TestCounterfactualExplainer(object):
         assert np.array_equal(cfs, t_cfs)
         assert np.allclose(cfs_dist, t_dist)
         assert np.array_equal(cfs_pred, t_pred)
+
+        # Duplicated counterfactual -- filtering is applied
+        data = np.array([[0, 0], [1, 1], [0, 1]])
+        clf = fum.KNN(k=1)
+        clf.fit(data, np.array((['good', 'bad', 'bad'])))
+        cfe = ftpc.CounterfactualExplainer(
+            model=clf,
+            dataset=data,
+            max_counterfactual_length=2,
+            default_numerical_step_size=0.4)
+        cfs, cfs_dist, cfs_pred = cfe.explain_instance(np.array([0, 0]))
+        assert np.array_equal(cfs, np.array([[0, 0.8]]))
+        assert np.allclose(cfs_dist, np.array([0.8]))
+        assert np.array_equal(cfs_pred, np.array(['bad']))
+
+        # Duplicated counterfactual -- filtering is applied
+        data = np.array([(0, 0), (1, 1), (0, 1)],
+                        dtype=[('a', 'i'), ('b', 'i')])
+        clf = fum.KNN(k=1)
+        clf.fit(data, np.array((['good', 'bad', 'bad'])))
+        cfe = ftpc.CounterfactualExplainer(
+            model=clf,
+            dataset=data,
+            max_counterfactual_length=2,
+            default_numerical_step_size=0.4)
+        cfs, cfs_dist, cfs_pred = cfe.explain_instance(
+            np.array([(0, 0)], dtype=data.dtype)[0])
+        assert np.array_equal(
+            cfs, np.array([(0, 0.8)], dtype=[('a', float), ('b', float)]))
+        assert np.allclose(cfs_dist, np.array([0.8]))
+        assert np.array_equal(cfs_pred, np.array(['bad']))

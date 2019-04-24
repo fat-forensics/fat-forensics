@@ -19,6 +19,7 @@ import numpy as np
 import fatf.utils.models.validation as fumv
 import fatf.utils.array.tools as fuat
 import fatf.utils.array.validation as fuav
+import fatf.utils.tools as fut
 
 from fatf.exceptions import IncorrectShapeError
 
@@ -26,6 +27,9 @@ FeatureRange = Union[Tuple[Number, Number], List[Union[Number, str]]]
 Index = Union[int, str]
 
 __all__ = ['textualise_counterfactuals', 'CounterfactualExplainer']
+
+_NUMPY_VERSION = [int(i) for i in np.version.version.split('.')]
+_NUMPY_1_13 = fut.at_least_verion([1, 13], _NUMPY_VERSION)
 
 
 class CounterfactualExplainer(object):
@@ -140,7 +144,9 @@ class CounterfactualExplainer(object):
         The value of the ``max_counterfactual_length parameter`` is larger than
         the number of features. A step size (via the ``step_sizes`` parameter)
         is provided for one of the categorical features. Both a ``model`` and a
-        ``predictive_function`` parameters are supplied.
+        ``predictive_function`` parameters are supplied. When discovering
+        categorical feature ranges from the ``dataset`` there is only one
+        unique value for any particular feature.
 
     Raises
     ------
@@ -209,7 +215,9 @@ class CounterfactualExplainer(object):
         ``step_sizes`` parameter is an empty dictionary. Some of the step sizes
         specified via the ``step_sizes`` dictionary are not strictly positive
         numbers. The ``default_numerical_step_size`` parameter is not a
-        strictly positive number.
+        strictly positive number. When discovering feature ranges from the
+        ``dataset`` there is only one value for a numerical feature meaning
+        that a range cannot be created.
 
     Attributes
     ----------
@@ -245,7 +253,7 @@ class CounterfactualExplainer(object):
 
     # Whether out-of-range warning has been issued for a particular feature.
     # Used to avoid duplicated feature warnings.
-    _feature_warned: Dict[Index, bool] = dict()
+    _feature_warned = dict()  # type: Dict[Index, bool]
 
     def __init__(  # type: ignore
             self,
@@ -361,12 +369,15 @@ class CounterfactualExplainer(object):
         # Sort out feature ranges
         if feature_ranges is None:
             feature_ranges = self._get_feature_ranges(dataset)
+            assert self._validate_auto_ranges(feature_ranges), 'Bad ranges.'
         else:
             # Get needed ranges
             needed_ranges_indices = self.cf_feature_indices.difference(
                 feature_ranges.keys())
             missing_ranges = self._get_feature_ranges(
                 dataset, column_indices=needed_ranges_indices)
+            assert self._validate_auto_ranges(missing_ranges), 'Bad ranges.'
+
             # Merge feature_ranges and missing_ranges dictionaries
             feature_ranges = {**missing_ranges, **feature_ranges}
         self.feature_ranges = feature_ranges
@@ -464,7 +475,7 @@ class CounterfactualExplainer(object):
             array) and the values representing ranges of a given column
             feature.
         """
-        ranges: Dict[Index, FeatureRange] = dict()
+        ranges = dict()  # type: Dict[Index, FeatureRange]
         if column_indices is not None and not column_indices:
             return ranges
 
@@ -515,6 +526,47 @@ class CounterfactualExplainer(object):
                 assert False, 'Invalid column index.'  # pragma: nocover
             ranges[column_index] = column_range
         return ranges
+
+    def _validate_auto_ranges(
+            self, discovered_ranges: Dict[Index, FeatureRange]) -> bool:
+        """
+        Validates the feature ranges discovered from a dataset.
+
+        For the description of the ``UserWarning`` and the ``ValueError``
+        please see the documentation of the class.
+
+        Parameters
+        ----------
+        discovered_ranges : Dictionary[column indices, ranges]
+            A dictionary with feature ranges calculated based on the input
+            ``dataset``.
+
+        Returns
+        -------
+        are_ranges_valid : boolean
+            ``True`` if the ranges are valid, ``False`` otherwise.
+        """
+        assert self.categorical_indices is not None, 'Required for validation.'
+        are_ranges_valid = False
+
+        for rng in discovered_ranges:
+            if rng in self.categorical_indices:
+                if len(discovered_ranges[rng]) < 2:
+                    warnings.warn(
+                        'There is only one unique value detected for the '
+                        'categorical feature *{}*: {}.'.format(
+                            rng, discovered_ranges[rng]), UserWarning)
+            else:
+                assert (discovered_ranges[rng][0]  # type: ignore
+                        <= discovered_ranges[rng][1]), 'Incompatible range.'
+                if discovered_ranges[rng][0] == discovered_ranges[rng][1]:
+                    raise ValueError('The minimum and the maximum detected '
+                                     'value for feature *{}* are the same '
+                                     '({}). Impossible to create a '
+                                     'range.'.format(
+                                         rng, discovered_ranges[rng][1]))
+        are_ranges_valid = True
+        return are_ranges_valid
 
     def _get_distance(self,
                       instance_one: Union[np.ndarray, np.void],
@@ -582,7 +634,8 @@ class CounterfactualExplainer(object):
             A 2-dimensional numpy array with neighbouring data points or an
             empty array if none could be generated.
         """
-        # pylint: disable=too-many-locals
+        # pylint: disable=too-many-locals,too-many-branches
+        assert features_combination, 'Must be at least one feature.'
         warning_msg = ('The value ({}) of *{}* feature for this instance is '
                        'out of the specified {}.')
         possible_features_ranges = []
@@ -591,8 +644,9 @@ class CounterfactualExplainer(object):
                 feature_value = instance[feature]
                 feature_ranges = self.feature_ranges[feature]
                 # Get all other possible categorical values
-                possible_features_ranges.append(
+                feature_range = np.array(
                     [i for i in feature_ranges if i != feature_value])
+                possible_features_ranges.append(feature_range)
 
                 if (feature_value not in feature_ranges
                         and not self._feature_warned[feature]):
@@ -619,8 +673,27 @@ class CounterfactualExplainer(object):
 
                 feature_range = np.arange(feature_range_min, feature_range_max,
                                           self.step_sizes[feature])
-
                 possible_features_ranges.append(feature_range)
+
+        # Generalise the type if necessary
+        if fuav.is_structured_array(np.array([instance])):
+            new_types = []
+            for name in instance.dtype.names:
+                if name in features_combination:
+                    index = features_combination.index(name)
+                    dtype = fuat.generalise_dtype(
+                        possible_features_ranges[index].dtype,
+                        instance.dtype[name])
+                    new_types.append((name, dtype))
+                else:
+                    new_types.append((name, instance.dtype[name]))
+            instance = instance.astype(new_types)
+        else:
+            dtype = possible_features_ranges[0].dtype
+            for i in possible_features_ranges:
+                dtype = fuat.generalise_dtype(dtype, i.dtype)
+            dtype = fuat.generalise_dtype(dtype, instance.dtype)
+            instance = instance.astype(dtype)
 
         # Create alternative data points
         cf_instances = []
@@ -772,6 +845,18 @@ class CounterfactualExplainer(object):
                             cf_predictions[dists_min_mask])
 
         if counterfactuals:
+            # Make sure that all of the structured arrays share the same type.
+            # Otherwise it is impossible to concatenate.
+            if fuav.is_structured_array(counterfactuals[0]):
+                new_types = []
+                for name in counterfactuals[0].dtype.names:
+                    dtype = counterfactuals[0].dtype[name]
+                    for i in counterfactuals:
+                        dtype = fuat.generalise_dtype(dtype, i.dtype[name])
+                    new_types.append((name, dtype))
+                for i, cfs in enumerate(counterfactuals):
+                    counterfactuals[i] = cfs.astype(new_types)
+
             # Put counterfactuals together
             counterfactuals = np.concatenate(counterfactuals)
             counterfactuals_distances = np.concatenate(
@@ -780,10 +865,26 @@ class CounterfactualExplainer(object):
                 counterfactuals_predictions)
 
             # Remove duplicates
-            counterfactuals, uniq_idx = np.unique(
-                counterfactuals, return_index=True, axis=0)
-            counterfactuals_distances = counterfactuals_distances[uniq_idx]
-            counterfactuals_predictions = counterfactuals_predictions[uniq_idx]
+            if _NUMPY_1_13:  # pragma: nocover
+                counterfactuals, uidx = np.unique(
+                    counterfactuals, return_index=True, axis=0)
+            else:  # pragma: nocover
+                is_structured = fuav.is_structured_array(counterfactuals)
+                uidx = []
+                for i, row in enumerate(counterfactuals):
+                    if is_structured:
+                        same_rows = counterfactuals == row
+                    else:
+                        same_rows = (counterfactuals == row).all(axis=1)
+                    if same_rows.sum() > 1:
+                        duplicates = set(np.where(same_rows)[0].tolist())
+                        if not duplicates.intersection(uidx):
+                            uidx.append(i)
+                    else:
+                        uidx.append(i)
+                counterfactuals = counterfactuals[uidx]
+            counterfactuals_distances = counterfactuals_distances[uidx]
+            counterfactuals_predictions = counterfactuals_predictions[uidx]
 
             # Sort them to get the closest ones first
             sorting = np.argsort(counterfactuals_distances)

@@ -326,6 +326,54 @@ def test_are_indices_valid():
                                   np.array(['complex', 'numbers']))
 
 
+def test_generalise_dtype():
+    """
+    Tests :func:`fatf.utils.array.tools.generalise_dtype`.
+    """
+    error_msg = 'The {} dtype is not one of the base types (strings/numbers).'
+    with pytest.raises(ValueError) as exin:
+        fuat.generalise_dtype(np.dtype(np.datetime64), np.dtype(np.datetime64))
+    assert str(exin.value) == error_msg.format('first')
+
+    with pytest.raises(ValueError) as exin:
+        fuat.generalise_dtype(np.dtype(np.float64), np.dtype(np.datetime64))
+    assert str(exin.value) == error_msg.format('second')
+
+    dtype_int = np.dtype(int)
+    dtype_int32 = np.dtype(np.int32)
+    dtype_int64 = np.dtype(np.int64)
+    dtype_float = np.dtype(float)
+    dtype_float16 = np.dtype(np.float16)
+    dtype_float32 = np.dtype(np.float32)
+    dtype_float64 = np.dtype(np.float64)
+    dtype_str = np.dtype(str)
+    dtype_str4 = np.dtype('U4')
+    dtype_str11 = np.dtype('U11')
+    dtype_str16 = np.dtype('U16')
+    dtype_str21 = np.dtype('U21')
+    dtype_str32 = np.dtype('U32')
+
+    assert dtype_int64 is fuat.generalise_dtype(dtype_int, dtype_int32)
+    assert dtype_int64 is fuat.generalise_dtype(dtype_int, dtype_int64)
+    assert dtype_int64 is fuat.generalise_dtype(dtype_int32, dtype_int64)
+    assert dtype_int64 is fuat.generalise_dtype(dtype_int, dtype_int)
+
+    assert dtype_float64 is fuat.generalise_dtype(dtype_float, dtype_float)
+    assert dtype_float64 is fuat.generalise_dtype(dtype_float64, dtype_float)
+    assert dtype_float64 is fuat.generalise_dtype(dtype_int, dtype_float32)
+    assert dtype_float64 is fuat.generalise_dtype(dtype_int32, dtype_float32)
+    assert dtype_float32 is fuat.generalise_dtype(dtype_float32, dtype_float16)
+
+    assert dtype_str4 is fuat.generalise_dtype(dtype_str, dtype_str4)
+    assert dtype_str21 is fuat.generalise_dtype(dtype_str21, dtype_str4)
+
+    assert dtype_str16 == fuat.generalise_dtype(dtype_str11, dtype_str16)
+    assert dtype_str11 == fuat.generalise_dtype(dtype_int32, dtype_str4)
+    assert dtype_str21 == fuat.generalise_dtype(dtype_int64, dtype_str4)
+    assert dtype_str32 == fuat.generalise_dtype(dtype_float32, dtype_str4)
+    assert dtype_str32 == fuat.generalise_dtype(dtype_float64, dtype_str16)
+
+
 def test_fatf_structured_to_unstructured_row():
     """
     Tests :func:`fatf.utils.array.tools.fatf_structured_to_unstructured_row`.

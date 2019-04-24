@@ -220,7 +220,7 @@ def are_similar_dtypes(dtype_a: np.dtype,
     dtype_a : numpy.dtype
         The first dtype to be compared.
     dtype_b : numpy.dtype
-        The first dtype to be compared.
+        The second dtype to be compared.
     strict_comparison : boolean, optional (default=False)
         When set to True the dtypes have to match exactly. Otherwise, if both
         are either numerical or textual dtypes, they are considered similar.

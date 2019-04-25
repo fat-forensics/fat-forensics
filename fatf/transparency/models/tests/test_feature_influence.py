@@ -596,12 +596,54 @@ def test_interpolate_array_2d():
     This function tests
     :func:`fatf.transparency.models.feature_influence._interpolate_array_2d`.
     """
+    # FOR CLASSIC ARRAYS
     # For a structured and an unstructured *numerical* arrays...
     numerical_columns = [0, 1]
-    categorical_columns = ['a', 'b']
+    struct_columns = ['a', 'b']
     numerical_linespace = np.array([[0., 1., 2.,], [0., 0.5, 1.]])
+    numerical_linespace_100 = [np.array([0., 1., 2.]), np.linspace(0., 1., 100)]
+    numerical_cat_linespace = [np.array([0., 1., 2.]), np.array([0., 1.])]
     numerical_interpolate_1 = np.array(6*[[[0.]*3, [1.]*3, [2.]*3]])
+    numerical_interpolate_cat_1 = np.array(6*[[[0.]*2, [1.]*2, [2.]*2]])
+    numerical_interpolate_1_100 = np.array(6*[[[0.]*100, [1.]*100, [2.]*100]])
     numerical_interpolate_2 = np.array(6*[[[0., 0.5, 1]]*3])
+    numerical_interpolate_cat_2 = np.array(6*[[[0., 1.]]*3])
+    numerical_interpolate_2_100 = np.array(6*[[np.linspace(0., 1., 100)]*3])
+
+    categorical_linespace = [np.array(['a', 'b']), np.array(['b', 'c', 'f'])]
+    categorical_interpolate_1 = np.array(3*[[['a']*3, ['b']*3]])
+    categorical_interpolate_2 = np.array(3*[[['b', 'c', 'f']]*2])
+
+    mixed_columns_num = ['a', 'c']
+    mixed_columns_mix = ['a', 'b']
+    mixed_columns_str = ['b', 'd']
+    mixed_linespace_num = [np.array([0., 0.5, 1.]),
+                           np.linspace(0.07, 0.99, 100)]
+    mixed_linespace_mix = [np.array([0., 0.5, 1.]), np.array(['a', 'c', 'f'])]
+    mixed_linespace_str = [np.array(['a', 'c', 'f']),
+                           np.array(['a', 'aa', 'b', 'bb'])]
+    mixed_interpolate_1_num = np.array(6*[[[0.]*100, [0.5]*100, [1.]*100]])
+    mixed_interpolate_2_num = np.array(6*[[np.linspace(0.07, 0.99, 100)]*3])
+    mixed_interpolate_1_mix = np.array(6*[[[0.]*3, [0.5]*3, [1.]*3]])
+    mixed_interpolate_2_mix = np.array(6*[[['a', 'c', 'f']]*3])
+    mixed_interpolate_1_str = np.array(6*[[['a']*4, ['c']*4, ['f']*4]])
+    mixed_interpolate_2_str = np.array(6*[[['a', 'aa', 'b', 'bb']]*3])
+    
+    #CATEGORICAL_NP_ARRAY = 
+    #['a', 'f', 'g'],
+    #['a', 'b', 'c'],
+    #['b', 'c', 'c']])
+    #
+    #MIXED_ARRAY = np.array(
+    #[(0, 'a', 0.08, 'a'),
+    # (0, 'f', 0.03, 'bb'),
+    # (1, 'c', 0.99, 'aa'),
+    # (1, 'a', 0.73, 'a'),
+    # (0, 'c', 0.36, 'b'),
+    # (1, 'f', 0.07, 'bb')],
+    #dtype=[('a', 'i'), ('b', 'U1'), ('c', 'f'), ('d', 'U2')])
+
+    # Treat both columns as numerical with step size 3
     interpolated_data, interpolated_values = ftmfi._interpolate_array_2d(
         NUMERICAL_NP_ARRAY, numerical_columns, [False, False], [3, 3])
     assert np.array_equal(numerical_linespace, 
@@ -610,6 +652,160 @@ def test_interpolate_array_2d():
                           interpolated_data[:, :, :, numerical_columns[0]])
     assert np.array_equal(numerical_interpolate_2,
                           interpolated_data[:, :, :, numerical_columns[1]])
+
+    # Treat second column as catageorical
+    interpolated_data, interpolated_values = ftmfi._interpolate_array_2d(
+        NUMERICAL_NP_ARRAY, numerical_columns, [False, True], [3, None])
+    for true_value, interp_value in zip(numerical_cat_linespace, 
+            interpolated_values):
+        assert np.array_equal(true_value, interp_value)
+    assert np.array_equal(numerical_interpolate_cat_1,
+                          interpolated_data[:, :, :, numerical_columns[0]])
+    assert np.array_equal(numerical_interpolate_cat_2,
+                          interpolated_data[:, :, :, numerical_columns[1]])
+
+    # Treat both as categorical
+    interpolated_data, interpolated_values = ftmfi._interpolate_array_2d(
+        NUMERICAL_NP_ARRAY, numerical_columns, [True, True], [3, None])
+    for true_value, interp_value in zip(numerical_cat_linespace, 
+            interpolated_values):
+        assert np.array_equal(true_value, interp_value)
+    assert np.array_equal(numerical_interpolate_cat_1,
+                          interpolated_data[:, :, :, numerical_columns[0]])
+    assert np.array_equal(numerical_interpolate_cat_2,
+                          interpolated_data[:, :, :, numerical_columns[1]])
+
+    # Steps sizes [3, 100] for purely numerical non-categorical
+    interpolated_data, interpolated_values = ftmfi._interpolate_array_2d(
+        NUMERICAL_NP_ARRAY, numerical_columns, [False, False], [3, 100])
+    for true_value, interp_value in zip(numerical_linespace_100, 
+            interpolated_values):
+        assert np.array_equal(true_value, interp_value)
+    assert np.array_equal(numerical_interpolate_1_100,
+                          interpolated_data[:, :, :, numerical_columns[0]])
+    assert np.array_equal(numerical_interpolate_2_100,
+                          interpolated_data[:, :, :, numerical_columns[1]])
+
+    # String data with strings
+    interpolated_data, interpolated_values = ftmfi._interpolate_array_2d(
+        CATEGORICAL_NP_ARRAY, numerical_columns, [True, True], [2, 3])
+    for true_value, interp_value in zip(categorical_linespace, 
+            interpolated_values):
+        assert np.array_equal(true_value, interp_value)
+    assert np.array_equal(categorical_interpolate_1,
+                          interpolated_data[:, :, :, numerical_columns[0]])
+    assert np.array_equal(categorical_interpolate_2,
+                          interpolated_data[:, :, :, numerical_columns[1]])
+
+    # String data with wrong number of steps
+    interpolated_data, interpolated_values = ftmfi._interpolate_array_2d(
+        CATEGORICAL_NP_ARRAY, numerical_columns, [True, True], [100, 100])
+    for true_value, interp_value in zip(categorical_linespace, 
+            interpolated_values):
+        assert np.array_equal(true_value, interp_value)
+    assert np.array_equal(categorical_interpolate_1,
+                          interpolated_data[:, :, :, numerical_columns[0]])
+    assert np.array_equal(categorical_interpolate_2,
+                          interpolated_data[:, :, :, numerical_columns[1]])
+
+    ###########################################################################
+
+    # STRUCTURED ARRAYS
+    # Structured with just numerical values
+    interpolated_data, interpolated_values = ftmfi._interpolate_array_2d(
+        NUMERICAL_STRUCT_ARRAY, struct_columns, [False, False], [3, 3])
+    # When we go from int -> float in _generalise_dataset_dtype it
+    # introduces a small error in the values
+    assert np.allclose(numerical_linespace, interpolated_values, atol=1e-1)
+    assert np.allclose(numerical_interpolate_1,
+                          interpolated_data[:, :, :][struct_columns[0]])
+    assert np.allclose(numerical_interpolate_2,
+                       interpolated_data[:, :, :][struct_columns[1]],
+                       atol=1e-1)
+    
+    # Treat second column as categorical
+    interpolated_data, interpolated_values = ftmfi._interpolate_array_2d(
+        NUMERICAL_STRUCT_ARRAY, struct_columns, [False, True], [3, None])
+    for true_value, interp_value in zip(numerical_cat_linespace, 
+            interpolated_values):
+        assert np.allclose(true_value, interp_value, atol=1e-1)
+    assert np.allclose(numerical_interpolate_cat_1,
+                          interpolated_data[:, :, :][struct_columns[0]])
+    assert np.allclose(numerical_interpolate_cat_2,
+                       interpolated_data[:, :, :][struct_columns[1]],
+                       atol=1e-1)
+
+    # Steps sizes [3, 100] for purely numerical non-categorical
+    interpolated_data, interpolated_values = ftmfi._interpolate_array_2d(
+        NUMERICAL_STRUCT_ARRAY, struct_columns, [False, False], [3, 100])
+    for true_value, interp_value in zip(numerical_linespace_100, 
+            interpolated_values):
+        assert np.allclose(true_value, interp_value, atol=1e-1)
+    assert np.allclose(numerical_interpolate_1_100,
+                          interpolated_data[:, :, :][struct_columns[0]])
+    assert np.allclose(numerical_interpolate_2_100,
+                          interpolated_data[:, :, :][struct_columns[1]],
+                          atol=1e-1)
+    
+    # String data with strings
+    interpolated_data, interpolated_values = ftmfi._interpolate_array_2d(
+        CATEGORICAL_STRUCT_ARRAY, struct_columns, [True, True], [2, 3])
+    for true_value, interp_value in zip(categorical_linespace, 
+            interpolated_values):
+        assert np.array_equal(true_value, interp_value)
+    assert np.array_equal(categorical_interpolate_1,
+                          interpolated_data[:, :, :][struct_columns[0]])
+    assert np.array_equal(categorical_interpolate_2,
+                          interpolated_data[:, :, :][struct_columns[1]])
+
+    # String data with wrong number of steps
+    interpolated_data, interpolated_values = ftmfi._interpolate_array_2d(
+        CATEGORICAL_STRUCT_ARRAY, struct_columns, [True, True], [100, 100])
+    for true_value, interp_value in zip(categorical_linespace, 
+            interpolated_values):
+        assert np.array_equal(true_value, interp_value)
+    assert np.array_equal(categorical_interpolate_1,
+                          interpolated_data[:, :, :][struct_columns[0]])
+    assert np.array_equal(categorical_interpolate_2,
+                          interpolated_data[:, :, :][struct_columns[1]])
+
+    ###########################################################################
+
+    # MIXED ARRAYS
+    # Interpolate both numerical values
+    interpolated_data, interpolated_values = ftmfi._interpolate_array_2d(
+        MIXED_ARRAY, mixed_columns_num, [False, False], [3, 100])
+    for true_value, interp_value in zip(mixed_linespace_num, 
+            interpolated_values):
+        assert np.allclose(true_value, interp_value, atol=1e-1)
+    assert np.allclose(mixed_interpolate_1_num,
+                       interpolated_data[:, :, :][mixed_columns_num[0]])
+    assert np.allclose(mixed_interpolate_2_num,
+                       interpolated_data[:, :, :][mixed_columns_num[1]],
+                       atol=1e-1)
+
+    # Interpolate one numerical one string
+    interpolated_data, interpolated_values = ftmfi._interpolate_array_2d(
+        MIXED_ARRAY, mixed_columns_mix, [False, True], [3, None])
+    assert np.allclose(interpolated_values[0], mixed_linespace_mix[0],
+                       atol=1e-1)
+    assert np.array_equal(interpolated_values[1], mixed_linespace_mix[1])
+    assert np.allclose(mixed_interpolate_1_mix,
+                       interpolated_data[:, :, :][mixed_columns_mix[0]],
+                       atol=1e-1)
+    assert np.array_equal(mixed_interpolate_2_mix,
+                          interpolated_data[:, :, :][mixed_columns_mix[1]])
+
+    # Interpolate both string
+    interpolated_data, interpolated_values = ftmfi._interpolate_array_2d(
+        MIXED_ARRAY, mixed_columns_str, [True, True], [None, None])
+    for true_value, interp_value in zip(mixed_linespace_str, 
+            interpolated_values):
+        assert np.array_equal(true_value, interp_value)
+    assert np.array_equal(mixed_interpolate_1_str,
+                          interpolated_data[:, :, :][mixed_columns_str[0]])
+    assert np.array_equal(mixed_interpolate_2_str,
+                          interpolated_data[:, :, :][mixed_columns_str[1]])
 
 
 def test_filter_rows():
@@ -1420,7 +1616,5 @@ def test_partial_dependence():
 
     pd, linespace, var = ftmfi.partial_dependence(
         MIXED_ARRAY_TEST, clf, 'b', 'regressor', exclude_rows=1)
-    print(pd)
-    print(var)
     assert np.allclose(pd, MIXED_PD_CATEGORICAL_REGRESSION)
     assert np.array_equal(linespace, MIXED_LINESPACE_CATEGORICAL)

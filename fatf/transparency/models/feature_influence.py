@@ -228,10 +228,21 @@ def _interpolate_array_2d(
         dataset, feature_index[1], treat_as_categorical[1], steps_number[1],
         is_structured)
 
+    sampled_data = _generalise_dataset_type(
+        sampled_data, feature_index[1], interpolated_values, is_structured)
+
     interpolated_data = np.repeat(sampled_data[:, :, np.newaxis],
                                   steps_number[1], axis=2)
 
-    interpolated_data[:, :, :, feature_index[1]] = interpolated_values
+    if is_structured:
+        for idx in range(steps_number[1]):
+            # Broadcast the new value.
+            interpolated_data[:, :, idx][feature_index[1]] = \
+                interpolated_values[idx]
+    else:
+        # Broadcast the new vector.
+        interpolated_data[:, :, :, feature_index[1]] = interpolated_values
+
     interpolated_values = [feature_linespace, interpolated_values]
 
     return interpolated_data, interpolated_values

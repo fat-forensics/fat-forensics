@@ -79,6 +79,25 @@ NUMERICAL_NP_ICE = np.array([
     [[0.0, 0., 1.0],
      [0.5, 0., 0.5],
      [0.5, 0., 0.5]]])
+NUMERICAL_NP_ICE_2D = np.array([
+    [[[0.5, 0., 0.5],
+      [0.5, 0., 0.5],
+      [0.5, 0., 0.5]],
+     [[0.5, 0., 0.5],
+      [0.5, 0., 0.5],
+      [0.5, 0., 0.5]],
+     [[1., 0., 0.],
+      [1., 0., 0.],
+      [1., 0., 0.]]],
+    [[[0., 0., 1.],
+      [0.5, 0., 0.5],
+      [0.5, 0., 0.5]],
+     [[1., 0., 0.],
+      [1., 0., 0.],
+      [0.5, 0., 0.5]],
+     [[1., 0., 0.],
+      [1., 0., 0.],
+      [1., 0., 0.]]]])
 NUMERICAL_NP_ICE_REGRESSION = np.array([
     [[0.],
     [0.],
@@ -99,6 +118,19 @@ NUMERICAL_NP_ICE_CAT = np.array([
      [1., 0., 0.]],
     [[0.0, 0., 1.0],
      [0.5, 0., 0.5]]])
+NUMERICAL_NP_ICE_CAT_2D = np.array([
+    [[[0.5, 0., 0.5],
+      [0.5, 0., 0.5]],
+     [[0.5, 0., 0.5],
+      [0.5, 0., 0.5]],
+     [[1., 0., 0.],
+      [1., 0., 0.]]],
+    [[[0., 0., 1.],
+      [0.5, 0., 0.5]],
+     [[1., 0., 0.],
+      [0.5, 0., 0.5]],
+     [[1., 0., 0.],
+      [1., 0., 0.]]]])
 NUMERICAL_NP_ICE_CAT_REGRESSION = np.array([
     [[0.],
     [0.]],
@@ -113,16 +145,26 @@ NUMERICAL_NP_PD_CAT_REGRESSION = np.array([
 NUMERICAL_NP_ICE_100 = np.array(
     [100 * [[1.0, 0.0, 0.0]],
      46 * [[0.0, 0.0, 1.0]] + 54 * [[0.5, 0.0, 0.5]]])
+NUMERICAL_NP_ICE_100_2D = np.array(
+   46*[100 * [[0.5, 0.0, 0.5]]] + 
+   54*[46 * [[0.5, 0.0, 0.5]] + 54 * [[1.0, 0.0, 1.0]]])
 NUMERICAL_NP_ICE_100_REGRESSION = np.array(
     [100 * [[0.0]],
      46 * [[2.0]] + 54 * [[1.0]]])
+
 NUMERICAL_NP_PD_100 = np.array(
     46 * [[0.5, 0.0, 0.5]] + 54 * [[0.75, 0.00, 0.25]])
 NUMERICAL_NP_PD_100_REGRESSION = np.array(
     46 * [[1.0]] + 54 * [[0.5]])
 NUMERICAL_NP_LINESPACE = np.array([0.32, 0.41, 0.5])
+NUMERICAL_NP_LINESPACE_2D = [np.array([0., 0.5, 1.]), 
+                             np.array([0.32, 0.41, 0.5])]
 NUMERICAL_NP_LINESPACE_CAT = np.array([0.32, 0.5])
+NUMERICAL_NP_LINESPACE_CAT_2D = [np.array([0., 0.5, 1.]), 
+                                 np.array([0.32, 0.5])]
 NUMERICAL_NP_LINESPACE_100 = np.linspace(0.32, 0.5, 100)
+NUMERICAL_NP_LINESPACE_100_2D = [np.linspace(0., 1, 100),
+                                 np.linspace(0.32, 0.5, 100)]
 NUMERICAL_NP_VARIANCE = np.array([
     [0.25, 0., 0.25],
     [0.0625, 0., 0.0625],
@@ -301,15 +343,33 @@ def test_is_valid_input():
     with pytest.raises(IndexError) as exin:
         ftmfi._input_is_valid(BASE_STRUCTURED_ARRAY, 0, None, None)
     assert str(exin.value) == msg
+
+    msg = 'Provided feature index is not valid for the input dataset.'
+    with pytest.raises(IndexError) as exin:
+        ftmfi._input_is_valid(BASE_STRUCTURED_ARRAY, [0, 10], None, None)
+    assert str(exin.value) == msg
+
     with pytest.raises(IndexError) as exin:
         ftmfi._input_is_valid(BASE_NP_ARRAY, 'numerical', None,
                               None)
     assert str(exin.value) == msg
 
+    msg = ('feature_index has to be a single value or a list of length two.')
+    with pytest.raises(ValueError) as exin:
+        ftmfi._input_is_valid(BASE_STRUCTURED_ARRAY, [0, 1, 2], None, None)
+    assert str(exin.value) == msg
+
     # Steps number
-    msg = 'steps_number parameter has to either be None or an integer.'
+    msg = ('steps_number parameter has to either be None, an integer or a list '
+          'of None and integers.')
     with pytest.raises(TypeError) as exin:
         ftmfi._input_is_valid(BASE_NP_ARRAY, 1, None, 'a')
+    assert str(exin.value) == msg
+
+    msg = ('steps_number parameter has to either be None, an integer or a list '
+          'of None and integers.')
+    with pytest.raises(TypeError) as exin:
+        ftmfi._input_is_valid(BASE_NP_ARRAY, [0, 1], None, [3, 'a'])
     assert str(exin.value) == msg
 
     msg = 'steps_number has to be at least 2.'
@@ -318,16 +378,65 @@ def test_is_valid_input():
     assert str(exin.value) == msg
 
     # Treat as categorical
-    msg = 'treat_as_categorical has to either be None or a boolean.'
+    msg = ('treat_as_categorical has to either be None, a boolean or a list '
+           'of None and booleans.')
     with pytest.raises(TypeError) as exin:
         ftmfi._input_is_valid(BASE_NP_ARRAY, 1, 'a', None)
     assert str(exin.value) == msg
+
+    msg = ('treat_as_categorical has to either be None, a boolean or a list '
+           'of None and booleans.')
+    with pytest.raises(TypeError) as exin:
+        ftmfi._input_is_valid(BASE_NP_ARRAY, [0, 1], [True, 'a'], None)
+    assert str(exin.value) == msg
+
+    # List of variables longer than length two or less than 1
+    msg = 'steps_number has to be a single value or a list of length two.'
+    with pytest.raises(ValueError) as exin:
+        ftmfi._input_is_valid(BASE_NP_ARRAY, 0, False, [5, 5, 5])
+    assert str(exin.value) == msg
+
+    msg = ('treat_as_categorical has to be a single value or a list of length '
+          'two.')
+    with pytest.raises(ValueError) as exin:
+        ftmfi._input_is_valid(BASE_NP_ARRAY, 0, [True, True, True], 5)
+    assert str(exin.value) == msg
+
+    msg = 'steps_number has to be a single value or a list of length two.'
+    with pytest.raises(ValueError) as exin:
+        ftmfi._input_is_valid(BASE_NP_ARRAY, 0, False, [])
+    assert str(exin.value) == msg
+
+    msg = ('treat_as_categorical has to be a single value or a list of length '
+          'two.')
+    with pytest.raises(ValueError) as exin:
+        ftmfi._input_is_valid(BASE_NP_ARRAY, 0, [], 5)
+    assert str(exin.value) == msg
+
+    # 1 Feature Index given but 2 options given.
+    msg = ('{} feature indices given but {} treat_as_categorical values given. '
+           'If one feature index is given, treat_as_categorical must only be '
+           'one value.')
+    with pytest.raises(ValueError) as exin:
+        ftmfi._input_is_valid(BASE_NP_ARRAY, 0, [True, True], 5)
+    assert str(exin.value) == msg.format(1, 2)
+
+    msg = ('{} feature indices given but {} steps_number values given. If one '
+           'feature index is given, steps_number must only be one value.')
+    with pytest.raises(ValueError) as exin:
+        ftmfi._input_is_valid(BASE_NP_ARRAY, 0, True, [5, 5])
+    assert str(exin.value) == msg.format(1, 2)
 
     # Functional
     assert ftmfi._input_is_valid(BASE_NP_ARRAY, 1, None, 2)
     assert ftmfi._input_is_valid(BASE_NP_ARRAY, 1, False, 5)
     # Steps number will be ignored anyway
     assert ftmfi._input_is_valid(BASE_NP_ARRAY, 1, True, 2)
+    # With list of two
+    assert ftmfi._input_is_valid(BASE_NP_ARRAY, [0, 1], False, 3)
+    assert ftmfi._input_is_valid(BASE_NP_ARRAY, [0, 1], [False, True], 3)
+    assert ftmfi._input_is_valid(BASE_NP_ARRAY, [0, 1], None, 3)
+    assert ftmfi._input_is_valid(BASE_NP_ARRAY, [0, 1], False, [3, 3])
 
 
 def test_generalise_dataset_type():
@@ -628,20 +737,6 @@ def test_interpolate_array_2d():
     mixed_interpolate_2_mix = np.array(6*[[['a', 'c', 'f']]*3])
     mixed_interpolate_1_str = np.array(6*[[['a']*4, ['c']*4, ['f']*4]])
     mixed_interpolate_2_str = np.array(6*[[['a', 'aa', 'b', 'bb']]*3])
-    
-    #CATEGORICAL_NP_ARRAY = 
-    #['a', 'f', 'g'],
-    #['a', 'b', 'c'],
-    #['b', 'c', 'c']])
-    #
-    #MIXED_ARRAY = np.array(
-    #[(0, 'a', 0.08, 'a'),
-    # (0, 'f', 0.03, 'bb'),
-    # (1, 'c', 0.99, 'aa'),
-    # (1, 'a', 0.73, 'a'),
-    # (0, 'c', 0.36, 'b'),
-    # (1, 'f', 0.07, 'bb')],
-    #dtype=[('a', 'i'), ('b', 'U1'), ('c', 'f'), ('d', 'U2')])
 
     # Treat both columns as numerical with step size 3
     interpolated_data, interpolated_values = ftmfi._interpolate_array_2d(
@@ -1378,6 +1473,49 @@ def test_individual_conditional_expectation():
         MIXED_ARRAY_TEST, clf, 'b', 'regressor', exclude_rows=1)
     assert np.allclose(ice, MIXED_ICE_CATEGORICAL_REGRESSION)
     assert np.array_equal(linespace, MIXED_LINESPACE_CATEGORICAL)
+
+    ###########################################################################
+    # 2-D INDIVIDUAL CONDITIONAL EXPECTATION
+    clf = fum.KNN(k=2)
+    clf.fit(NUMERICAL_NP_ARRAY, NUMERICAL_NP_ARRAY_TARGET)
+
+    ice, linespace = ftmfi.individual_conditional_expectation(
+        NUMERICAL_NP_ARRAY_TEST, clf, [0 ,3], 'classifier',
+        steps_number=[3, 3])
+    assert np.allclose(ice, NUMERICAL_NP_ICE_2D)
+    for line, correct_line in zip(linespace, NUMERICAL_NP_LINESPACE_2D):
+        assert np.allclose(line, correct_line)
+    
+    with pytest.warns(UserWarning) as warning:
+        ice, linespace = ftmfi.individual_conditional_expectation(
+            NUMERICAL_NP_ARRAY_TEST, clf, [0 ,3], 'classifier',
+            steps_number=[3, 3], treat_as_categorical=[False, True])
+    assert len(warning) == 1
+    assert str(warning[0].message) == steps_n_warning
+    assert np.allclose(ice, NUMERICAL_NP_ICE_CAT_2D)
+    for line, correct_line in zip(linespace, NUMERICAL_NP_LINESPACE_CAT_2D):
+        assert np.allclose(line, correct_line)
+
+    #TODO: check for when step size is 100 (hard to do as there is a gradual
+    #      shift and not a straight transition between class probabilities).
+
+    clf = fum.KNN(k=2, mode='classifier')
+    clf.fit(NUMERICAL_STRUCT_ARRAY, 
+            NUMERICAL_NP_ARRAY_TARGET.astype(np.float32))
+
+    ice, linespace = ftmfi.individual_conditional_expectation(
+        NUMERICAL_STRUCT_ARRAY_TEST, clf, ['a', 'd'], 'classifier',
+        steps_number=3)
+    assert np.allclose(ice, NUMERICAL_NP_ICE_2D)
+    for line, correct_line in zip(linespace, NUMERICAL_NP_LINESPACE_2D):
+        assert np.allclose(line, correct_line)
+
+    ice, linespace = ftmfi.individual_conditional_expectation(
+        NUMERICAL_STRUCT_ARRAY_TEST, clf, ['a', 'd'], 'classifier',
+        steps_number=[3, None], treat_as_categorical=[False, True])
+    assert np.allclose(ice, NUMERICAL_NP_ICE_CAT_2D)
+    for line, correct_line in zip(linespace, NUMERICAL_NP_LINESPACE_CAT_2D):
+        assert np.allclose(line, correct_line)
 
 
 def test_partial_dependence_ice():

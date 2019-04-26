@@ -80,24 +80,24 @@ NUMERICAL_NP_ICE = np.array([
      [0.5, 0., 0.5],
      [0.5, 0., 0.5]]])
 NUMERICAL_NP_ICE_2D = np.array([
-    [[[0.5, 0., 0.5],
-      [0.5, 0., 0.5],
-      [0.5, 0., 0.5]],
-     [[0.5, 0., 0.5],
-      [0.5, 0., 0.5],
-      [0.5, 0., 0.5]],
-     [[1., 0., 0.],
-      [1., 0., 0.],
-      [1., 0., 0.]]],
-    [[[0., 0., 1.],
-      [0.5, 0., 0.5],
-      [0.5, 0., 0.5]],
-     [[1., 0., 0.],
-      [1., 0., 0.],
-      [0.5, 0., 0.5]],
-     [[1., 0., 0.],
-      [1., 0., 0.],
-      [1., 0., 0.]]]])
+    [[[0.5, 0.0, 0.5],
+      [0.5, 0.0, 0.5],
+      [0.5, 0.0, 0.5]],
+     [[0.5, 0.0, 0.5],
+      [0.5, 0.0, 0.5],
+      [0.5, 0.0, 0.5]],
+     [[1.0, 0.0, 0.0],
+      [1.0, 0.0, 0.0],
+      [1.0, 0.0, 0.0]]],
+    [[[0.0, 0.0, 1.0],
+      [0.5, 0.0, 0.5],
+      [0.5, 0.0, 0.5]],
+     [[1.0, 0.0, 0.0],
+      [1.0, 0.0, 0.0],
+      [0.5, 0.0, 0.5]],
+     [[1.0, 0.0, 0.0],
+      [1.0, 0.0, 0.0],
+      [1.0, 0.0, 0.0]]]])
 NUMERICAL_NP_ICE_REGRESSION = np.array([
     [[0.],
     [0.],
@@ -109,6 +109,16 @@ NUMERICAL_NP_PD = np.array([
     [0.50, 0.0, 0.50],
     [0.75, 0.0, 0.25],
     [0.75, 0.0, 0.25]])
+NUMERICAL_NP_PD_2D = np.array([
+   [[0.25, 0.0, 0.75],
+    [0.50, 0.0, 0.50],
+    [0.50, 0.0, 0.50]],
+   [[0.75, 0.0, 0.25],
+    [0.75, 0.0, 0.25],
+    [0.50, 0.0, 0.50]],
+   [[1.0, 0.0, 0.0],
+    [1.0, 0.0, 0.0],
+    [1.0, 0.0, 0.0]]])
 NUMERICAL_NP_PD_REGRESSION = np.array([
     [1.],
     [0.5],
@@ -131,6 +141,13 @@ NUMERICAL_NP_ICE_CAT_2D = np.array([
       [0.5, 0., 0.5]],
      [[1., 0., 0.],
       [1., 0., 0.]]]])
+NUMERICAL_NP_PD_CAT_2D = np.array([
+   [[0.25, 0.0, 0.75],
+    [0.50, 0.0, 0.50]],
+   [[0.75, 0.0, 0.25],
+    [0.50, 0.0, 0.50]],
+   [[1.0, 0.0, 0.0],
+    [1.0, 0.0, 0.0]]])
 NUMERICAL_NP_ICE_CAT_REGRESSION = np.array([
     [[0.],
     [0.]],
@@ -151,6 +168,10 @@ NUMERICAL_NP_ICE_100_2D = np.array(
    [1*[46 * [[0.0, 0.0, 1.0]] + 54 * [[0.5, 0.0, 0.5]]] + 
    1*[59 * [[1.0, 0.0, 0.0]] + 41 * [[0.5, 0.0, 0.5]]]+ 
    1*[100 * [[1.0, 0.0, 0.0]]]])
+NUMERICAL_NP_PD_100_2D = np.array(
+    [46*[[0.25, 0.0, 0.75]] + 54*[[0.5, 0.0, 0.5]]] + 
+    [59*[[0.75, 0.0, 0.25]] + 41*[[0.5, 0.0, 0.5]]] + 
+    [100*[[1.0, 0.0, 0.0]]])
 """
 NUMERICAL_NP_ICE_100_2D = np.array(
    [2*[100 * [[0.5, 0.0, 0.5]]] + 1*[100 * [[1.0, 0.0, 0.0]]]]
@@ -166,14 +187,14 @@ NUMERICAL_NP_PD_100 = np.array(
 NUMERICAL_NP_PD_100_REGRESSION = np.array(
     46 * [[1.0]] + 54 * [[0.5]])
 NUMERICAL_NP_LINESPACE = np.array([0.32, 0.41, 0.5])
-NUMERICAL_NP_LINESPACE_2D = [np.array([0., 0.5, 1.]), 
-                             np.array([0.32, 0.41, 0.5])]
+NUMERICAL_NP_LINESPACE_2D = (np.array([0., 0.5, 1.]), 
+                             np.array([0.32, 0.41, 0.5]))
 NUMERICAL_NP_LINESPACE_CAT = np.array([0.32, 0.5])
-NUMERICAL_NP_LINESPACE_CAT_2D = [np.array([0., 0.5, 1.]), 
-                                 np.array([0.32, 0.5])]
+NUMERICAL_NP_LINESPACE_CAT_2D = (np.array([0., 0.5, 1.]), 
+                                 np.array([0.32, 0.5]))
 NUMERICAL_NP_LINESPACE_100 = np.linspace(0.32, 0.5, 100)
-NUMERICAL_NP_LINESPACE_100_2D = [np.array([0., 0.5, 1.]),
-                                 np.linspace(0.32, 0.5, 100)]
+NUMERICAL_NP_LINESPACE_100_2D = (np.array([0., 0.5, 1.]),
+                                 np.linspace(0.32, 0.5, 100))
 NUMERICAL_NP_VARIANCE = np.array([
     [0.25, 0., 0.25],
     [0.0625, 0., 0.0625],
@@ -222,11 +243,16 @@ CATEGORICAL_NP_ICE_REGRESSION = np.array([
 CATEGORICAL_NP_PD = np.array([
     [0.25, 0.75],
     [0.25, 0.75]])
+CATEGORICAL_NP_PD_2D = np.array([
+    [[0.50, 0.50],
+     [0.50, 0.50]],
+    [[0.0, 1.0],
+     [0.0, 1.0]]])
 CATEGORICAL_NP_PD_REGRESSION = np.array([
     [0.75],
     [0.75]])
 CATEGORICAL_NP_LINESPACE = np.array(['c', 'g'])
-CATEGORICAL_NP_LINESPACE_2D = [np.array(['a', 'b']), np.array(['c', 'g'])]
+CATEGORICAL_NP_LINESPACE_2D = (np.array(['a', 'b']), np.array(['c', 'g']))
 CATEGORICAL_NP_VARIANCE = np.array([
     [0.0625, 0.0625],
     [0.0625, 0.0625]])
@@ -257,15 +283,6 @@ MIXED_ICE_NUMERICAL_2D = np.array([
      [[1.0, 0.0, 0.0],
       [1.0, 0.0, 0.0],
       [1.0, 0.0, 0.0]]],
-    [[[0.5, 0.5, 0.0],
-      [0.5, 0.5, 0.0],
-      [0.5, 0.5, 0.0]],
-     [[0.5, 0., 0.5],
-      [1.0, 0.0, 0.0],
-      [1.0, 0.0, 0.0]],
-     [[0.5, 0.0, 0.5],
-      [0.5, 0.0, 0.5],
-      [0.5, 0.0, 0.5]]],
     [[[0.0, 0.5, 0.5],
       [0.0, 0.5, 0.5],
       [0.0, 0.5, 0.5]],
@@ -286,13 +303,23 @@ MIXED_PD_NUMERICAL = np.array([
     [0.5, 0.25, 0.25],
     [0.5, 0.25, 0.25],
     [0.5, 0.25, 0.25]])
+MIXED_PD_NUMERICAL_2D = np.array([
+    [[0.50, 0.25, 0.25],
+     [0.50, 0.25, 0.25],
+     [0.50, 0.25, 0.25]],
+    [[0.50, 0.25, 0.25],
+     [0.50, 0.25, 0.25],
+     [0.50, 0.25, 0.25]],
+    [[0.50, 0.25, 0.25],
+     [0.50, 0.25, 0.25],
+     [0.50, 0.25, 0.25]]])
 MIXED_PD_NUMERICAL_REGRESSION = np.array([
     [0.75],
     [0.75],
     [0.75]])
 MIXED_LINESPACE_NUMERICAL = np.array([0, 0.5, 1])
-MIXED_LINESPACE_NUMERICAL_2D = [np.array([0.0, 0.5, 1.0]),
-                                np.array([0.07, 0.475, 0.88])]
+MIXED_LINESPACE_NUMERICAL_2D = (np.array([0.0, 0.5, 1.0]),
+                                np.array([0.07, 0.075, 0.08]))
 MIXED_VARIANCE_NUMERICAL = np.array([
     [0.25, 0.0625, 0.0625],
     [0.25, 0.0625, 0.0625],
@@ -327,12 +354,17 @@ MIXED_ICE_CATEGORICAL_REGRESSION = np.array([
 MIXED_PD_CATEGORICAL = np.array([
     [0.75, 0.0, 0.25],
     [0.25, 0.5, 0.25]])
+MIXED_PD_CATEGORICAL_2D = np.array([
+    [[1.00, 0.00, 0.00],
+     [0.50, 0.16, 0.33]],
+    [[0.50, 0.16, 0.33],
+     [0.00, 0.50, 0.50]]])
 MIXED_PD_CATEGORICAL_REGRESSION = np.array([
     [0.5],
     [1.0]])
 MIXED_LINESPACE_CATEGORICAL = np.array(['a', 'f'])
-MIXED_LINESPACE_CATEGORICAL_2D = [np.array(['a', 'f']), np.array(['a', 'bb'])]
-MIXED_LINESPACE_MIX_2D = [np.array([0.0, 0.5, 1.0]), np.array(['a', 'f'])]
+MIXED_LINESPACE_CATEGORICAL_2D = (np.array(['a', 'f']), np.array(['a', 'bb']))
+MIXED_LINESPACE_MIX_2D = (np.array([0.0, 0.5, 1.0]), np.array(['a', 'f']))
 MIXED_VARIANCE_CATEGORICAL = np.array([
     [0.0625, 0., 0.0625],
     [0.0625, 0., 0.0625]])
@@ -358,6 +390,13 @@ MIXED_ICE_MIX_2D = np.array([
       [0.0, 0.5, 0.5]],
      [[0.5, 0.0, 0.5],
       [0.0, 0.5, 0.5]]]])
+MIXED_PD_MIX_2D = np.array([
+    [[0.66, 0.33, 0.00],
+     [0.16, 0.50, 0.33]],
+    [[0.83, 0.00, 0.16],
+     [0.16, 0.33, 0.50]],
+    [[0.66, 0.00, 0.33],
+     [0.16, 0.33, 0.50]]])
 # yapf: enable
 
 
@@ -1136,7 +1175,8 @@ def test_merge_ice_arrays():
                              'numerical arrays.')
     value_error_struct = ('The ice_array list should only contain '
                           'unstructured arrays.')
-    incorrect_shape_3d = 'The ice_array should be 3-dimensional.'
+    incorrect_shape_3d = ('The ice_array should be 3-dimensional or '
+                          '4-dimensional for 2 feature ICE.')
     value_error_shape = ('All of the ICE arrays need to be constructed for '
                          'the same number of classes and the same number of '
                          'samples for the selected feature (the second and '
@@ -1200,6 +1240,16 @@ def test_merge_ice_arrays():
     unstructured_array_b = np.stack(arr_b, axis=1)
     unstructured_array_c = np.stack(arr_c, axis=1)
 
+    comp = ftmfi.merge_ice_arrays([unstructured_array_a, unstructured_array_b])
+    assert np.array_equal(comp, unstructured_array_c)
+
+    # 2-D ICE arrays
+    unstructured_array_a = np.repeat(unstructured_array_a[:, :, np.newaxis, :],
+                                     5, axis=2)
+    unstructured_array_b = np.repeat(unstructured_array_b[:, :, np.newaxis, :],
+                                     5, axis=2)
+    unstructured_array_c = np.repeat(unstructured_array_c[:, :, np.newaxis, :],
+                                     5, axis=2)
     comp = ftmfi.merge_ice_arrays([unstructured_array_a, unstructured_array_b])
     assert np.array_equal(comp, unstructured_array_c)
 
@@ -1702,7 +1752,8 @@ def test_individual_conditional_expectation():
     clf.fit(MIXED_ARRAY, MIXED_ARRAY_TARGET)
 
     ice, linespace = ftmfi.individual_conditional_expectation(
-        MIXED_ARRAY_TEST, clf, ['a', 'c'], 'classifier', steps_number=3)
+        MIXED_ARRAY_TEST, clf, ['a', 'c'], 'classifier', steps_number=3,
+        exclude_rows=1)
     assert np.allclose(ice, MIXED_ICE_NUMERICAL_2D)
     for line, correct_line in zip(linespace, MIXED_LINESPACE_NUMERICAL_2D):
         assert np.allclose(line, correct_line)
@@ -1730,7 +1781,8 @@ def test_partial_dependence_ice():
     """
     value_error_structured = 'The ice_array should not be structured.'
     value_error_not_numerical = 'The ice_array should be purely numerical.'
-    incorrect_shape_error = 'The ice_array should be 3-dimensional.'
+    incorrect_shape_error = ('The ice_array should be 3-dimensional or '
+                             '4-dimensional for 2 feature ICE.')
 
     with pytest.raises(ValueError) as exin:
         ftmfi.partial_dependence_ice(np.array([(1, )], dtype=[('a', int)]))
@@ -1792,6 +1844,25 @@ def test_partial_dependence_ice():
         MIXED_ICE_CATEGORICAL, include_rows=[1, 0], exclude_rows=[1])
     assert np.array_equal(pd, MIXED_ICE_CATEGORICAL[0])
     assert np.array_equal(var, np.array([[0., 0., 0.], [0., 0., 0.]]))
+
+    # 2-D PD
+    pd, var = ftmfi.partial_dependence_ice(NUMERICAL_NP_ICE_2D)
+    assert np.array_equal(pd, NUMERICAL_NP_PD_2D)
+
+    pd, var = ftmfi.partial_dependence_ice(NUMERICAL_NP_ICE_CAT_2D)
+    assert np.array_equal(pd, NUMERICAL_NP_PD_CAT_2D)
+
+    pd, var = ftmfi.partial_dependence_ice(NUMERICAL_NP_ICE_100_2D)
+    assert np.array_equal(pd, NUMERICAL_NP_PD_100_2D)
+
+    pd, var = ftmfi.partial_dependence_ice(CATEGORICAL_NP_ICE_2D)
+    assert np.array_equal(pd, CATEGORICAL_NP_PD_2D)
+
+    pd, var = ftmfi.partial_dependence_ice(MIXED_ICE_NUMERICAL_2D)
+    assert np.array_equal(pd, MIXED_PD_NUMERICAL_2D)
+
+    pd, var = ftmfi.partial_dependence_ice(MIXED_ICE_CATEGORICAL_2D)
+    assert np.allclose(pd, MIXED_PD_CATEGORICAL_2D, atol=1e-2)
 
 
 def test_partial_dependence():
@@ -1959,3 +2030,93 @@ def test_partial_dependence():
         MIXED_ARRAY_TEST, clf, 'b', 'regressor', exclude_rows=1)
     assert np.allclose(pd, MIXED_PD_CATEGORICAL_REGRESSION)
     assert np.array_equal(linespace, MIXED_LINESPACE_CATEGORICAL)
+
+    clf = fum.KNN(k=2, mode='classifier')
+    clf.fit(NUMERICAL_NP_ARRAY, NUMERICAL_NP_ARRAY_TARGET)
+
+    # Test 2-D Partial Dependence
+    pd, linespace, var = ftmfi.partial_dependence(
+        NUMERICAL_NP_ARRAY_TEST, clf, [0, 3], 'classifier',
+        steps_number=[3, 3], treat_as_categorical=[False, False])
+    assert np.allclose(pd, NUMERICAL_NP_PD_2D)
+    for line, correct_line in zip(linespace, NUMERICAL_NP_LINESPACE_2D):
+        assert np.allclose(line, correct_line)
+
+    pd, linespace, var = ftmfi.partial_dependence(
+        NUMERICAL_NP_ARRAY_TEST, clf, [0, 3], 'classifier',
+        steps_number=[3, None], treat_as_categorical=[False, True])
+    assert np.allclose(pd, NUMERICAL_NP_PD_CAT_2D)
+    for line, correct_line in zip(linespace, NUMERICAL_NP_LINESPACE_CAT_2D):
+        assert np.allclose(line, correct_line)
+
+    pd, linespace, var = ftmfi.partial_dependence(
+        NUMERICAL_NP_ARRAY_TEST, clf, [0, 3], 'classifier',
+        steps_number=[3, None], treat_as_categorical=[False, False])
+    assert np.allclose(pd, NUMERICAL_NP_PD_100_2D)
+    for line, correct_line in zip(linespace, NUMERICAL_NP_LINESPACE_100_2D):
+        assert np.allclose(line, correct_line)
+    
+    clf = fum.KNN(k=2, mode='classifier')
+    clf.fit(NUMERICAL_STRUCT_ARRAY, NUMERICAL_NP_ARRAY_TARGET)
+
+    pd, linespace, var = ftmfi.partial_dependence(
+        NUMERICAL_STRUCT_ARRAY_TEST, clf, ['a', 'd'], 'classifier',
+        steps_number=[3, 3], treat_as_categorical=[False, False])
+    assert np.allclose(pd, NUMERICAL_NP_PD_2D)
+    for line, correct_line in zip(linespace, NUMERICAL_NP_LINESPACE_2D):
+        assert np.allclose(line, correct_line)
+
+    pd, linespace, var = ftmfi.partial_dependence(
+        NUMERICAL_STRUCT_ARRAY_TEST, clf, ['a', 'd'], 'classifier',
+        steps_number=[3, None], treat_as_categorical=[False, True])
+    assert np.allclose(pd, NUMERICAL_NP_PD_CAT_2D)
+    for line, correct_line in zip(linespace, NUMERICAL_NP_LINESPACE_CAT_2D):
+        assert np.allclose(line, correct_line)
+
+    pd, linespace, var = ftmfi.partial_dependence(
+        NUMERICAL_STRUCT_ARRAY_TEST, clf, ['a', 'd'], 'classifier',
+        steps_number=[3, None], treat_as_categorical=[False, False])
+    assert np.allclose(pd, NUMERICAL_NP_PD_100_2D)
+    for line, correct_line in zip(linespace, NUMERICAL_NP_LINESPACE_100_2D):
+        assert np.allclose(line, correct_line)
+
+    clf = fum.KNN(k=2, mode='classifier')
+    clf.fit(CATEGORICAL_NP_ARRAY, CATEGORICAL_NP_ARRAY_TARGET)
+
+    pd, linespace, var = ftmfi.partial_dependence(
+        CATEGORICAL_NP_ARRAY_TEST, clf, [0, 2], 'classifier',
+        steps_number=[None, None])
+    assert np.allclose(pd, CATEGORICAL_NP_PD_2D)
+    assert np.array_equal(linespace, CATEGORICAL_NP_LINESPACE_2D)
+
+
+    clf = fum.KNN(k=2, mode='classifier')
+    clf.fit(CATEGORICAL_STRUCT_ARRAY, CATEGORICAL_NP_ARRAY_TARGET)
+
+    pd, linespace, var = ftmfi.partial_dependence(
+        CATEGORICAL_STRUCT_ARRAY_TEST, clf, ['a', 'c'], 'classifier')
+    assert np.allclose(pd, CATEGORICAL_NP_PD_2D)
+    assert np.array_equal(linespace, CATEGORICAL_NP_LINESPACE_2D)
+
+    clf = fum.KNN(k=2, mode='classifier')
+    clf.fit(MIXED_ARRAY, MIXED_ARRAY_TARGET)
+
+    ice, linespace, var = ftmfi.partial_dependence(
+        MIXED_ARRAY_TEST, clf, ['a', 'c'], 'classifier', steps_number=3,
+        exclude_rows=1)
+    assert np.allclose(ice, MIXED_PD_NUMERICAL_2D)
+    for line, correct_line in zip(linespace, MIXED_LINESPACE_NUMERICAL_2D):
+        assert np.allclose(line, correct_line)
+    
+    ice, linespace, var = ftmfi.partial_dependence(
+        MIXED_ARRAY_TEST, clf, ['b', 'd'], 'classifier')
+    assert np.allclose(ice, MIXED_PD_CATEGORICAL_2D, atol=1e-2)
+    for line, correct_line in zip(linespace, MIXED_LINESPACE_CATEGORICAL_2D):
+        assert np.array_equal(line, correct_line)
+
+    ice, linespace, var = ftmfi.partial_dependence(
+        MIXED_ARRAY_TEST, clf, ['a', 'b'], 'classifier',
+        steps_number=[3, None])
+    assert np.allclose(ice, MIXED_PD_MIX_2D, atol=1e-2)
+    for line, correct_line in zip(linespace, MIXED_LINESPACE_MIX_2D):
+        assert np.array_equal(line, correct_line)

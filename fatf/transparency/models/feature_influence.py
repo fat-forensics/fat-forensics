@@ -220,7 +220,8 @@ def _interpolate_array(
         dataset: np.ndarray,
         feature_index: Union[int, str],  # yapf: disable
         treat_as_categorical: bool,
-        steps_number: Union[int, None]) -> Tuple[np.ndarray, np.ndarray]:
+        steps_number: Union[int, None]
+) -> Tuple[np.ndarray, Tuple[np.ndarray]]:
     """
     Generates a 3-D array with interpolated values for the selected feature.
 
@@ -287,7 +288,7 @@ def _interpolate_array(
         # Broadcast the new vector.
         interpolated_data[:, :, feature_index] = interpolated_values
 
-    return interpolated_data, interpolated_values
+    return interpolated_data, (interpolated_values)
 
 
 def _interpolate_array_2d(
@@ -295,7 +296,7 @@ def _interpolate_array_2d(
         feature_index: Union[List[int], List[str]],  # yapf: disable
         treat_as_categorical: Optional[Union[bool, List[bool]]] = [None, None],
         steps_number: Optional[Union[int, List[int]]] = [None, None]
-) -> Tuple[np.ndarray, np.ndarray]:
+) -> Tuple[np.ndarray, Tuple[np.ndarray]]:
     """
     Generates a 4-D array with interpolated values for the selected features.
 
@@ -376,7 +377,7 @@ def _interpolate_array_2d(
         # Broadcast the new vector.
         interpolated_data[:, :, :, feature_index[1]] = interpolated_values
 
-    interpolated_values = [feature_linespace, interpolated_values]
+    interpolated_values = (feature_linespace, interpolated_values)
 
     return interpolated_data, interpolated_values
 
@@ -683,7 +684,7 @@ def individual_conditional_expectation(
         steps_number: Optional[Union[int, List[int]]] = None,
         include_rows: Optional[Union[int, List[int]]] = None,
         exclude_rows: Optional[Union[int, List[int]]] = None
-) -> Tuple[np.ndarray, np.ndarray]:
+) -> Tuple[np.ndarray, Tuple[np.ndarray]]:
     """
     Calculates Individual Conditional Expectation for a selected feature.
 
@@ -800,11 +801,11 @@ def individual_conditional_expectation(
         linespace (see below).
     # TODO: type of feature_linespace will vary depending on 2-D or not. 2-D
     cant return numpy.ndarray as the linespace can be different lengths
-    feature_linespace : numpy.ndarray
-        A one-dimensional array -- (steps_number, ) -- with the values for
-        which the selected feature was substituted when the dataset was
-        evaluated with the specified model. For 2-D ICE, this will be a list
-        of one dimensional arrays
+    feature_linespace : Tuple[numpy.ndarray]
+        A tuple of one-dimension arrays -- (steps_number, ) -- with the values
+        which the selected features have been substitieud when the dataset was
+        evluated with the speicifed model. For 1-D ICE, this tuple will contain
+        one element, for 2-D ICE will contain two elements.
     """
     # pylint: disable=too-many-arguments,too-many-locals
     assert _input_is_valid(dataset, feature_index, treat_as_categorical,
@@ -927,20 +928,20 @@ def merge_ice_arrays(ice_arrays_list: List[np.ndarray]) -> np.ndarray:
             if fuav.is_structured_array(ice_array):
                 raise ValueError('The ice_array list should only contain '
                                  'unstructured arrays.')
-            if len(ice_array.shape) != 3:
-                raise IncorrectShapeError('The ice_array should be '
-                                          '3-dimensional.')
-
+            if len(ice_array.shape) != 3 and len(ice_array.shape) != 4:
+                raise IncorrectShapeError(
+                    'The ice_array should be 3-dimensional or 4-dimensional '
+                    'for 2 feature ICE.')
             if previous_shape is None:
-                previous_shape = (ice_array.shape[1], ice_array.shape[2],
-                                  ice_array.dtype)  # yapf: disable
-            elif (previous_shape[:2] != ice_array.shape[1:]
-                  or previous_shape[2] != ice_array.dtype):
+                previous_shape = (tuple(ice_array.shape[1:]) +
+                                (ice_array.dtype,))  # yapf: disable
+            elif (previous_shape[:-1] != ice_array.shape[1:]
+                or previous_shape[-1] != ice_array.dtype):
                 raise ValueError('All of the ICE arrays need to be '
-                                 'constructed for the same number of classes '
-                                 'and the same number of samples for the '
-                                 'selected feature (the second and the third '
-                                 'dimension of the ice array).')
+                                'constructed for the same number of classes '
+                                'and the same number of samples for the '
+                                'selected feature (the second and the third '
+                                'dimension of the ice array).')
     else:
         raise TypeError('The ice_arrays_list should be a list of numpy arrays '
                         'that represent Individual Conditional Expectation.')
@@ -952,7 +953,8 @@ def merge_ice_arrays(ice_arrays_list: List[np.ndarray]) -> np.ndarray:
 def partial_dependence_ice(
         ice_array: np.ndarray,
         include_rows: Optional[Union[int, List[int]]] = None,
-        exclude_rows: Optional[Union[int, List[int]]] = None) -> np.ndarray:
+        exclude_rows: Optional[Union[int, List[int]]] = None
+) -> Tuple[np.ndarray, np.ndarray]:
     """
     Calculates Partial Dependence based on Individual Conditional Expectations.
 
@@ -1006,8 +1008,9 @@ def partial_dependence_ice(
         raise ValueError('The ice_array should not be structured.')
     if not fuav.is_numerical_array(ice_array):
         raise ValueError('The ice_array should be purely numerical.')
-    if len(ice_array.shape) != 3:
-        raise IncorrectShapeError('The ice_array should be 3-dimensional.')
+    if len(ice_array.shape) != 3 and len(ice_array.shape) != 4:
+        raise IncorrectShapeError('The ice_array should be 3-dimensional or '
+                                  '4-dimensional for 2 feature ICE.')
 
     rows_number = ice_array.shape[0]
     include_r = _filter_rows(include_rows, exclude_rows, rows_number)
@@ -1019,15 +1022,16 @@ def partial_dependence_ice(
     return partial_dependence_array, variance
 
 
-def partial_dependence(dataset: np.ndarray,
-                       model: object,
-                       feature_index: Union[int, str],
-                       mode: str = 'classifier',
-                       treat_as_categorical: Optional[bool] = None,
-                       steps_number: Optional[int] = None,
-                       include_rows: Optional[Union[int, List[int]]] = None,
-                       exclude_rows: Optional[Union[int, List[int]]] = None
-                       ) -> Tuple[np.ndarray, np.array]:
+def partial_dependence(
+        dataset: np.ndarray,
+        model: object,
+        feature_index: Union[int, str, List[int], List[str]],
+        mode: str = 'classifier',
+        treat_as_categorical: Optional[Union[bool, List[bool]]] = None,
+        steps_number: Optional[Union[int, List[int]]] = None,
+        include_rows: Optional[Union[int, List[int]]] = None,
+        exclude_rows: Optional[Union[int, List[int]]] = None
+) -> Tuple[np.ndarray, Tuple[np.array], np.ndarray]:
     """
     Calculates Partial Dependence for a selected feature.
 
@@ -1056,10 +1060,11 @@ def partial_dependence(dataset: np.ndarray,
         A 2-dimensional array of (steps_number, n_classes) shape representing
         Partial Dependence for all of the classes for selected rows (data
         points).
-    feature_linespace : numpy.ndarray
-        A one-dimensional array -- (steps_number, ) -- with the values for
-        which the selected feature was substituted when the dataset was
-        evaluated with the specified model.
+    feature_linespace : Tuple[numpy.ndarray]
+        A tuple of one-dimension arrays -- (steps_number, ) -- with the values
+        which the selected features have been substitieud when the dataset was
+        evluated with the speicifed model. For 1-D ICE, this tuple will contain
+        one element, for 2-D ICE will contain two elements.
     variance : numpy.ndarray
         A 1-d dimeionsal array of (steps_number, ) shape with the values for
         the variance of the predictions of data points for selected rows.

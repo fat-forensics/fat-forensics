@@ -146,12 +146,21 @@ NUMERICAL_NP_ICE_100 = np.array(
     [100 * [[1.0, 0.0, 0.0]],
      46 * [[0.0, 0.0, 1.0]] + 54 * [[0.5, 0.0, 0.5]]])
 NUMERICAL_NP_ICE_100_2D = np.array(
-   46*[100 * [[0.5, 0.0, 0.5]]] + 
-   54*[46 * [[0.5, 0.0, 0.5]] + 54 * [[1.0, 0.0, 1.0]]])
+   [2*[100 * [[0.5, 0.0, 0.5]]] + 
+   1*[100 * [[1.0, 0.0, 0.0]]]] +
+   [1*[46 * [[0.0, 0.0, 1.0]] + 54 * [[0.5, 0.0, 0.5]]] + 
+   1*[59 * [[1.0, 0.0, 0.0]] + 41 * [[0.5, 0.0, 0.5]]]+ 
+   1*[100 * [[1.0, 0.0, 0.0]]]])
+"""
+NUMERICAL_NP_ICE_100_2D = np.array(
+   [2*[100 * [[0.5, 0.0, 0.5]]] + 1*[100 * [[1.0, 0.0, 0.0]]]]
+   +[1*[46*[[0.0, 0.0, 1.0] + 54 * [[0.5, 0.0, 0.5]]]]
+   + 1*[46*[[0.0, 0.0, 1.0] + 54 * [[0.5, 0.0, 0.5]]]]
+   1*[100 * [[1.0, 0.0, 0.0]]]])
+"""
 NUMERICAL_NP_ICE_100_REGRESSION = np.array(
     [100 * [[0.0]],
      46 * [[2.0]] + 54 * [[1.0]]])
-
 NUMERICAL_NP_PD_100 = np.array(
     46 * [[0.5, 0.0, 0.5]] + 54 * [[0.75, 0.00, 0.25]])
 NUMERICAL_NP_PD_100_REGRESSION = np.array(
@@ -163,7 +172,7 @@ NUMERICAL_NP_LINESPACE_CAT = np.array([0.32, 0.5])
 NUMERICAL_NP_LINESPACE_CAT_2D = [np.array([0., 0.5, 1.]), 
                                  np.array([0.32, 0.5])]
 NUMERICAL_NP_LINESPACE_100 = np.linspace(0.32, 0.5, 100)
-NUMERICAL_NP_LINESPACE_100_2D = [np.linspace(0., 1, 100),
+NUMERICAL_NP_LINESPACE_100_2D = [np.array([0., 0.5, 1.]),
                                  np.linspace(0.32, 0.5, 100)]
 NUMERICAL_NP_VARIANCE = np.array([
     [0.25, 0., 0.25],
@@ -196,6 +205,15 @@ CATEGORICAL_NP_ICE = np.array([
      [0.5, 0.5]],
     [[0.0, 1.0],
      [0.0, 1.0]]])
+CATEGORICAL_NP_ICE_2D = np.array([
+    [[[0.5, 0.5],
+      [0.5, 0.5]],
+     [[0.0, 1.0],
+      [0.0, 1.0]]],
+    [[[0.5, 0.5],
+      [0.5, 0.5]],
+     [[0.0, 1.0],
+      [0.0, 1.0]]]])
 CATEGORICAL_NP_ICE_REGRESSION = np.array([
     [[0.5,],
      [0.5]],
@@ -208,6 +226,7 @@ CATEGORICAL_NP_PD_REGRESSION = np.array([
     [0.75],
     [0.75]])
 CATEGORICAL_NP_LINESPACE = np.array(['c', 'g'])
+CATEGORICAL_NP_LINESPACE_2D = [np.array(['a', 'b']), np.array(['c', 'g'])]
 CATEGORICAL_NP_VARIANCE = np.array([
     [0.0625, 0.0625],
     [0.0625, 0.0625]])
@@ -228,6 +247,34 @@ MIXED_ICE_NUMERICAL = np.array([
     [[0.0, 0.5, 0.5],
      [0.0, 0.5, 0.5],
      [0.0, 0.5, 0.5]]])
+MIXED_ICE_NUMERICAL_2D = np.array([
+    [[[1.0, 0.0, 0.0],
+      [1.0, 0.0, 0.0],
+      [1.0, 0.0, 0.0]],
+     [[1.0, 0.0, 0.0],
+      [1.0, 0.0, 0.0],
+      [1.0, 0.0, 0.0]],
+     [[1.0, 0.0, 0.0],
+      [1.0, 0.0, 0.0],
+      [1.0, 0.0, 0.0]]],
+    [[[0.5, 0.5, 0.0],
+      [0.5, 0.5, 0.0],
+      [0.5, 0.5, 0.0]],
+     [[0.5, 0., 0.5],
+      [1.0, 0.0, 0.0],
+      [1.0, 0.0, 0.0]],
+     [[0.5, 0.0, 0.5],
+      [0.5, 0.0, 0.5],
+      [0.5, 0.0, 0.5]]],
+    [[[0.0, 0.5, 0.5],
+      [0.0, 0.5, 0.5],
+      [0.0, 0.5, 0.5]],
+     [[0.0, 0.5, 0.5],
+      [0.0, 0.5, 0.5],
+      [0.0, 0.5, 0.5]],
+     [[0.0, 0.5, 0.5],
+      [0.0, 0.5, 0.5],
+      [0.0, 0.5, 0.5]]]])
 MIXED_ICE_NUMERICAL_REGRESSION = np.array([
     [[0.0],
      [0.0],
@@ -244,6 +291,8 @@ MIXED_PD_NUMERICAL_REGRESSION = np.array([
     [0.75],
     [0.75]])
 MIXED_LINESPACE_NUMERICAL = np.array([0, 0.5, 1])
+MIXED_LINESPACE_NUMERICAL_2D = [np.array([0.0, 0.5, 1.0]),
+                                np.array([0.07, 0.475, 0.88])]
 MIXED_VARIANCE_NUMERICAL = np.array([
     [0.25, 0.0625, 0.0625],
     [0.25, 0.0625, 0.0625],
@@ -257,6 +306,19 @@ MIXED_ICE_CATEGORICAL = np.array([
      [0.5, 0.5, 0.0]],
     [[0.5, 0.0, 0.5],
      [0.0, 0.5, 0.5]]])
+MIXED_ICE_CATEGORICAL_2D = np.array([
+    [[[1.0, 0.0, 0.0],
+      [0.5, 0.5, 0.0]],
+     [[0.5, 0.5, 0.0],
+      [0.0, 0.5, 0.5]]],
+    [[[1.0, 0.0, 0.0],
+      [0.5, 0.0, 0.5]],
+     [[0.5, 0.0, 0.5],
+      [0.0, 0.5, 0.5]]],
+    [[[1.0, 0.0, 0.0],
+      [0.5, 0.0, 0.5]],
+     [[0.5, 0.0, 0.5],
+      [0.0, 0.5, 0.5]]]])
 MIXED_ICE_CATEGORICAL_REGRESSION = np.array([
     [[0.0],
      [0.5]],
@@ -269,12 +331,33 @@ MIXED_PD_CATEGORICAL_REGRESSION = np.array([
     [0.5],
     [1.0]])
 MIXED_LINESPACE_CATEGORICAL = np.array(['a', 'f'])
+MIXED_LINESPACE_CATEGORICAL_2D = [np.array(['a', 'f']), np.array(['a', 'bb'])]
+MIXED_LINESPACE_MIX_2D = [np.array([0.0, 0.5, 1.0]), np.array(['a', 'f'])]
 MIXED_VARIANCE_CATEGORICAL = np.array([
     [0.0625, 0., 0.0625],
     [0.0625, 0., 0.0625]])
 MIXED_VARIANCE_CATEGORICAL_REGRESSION = np.array([
     [0.25],
     [0.25]])
+MIXED_ICE_MIX_2D = np.array([
+    [[[1.0, 0.0, 0.0],
+      [0.5, 0.5, 0.0]],
+     [[1.0, 0.0, 0.0],
+      [0.5, 0.0, 0.5]],
+     [[1.0, 0.0, 0.0],
+      [0.5, 0.0, 0.5]]],
+    [[[0.5, 0.5, 0.0],
+      [0.0, 0.5, 0.5]],
+     [[1.0, 0.0, 0.0],
+      [0.0, 0.5, 0.5]],
+     [[0.5, 0.0, 0.5],
+      [0.0, 0.5, 0.5]]],
+    [[[0.5, 0.5, 0.0],
+      [0.0, 0.5, 0.5]],
+     [[0.5, 0.0, 0.5],
+      [0.0, 0.5, 0.5]],
+     [[0.5, 0.0, 0.5],
+      [0.0, 0.5, 0.5]]]])
 # yapf: enable
 
 
@@ -903,6 +986,58 @@ def test_interpolate_array_2d():
                           interpolated_data[:, :, :][mixed_columns_str[1]])
 
 
+def test_infer_is_categorical_steps_number():
+    user_warning = ('Selected feature is categorical (string-base elements), '
+                    'however the treat_as_categorical was set to False. Such '
+                    'a combination is not possible. The feature will be '
+                    'treated as categorical.')
+    steps_n_warning = ('The steps_number parameter will be ignored as the '
+                       'feature is being treated as categorical.')
+
+    with pytest.warns(UserWarning) as warning:
+        treat_as_categorical, steps_number = \
+            ftmfi._infer_is_categorical_steps_number(
+                NUMERICAL_NP_ARRAY_TEST[:, 0], True, 10)
+    assert len(warning) == 1
+    assert str(warning[0].message) == steps_n_warning
+    assert treat_as_categorical
+    assert steps_number is 10
+
+    with pytest.warns(UserWarning) as warning:
+        treat_as_categorical, steps_number = \
+            ftmfi._infer_is_categorical_steps_number(
+                CATEGORICAL_NP_ARRAY_TEST[:, 0], False, None)
+    assert len(warning) == 1
+    assert str(warning[0].message) == user_warning
+    assert treat_as_categorical
+    assert steps_number is None
+
+    # Working fine
+    treat_as_categorical, steps_number = \
+        ftmfi._infer_is_categorical_steps_number(
+            NUMERICAL_NP_ARRAY_TEST[:, 0], False, 10)
+    assert not treat_as_categorical
+    assert steps_number == 10
+
+    treat_as_categorical, steps_number = \
+        ftmfi._infer_is_categorical_steps_number(
+            NUMERICAL_NP_ARRAY_TEST[:, 0], False, None)
+    assert not treat_as_categorical
+    assert steps_number == 100
+
+    treat_as_categorical, steps_number = \
+        ftmfi._infer_is_categorical_steps_number(
+            NUMERICAL_NP_ARRAY_TEST[:, 0], True, None)
+    assert treat_as_categorical
+    assert steps_number is None
+
+    treat_as_categorical, steps_number = \
+        ftmfi._infer_is_categorical_steps_number(
+            CATEGORICAL_NP_ARRAY_TEST[:, 0], True, None)
+    assert treat_as_categorical
+    assert steps_number is None
+
+
 def test_filter_rows():
     """
     Tests :func:`fatf.transparency.models.feature_influence._filter_rows`.
@@ -1476,6 +1611,7 @@ def test_individual_conditional_expectation():
 
     ###########################################################################
     # 2-D INDIVIDUAL CONDITIONAL EXPECTATION
+    # Classical arrays
     clf = fum.KNN(k=2)
     clf.fit(NUMERICAL_NP_ARRAY, NUMERICAL_NP_ARRAY_TARGET)
 
@@ -1496,9 +1632,34 @@ def test_individual_conditional_expectation():
     for line, correct_line in zip(linespace, NUMERICAL_NP_LINESPACE_CAT_2D):
         assert np.allclose(line, correct_line)
 
-    #TODO: check for when step size is 100 (hard to do as there is a gradual
-    #      shift and not a straight transition between class probabilities).
+    ice, linespace = ftmfi.individual_conditional_expectation(
+        NUMERICAL_NP_ARRAY_TEST, clf, [0, 3], 'classifier',
+        steps_number=[3, None])
+    assert np.allclose(ice, NUMERICAL_NP_ICE_100_2D)
+    for line, correct_line in zip(linespace, NUMERICAL_NP_LINESPACE_100_2D):
+        assert np.allclose(line, correct_line)
 
+    clf = fum.KNN(k=2)
+    clf.fit(CATEGORICAL_NP_ARRAY, CATEGORICAL_NP_ARRAY_TARGET)
+
+    ice, linespace = ftmfi.individual_conditional_expectation(
+        CATEGORICAL_NP_ARRAY_TEST, clf, [0 ,2], 'classifier')
+    assert np.allclose(ice, CATEGORICAL_NP_ICE_2D)
+    for line, correct_line in zip(linespace, CATEGORICAL_NP_LINESPACE_2D):
+        assert np.array_equal(line, correct_line)
+
+    with pytest.warns(UserWarning) as warning:
+        ice, linespace = ftmfi.individual_conditional_expectation(
+        CATEGORICAL_NP_ARRAY_TEST, clf, [0 ,2], 'classifier',
+        steps_number=[None, 42])
+    assert len(warning) == 1
+    assert str(warning[0].message) == steps_n_warning
+    assert np.allclose(ice, CATEGORICAL_NP_ICE_2D)
+    for line, correct_line in zip(linespace, CATEGORICAL_NP_LINESPACE_2D):
+        assert np.array_equal(line, correct_line)
+
+
+    # Structured Data
     clf = fum.KNN(k=2, mode='classifier')
     clf.fit(NUMERICAL_STRUCT_ARRAY, 
             NUMERICAL_NP_ARRAY_TARGET.astype(np.float32))
@@ -1516,6 +1677,48 @@ def test_individual_conditional_expectation():
     assert np.allclose(ice, NUMERICAL_NP_ICE_CAT_2D)
     for line, correct_line in zip(linespace, NUMERICAL_NP_LINESPACE_CAT_2D):
         assert np.allclose(line, correct_line)
+
+    clf = fum.KNN(k=2)
+    clf.fit(CATEGORICAL_STRUCT_ARRAY, CATEGORICAL_NP_ARRAY_TARGET)
+
+    ice, linespace = ftmfi.individual_conditional_expectation(
+        CATEGORICAL_STRUCT_ARRAY_TEST, clf, ['a', 'c'], 'classifier')
+    assert np.allclose(ice, CATEGORICAL_NP_ICE_2D)
+    for line, correct_line in zip(linespace, CATEGORICAL_NP_LINESPACE_2D):
+        assert np.array_equal(line, correct_line)
+
+    with pytest.warns(UserWarning) as warning:
+        ice, linespace = ftmfi.individual_conditional_expectation(
+        CATEGORICAL_STRUCT_ARRAY_TEST, clf, ['a', 'c'], 'classifier',
+        steps_number=[None, 42])
+    assert len(warning) == 1
+    assert str(warning[0].message) == steps_n_warning
+    assert np.allclose(ice, CATEGORICAL_NP_ICE_2D)
+    for line, correct_line in zip(linespace, CATEGORICAL_NP_LINESPACE_2D):
+        assert np.array_equal(line, correct_line)
+
+    # Mixed arrays
+    clf = fum.KNN(k=2, mode='classifier')
+    clf.fit(MIXED_ARRAY, MIXED_ARRAY_TARGET)
+
+    ice, linespace = ftmfi.individual_conditional_expectation(
+        MIXED_ARRAY_TEST, clf, ['a', 'c'], 'classifier', steps_number=3)
+    assert np.allclose(ice, MIXED_ICE_NUMERICAL_2D)
+    for line, correct_line in zip(linespace, MIXED_LINESPACE_NUMERICAL_2D):
+        assert np.allclose(line, correct_line)
+    
+    ice, linespace = ftmfi.individual_conditional_expectation(
+        MIXED_ARRAY_TEST, clf, ['b', 'd'], 'classifier')
+    assert np.allclose(ice, MIXED_ICE_CATEGORICAL_2D)
+    for line, correct_line in zip(linespace, MIXED_LINESPACE_CATEGORICAL_2D):
+        assert np.array_equal(line, correct_line)
+
+    ice, linespace = ftmfi.individual_conditional_expectation(
+        MIXED_ARRAY_TEST, clf, ['a', 'b'], 'classifier',
+        steps_number=[3, None])
+    assert np.allclose(ice, MIXED_ICE_MIX_2D)
+    for line, correct_line in zip(linespace, MIXED_LINESPACE_MIX_2D):
+        assert np.array_equal(line, correct_line)
 
 
 def test_partial_dependence_ice():

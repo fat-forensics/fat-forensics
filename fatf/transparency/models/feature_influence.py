@@ -615,13 +615,31 @@ def compute_feature_distribution(
     return values, counts
 
 
-def infer_is_categorical_steps_number(
+def _infer_is_categorical_steps_number(
         column: np.ndarray,
         treat_as_categorical: bool,
         steps_number: int,
 ) -> Tuple[bool, int]:
     """
-    #TODO: documentation
+    Checks if sampling parameters are compatible.
+
+    This function checks if `treat_as_categorical` and `steps_number` are
+    compatible with each other and the dataset. If they are not, function
+    will return values that are compatible and raise warnings based off
+    overwriting parameters. 
+
+    For the input parameter description and warnings please see the
+    documentation of the :func`fatf.transparency.model.feature_influence.
+    individual_conditional_expectation` function.
+    
+    Returns
+    -------
+    treat_as_categorical : boolean
+        Whether to treat the column as categorical or numerical.
+    steps_number : integer
+        The number of evenly spaced samples between the minimum and the maximum
+        value of the selected feature for which the model's prediction will be
+        evaluated. If `treat_as_categorical` is True then this will be None.
     """
     assert fuav.is_1d_array(column), 'Column must be a 1-dimensional array.'
     if fuav.is_numerical_array(column):
@@ -833,7 +851,7 @@ def individual_conditional_expectation(
     # In order to do the same for 1-D and 2-D, make all variables a list
     # and infer treat_as_categorical and steps_number separately, then
     # unpack values.
-    parameters = [infer_is_categorical_steps_number(params[0],
+    parameters = [_infer_is_categorical_steps_number(params[0],
                   params[1], params[2]) for params in 
                   zip(column, treat_as_categorical, steps_number)]
     treat_as_categorical, steps_number = map(list, zip(*parameters))

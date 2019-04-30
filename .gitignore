@@ -1,9 +1,23 @@
 .DS_Store
 
+_envar.sh
+
+*.egg-info/
+FAT-forensics-*
+build/*
+dist/*
 *.pyc
 
-FAT_forensics.egg-info/
 *__pycache__
 .pytest_cache
 .coverage
-coverage.xml
+.mypy_cache
+
+.ipynb_checkpoints
+#*.ipynb
+
+docs/_build
+docs/_resources
+
+temp/*
+.coverage.*

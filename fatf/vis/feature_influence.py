@@ -19,16 +19,18 @@ import fatf.utils.array.validation as fuav
 
 from fatf.exceptions import IncorrectShapeError
 
+from mpl_toolkits.axes_grid1 import make_axes_locatable
+
 __all__ = ['plot_individual_conditional_expectation',
            'plot_feature_distribution',
            'plot_partial_dependence']  # yapf: disable
 
 
 def _validate_input(ice_pdp_array: np.ndarray,
-                    feature_linespace: np.ndarray,
+                    feature_linespace: Union[np.ndarray, Tuple[np.ndarray, ...]],
                     class_index: int,
-                    treat_as_categorical: Union[None, bool],
-                    feature_name: Union[None, str],
+                    treat_as_categorical: Union[None, bool, List[bool]],
+                    feature_name: Union[None, str, List[str]],
                     class_name: Union[None, str],
                     plot_axis: Union[None, plt.Axes],
                     variance: Union[None, np.ndarray],
@@ -92,15 +94,21 @@ def _validate_input(ice_pdp_array: np.ndarray,
     # pylint: disable=too-many-arguments,too-many-branches
     input_is_valid = False
 
-    assert isinstance(test_partial_dependence, bool), \
-        'test_partial_dependence is not a boolean.'
+    if not isinstance(test_partial_dependence, bool):
+        raise TypeError('test_partial_dependence is not a boolean.')
 
-    assert variance_area is not None and isinstance(variance_area, bool), \
-        'variance_area is not a boolean.'
+    if variance_area is not None and not isinstance(variance_area, bool):
+        raise TypeError('variance_area is not a boolean.')
 
-    if (treat_as_categorical is not None and 
-            not isinstance(treat_as_categorical, bool)):
-        raise TypeError('treat_as_categorical is not a boolean.') 
+    if not isinstance(treat_as_categorical, list):
+        treat_as_categorical = [treat_as_categorical]
+
+    if len(treat_as_categorical) > 2:
+        raise ValueError('Too many values given for treat_as_categorical.')
+    for categorical in treat_as_categorical:
+        if (not isinstance(categorical, bool) and categorical is not None):
+            raise TypeError('treat_as_categorical has to either be None, a '
+                            'boolean or a list of None and booleans.')
 
     if fuav.is_structured_array(ice_pdp_array):
         raise ValueError('The input array cannot be a structured array.')
@@ -108,11 +116,50 @@ def _validate_input(ice_pdp_array: np.ndarray,
     if not fuav.is_numerical_array(ice_pdp_array):
         raise ValueError('The input array has to be a numerical array.')
 
+    if not isinstance(feature_name, list):
+        feature_name = [feature_name]
+    if len(feature_name) > 2:
+        raise ValueError('Too many values given for feature_name.')
+
+    if not isinstance(feature_linespace, tuple):
+        feature_linespace = [feature_linespace]
+
+    if len(feature_linespace) != 1 and len(feature_linespace) != 2:
+        raise ValueError('feature_linespace must be a tuple of numpy.ndarray '
+                         'with max length 2 for use in 2 feature partial '
+                         'dependence and individual conditional expectation.')
+    for linespace in feature_linespace:
+        if not isinstance(linespace, np.ndarray):
+            raise TypeError('feature_linespace must be a tuple of '
+                            'numpy.ndarray')
+        if fuav.is_structured_array(linespace):
+            raise ValueError('The linespace array cannot be a structured '
+                             'array.')
+        if not fuav.is_1d_array(linespace):
+            raise IncorrectShapeError('The linespace array has to be a '
+                                      '1-dimensional array of shape '
+                                      '(n_steps, ).')
     if test_partial_dependence:
-        if len(ice_pdp_array.shape) != 2:
+        if len(ice_pdp_array.shape) != 2 and len(ice_pdp_array.shape) != 3:
             raise IncorrectShapeError('plot_partial_depenedence expects a '
                                       '2-dimensional array of shape (n_steps, '
-                                      'n_classes).')
+                                      'n_classes) or for 2-D partial '
+                                      'dependence, a shape of (n_steps_1, '
+                                      'n_steps_2, n_classes).')
+        if len(ice_pdp_array.shape) == 3:
+            if len(feature_linespace) != 2:
+                raise ValueError('A 3-dimensional partial dependence array '
+                                 'was provided but only one feature linespace. '
+                                 'A 3-dimensional array can only be used in '
+                                 'plotting 2 feature partial depedence, and '
+                                 'as such a tuple of 2 feature linespaces must '
+                                 'be given.')
+            if feature_name[0] is not None and len(feature_name) != 2:
+                raise ValueError('A 3-dimension partial dependence array '
+                                 'was provided but only one feature name. '
+                                 'In order to use feature names you must '
+                                 'provide a list of length 2 containing '
+                                 'strings or None.')
         if isinstance(variance, np.ndarray):
             if fuav.is_structured_array(variance):
                 raise ValueError('The variance array cannot be a structured '
@@ -133,23 +180,43 @@ def _validate_input(ice_pdp_array: np.ndarray,
                                  'plot the variance please specify a variance '
                                  'vector.')
     else:
-        if len(ice_pdp_array.shape) != 3:
+        if len(ice_pdp_array.shape) != 3 and len(ice_pdp_array.shape) != 4:
             raise IncorrectShapeError('plot_individual_condtional_expectation '
                                       'expects a 3-dimensional array of shape '
-                                      '(n_samples, n_steps, n_classes).')
-
-    if fuav.is_structured_array(feature_linespace):
-        raise ValueError('The linespace array cannot be a structured array.')
-    if not fuav.is_1d_array(feature_linespace):
-        raise IncorrectShapeError('The linespace array has to be a '
-                                  '1-dimensional array of shape (n_steps, ).')
+                                      '(n_samples, n_steps, n_classes) or for '
+                                      '2-D individual conditional expectation, '
+                                      'a shape of (n_samples, n_steps_1, '
+                                      'n_steps_2, n_classes).')
+        if len(ice_pdp_array.shape) == 4:
+            if len(feature_linespace) != 2:
+                raise ValueError('A 4-dimensional individual conditional '
+                                 'expectation array was given but only one '
+                                 'feature linespace. A 4-dimensional array '
+                                 'can only be used in plotting 2 feature '
+                                 'individual conditional expectation, and as '
+                                 'such a tuple of 2 feature linespaces must '
+                                 'be given.')
+            if feature_name[0] is not None and len(feature_name) != 2:
+                raise ValueError('A 4-dimension individual conditional '
+                                'expectation array was provided but only '
+                                'one feature name. In order to use feature '
+                                'names you must provide a list of length 2 '
+                                'containing strings or None.')
+        else:
+            if len(feature_linespace) > 1:
+                raise ValueError('A 3-dimenionsal individual conditional '
+                                 'expectation array was given but 2 feature '
+                                 'linespaces. To plot 2 feature individual '
+                                 'conditional expectation, a 4-dimensional '
+                                 'array must be provided.')
     #if not fuav.is_numerical_array(feature_linespace):
     #    raise ValueError('The linespace array has to be numerical.')
-    if feature_linespace.shape[0] != ice_pdp_array.shape[-2]:
-        raise ValueError('The length of the linespace array ({}) does not '
-                         'agree with the number of linespace steps ({}) in '
-                         'the input array.'.format(feature_linespace.shape[0],
-                                                   ice_pdp_array.shape[-2]))
+    for linespace, index in zip(feature_linespace, [-2, -3]):
+        if linespace.shape[0] != ice_pdp_array.shape[index]:
+            raise ValueError('The length of the linespace array ({}) does not '
+                             'agree with the number of linespace steps ({}) '
+                             'in the input array.'.format(
+                                linespace.shape[0], ice_pdp_array.shape[index]))
 
     # Is the index valid for the array
     if not isinstance(class_index, int):
@@ -161,9 +228,10 @@ def _validate_input(ice_pdp_array: np.ndarray,
                          'regression model, use '
                          'class_index=0.'.format(class_index,
                                                  ice_pdp_array.shape[-1]))
-
-    if feature_name is not None and not isinstance(feature_name, str):
-        raise TypeError('The feature name has to be either None or a string.')
+    for feature in feature_name:
+        if (feature is not None and not isinstance(feature, str)):
+            raise TypeError('The feature name has to be either None or a '
+                            'string or a list of strings.')
 
     if class_name is not None and not isinstance(class_name, str):
         raise TypeError('The class name has to be either None or a string.')
@@ -176,11 +244,12 @@ def _validate_input(ice_pdp_array: np.ndarray,
     return input_is_valid
 
 
-def _validate_feature(feature_distribution: List[np.ndarray],
+def _validate_feature(feature_distribution: Tuple[np.ndarray, np.ndarray],
                       treat_as_categorical: bool,
                       feature_name: Union[None, str],
                       feature_linespace: Union[None, np.ndarray],
                       test_feature_linespace: bool,
+                      orientation: Union[None, str],
                       plot_axis: Union[None, plt.Axes]) -> bool:
     """
     Validates input for feature distribution function.
@@ -221,8 +290,18 @@ def _validate_feature(feature_distribution: List[np.ndarray],
     if not isinstance(treat_as_categorical, bool):
         raise TypeError('treat_as_categorical is not a boolean.')
 
-    if not isinstance(feature_distribution, list):
-        raise TypeError('Feature distribution has to be a list.')
+    if orientation is not None and not isinstance(orientation, str):
+        raise TypeError('Orientation must be either None or a string with '
+                        'value \'vertical\' or \'horizontal\'.')
+
+    if orientation is not None and orientation not in \
+            ['vertical', 'horizontal']:
+        raise ValueError('Orientation must be either \'vertical\' or '
+                         '\'horizontal\'.')
+
+    if not isinstance(feature_distribution, tuple):
+        raise TypeError('Feature distribution has to be a tuple.')
+
 
     if len(feature_distribution) != 2:
         raise ValueError('Feature distribution has to be a list of length 2 '
@@ -282,9 +361,11 @@ def _prepare_a_canvas(
         plot_axis: Union[None, plt.Axes],
         class_index: int,
         class_name: Union[None, str],
-        feature_name: Union[None, str],
+        feature_name: Union[None, str, List[Union[str, None]]],
         x_range: List[Number],
-        plot_distribution: bool = False
+        plot_distribution: bool = False,
+        is_2d: bool = False,
+        y_range: Optional[List[Number]] = None
 ) -> Tuple[Union[plt.Figure, None], Union[plt.Axes, Tuple[plt.Axes]]]: # yapf: disable
     """
     Prepares a matplotlib axis (canvas) for ICE and PDP plotting.
@@ -324,6 +405,13 @@ def _prepare_a_canvas(
     plot_distribution: boolean (default=False)
         Whether to have another axis for plotting feature distribution
         underneath PD or ICE plot.
+    is_2d: boolean (default=False)
+        Whether the function is being called from 2-D ICE and PD.
+    y_range: List[Number]
+        A list of 2 numbers where the first one determines the minimum of the
+        y-axis range and the second one determines the maximum of the y-axis
+        range. Only used when is_2d is True for setting y-axis of main axis
+        and feature distribution is being plotted on y-axis.
 
     Raises
     ------
@@ -351,8 +439,8 @@ def _prepare_a_canvas(
     assert isinstance(class_index, int), 'Must be integer.'
     assert class_name is None or isinstance(class_name, str), \
         'Must be None or string.'
-    assert feature_name is None or isinstance(feature_name, str), \
-        'Must be None or string.'
+    assert feature_name is None or isinstance(feature_name, str) \
+        or isinstance(feature_name, list), 'Must be None or string or list.'
     assert isinstance(x_range, list), 'Must be list.'
     assert len(x_range) == 2, 'x_range should only contain 2 numbers.'
     assert isinstance(x_range[0], Number) and isinstance(x_range[1], Number), \
@@ -363,22 +451,48 @@ def _prepare_a_canvas(
     if plot_axis is None:
         if class_name is None:
             class_name = '{} (class index)'.format(class_index)
-        if feature_name is None:
-            feature_name = "Selected Feature's Linespace"
+        if not isinstance(feature_name, list):
+            feature_name = [feature_name]
+        name = []
+        for i in range(len(feature_name)):
+            if feature_name[i] is None:
+                name.append('Feature {}'.format(i))
+            else:
+                name.append(feature_name)
+        name.append('Feature {}'.format(1))
+        feature_name = name
         if plot_distribution:
-            plot_figure, (plot_axis, dist_axis) = plt.subplots(
-                2, 1, gridspec_kw = {'height_ratios':[4, 1]})
-            dist_axis.set_xlabel('Distribution of Feature')
-            dist_axis.set_xlim(x_range)
-            dist_axis.set_xticklabels([])
-            dist_axis.patch.set_visible(False)
+            if is_2d:
+                plot_figure = plt.figure()
+                gs = gridspec.GridSpec(2, 2, width_ratios=[3, 1], 
+                                       height_ratios = [1, 4])
+                plot_axis = plot_figure.add_subplot(gs[1, 0],frameon = False)
+                dist_axis_x = plot_figure.add_subplot(
+                    gs[0,0], sharex=plot_axis, frameon=True)
+                dist_axis_y = plot_figure.add_subplot(
+                    gs[1, 1], sharey=plot_axis, frameon=True)
+                dist_axis_x.set_xlim(x_range)
+                dist_axis_x.set_ylim([-0.05, 1.05])
+                dist_axis_y.set_ylim(y_range)
+                dist_axis_y.set_xlim([-0.05, 1.05])
+            else:
+                plot_figure, (plot_axis, dist_axis) = plt.subplots(
+                    2, 1, gridspec_kw = {'height_ratios':[4, 1]})
+                dist_axis.set_xlabel('Distribution of Feature')
+                dist_axis.set_xlim(x_range)
+                dist_axis.patch.set_visible(False)
         else:
             plot_figure, plot_axis = plt.subplots(1, 1)
         plot_axis.set_title(plot_title)
         plot_axis.set_xlim(x_range)
-        plot_axis.set_xlabel(feature_name)
-        plot_axis.set_ylim(np.array([-0.05, 1.05]))
-        plot_axis.set_ylabel('{} class probability'.format(class_name))
+        if is_2d:
+            plot_axis.set_xlabel(feature_name[0])
+            plot_axis.set_ylabel(feature_name[1])
+            plot_axis.set_ylim(y_range)
+        else:
+            plot_axis.set_xlabel(feature_name)
+            plot_axis.set_ylim(np.array([-0.05, 1.05]))
+            plot_axis.set_ylabel('{} class probability'.format(class_name))
     else:
         plot_figure = None
         # Feature range should be the same
@@ -419,7 +533,10 @@ def _prepare_a_canvas(
             plot_axis.set_ylabel('{} class probability'.format(class_name))
 
     if plot_distribution:
-        plot_axis = [plot_axis, dist_axis]
+        if is_2d:
+            plot_axis = (plot_axis, dist_axis_x, dist_axis_y)
+        else:
+            plot_axis = (plot_axis, dist_axis)
 
     return plot_figure, plot_axis
 
@@ -428,6 +545,7 @@ def plot_feature_distribution(
         feature_distribution : List[np.ndarray],
         treat_as_categorical: bool = False,
         feature_name: Optional[str] = None,
+        orientation: Optional[str] = 'vertical',
         plot_axis: Optional[plt.Axes] = None
 ) -> Tuple[Union[plt.Figure, None], plt.Axes]:
     """
@@ -458,6 +576,9 @@ def plot_feature_distribution(
         The name of the feature for which feature distribution originally
         calculated. It is used to generate a name for the x-axis if plot_axis
         is None.
+    orientation : string, optionl (default='vertical')
+        Whether to plot distribution as vertical or horizontal. This is mainly
+        used for 2-D ICE and PD plots.
     plot_axis : matplotlib.pyplot.Axes, optional (default=None)
         A matplotlib axes on which the feature distribution will be plotted.
         This is useful to have feature distribution as a subplot of an ICE
@@ -465,8 +586,7 @@ def plot_feature_distribution(
         parameter to the funcions :func:`fatf.transparency.models.
         plot_individual_conditional_expectation` or :func:`fatf.transparency.
         models.plot_partial_dependence`.
-        If
-        ``None``, a new axes will be created.
+        If  ``None``, a new axes will be created.
 
     Returns
     -------
@@ -480,7 +600,8 @@ def plot_feature_distribution(
     """
     assert _validate_feature(
         feature_distribution, treat_as_categorical, feature_name, None, 
-        False, plot_axis), 'Input is invalid.'
+        False, orientation, plot_axis), 'Input is invalid.'
+    is_horizontal = True if orientation == 'horizontal' else False
     values, counts = feature_distribution
     x_range = [values[0], values[-1]]
     if plot_axis is None:
@@ -492,40 +613,68 @@ def plot_feature_distribution(
         plot_axis.set_ylabel('Density')
     else:
         plot_figure = None
-    plot_axis.set_ylim([0, 1.05])
-    if values.shape[0] == counts.shape[0] + 1:
-        # Histogram
-        plot_axis.set_xlim([values[0], values[-1]])
-        widths = [values[i+1]-values[i] for i in range(len(values)-1)]
-        bars = plot_axis.bar(values[:-1], counts, width=widths,
-                                align='edge', alpha=0.6, color='royalblue')
-        for bar in bars:
-            height = bar.get_height()
-            plot_axis.text(bar.get_x() + bar.get_width()/2.0, height,
-                        '%.2f' % height, ha='center', va='bottom')
-    elif treat_as_categorical:
-        # Bar plot
-        x_locs = np.linspace(0, values.shape[0], 
-                             len(values))
-        bars = plot_axis.bar(x_locs, counts, alpha=0.6, color='royalblue')
-        for bar in bars:
-            height = bar.get_height()
-            plot_axis.text(bar.get_x() + bar.get_width()/2.0, height,
-                        '%.2f' % height, ha='center', va='bottom')
+    if is_horizontal:
+        plot_axis.set_xlim([0, 1.05])
+    else:
+        plot_axis.set_ylim([0, 1.05])
+    if values.shape[0] == counts.shape[0] + 1 or treat_as_categorical:
+        # Histogram or categorical data
+        plot_values = values
+        align = 'edge'
+        if treat_as_categorical:
+            widths = 0.8
+            plot_values = np.linspace(0, values.shape[0], len(values))
+            lim = [plot_values[0]-0.5, len(plot_values)+0.5]
+            align = 'center'
+        else:
+            widths = [values[i+1]-values[i] for i in range(len(values)-1)]
+            lim = [values[0], values[-1]]
+            plot_values = plot_values[:-1]
+        if is_horizontal:
+            plot_axis.set_ylim(lim)
+            bars = plot_axis.barh(plot_values, height=widths, width=counts,
+                                  align=align, alpha=0.6, color='royalblue')
+            xs = [[bar.get_width(), bar.get_y()+bar.get_height()/2.0,
+                 bar.get_width()] for bar in bars]
+            ha, va = 'left', 'center'
+            if treat_as_categorical:
+                plot_axis.set_yticks(plot_values)
+                plot_axis.set_yticklabels(list(values))
+            plot_axis.set_ylabel('Histogram of feature values', rotation=270,
+                                 labelpad=17)
+        else:
+            plot_axis.set_xlim(lim)
+            bars = plot_axis.bar(plot_values, height=counts, width=widths,
+                                 align=align, alpha=0.6, color='royalblue')
+            xs = [[bar.get_x() + bar.get_width()/2.0, bar.get_height(), 
+                  bar.get_height()] for bar in bars]
+            ha, va = 'center', 'bottom'
+            if treat_as_categorical:
+                plot_axis.set_xticks(plot_values)
+                plot_axis.set_xticklabels(list(values))
+            plot_axis.set_xlabel('Histogram of feature values')
+        for x in xs:
+            plot_axis.text(x[0], x[1],
+                        '%.2f' % x[2], ha=ha, va=va)
     elif values.shape[0] == counts.shape[0]:
         # KDE
-        plot_axis.set_ylim([-0.05, 1.05])
-        plot_axis.set_xlabel('KDE fit to feature')
-        plot_axis.plot(values,
-                        counts,
-                        linewidth=3,
-                        alpha=0.6,
-                        color='royalblue')
-        plot_axis.set_xlim([values[0], values[-1]])
-        # As KDE is defined as the integral being equal to one, some values can
-        # exceed 1.0 and as such we need to set the y_lim of the axes.
-        if np.any(counts > 1.0):
-            plot_axis.set_ylim([-0.05, np.max(counts)+0.05])
+        xlim = [values[0], values[-1]]
+        ylim = [-0.05, np.max(counts)+0.05] if np.any(counts > 1.0) else \
+               [-0.05, 1.05]
+        if orientation == 'horizontal':
+            values, counts = counts, values
+            xlim, ylim = ylim, xlim
+            plot_axis.set_ylabel('KDE fit to feature', rotation=270, 
+                                 labelpad=17)
+        else:
+            plot_axis.set_xlabel('KDE fit to feature')
+        plot_axis.plot(values, counts, linewidth=3, alpha=0.6,
+                       color='royalblue')
+        plot_axis.set_xlim(xlim)
+        plot_axis.set_ylim(ylim)
+        plot_axis.patch.set_visible(True)
+    plot_axis.grid(True)
+    plot_axis.set_axisbelow(True)
     return plot_figure, plot_axis
 
 
@@ -536,7 +685,7 @@ def plot_individual_conditional_expectation(
         treat_as_categorical: bool = False,
         feature_name: Optional[str] = None,
         class_name: Optional[str] = None,
-        feature_distribution : Optional[List[np.ndarray]] = None,
+        feature_distribution : Optional[List[Tuple[np.ndarray, np.ndarray]]] = None,
         plot_axis: Optional[plt.Axes] = None
 ) -> Tuple[Union[plt.Figure, None], Union[plt.Axes, List[plt.Axes]]]:
     """
@@ -601,7 +750,7 @@ def plot_individual_conditional_expectation(
     if plot_distribution:
         assert _validate_feature(
             feature_distribution, treat_as_categorical, feature_name,
-            feature_linespace, True, None), 'Input is invalid'
+            feature_linespace, True, None, None), 'Input is invalid'
 
     assert treat_as_categorical is None or \
         isinstance(treat_as_categorical, bool), 'treat_as_categorical -> bool'
@@ -682,119 +831,23 @@ def plot_individual_conditional_expectation(
     return plot_figure, plot_axis
 
 
-def plot_partial_dependence(
-        pd_array: np.ndarray,
-        feature_linespace: np.ndarray,
-        class_index: int,
-        treat_as_categorical: Optional[bool] = None,
-        variance: Optional[np.ndarray] = None,
-        variance_area: Optional[bool] = False,
-        feature_name: Optional[str] = None,
-        class_name: Optional[str] = None,
-        feature_distribution : Optional[List[np.ndarray]] = None,
-        plot_axis: Optional[plt.Axes] = None
-) -> Tuple[Union[plt.Figure, None], Union[plt.Axes, List[plt.Axes]]]:
+def _plot_partial_dependence_1d(
+    pd_array: np.ndarray,
+    feature_linespace: np.ndarray,
+    class_index: int,
+    treat_as_categorical: Optional[bool] = None,
+    variance: Optional[np.ndarray] = None,
+    variance_area: Optional[bool] = False,
+    feature_name: Optional[str] = None,
+    class_name: Optional[str] = None,
+    feature_distribution : Optional[Tuple[np.ndarray, np.ndarray]] = None,
+    plot_axis: Optional[plt.Axes] = None
+) -> Tuple[Union[plt.Figure, None], Union[plt.Axes, Tuple[plt.Axes, ...]]]:
     """
-    Plots Partial Dependence for a selected class.
-
-    For exceptions raised by this function please see the documentation of
-    :func:`fatf.vis.feature_influence._prepare_a_canvas` and
-    :func:`fatf.vis.feature_influence._validate_input` functions.
-
-    Parameters
-    ----------
-    pd_array : numpy.ndarray
-        An array of (n_steps, n_classes) shape with Partial Dependence
-        calculation results for every target class for the desired spectrum of
-        the selected feature. This should be the output of the :func:`fatf.
-        transparency.models.feature_influence.partial_dependence` or :func:`
-        fatf.transparency.models.feature_influence.partial_dependence_ice`
-        function.
-    feature_linespace : numpy.ndarray
-        A one-dimensional array -- (steps_number, ) -- with the values for
-        which the selected feature was sampled when the dataset was evaluated
-        for a predictive model. This should be the output of the :func:`fatf.
-        transparency.models.feature_influence.
-        individual_conditional_expectation` function.
-    class_index : integer
-        The index of the class for which PD will be plotted, taken from the
-        original dataset. For PD computed using a regression model,
-        `class_index` should be 0.
-    variance : numpy.ndarray, optional (default=None)
-        An array of (n_steps, n_classes) shape with the values for the
-        variance of the predictions of data points used to compute Partial
-        Dependence. This should be the output of the :func:`fatf.transparency.
-        models.feature_influence.partial_dependence` or :func:`
-        fatf.transparency.models.feature_influence.partial_dependence_ice`
-        function.
-    variance_area : boolean, optional (default=False)
-        Specifies whether to use error bars method of plotting or solid areas
-        to show the variance at each point. If True, the variance will be shown
-        by a solid area surrounding the partial dependence line, else then
-        error bar method is used.
-    feature_name : string, optional (default=None)
-        The name of the feature for which PD was originally calculated.
-    class_name : string, optional (default=None)
-        The name of the class that ``class_index`` parameter points to. If
-        ``None``, the class name will be the same as the class index.
-    feature_distribution : List[numpy.ndarray]
-        A list of length 2 where they are [values, counts]. The first
-        array is of shape (samples,) or (samples+1,). It contains x-axis data
-        points either for histogram, gaussian kde or unique values of the array
-        The second element of the list should be probability densities for each
-        value in the first array. This should be the output of the :func:`fatf.
-        transparency.models.compute_feature_distribution`.
-    plot_axis : matplotlib.pyplot.Axes, optional (default=None)
-        A matplotlib axes on which the PD will be plotted. This is useful if
-        one wants to overlay PD onto an ICE plot. If ``None``, a new axes will
-        be created.
-
-    Returns
-    -------
-    plot_figure : Union[matplotlib.pyplot.Figure, None]
-        A matplotlib figure that holds the ``plot_axis`` axis. This parameter
-        is ``None`` when the user passed in ``plot_axis`` attribute, otherwise,
-        when a blank plot is created, this is a figure object holding the plot
-        axis (``plot_axis``).
-    plot_axis : matplotlib.pyplot.Axes
-        A matplotlib axes with the PD plot.
+    
     """
-    # pylint: disable=too-many-arguments
-    assert _validate_input(pd_array, feature_linespace, class_index,
-                           treat_as_categorical, feature_name, class_name,
-                           plot_axis, variance, variance_area,
-                           True), 'Input is invalid.'
-    plot_distribution = feature_distribution is not None and \
-        isinstance(feature_distribution[0], np.ndarray)
-    if plot_distribution:
-        assert _validate_feature(
-            feature_distribution, treat_as_categorical, feature_name,
-            feature_linespace, True, None), 'Input is invalid'
-
-    assert treat_as_categorical is None or \
-        isinstance(treat_as_categorical, bool), 'treat_as_categorical -> bool'
-    assert feature_distribution is None or \
-        isinstance(feature_distribution, list), 'feature_distribution -> list'
-
-    if fuav.is_numerical_array(feature_linespace):
-        is_categorical_column = False
-    elif fuav.is_textual_array(feature_linespace):
-        is_categorical_column = True
-    else:
-        assert False, 'Must be an array of a base type.' # pragma: nocover
-
-    # If needed, infer the column type.
-    if treat_as_categorical is None:
-        treat_as_categorical = is_categorical_column
-    elif not treat_as_categorical and is_categorical_column:
-        message = ('Selected feature is categorical (string-base elements), '
-                   'however the treat_as_categorical was set to False. Such '
-                   'a combination is not possible. The feature will be '
-                   'treated as categorical.')
-        warnings.warn(message, category=UserWarning)
-        treat_as_categorical = True
-
     plot_title = 'Partial Dependence'
+    plot_distribution = feature_distribution is not None
     if treat_as_categorical:
         x_range = [-0.5, len(feature_linespace)+0.5]
         x_locs = np.linspace(0, feature_linespace.shape[0], 
@@ -815,9 +868,10 @@ def plot_partial_dependence(
             idx = xsorted[ypos]
             values = values[idx]
             counts = counts[idx]
-            feature_distribution = [values, counts]
+            feature_distribution = (values, counts)
         _, dist_axis = plot_feature_distribution(
-            feature_distribution, treat_as_categorical, None, dist_axis)
+            feature_distribution, treat_as_categorical, None,
+            plot_axis=dist_axis)
 
     if treat_as_categorical:
         yerr = variance[:, class_index] if isinstance(variance,np.ndarray) \
@@ -865,5 +919,214 @@ def plot_partial_dependence(
 
     if isinstance(plot_figure, plt.Figure):
         plot_figure.tight_layout()
+
+    return plot_figure, plot_axis
+
+
+def _plot_partial_dependence_2d(
+    pd_array: np.ndarray,
+    feature_linespace: Tuple[np.ndarray, np.ndarray],
+    class_index: int,
+    treat_as_categorical: Optional[bool] = None,
+    variance: Optional[np.ndarray] = None,
+    variance_area: Optional[bool] = False,
+    feature_name: Optional[str] = None,
+    class_name: Optional[str] = None,
+    feature_distribution : Optional[Tuple[np.ndarray, ...]] = None,
+    plot_axis: Optional[plt.Axes] = None
+) -> Tuple[Union[plt.Figure, None], Union[plt.Axes, Tuple[plt.Axes, ...]]]:
+    """
+    
+    """
+    plot_title = 'Partial Dependence'
+    plot_distribution = feature_distribution[0] is not None
+    if treat_as_categorical[0]:
+        x_range = [-0.5, len(feature_linespace[0])+0.5]
+        x_locs = np.linspace(0, feature_linespace[0].shape[0], 
+                             len(feature_linespace[0]))
+    else:
+        x_range = [feature_linespace[0][0], feature_linespace[0][-1]]
+    if treat_as_categorical[1]:
+        y_range = [-0.5, len(feature_linespace[1])+0.5]
+        y_locs = np.linspace(0, feature_linespace[1].shape[0], 
+                             len(feature_linespace[1]))
+    else:
+        y_range = [feature_linespace[1][0], feature_linespace[1][-1]]
+    plot_figure, plot_axis = _prepare_a_canvas(
+        plot_title, plot_axis, class_index, class_name, feature_name, x_range,
+        plot_distribution, True, y_range)
+
+    if plot_distribution:
+        (plot_axis, dist_axis_x, dist_axis_y) = plot_axis
+        plot_axis.set_title('')
+        if class_name is None:
+            class_name = 'Class {}'.format(class_index)
+        if isinstance(plot_figure, plt.Figure):
+            plot_figure.suptitle('Partial Dependence for {}'.format(class_name))
+        for categorical, distribution, linespace, axis, orientation in \
+                zip(treat_as_categorical, feature_distribution, 
+                feature_linespace, [dist_axis_x, dist_axis_y], 
+                ['vertical', 'horizontal']):
+            if categorical:
+                # Get feature_distribution in same order as feature_linespace
+                values, counts = distribution
+                xsorted = np.argsort(values)
+                ypos = np.searchsorted(values[xsorted], linespace)
+                idx = xsorted[ypos]
+                values = values[idx]
+                counts = counts[idx]
+                distribution = (values, counts)
+            _, axis = plot_feature_distribution(
+                distribution, categorical, None, plot_axis=axis,
+                orientation=orientation)
+        dist_axis_x.tick_params(axis='x', which='both', bottom='off',
+                                top='off', labelbottom='off')
+        dist_axis_y.tick_params(axis='y', which='both', bottom='off',
+                                top='off', labelleft='off')
+
+    im = plot_axis.imshow(pd_array[:, :, class_index], extent=x_range+y_range,
+                          origin='lower', cmap=plt.cm.cividis, aspect='auto')
+    plot_figure.subplots_adjust(left=0.15)
+    cbar_ax = plot_figure.add_axes([0.04, 0.18, 0.02, 0.5])
+    plot_figure.colorbar(im, cax=cbar_ax, aspect=10)
+    cbar_ax.yaxis.set_ticks_position('left')
+    #plot_figure.colorbar(im, cax=cbar_ax, pad=0.5)
+
+    if plot_distribution:
+        plot_axis = (plot_axis, dist_axis_x, dist_axis_y)
+
+    if isinstance(plot_figure, plt.Figure):
+        plot_figure.tight_layout(rect=[0.05, 0.05, 1, 0.95])
+
+    return plot_figure, plot_axis
+
+
+def plot_partial_dependence(
+        pd_array: np.ndarray,
+        feature_linespace: Tuple[np.ndarray, ...],
+        class_index: int,
+        treat_as_categorical: Optional[bool] = None,
+        variance: Optional[np.ndarray] = None,
+        variance_area: Optional[bool] = False,
+        feature_name: Optional[str] = None,
+        class_name: Optional[str] = None,
+        feature_distribution : Optional[Tuple[np.ndarray, ...]] = None,
+        plot_axis: Optional[plt.Axes] = None
+) -> Tuple[Union[plt.Figure, None], Union[plt.Axes, Tuple[plt.Axes, ...]]]:
+    """
+    Plots Partial Dependence for a selected class.
+
+    For exceptions raised by this function please see the documentation of
+    :func:`fatf.vis.feature_influence._prepare_a_canvas` and
+    :func:`fatf.vis.feature_influence._validate_input` functions.
+
+    Parameters
+    ----------
+    pd_array : numpy.ndarray
+        An array of (n_steps, n_classes) shape with Partial Dependence
+        calculation results for every target class for the desired spectrum of
+        the selected feature. This should be the output of the :func:`fatf.
+        transparency.models.feature_influence.partial_dependence` or :func:`
+        fatf.transparency.models.feature_influence.partial_dependence_ice`
+        function.
+    feature_linespace : Tuple[numpy.ndarray, ...]
+        A tuple of one-dimensional array -- (steps_number, ) -- with the values
+        for which the selected feature was sampled when the dataset was
+        evaluated for a predictive model. For plotting 2 feature partial
+        dependence, this should be a tuple of length 2. This should be the
+        output of the :func:`fatf.transparency.models.feature_influence.
+        individual_conditional_expectation` function. 
+    class_index : integer
+        The index of the class for which PD will be plotted, taken from the
+        original dataset. For PD computed using a regression model,
+        `class_index` should be 0.
+    variance : numpy.ndarray, optional (default=None)
+        An array of (n_steps, n_classes) shape with the values for the
+        variance of the predictions of data points used to compute Partial
+        Dependence. This should be the output of the :func:`fatf.transparency.
+        models.feature_influence.partial_dependence` or :func:`
+        fatf.transparency.models.feature_influence.partial_dependence_ice`
+        function.
+    variance_area : boolean, optional (default=False)
+        Specifies whether to use error bars method of plotting or solid areas
+        to show the variance at each point. If True, the variance will be shown
+        by a solid area surrounding the partial dependence line, else then
+        error bar method is used.
+    feature_name : string, optional (default=None)
+        The name of the feature for which PD was originally calculated.
+    class_name : string, optional (default=None)
+        The name of the class that ``class_index`` parameter points to. If
+        ``None``, the class name will be the same as the class index.
+    feature_distribution : List[Tuple(numpy.ndarray)]
+        A tuple of length 2 where they are (values, counts). The first
+        array is of shape (samples,) or (samples+1,). It contains x-axis data
+        points either for histogram, gaussian kde or unique values of the array
+        The second element of the list should be probability densities for each
+        value in the first array. This should be the output of the :func:`fatf.
+        transparency.models.compute_feature_distribution`. If 2-D PD then this
+        should be a tuple of length 4 where they are (values_1, counts_1,
+        values_2, counts_2)
+    plot_axis : matplotlib.pyplot.Axes, optional (default=None)
+        A matplotlib axes on which the PD will be plotted. This is useful if
+        one wants to overlay PD onto an ICE plot. If ``None``, a new axes will
+        be created.
+
+    Returns
+    -------
+    plot_figure : Union[matplotlib.pyplot.Figure, None]
+        A matplotlib figure that holds the ``plot_axis`` axis. This parameter
+        is ``None`` when the user passed in ``plot_axis`` attribute, otherwise,
+        when a blank plot is created, this is a figure object holding the plot
+        axis (``plot_axis``).
+    plot_axis : matplotlib.pyplot.Axes
+        A matplotlib axes with the PD plot.
+    """
+    # pylint: disable=too-many-arguments
+    assert _validate_input(pd_array, feature_linespace, class_index,
+                           treat_as_categorical, feature_name, class_name,
+                           plot_axis, variance, variance_area,
+                           True), 'Input is invalid.'
+    is_2d = True if len(pd_array.shape) == 3 else False
+
+    if not isinstance(treat_as_categorical, list):
+        treat_as_categorical = [treat_as_categorical]
+    
+    if not isinstance(feature_name, list):
+        feature_name = [feature_name]
+
+    if not isinstance(feature_distribution, list):
+        feature_distribution = [feature_distribution]
+
+    if isinstance(feature_linespace, np.ndarray):
+        feature_linespace = (feature_linespace, )
+
+    is_categorical_column = [False if fuav.is_numerical_array(x) 
+                             else True if fuav.is_textual_array 
+                             else -1 for x in feature_linespace]
+    assert -1 not in is_categorical_column, \
+        'Must be an array of a base type.' # pragma: nocover
+
+    # If needed, infer the column type.
+    for i in range(len(treat_as_categorical)):
+        if treat_as_categorical[i] is None:
+            treat_as_categorical[i] = is_categorical_column[i]
+        elif not treat_as_categorical[i] and is_categorical_column[i]:
+            message = ('Selected feature is categorical (string-base elements), '
+                    'however the treat_as_categorical was set to False. Such '
+                    'a combination is not possible. The feature will be '
+                    'treated as categorical.')
+            warnings.warn(message, category=UserWarning)
+            treat_as_categorical[i] = True
+
+    if is_2d:
+        plot_figure, plot_axis = _plot_partial_dependence_2d(
+            pd_array, feature_linespace, class_index, treat_as_categorical,
+            variance, variance_area, feature_name, class_name,
+            feature_distribution, plot_axis)
+    else:
+        plot_figure, plot_axis = _plot_partial_dependence_1d(
+            pd_array, feature_linespace[0], class_index, 
+            treat_as_categorical[0], variance, variance_area, feature_name[0],
+            class_name, feature_distribution[0], plot_axis)
 
     return plot_figure, plot_axis

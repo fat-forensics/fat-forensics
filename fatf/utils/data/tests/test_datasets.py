@@ -5,8 +5,9 @@ Tests functions responsible for loading data.
 #         Kacper Sokol <k.sokol@bristol.ac.uk>
 # License: new BSD
 
-import numpy as np
 import pytest
+
+import numpy as np
 
 import fatf.utils.array.validation as fuav
 import fatf.utils.data.datasets as fudd

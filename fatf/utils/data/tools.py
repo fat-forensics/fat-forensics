@@ -9,22 +9,25 @@ import inspect
 import warnings
 
 from numbers import Number
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Callable, List, Optional, Tuple, Union
 
 import numpy as np
 
-import fatf.utils.array.validation as fuat
+import fatf.utils.array.tools as fuat
 import fatf.utils.array.validation as fuav
+
+from fatf.exceptions import IncorrectShapeError
+
+__all__ = ['group_by_column', 'apply_to_column_grouping']
 
 Index = Union[int, str]  # A column index type
 
 
-def group_by_column(
-        dataset: np.ndarray,
-        column_index: Index,
-        groups: Optional[List[Union[Number, str]]] = None,
-        numerical_bins_number: int = 5) -> Tuple[List[List[int]],
-                                                 List[List[str]]]:
+def group_by_column(dataset: np.ndarray,
+                    column_index: Index,
+                    groupings: Optional[List[Union[Number, str]]] = None,
+                    numerical_bins_number: int = 5
+                    ) -> Tuple[List[List[int]], List[List[str]]]:
     """
     Groups row indices of an array based on value grouping of a chosen column.
 
@@ -32,12 +35,12 @@ def group_by_column(
     bins equally distributed between the minimum and the maximum value of the
     column. The number of bins can be changed with the
     ``numerical_bins_number`` if desired. Alternatively, the exact bin
-    boundaries can be given via the ``groups`` parameter.
+    boundaries can be given via the ``groupings`` parameter.
 
     For categorical columns, the default binning is one bin for every unique
     value in the selected column. This behaviour can be changed by providing
-    the ``groups`` parameter, where multiple values can be selected to create
-    one bin.
+    the ``groupings`` parameter, where multiple values can be selected to
+    create one bin.
 
     Parameters
     ----------
@@ -47,14 +50,13 @@ def group_by_column(
         A column index (a string for structured numpy arrays or an integer for
         unstructured arrays) of the column based on which the row indices will
         be partitioned.
-    groups : Optional[List[Union[number, string]]], optional (default=None)
-
+    groupings : Optional[List[Union[number, string]]], optional (default=None)
         A list of user-specified groupings for the selected column. The default
         grouping for categorical (textual) columns is splitting them by all the
         unique values therein. The numerical columns are, by default, binned
         into 5 bins (see the ``numerical_bins_number`` parameter) uniformly
         distributed between the minimum and the maximum value of the column.
-        To introduce custom binning for a categorical column ``groups``
+        To introduce custom binning for a categorical column ``groupings``
         parameter should be a list of tuples, where every tuple represents a
         single group. For example, a column with the following unique values
         ``['a', 'b', 'c', 'd']`` can be split into two groups: ``['a', 'd']``
@@ -71,7 +73,7 @@ def group_by_column(
     UserWarning
         When grouping is done on a categorical column a warning is emitted when
         some of the values in that column are not accounted for, i.e. they are
-        not included in the ``groups`` parameter. Also, if some of the rows
+        not included in the ``groupings`` parameter. Also, if some of the rows
         are not included in any of the groupings, a warning is shown. Missing
         row indices may be a result of some of the values being not-a-number
         for a numerical column and missing some of the unique values for a
@@ -105,7 +107,8 @@ def group_by_column(
     bin_names : List[List[string]]
         A list of lists with the latter one holding a group description.
     """
-    if fuav.is_2d_array(dataset):
+    # pylint: disable=too-many-locals,too-many-branches,too-many-statements
+    if not fuav.is_2d_array(dataset):
         raise IncorrectShapeError('The input array should be 2-dimensional.')
 
     if not fuav.is_base_array(dataset):
@@ -130,7 +133,7 @@ def group_by_column(
         raise TypeError('The numerical_bins_number parameter has to be an '
                         'integer.')
 
-    if fuav.is_structured_array(array):
+    if fuav.is_structured_array(dataset):
         column = dataset[column_index]
     else:
         column = dataset[:, column_index]
@@ -145,10 +148,11 @@ def group_by_column(
     if fuav.is_numerical_array(column):
         if groupings is None:
             # Get default bins
-            bins = np.linspace(column.min(),
-                               column.max(),
-                               num=numerical_bins_number,
-                               endpoint=False)[1:]
+            bins = np.linspace(
+                column.min(),
+                column.max(),
+                num=numerical_bins_number,
+                endpoint=False)[1:]
         elif isinstance(groupings, list):
             if not groupings:
                 raise ValueError('A numerical grouping list has to contain at '
@@ -158,7 +162,7 @@ def group_by_column(
             for i, number in enumerate(groupings):
                 if not isinstance(number, Number):
                     raise TypeError('For a numerical column all of the '
-                                    'grouping items must be numbers. {} '
+                                    'grouping items must be numbers. *{}* '
                                     'is not a number.'.format(number))
                 if i != 0:
                     if number <= groupings[i - 1]:
@@ -194,16 +198,18 @@ def group_by_column(
 
             assert not indices_seen_so_far.intersection(indices), 'Duplicates.'
             indices_seen_so_far = indices_seen_so_far.union(indices)
-        else:
-            indices = np.where(column > edge)[0].tolist()
 
-            indices_per_bin.append(indices)
-            bin_names.append(upper_edge.format(edge))
+        assert bins, 'If bins is empty, i and edge will not be defined.'
+        # pylint: disable=undefined-loop-variable
+        indices = np.where(column > edge)[0].tolist()
 
-            assert not indices_seen_so_far.intersection(indices), 'Duplicates.'
-            indices_seen_so_far = indices_seen_so_far.union(indices)
+        indices_per_bin.append(indices)
+        bin_names.append(upper_edge.format(edge))
+
+        assert not indices_seen_so_far.intersection(indices), 'Duplicates.'
+        indices_seen_so_far = indices_seen_so_far.union(indices)
     elif fuav.is_textual_array(column):
-        unique_elements = np.unique(column).tolist()
+        unique_elements = set(np.unique(column).tolist())
 
         if groupings is None:
             bins = [(i, ) for i in unique_elements]
@@ -218,7 +224,7 @@ def group_by_column(
             for value_tuple in groupings:
                 if not isinstance(value_tuple, tuple):
                     raise TypeError('For a categorical column all of the '
-                                    'grouping items must be tuples. {} '
+                                    'grouping items must be tuples. *{}* '
                                     'is not a tuple.'.format(value_tuple))
                 for value in value_tuple:
                     if value not in unique_elements:
@@ -232,10 +238,10 @@ def group_by_column(
 
             unaccounted_values = unique_elements.difference(values_seen_so_far)
             if unaccounted_values:
-                warnings.warn('The following values in the selected column '
-                               'were not accounted for in the grouping '
-                               'tuples:\n{}.'.format(unaccounted_values),
-                               UserWarning)
+                warnings.warn(
+                    'The following values in the selected column were not '
+                    'accounted for in the grouping '
+                    'tuples:\n{}.'.format(unaccounted_values), UserWarning)
 
             bins = groupings
         else:
@@ -249,11 +255,11 @@ def group_by_column(
         for bin_values in bins:
             indices = set()
             for value in bin_values:
-                vid = np.where(column == edge)[0].tolist()
+                vid = np.where(column == value)[0].tolist()
                 indices = indices.union(vid)
 
             indices_per_bin.append(list(indices))
-            bin_names.append(''.format(bin_values))
+            bin_names.append('{}'.format(bin_values))
 
             assert not indices_seen_so_far.intersection(indices), 'Duplicates.'
             indices_seen_so_far = indices_seen_so_far.union(indices)
@@ -273,11 +279,10 @@ def group_by_column(
     return indices_per_bin, bin_names
 
 
-def apply_to_column_grouping(labels: np.ndarray,
-                             predictions: np.ndarray,
-                             row_grouping: List[List[int]],
-                             fnc: Callable[np.ndarray, np.ndarray]
-                             ) -> List[Number]:
+def apply_to_column_grouping(
+        labels: np.ndarray, predictions: np.ndarray,
+        row_grouping: List[List[int]],
+        fnc: Callable[[np.ndarray, np.ndarray], Number]) -> List[Number]:
     """
     Applies a function to the specified groups of labels and predictions.
 
@@ -293,7 +298,7 @@ def apply_to_column_grouping(labels: np.ndarray,
     row_grouping : List[List[integer]]
         A list of lists representing row indices of the ground truth and
         prediction arrays resulting in their grouping.
-    fnc : Callable[numpy.ndarray, numpy.ndarray]
+    fnc : Callable[[numpy.ndarray, numpy.ndarray], number]
         A function (metric) that will be applied to all of the groups defined
         by the ``row_grouping`` parameter.
 
@@ -320,6 +325,7 @@ def apply_to_column_grouping(labels: np.ndarray,
         A list with the ``fnc`` function result for every group defined by the
         ``row_grouping`` parameter.
     """
+    # pylint: disable=too-many-branches
     if not fuav.is_1d_array(labels):
         raise IncorrectShapeError('The labels array should be 1-dimensional.')
     if not fuav.is_1d_array(predictions):
@@ -329,9 +335,7 @@ def apply_to_column_grouping(labels: np.ndarray,
         raise IncorrectShapeError('The labels and predictions arrays should '
                                   'be of the same length.')
 
-    if not isinstance(row_grouping, list):
-        raise TypeError('The row_grouping parameter has to be a list.')
-    else:
+    if isinstance(row_grouping, list):
         if not row_grouping:
             raise ValueError('The row_grouping parameter cannot be an empty '
                              'list.')
@@ -340,6 +344,9 @@ def apply_to_column_grouping(labels: np.ndarray,
             if not isinstance(i, list):
                 raise TypeError('All of the elements of the row_grouping list '
                                 'have to be lists.')
+            if not i:
+                raise ValueError('All of the elements of the row_grouping '
+                                 'list must be non-empty lists.')
             for j in i:
                 if not isinstance(j, int):
                     raise TypeError('All of the elements of the inner lists '
@@ -348,6 +355,8 @@ def apply_to_column_grouping(labels: np.ndarray,
                 raise ValueError('Some of the values in the row_grouping are '
                                  'duplicated.')
             duplicated_indices = duplicated_indices.union(i)
+    else:
+        raise TypeError('The row_grouping parameter has to be a list.')
 
     if not callable(fnc):
         raise TypeError('The fnc parameter is not callable (a function).')

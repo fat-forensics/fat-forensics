@@ -140,13 +140,9 @@ def test_group_by_column():
     """
     Tests :func:`fatf.utils.data.tools.group_by_column`.
     """
-    return
-    data, col_names = get_dummy_data()
-    grouped_classes, grouped_means = fudt.apply_function(data, col_names, 'class', np.mean, 'f_1')
-    correct_grouped_classes = np.array([1, 2])
-    correct_grouped_means = np.array([1.5, 4])
-    assert (grouped_classes == correct_grouped_classes).all()
-    assert (grouped_means == correct_grouped_means).all()
+    # Structured array
+    # Classic array
+    pass
 
 
 def test_apply_to_column_grouping_errors():
@@ -226,8 +222,12 @@ def test_apply_to_column_grouping():
     """
     Tests :func:`fatf.utils.data.tools.apply_to_column_grouping`.
     """
-    return
-    data, col_names = get_dummy_data()
-    split_col = fudt.splitter(data, col_names, 'f_1')
-    correct_split = np.array([[1], [4], [2], [4]])
-    assert (split_col == correct_split).all()
+    labels = np.array(['a', 'b', 'b', 'b', 'a', 'b', 'b', 'a'])
+    ground_truth = np.array(['b', 'b', 'a', 'b', 'b', 'b', 'a', 'b'])
+    groupings = [[0, 1, 2, 6, 7], [3, 4, 5]]
+
+    def fnc(x, y):
+        return (x != y).sum() / x.shape[0]
+
+    vls = fudt.apply_to_column_grouping(labels, ground_truth, groupings, fnc)
+    assert vls == [4 / 5, 1 / 3]

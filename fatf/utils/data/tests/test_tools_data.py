@@ -140,9 +140,76 @@ def test_group_by_column():
     """
     Tests :func:`fatf.utils.data.tools.group_by_column`.
     """
-    # Structured array
-    # Classic array
-    pass
+    n_1_grp = [[0, 1, 2, 5], [4], [], [], [3]]
+    n_1_grps = ['x <= 7.6', '7.6 < x <= 16.2',
+                '16.2 < x <= 24.799999999999997',
+                '24.799999999999997 < x <= 33.4', '33.4 < x']  # yapf: disable
+    n_0_grp = [[0, 5], [4], [1, 2, 3]]
+    n_0_grps = ['x <= 0.05', '0.05 < x <= 7.7', '7.7 < x']
+    n_2_grp = [[3], [0, 1, 2, 4, 5]]
+    n_2_grps = ['x <= -6.5', '-6.5 < x']
+
+    c_1_grp_d = [[0, 4], [3], [1, 2], [5]]
+    c_1_grps_d = ["('a+',)", "('a-',)", "('b+',)", "('b-',)"]
+    c_1_grp_c = [[0, 3, 4], [1, 2, 5]]
+    c_1_grps_c = ["('a+', 'a-')", "('b+', 'b-')"]
+
+    num_array = np.array([
+        [0, 5, 6],
+        [9, -1, 5],
+        [14, 7, 2],
+        [55, 42, -22],
+        [7.7, 8.8, 9],
+        [0.01, 7.0001, 5]
+    ])  # yapf: disable
+    struct_array = np.array(
+        [(0, 'a+', 6),
+         (9, 'b+', 5),
+         (14, 'b+', 2),
+         (55, 'a-', -22),
+         (7.7, 'a+', 9),
+         (0.01, 'b-', 5)],
+        dtype=[('a', np.float32), ('b', 'U2'), ('c', np.int32)]
+    )  # yapf: disable
+    cat_array = np.array([
+        ['a', 'a+', '1'],
+        ['b', 'b+', '2'],
+        ['b', 'b+', '3'],
+        ['a', 'a-', '3'],
+        ['b', 'a+', '2'],
+        ['b', 'b-', '1']
+    ])  # yapf: disable
+
+    # Classic array, numerical -- all default
+    grp, grpn = fudt.group_by_column(num_array, 1)
+    assert grp == n_1_grp
+    assert grpn == n_1_grps
+
+    # Structured array, numerical -- custom bins number
+    grp, grpn = fudt.group_by_column(
+        struct_array, 'c', numerical_bins_number=2)
+    assert grp == n_2_grp
+    assert grpn == n_2_grps
+
+    # Structured array, numerical -- custom intervals
+    grp, grpn = fudt.group_by_column(struct_array, 'a', groupings=[0.05, 7.7])
+    assert grp == n_0_grp
+    assert grpn == n_0_grps
+
+    # Classic array, categorical -- default binning
+    grp, grpn = fudt.group_by_column(cat_array, 1)
+    assert grp == c_1_grp_d
+    assert grpn == c_1_grps_d
+    grp, grpn = fudt.group_by_column(
+        cat_array, 1, groupings=[('a-', ), ('b+', ), ('a+', ), ('b-', )])
+    assert grp == c_1_grp_d
+    assert grpn == c_1_grps_d
+
+    # Structured array, categorical -- custom bins
+    grp, grpn = fudt.group_by_column(
+        struct_array, 'b', groupings=[('a-', 'a+'), ('b-', 'b+')])
+    assert grp == c_1_grp_c
+    assert grpn == c_1_grps_c
 
 
 def test_apply_to_column_grouping_errors():
@@ -174,7 +241,6 @@ def test_apply_to_column_grouping_errors():
 
     labels = np.array(['a', 'b', 'b', 'b', 'a', 'b', 'b', 'a'])
     ground_truth = np.array(['b', 'b', 'a', 'b', 'b', 'b', 'a', 'b'])
-    groupings = [[0, 1, 2, 6, 7], [3, 4, 5]]
 
     two_d_ones = np.ones((2, 2))
 

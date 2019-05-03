@@ -9,7 +9,7 @@ import inspect
 import warnings
 
 from numbers import Number
-from typing import Callable, List, Optional, Tuple, Union
+from typing import Callable, List, Optional, Set, Tuple, Union
 
 import numpy as np
 
@@ -23,11 +23,11 @@ __all__ = ['group_by_column', 'apply_to_column_grouping']
 Index = Union[int, str]  # A column index type
 
 
-def group_by_column(dataset: np.ndarray,
-                    column_index: Index,
-                    groupings: Optional[List[Union[Number, str]]] = None,
-                    numerical_bins_number: int = 5
-                    ) -> Tuple[List[List[int]], List[List[str]]]:
+def group_by_column(
+        dataset: np.ndarray,
+        column_index: Index,
+        groupings: Optional[List[Union[Number, Tuple[str]]]] = None,
+        numerical_bins_number: int = 5) -> Tuple[List[List[int]], List[str]]:
     """
     Groups row indices of an array based on value grouping of a chosen column.
 
@@ -50,7 +50,7 @@ def group_by_column(dataset: np.ndarray,
         A column index (a string for structured numpy arrays or an integer for
         unstructured arrays) of the column based on which the row indices will
         be partitioned.
-    groupings : Optional[List[Union[number, string]]], optional (default=None)
+    groupings : List[Union[number, Tuple[string]]], optional (default=None)
         A list of user-specified groupings for the selected column. The default
         grouping for categorical (textual) columns is splitting them by all the
         unique values therein. The numerical columns are, by default, binned
@@ -152,7 +152,7 @@ def group_by_column(dataset: np.ndarray,
                 column.min(),
                 column.max(),
                 num=numerical_bins_number,
-                endpoint=False)[1:]
+                endpoint=False)[1:].tolist()
         elif isinstance(groupings, list):
             if not groupings:
                 raise ValueError('A numerical grouping list has to contain at '
@@ -165,7 +165,7 @@ def group_by_column(dataset: np.ndarray,
                                     'grouping items must be numbers. *{}* '
                                     'is not a number.'.format(number))
                 if i != 0:
-                    if number <= groupings[i - 1]:
+                    if number <= groupings[i - 1]:  # type: ignore
                         raise ValueError('The numbers in the groupings list '
                                          'have to be monotonically '
                                          'increasing.')
@@ -178,7 +178,7 @@ def group_by_column(dataset: np.ndarray,
         middle = '{} < x <= {}'
         upper_edge = '{} < x'
 
-        indices_seen_so_far = set()
+        indices_seen_so_far = set()  # type: Set[int]
 
         for i, edge in enumerate(bins):
             if i == 0:
@@ -209,7 +209,7 @@ def group_by_column(dataset: np.ndarray,
         assert not indices_seen_so_far.intersection(indices), 'Duplicates.'
         indices_seen_so_far = indices_seen_so_far.union(indices)
     elif fuav.is_textual_array(column):
-        unique_elements = set(np.unique(column).tolist())
+        unique_elements = np.sort(np.unique(column)).tolist()
 
         if groupings is None:
             bins = [(i, ) for i in unique_elements]
@@ -218,7 +218,7 @@ def group_by_column(dataset: np.ndarray,
                 raise ValueError('A categorical grouping list has to contain '
                                  'at least one element.')
 
-            values_seen_so_far = set()
+            values_seen_so_far = set()  # type: Set[str]
 
             # Every element in the groupings list must be a valid tuple
             for value_tuple in groupings:
@@ -236,14 +236,16 @@ def group_by_column(dataset: np.ndarray,
                                      'tuples.')
                 values_seen_so_far = values_seen_so_far.union(value_tuple)
 
-            unaccounted_values = unique_elements.difference(values_seen_so_far)
+            unaccounted_values = set(unique_elements).difference(
+                values_seen_so_far)
             if unaccounted_values:
                 warnings.warn(
                     'The following values in the selected column were not '
                     'accounted for in the grouping '
                     'tuples:\n{}.'.format(unaccounted_values), UserWarning)
 
-            bins = groupings
+            bins = [tuple(sorted(i)) for i in groupings]  # type: ignore
+            bins = sorted(bins)
         else:
             raise TypeError('Since a categorical column was chosen the '
                             'grouping must be a list of tuples representing '
@@ -264,7 +266,7 @@ def group_by_column(dataset: np.ndarray,
             assert not indices_seen_so_far.intersection(indices), 'Duplicates.'
             indices_seen_so_far = indices_seen_so_far.union(indices)
     else:
-        assert False, 'The column must be a base array.'
+        assert False, 'The column must be a base array.'  # pragma: no cover
 
     # Validate that all of the row indices were accounted for
     missed_indices = all_row_indices.difference(indices_seen_so_far)
@@ -339,7 +341,7 @@ def apply_to_column_grouping(
         if not row_grouping:
             raise ValueError('The row_grouping parameter cannot be an empty '
                              'list.')
-        duplicated_indices = set()
+        duplicated_indices = set()  # type: Set[int]
         for i in row_grouping:
             if not isinstance(i, list):
                 raise TypeError('All of the elements of the row_grouping list '

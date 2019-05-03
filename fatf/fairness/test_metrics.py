@@ -1,15 +1,22 @@
-# -*- coding: utf-8 -*-
 """
-Created on Tue Nov 20 15:35:03 2018
-
-@author: rp13102
+Tests methods for fairness checks.
 """
+# Author: Rafael Poyiadzi <rp13102@bristol.ac.uk>
+#         Kacper Sokol <k.sokol@bristol.ac.uk>
+# License: BSD 3 clause
 
+import math
 import pytest
+
 import numpy as np
 
 from metrics import get_confusion_matrix, filter_dataset, split_dataset, get_cross_product
 from metrics import get_mask, get_weights_costsensitivelearning, get_counts, apply_combination_filter
+
+from metrics import FairnessChecks
+from sklearn.linear_model import LogisticRegression
+
+
 input0 = [0, 0, 0, 1, 1, 1]
 input1 = [1, 1, 0, 1, 0, 1]
 
@@ -163,7 +170,7 @@ input_data_crossproduct1 = np.array([('a', 'A', 0, 20),
 
 expected_crossproduct0 = [('a',), ('b',)]
 expected_crossproduct1 = [('a', 'A',), ('a', 'B',), ('b', 'A',), ('b', 'B',)]
-import math
+
 INF = math.inf
 expected_crossproduct2 = [((-INF, 25), ), ((25, 50), ), ((50, INF), )]
 expected_crossproduct3 = [('a', (-INF, 45), ), ('a', (45, INF), ),
@@ -274,12 +281,6 @@ def test_apply_combination_filter(input_dataset, features_to_check, combination,
     assert np.all(output[1] == expected_output[1])
 
 def _test_testing():
-    from sklearn.linear_model import LogisticRegression
-    import numpy as np
-
-    #from metrics import perform_checks_on_split, get_summary, counterfactual_fairness, individual_fairness, check_systemic_bias, check_sampling_bias, check_systematic_error
-    from metrics import FairnessChecks
-
     def remove_field(dataset, field):
         field_names = list(dataset.dtype.names)
         if field in field_names:

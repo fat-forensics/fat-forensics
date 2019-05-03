@@ -237,4 +237,3 @@ def test_NormalSampling():
     assert np.array_equal(augmentor.categorical_indices,
                           np.array([0, 1, 2]))
     assert np.array_equal(augmentor.non_categorical_indices, np.array([]))
-    assert False

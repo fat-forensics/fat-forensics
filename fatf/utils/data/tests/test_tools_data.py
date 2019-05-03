@@ -245,7 +245,7 @@ def test_apply_to_column_grouping_errors():
     two_d_ones = np.ones((2, 2))
 
     def fnc(x, y, z):
-        return x + y + z
+        return x + y + z  # pragma: no cover
 
     with pytest.raises(IncorrectShapeError) as exin:
         fudt.apply_to_column_grouping(two_d_ones, two_d_ones, [], fnc)

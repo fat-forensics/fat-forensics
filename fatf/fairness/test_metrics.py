@@ -10,8 +10,8 @@ import pytest
 
 import numpy as np
 
-from metrics import get_confusion_matrix, filter_dataset, split_dataset, get_cross_product
-from metrics import get_mask, get_weights_costsensitivelearning, get_counts, apply_combination_filter
+from fatf.fairness.metrics import _get_confusion_matrix, filter_dataset, split_dataset, get_cross_product
+from fatf.fairness.metrics import get_mask, get_weights_costsensitivelearning, get_counts, apply_combination_filter
 
 from metrics import FairnessChecks
 from sklearn.linear_model import LogisticRegression
@@ -33,7 +33,7 @@ output1 = [[1, 2],
                           (input0, input1, labels1, output1)])
 def test_get_confusion_matrix(input0, input1, labels, expected_output):
     output_list = [item for sublist in expected_output for item in sublist]
-    output_cm = get_confusion_matrix(input0, input1, labels)
+    output_cm = _get_confusion_matrix(input0, input1, labels)
     output_cm_list = [item for sublist in output_cm.tolist() for item in sublist]
     assert np.all([output_list[i] == output_cm_list[i] for i in range(len(output_list))])
 

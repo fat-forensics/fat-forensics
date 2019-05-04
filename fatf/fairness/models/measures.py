@@ -15,6 +15,7 @@ import numpy as np
 import fatf.utils.array.tools as fuat
 import fatf.utils.models.validation as fumv
 
+__all__ = []
 
 def euc_dist(v0: np.ndarray,
              v1: np.ndarray) -> float:
@@ -33,102 +34,8 @@ def get_distance_mat(mat: np.ndarray,
             D[j, i] = D[i, j]
     return D
 
+##############################################################
 
-
-# =============================================================================
-# def get_bins_inf(boundaries: List[int]) -> List[tuple]:
-#     """
-# 	Produces bins, given a set of boundaries.
-#     Example: boundaries = [20, 40]
-#             bins = [(-inf, 20), (20, 40), (40, inf)]
-#     """
-#     bins = []
-#     INF = math.inf
-#     n_boundaries = len(boundaries)
-#     bins.append((-INF, boundaries[0]))
-#     for i in range(n_boundaries-1):
-#         bins.append((boundaries[i], boundaries[i+1]))
-#     bins.append((boundaries[-1], INF))
-#     return bins
-# =============================================================================
-
-
-
-
-def tpr(cm):
-    den = cm[0, 0] + cm[0, 1]
-    num = cm[0, 0]
-    if den == 0:
-        return 0
-    else:
-        return num / den
-
-def tnr(cm):
-    den = cm[1, 1] + cm[1, 0]
-    num = cm[1, 1]
-    if den == 0:
-        return 0
-    else:
-        return num / den
-
-def fpr(cm):
-    den = cm[0, 0] + cm[0, 1]
-    num = cm[0, 1]
-    if den == 0:
-        return 0
-    else:
-        return num / den
-
-def fnr(cm):
-    den = cm[1, 1] + cm[1, 0]
-    num = cm[1, 0]
-    if den == 0:
-        return 0
-    else:
-        return num / den
-
-def tpr_mc(cm, idx):
-    den = np.sum(cm[idx, :])
-    num = cm[idx, idx]
-    if den == 0:
-        return 0
-    else:
-        return num / den
-
-def fpr_mc(cm, idx):
-    den = np.sum(cm[idx, :])
-    num = den - cm[idx, idx]
-    if den == 0:
-        return 0
-    else:
-        return num / den
-
-def tnr_mc(cm, idx):
-    den = np.sum(np.diag(cm))
-    num = den - cm[idx, idx]
-    if den == 0:
-        return 0
-    else:
-        return num / den
-
-def fnr_mc(cm, idx):
-    den = np.sum(cm[:, idx])
-    num = den - cm[idx, idx]
-    if den == 0:
-        return 0
-    else:
-        return num / den
-
-def treatment_mc(cm, idx):
-    den = 0
-    num = 0
-    for row_number, row in enumerate(cm):
-
-        fp_sum = np.sum(row) - np.squeeze(np.asarray(row))[row_number]
-        den += fp_sum
-        if row_number == idx:
-            num = fp_sum
-    return num / den
 
 class FairnessChecks(object):
     def __init__(self,
@@ -219,50 +126,6 @@ class FairnessChecks(object):
                         self.distance_funcs[field_name] is None):
                     raise ValueError('missing distance function for %s: ', field_name)
 
-    def check_systemic_bias(self,
-                            threshold: float = 0.1) -> list:
-        """ Checks for systemic bias in the dataset.
-
-        Will check if similar instances, that differ only on the
-        protected attribute have been treated differently. Treated
-        refers to the 'target' of the instance.
-
-        Parameters
-        ----------
-        threshold: Float
-            value for what counts as similar. Default to 0.1.
-
-        Returns
-        -------
-        distance_list: list
-            List of pairs of instances that are similar but have been treated
-                differently.
-
-        """
-        n_samples = self.dataset.shape[0]
-        if self.structured_bool:
-            protected = self.dataset[self.protected_field]
-        else:
-            protected = self.dataset[:, self.protected_field].astype(int)
-        distance_list = []
-        for i in range(n_samples):
-            v0 = self.dataset[i]
-            protected0 = protected[i]
-            target0 = self.targets[i]
-            for j in range(i):
-                v1 = self.dataset[j]
-                protected1 = protected[j]
-                target1 = self.targets[j]
-                dist = self._apply_distance_funcs(v0, v1, toignore=[self.protected_field])
-
-                same_protected = protected0 == protected1
-                same_target = target0 == target1
-                if (dist <= threshold and
-                    same_protected == False and
-                    same_target == False):
-                    distance_list.append((dist, (i,j)))
-        return distance_list
-
     def _apply_distance_funcs(self,
                               v0: np.ndarray,
                               v1: np.ndarray,
@@ -278,50 +141,6 @@ class FairnessChecks(object):
             if feature not in toignore:
                 dist += self.distance_funcs[feature](v0[feature], v1[feature])
         return dist
-
-    def check_sampling_bias(self,
-                            features_to_check: Optional[List[str]] = None,
-                            return_weights: Optional[bool] = False,
-                            boundaries_for_numerical: Optional[Dict[str, np.ndarray]] = None) -> Union[Tuple[dict, np.ndarray], dict]:
-        """ Checks for sampling bias in the dataset.
-
-        Will check if the different sub-populations defined by the
-        features_to_check have similar representation (sample size).
-
-        Parameters
-        ----------
-        features_to_check: List of Strings
-            for which features to consider the sub-populations.
-        return_weights: Boolean
-            on whether to return weights to be used for cost-sensitive learning.
-        boundaries_for_numerical: Dict of List of tuples
-            defining the bins of numerical data.
-
-        Returns
-        -------
-            counts: dict
-                of data for each sub-population defined by the cross-product
-                of the provided features.
-            weights: Optional, np.ndarray
-                weights to be used for cost-sensitive learning.
-
-            """
-        if not boundaries_for_numerical:
-            boundaries_for_numerical = {}
-
-        if not features_to_check:
-            if self.features_to_check is None:
-                raise ValueError('no features to check provided')
-        else:
-            self.features_to_check = features_to_check
-        counts: dict = {}
-        cross_product = self._get_cross_product(boundaries_for_numerical)
-        counts = self._get_counts(cross_product, boundaries_for_numerical)
-        if not return_weights:
-            return counts
-        else:
-            weights = self._get_weights_costsensitivelearning(counts, boundaries_for_numerical)
-            return counts, weights
 
     def _get_weights_costsensitivelearning(self,
                                            counts: Dict[tuple, dict],
@@ -467,76 +286,6 @@ class FairnessChecks(object):
             bins.append((boundaries[i], boundaries[i+1]))
         return bins
 
-    def check_systematic_error(self,
-                               predictions: np.ndarray,
-                               requested_checks: Optional[List[str]] = None,
-                               features_to_check: Optional[List[str]] = None,
-                               boundaries_for_numerical: Optional[Dict[str, np.ndarray]] = None) -> dict:
-        """ Checks for systematic error in the dataset.
-
-        Will check if the different sub-populations defined by the
-        features_to_check have similar behaviour under the model.
-
-        Parameters
-        ----------
-        predictions: np.ndarray
-            Predictionas of a model, built using the data provided.
-        requested_checks: list of strings
-            Corresponding to which checks to perform
-        features_to_check: List of Strings
-            for which features to consider the sub-populations.
-        boundaries_for_numerical: Dict of List of tuples
-            defining the bins of numerical data.
-
-        Returns
-        -------
-        summary: dict
-            Dictionary of confusion matrices for each sub-population,
-            if checks==None, else, Dictionary of Dictionaries,
-            one for each sub-population.
-
-            """
-        if not boundaries_for_numerical:
-            boundaries_for_numerical = {}
-        self.predictions = predictions
-        multiclass = False
-        classes_list = list(set(self.targets))
-        if len(classes_list) > 2:
-            multiclass = True
-
-        if not requested_checks:
-            if multiclass:
-                requested_checks = list(self.checks_multiclass.keys())
-            else:
-                requested_checks = list(self.checks.keys())
-
-        if not features_to_check:
-            if self.features_to_check is None:
-                raise ValueError('no features to check provided')
-        else:
-            self.features_to_check = features_to_check
-        cross_product = self._get_cross_product(boundaries_for_numerical)
-        summary = {}
-        for combination in cross_product:
-            filtered_predictions, filtered_targets = \
-                self._apply_combination_filter(combination, boundaries_for_numerical)
-            conf_mat = self._get_confusion_matrix(filtered_targets,
-                                                  filtered_predictions,
-                                                  classes_list)
-            if not requested_checks:
-                summary[combination] = conf_mat
-            else:
-                summary[combination] = {}
-                if multiclass:
-                    for idx, target_class in enumerate(classes_list):
-                        summary[combination][target_class] = {}
-                        for item in requested_checks:
-                            summary[combination][target_class][item] = \
-                                self.checks_multiclass[item](conf_mat, idx)
-                else:
-                    for item in requested_checks:
-                        summary[combination][item] = self.checks[item](conf_mat)
-        return summary
 
     def _apply_combination_filter(self,
                                   combination: Tuple[Union[int, float, Tuple[int, float]]],
@@ -549,37 +298,6 @@ class FairnessChecks(object):
         filtered_targets = self.targets[mask]
         return filtered_predictions, filtered_targets
 
-    def _get_confusion_matrix(self,
-                              target: np.ndarray,
-                              prediction: np.ndarray,
-                              labels: List[str]) -> np.matrix:
-        """ Confusion matrix.
-
-        Confusion matrix.
-
-        Parameters
-        ----------
-        targets: np.array
-            containing the (true) targets.
-        predictions: np.array
-            containing the predictions.
-        labels: List
-            of the labels. Important for the order of the confusion matrix.
-
-        Returns
-        -------
-        cm: np.matrix
-            Confusion matrix.
-
-            """
-        n = len(labels)
-        cm = np.matrix(np.zeros(n**2), dtype=int).reshape(n, n)
-        for idx, label in enumerate(labels):
-            for idx2, label2 in enumerate(labels):
-                for idx3, val in enumerate(target):
-                    if (val == label and prediction[idx3] == label2):
-                        cm[idx, idx2] += 1
-        return cm #, normalize(cm, axis=1, norm='l1')
 
     def perform_checks_on_split(self,
                                 requested_checks: Optional[List[str]] = None,
@@ -640,7 +358,7 @@ class FairnessChecks(object):
         for item in split_datasets:
             field_val = item[0]
             X = item[1][0]; targets = item[1][1]; predictions = item[1][2]
-            conf_mat = self._get_confusion_matrix(targets, predictions, classes_list)
+            conf_mat = _get_confusion_matrix(targets, predictions, classes_list)
 
             checks_dict: dict = {}
 
@@ -769,101 +487,3 @@ class FairnessChecks(object):
             pass
 
         return summary
-
-    def counterfactual_fairness(self,
-                                test_model: Any,
-                                protected: str,
-                                xtest_: np.ndarray,
-                                unique_targets: List[Any]) -> np.matrix:
-        """ Checks counterfactual fairness of the model.
-
-        Will flip the protected attribute and generate new predictions,
-        to check the model's dependence on the protected feature.
-
-        Parameters
-        ----------
-        model: Object
-            *trained* model to be used for generating predictions
-        protected: str
-            name of protected field
-        xtest_: np.ndarray
-            containing the test data.
-        unique_targets: list
-            containing the unique targets, to be used to order the
-            confusion matrix.
-
-        Returns
-        -------
-        conf_mat: np.matrix
-            Confusion matrix between the predictions before and after the
-                flipping the protected feature
-
-        Raises
-        ------
-        TypeError
-            If the model provided does not have the necessary functionality.
-            """
-        is_functional = fumv.check_model_functionality(test_model)
-        if not is_functional:
-            raise TypeError('Model provided is not proper')
-
-        xtest = xtest_.copy(order='K')
-        original_predictions = test_model.predict(np.array(xtest.tolist()))
-        xtest[protected] = [int(not item) for item in xtest[protected]]
-        modified_X = np.array(xtest.tolist())
-        counterfactual_predicitons = test_model.predict(modified_X)
-        conf_mat = self._get_confusion_matrix(original_predictions,
-                                              counterfactual_predicitons,
-                                              unique_targets)
-        return conf_mat
-
-    def individual_fairness(self,
-                            model: Any,
-                            X: np.ndarray,
-                            X_distance_func: Optional[Callable[[np.ndarray, np.ndarray], float]] = None,
-                            predictions_distance_func: Optional[Callable[[np.ndarray, np.ndarray], float]] = None) -> bool:
-        """ Checks individual fairness -- 'Fairness through awareness'.
-
-        Will check whether similar instances get similar predictions.
-
-        Parameters
-        ----------
-        model: Object
-            *trained* model to be used for generating predictions
-        X: np.ndarray
-            containing the design matrix.
-        X_distance_func: Function
-            to be used to compute distance between instances.
-        predictions_distance_func: Function
-            to be used to compute distance between predictions.
-
-        Returns
-        -------
-        bool
-            Will check whether 'fairness through awareness holds'
-                d_X(x_i, x_j) <= d_f(f(x_i), f(x_j))
-
-        Raises
-        ------
-        TypeError
-            If the model provided does not have necessary functionality.
-            """
-        is_functional = fumv.check_model_functionality(model)
-        if not is_functional:
-            raise TypeError('Model provided is not proper')
-
-        if not X_distance_func:
-            X_distance_func = euc_dist
-        if not predictions_distance_func:
-            predictions_distance_func = euc_dist
-
-        n = X.shape[0]
-        X_distance_mat = get_distance_mat(X, X_distance_func)
-        predictions_proba = model.predict_proba(X)
-        y_distance_mat = get_distance_mat(predictions_proba,
-                                          predictions_distance_func)
-        for i in range(n):
-            for j in range(i):
-                if y_distance_mat[i, j] > X_distance_mat[i, j]:
-                    return False
-        return True

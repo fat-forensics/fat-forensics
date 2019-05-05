@@ -105,7 +105,7 @@ def group_by_column(
     indices_per_bin : List[List[integer]]
         A list of lists with the latter one holding row indices of a particular
         group.
-    bin_names : List[List[string]]
+    bin_names : List[string]
         A list of lists with the latter one holding a group description.
     """
     # pylint: disable=too-many-locals,too-many-branches,too-many-statements

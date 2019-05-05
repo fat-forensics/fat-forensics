@@ -33,8 +33,8 @@ __all__ = ['get_confusion_matrix',
            'treatment']  # yapf: disable
 
 
-def _validate_confusion_matrix(confusion_matrix: np.ndarray,
-                               label_index: Optional[int] = None) -> bool:
+def validate_confusion_matrix(confusion_matrix: np.ndarray,
+                              label_index: Optional[int] = None) -> bool:
     """
     Validates a confusion matrix.
 
@@ -59,7 +59,6 @@ def _validate_confusion_matrix(confusion_matrix: np.ndarray,
         square (equal width and height) or its dimension is not at least 2x2.
     IndexError
         The ``label_index`` (if given) is not valid for the confusion matrix.
-        Pass.
     TypeError
         The confusion matrix is not of an integer kind (e.g. ``int``,
         ``numpy.int32``, ``numpy.int64``). The ``label_index`` is not an
@@ -239,7 +238,7 @@ def multiclass_true_positive_rate(confusion_matrix: np.ndarray,
     Calculates the "true positive rate" for a multi-class confusion matrix.
 
     See the documentation of
-    :func:`fatf.utils.models.metrics._validate_confusion_matrix` for all the
+    :func:`fatf.utils.models.metrics.validate_confusion_matrix` for all the
     possible errors and exceptions.
 
     Parameters
@@ -254,7 +253,7 @@ def multiclass_true_positive_rate(confusion_matrix: np.ndarray,
     metric : number
         The "true positive rate".
     """
-    assert _validate_confusion_matrix(confusion_matrix, label_index), \
+    assert validate_confusion_matrix(confusion_matrix, label_index), \
         'The input parameters are invalid.'
 
     true_positive = confusion_matrix[label_index, label_index]
@@ -280,7 +279,7 @@ def multiclass_true_negative_rate(confusion_matrix: np.ndarray,
         predicted as any non-positive.
 
     See the documentation of
-    :func:`fatf.utils.models.metrics._validate_confusion_matrix` for all the
+    :func:`fatf.utils.models.metrics.validate_confusion_matrix` for all the
     possible errors and exceptions.
 
     Parameters
@@ -304,7 +303,7 @@ def multiclass_true_negative_rate(confusion_matrix: np.ndarray,
     metric : number
         The "true negative rate".
     """
-    assert _validate_confusion_matrix(confusion_matrix, label_index), \
+    assert validate_confusion_matrix(confusion_matrix, label_index), \
         'The input parameters are invalid.'
     if not isinstance(strict, bool):
         raise TypeError('The strict parameter has to be a boolean.')
@@ -331,7 +330,7 @@ def multiclass_false_positive_rate(confusion_matrix: np.ndarray,
     Calculates the "false positive rate" for a multi-class confusion matrix.
 
     See the documentation of
-    :func:`fatf.utils.models.metrics._validate_confusion_matrix` for all the
+    :func:`fatf.utils.models.metrics.validate_confusion_matrix` for all the
     possible errors and exceptions.
 
     Parameters
@@ -347,7 +346,7 @@ def multiclass_false_positive_rate(confusion_matrix: np.ndarray,
     metric : number
         The "false positive rate".
     """
-    assert _validate_confusion_matrix(confusion_matrix, label_index), \
+    assert validate_confusion_matrix(confusion_matrix, label_index), \
         'The input parameters are invalid.'
 
     false_positive = (confusion_matrix[label_index, :].sum() -
@@ -365,7 +364,7 @@ def multiclass_false_negative_rate(confusion_matrix: np.ndarray,
     Calculates the "false negative rate" for a multi-class confusion matrix.
 
     See the documentation of
-    :func:`fatf.utils.models.metrics._validate_confusion_matrix` for all the
+    :func:`fatf.utils.models.metrics.validate_confusion_matrix` for all the
     possible errors and exceptions.
 
     Parameters
@@ -381,7 +380,7 @@ def multiclass_false_negative_rate(confusion_matrix: np.ndarray,
     metric : number
         The "false negative rate".
     """
-    assert _validate_confusion_matrix(confusion_matrix, label_index), \
+    assert validate_confusion_matrix(confusion_matrix, label_index), \
         'The input parameters are invalid.'
 
     condition_positive = confusion_matrix[:, label_index].sum()
@@ -397,7 +396,7 @@ def true_positive_rate(confusion_matrix: np.ndarray) -> Number:
     Calculates the true positive rate for a binary confusion matrix.
 
     See the documentation of
-    :func:`fatf.utils.models.metrics._validate_confusion_matrix` and
+    :func:`fatf.utils.models.metrics.validate_confusion_matrix` and
     :func:`fatf.utils.models.metrics._validate_confusion_matrix_size` for all
     the possible errors and exceptions.
 
@@ -423,7 +422,7 @@ def true_negative_rate(confusion_matrix: np.ndarray) -> Number:
     Calculates the true negative rate for a binary confusion matrix.
 
     See the documentation of
-    :func:`fatf.utils.models.metrics._validate_confusion_matrix` and
+    :func:`fatf.utils.models.metrics.validate_confusion_matrix` and
     :func:`fatf.utils.models.metrics._validate_confusion_matrix_size` for all
     the possible errors and exceptions.
 
@@ -449,7 +448,7 @@ def false_positive_rate(confusion_matrix: np.ndarray) -> Number:
     Calculates the false positive rate for a binary confusion matrix.
 
     See the documentation of
-    :func:`fatf.utils.models.metrics._validate_confusion_matrix` and
+    :func:`fatf.utils.models.metrics.validate_confusion_matrix` and
     :func:`fatf.utils.models.metrics._validate_confusion_matrix_size` for all
     the possible errors and exceptions.
 
@@ -475,7 +474,7 @@ def false_negative_rate(confusion_matrix: np.ndarray) -> Number:
     Calculates the false negative rate for a binary confusion matrix.
 
     See the documentation of
-    :func:`fatf.utils.models.metrics._validate_confusion_matrix` and
+    :func:`fatf.utils.models.metrics.validate_confusion_matrix` and
     :func:`fatf.utils.models.metrics._validate_confusion_matrix_size` for all
     the possible errors and exceptions.
 
@@ -504,7 +503,7 @@ def multiclass_positive_predictive_value(confusion_matrix: np.ndarray,
     The positive predictive value is also known as *precision*.
 
     See the documentation of
-    :func:`fatf.utils.models.metrics._validate_confusion_matrix` for all the
+    :func:`fatf.utils.models.metrics.validate_confusion_matrix` for all the
     possible errors and exceptions.
 
     Parameters
@@ -520,7 +519,7 @@ def multiclass_positive_predictive_value(confusion_matrix: np.ndarray,
     metric : number
         The "positive predictive value".
     """
-    assert _validate_confusion_matrix(confusion_matrix, label_index), \
+    assert validate_confusion_matrix(confusion_matrix, label_index), \
         'The input parameters are invalid.'
 
     true_positive = confusion_matrix[label_index, label_index]
@@ -547,7 +546,7 @@ def multiclass_negative_predictive_value(confusion_matrix: np.ndarray,
         predicted as any non-positive.
 
     See the documentation of
-    :func:`fatf.utils.models.metrics._validate_confusion_matrix` for all the
+    :func:`fatf.utils.models.metrics.validate_confusion_matrix` for all the
     possible errors and exceptions.
 
     Parameters
@@ -571,7 +570,7 @@ def multiclass_negative_predictive_value(confusion_matrix: np.ndarray,
     metric : number
         The "negative predictive value".
     """
-    assert _validate_confusion_matrix(confusion_matrix, label_index), \
+    assert validate_confusion_matrix(confusion_matrix, label_index), \
         'The input parameters are invalid.'
 
     if not isinstance(strict, bool):
@@ -599,7 +598,7 @@ def positive_predictive_value(confusion_matrix: np.ndarray) -> Number:
     Calculates the positive predictive value for a binary confusion matrix.
 
     See the documentation of
-    :func:`fatf.utils.models.metrics._validate_confusion_matrix` and
+    :func:`fatf.utils.models.metrics.validate_confusion_matrix` and
     :func:`fatf.utils.models.metrics._validate_confusion_matrix_size` for all
     the possible errors and exceptions.
 
@@ -625,7 +624,7 @@ def negative_predictive_value(confusion_matrix: np.ndarray) -> Number:
     Calculates the negative predictive value for a binary confusion matrix.
 
     See the documentation of
-    :func:`fatf.utils.models.metrics._validate_confusion_matrix` and
+    :func:`fatf.utils.models.metrics.validate_confusion_matrix` and
     :func:`fatf.utils.models.metrics._validate_confusion_matrix_size` for all
     the possible errors and exceptions.
 
@@ -651,7 +650,7 @@ def accuracy(confusion_matrix: np.ndarray) -> Number:
     Computes the accuracy for an arbitrary confusion matrix.
 
     See the documentation of
-    :func:`fatf.utils.models.metrics._validate_confusion_matrix` for all the
+    :func:`fatf.utils.models.metrics.validate_confusion_matrix` for all the
     possible errors and exceptions.
 
     Parameters
@@ -664,7 +663,7 @@ def accuracy(confusion_matrix: np.ndarray) -> Number:
     metric : number
         The accuracy.
     """
-    assert _validate_confusion_matrix(confusion_matrix), \
+    assert validate_confusion_matrix(confusion_matrix), \
         'The input parameters are invalid.'
 
     tp_tn = np.diagonal(confusion_matrix).sum()
@@ -682,7 +681,7 @@ def multiclass_treatment(confusion_matrix: np.ndarray,
     that are incorrect to all incorrectly predicted instances.
 
     See the documentation of
-    :func:`fatf.utils.models.metrics._validate_confusion_matrix` for all the
+    :func:`fatf.utils.models.metrics.validate_confusion_matrix` for all the
     possible errors and exceptions.
 
     Parameters
@@ -698,7 +697,7 @@ def multiclass_treatment(confusion_matrix: np.ndarray,
     metric : number
         The "treatment" measurement.
     """
-    assert _validate_confusion_matrix(confusion_matrix, label_index), \
+    assert validate_confusion_matrix(confusion_matrix, label_index), \
         'The input parameters are invalid.'
 
     row_incorrect = (confusion_matrix[label_index, :].sum() -
@@ -718,7 +717,7 @@ def treatment(confusion_matrix: np.ndarray) -> Number:
     false positives and false negatives.
 
     See the documentation of
-    :func:`fatf.utils.models.metrics._validate_confusion_matrix` and
+    :func:`fatf.utils.models.metrics.validate_confusion_matrix` and
     :func:`fatf.utils.models.metrics._validate_confusion_matrix_size` for all
     the possible errors and exceptions.
 

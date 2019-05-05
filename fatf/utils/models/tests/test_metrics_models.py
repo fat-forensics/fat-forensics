@@ -32,7 +32,7 @@ PREDICTIONS_BIN = np.array([
 
 def test_validate_confusion_matrix():
     """
-    Tests :func:`fatf.utils.models.metrics._validate_confusion_matrix`.
+    Tests :func:`fatf.utils.models.metrics.validate_confusion_matrix`.
     """
     incorrect_shape_error_2d = ('The confusion matrix has to be a '
                                 '2-dimensional numpy array.')
@@ -54,35 +54,35 @@ def test_validate_confusion_matrix():
     two_d_array = np.array([[1, 2], [3, 4]])
 
     with pytest.raises(IncorrectShapeError) as exi:
-        fumm._validate_confusion_matrix(three_d_array)
+        fumm.validate_confusion_matrix(three_d_array)
     assert str(exi.value) == incorrect_shape_error_2d
 
     with pytest.raises(IncorrectShapeError) as exi:
-        fumm._validate_confusion_matrix(two_d_array_rect)
+        fumm.validate_confusion_matrix(two_d_array_rect)
     assert str(exi.value) == incorrect_shape_error_square
 
     with pytest.raises(IncorrectShapeError) as exi:
-        fumm._validate_confusion_matrix(two_d_array_one)
+        fumm.validate_confusion_matrix(two_d_array_one)
     assert str(exi.value) == incorrect_shape_error_2
 
     with pytest.raises(ValueError) as exi:
-        fumm._validate_confusion_matrix(struct_array)
+        fumm.validate_confusion_matrix(struct_array)
     assert str(exi.value) == value_error
 
     with pytest.raises(TypeError) as exi:
-        fumm._validate_confusion_matrix(non_int_array)
+        fumm.validate_confusion_matrix(non_int_array)
     assert str(exi.value) == type_error_cm
 
     with pytest.raises(TypeError) as exi:
-        fumm._validate_confusion_matrix(two_d_array, 'a')
+        fumm.validate_confusion_matrix(two_d_array, 'a')
     assert str(exi.value) == type_error_index
 
     with pytest.raises(IndexError) as exi:
-        fumm._validate_confusion_matrix(two_d_array, -1)
+        fumm.validate_confusion_matrix(two_d_array, -1)
     assert str(exi.value) == index_error.format(-1, 2, 2)
 
     with pytest.raises(IndexError) as exi:
-        fumm._validate_confusion_matrix(two_d_array, 2)
+        fumm.validate_confusion_matrix(two_d_array, 2)
     assert str(exi.value) == index_error.format(2, 2, 2)
 
 

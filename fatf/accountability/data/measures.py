@@ -43,6 +43,9 @@ def sampling_bias(
        or :func:`fatf.accountability.data.measures.sampling_bias_grid_check`
        function to see sub-population pairwise sampling bias.
 
+    For warnings raised by this method please see the documentation of
+    :func:`fatf.utils.data.tools.validate_indices_per_bin` function.
+
     Parameters
     ----------
     dataset, column_index, groupings, and numerical_bins_number
@@ -53,12 +56,6 @@ def sampling_bias(
         cost-sensitive learning, please consider using
         :func:`fatf.accountability.data.measures.sampling_bias_indexed`
         function.
-
-    Warns
-    -----
-    UserWarning
-        Some of the indices may be missing -- gaps in the consecutive list of
-        indices were found.
 
     Returns
     -------
@@ -78,6 +75,10 @@ def sampling_bias(
     """
     indices_per_bin, bin_names = fudt.group_by_column(
         dataset, column_index, groupings, numerical_bins_number)
+
+    assert fudt.validate_indices_per_bin(indices_per_bin), \
+        'Binned indices list is invalid.'
+
     counts = [len(i) for i in indices_per_bin]
     weights = _get_weights(indices_per_bin)
     return counts, weights, bin_names
@@ -96,27 +97,14 @@ def sampling_bias_indexed(indices_per_bin: List[List[int]]
     :func:`fatf.accountability.data.measures.sampling_bias` function, which can
     be used when one already has the desired instance binning.
 
+    For warnings and errors raised by this method please see the documentation
+    of :func:`fatf.utils.data.tools.validate_indices_per_bin` function.
+
     Parameters
     ----------
     indices_per_bin : List[List[integer]]
         A list of lists with the latter one holding row indices of a particular
         group (sub-population).
-
-    Warns
-    -----
-    UserWarning
-        Some of the indices may be missing -- gaps in the consecutive list of
-        indices were found.
-
-    Raises
-    ------
-    TypeError
-        The ``indices_per_bin`` parameter is not a list, one of the elements of
-        the ``indices_per_bin`` list is not a list or one of the elements of
-        the latter list is not an integer.
-    ValueError
-        The ``indices_per_bin`` list is empty. Some of the indices are
-        duplicated or are negative integers.
 
     Returns
     -------
@@ -130,31 +118,8 @@ def sampling_bias_indexed(indices_per_bin: List[List[int]]
         sampling bias. The weights are inversely proportional to the number of
         instance occurrences for every sub-population.
     """
-    # Validate indices_per_bin
-    if isinstance(indices_per_bin, list):
-        if not indices_per_bin:
-            raise ValueError('The indices_per_bin list cannot be empty.')
-
-        flat_list = []
-        for indices_bin in indices_per_bin:
-            if isinstance(indices_bin, list):
-                flat_list += indices_bin
-                for index in indices_bin:
-                    if isinstance(index, int):
-                        if index < 0:
-                            raise ValueError('One of the indices is a '
-                                             'negative integer -- all should '
-                                             'be non-negative.')
-                    else:
-                        raise TypeError('Indices should be integers. *{}* is '
-                                        'not an integer.'.format(index))
-            else:
-                raise TypeError('One of the elements embedded in the '
-                                'indices_per_bin list is not a list.')
-        if len(flat_list) != len(set(flat_list)):
-            raise ValueError('Some of the indices are duplicated.')
-    else:
-        raise TypeError('The indices_per_bin parameter has to be a list.')
+    assert fudt.validate_indices_per_bin(indices_per_bin), \
+        'Binned indices list is invalid.'
 
     counts = [len(i) for i in indices_per_bin]
     weights = _get_weights(indices_per_bin)
@@ -324,12 +289,6 @@ def _get_weights(indices_per_bin: List[List[int]]) -> np.ndarray:
         A list of lists with the latter one holding row indices of a particular
         group (sub-population).
 
-    Warns
-    -----
-    UserWarning
-        Some of the indices may be missing -- gaps in the consecutive list of
-        indices were found.
-
     Returns
     -------
     weights : numpy.ndarray
@@ -345,16 +304,7 @@ def _get_weights(indices_per_bin: List[List[int]]) -> np.ndarray:
             assert index >= 0, 'Must be a positive integer.'
     assert len(flat_list) == len(set(flat_list)), 'Must not have duplicates.'
 
-    # Check whether the indices are consecutive numbers without any gaps
     indices_number = max(flat_list) + 1  # The indexing starts from 0
-    all_indices = range(indices_number)
-    missing_indices = set(all_indices).difference(flat_list)
-    if missing_indices:
-        warnings.warn(
-            'The following indices are missing (based on the top index): {}.\n'
-            'It is possible that more indices are missing if they were the '
-            'last one(s).'.format(missing_indices), UserWarning)
-
     groups_number = len(indices_per_bin)
     scales = [(1 / len(i)) / groups_number for i in indices_per_bin]
 

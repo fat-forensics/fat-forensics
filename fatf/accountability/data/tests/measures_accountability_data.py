@@ -10,22 +10,11 @@ import numpy as np
 
 import fatf.accountability.data.measures as fadm
 
-USER_WARNING = ('The following indices are missing (based on the top index): '
-                '{}.\nIt is possible that more indices are missing if they '
-                'were the last one(s).')
-
 
 def test_get_weights():
     """
     Tests :func:`fatf.accountability.data.metrics._get_weights` function.
     """
-    with pytest.warns(UserWarning) as w:
-        weights = fadm._get_weights([[0, 4], [3, 2, 5], [6]])
-    assert len(w) == 1
-    assert str(w[0].message) == USER_WARNING.format('{1}')
-    true_weights = np.array([0.167, np.nan, 0.111, 0.111, 0.167, 0.111, 0.333])
-    assert np.allclose(weights, true_weights, atol=1e-3, equal_nan=True)
-
     weights = fadm._get_weights([[0, 4, 6], [3, 2, 5, 1, 8],
                                  [7, 9, 10, 11, 12, 13, 14]])
     true_weights = np.array([0.111, 0.067, 0.067, 0.067, 0.111, 0.067, 0.111,
@@ -149,6 +138,17 @@ def test_sampling_bias_indexed():
     with pytest.raises(ValueError) as exin:
         fadm.sampling_bias_indexed([[0, 1], [2], [3, 0], [4]])
     assert str(exin.value) == value_error_duplicates
+
+    user_warning = ('The following indices are missing (based on the top '
+                    'index): {}.\nIt is possible that more indices are '
+                    'missing if they were the last one(s).')
+    with pytest.warns(UserWarning) as w:
+        counts, weights = fadm.sampling_bias_indexed([[0, 4], [3, 2, 5], [6]])
+    assert len(w) == 1
+    assert str(w[0].message) == user_warning.format('{1}')
+    assert counts == [2, 3, 1]
+    true_weights = np.array([0.167, np.nan, 0.111, 0.111, 0.167, 0.111, 0.333])
+    assert np.allclose(weights, true_weights, atol=1e-3, equal_nan=True)
 
     binning = [[0, 4, 6], [3, 2, 5, 1, 8], [7, 9, 10, 11, 12, 13, 14]]
     true_counts = [3, 5, 7]

@@ -8,10 +8,13 @@ Implements data accountability measures.
 import inspect
 
 from numbers import Number
-from typing import List, Tuple, Union
+from typing import Callable, List, Optional, Tuple, Union
 
 import numpy as np
 
+from fatf.exceptions import IncorrectShapeError
+
+import fatf.utils.array.validation as fuav
 import fatf.utils.data.tools as fudt
 import fatf.utils.models.metrics as fumm
 
@@ -19,7 +22,10 @@ __all__ = ['systematic_performance_bias',
            'systematic_performance_bias_indexed',
            'apply_metric_function',
            'apply_metric',
+           'systematic_performance_bias_grid_check',
            'systematic_performance_bias_check']  # yapf: disable
+
+Index = Union[int, str]  # A column index type
 
 
 def systematic_performance_bias(
@@ -46,6 +52,9 @@ def systematic_performance_bias(
        answer please use the :func:`fatf.accountability.models.measures.
        systematic_performance_bias_check` function.
 
+    For warnings raised by this method please see the documentation of
+    :func:`fatf.utils.data.tools.validate_indices_per_bin` function.
+
     Parameters
     ----------
     dataset, column_index, groupings, and numerical_bins_number
@@ -71,6 +80,10 @@ def systematic_performance_bias(
     """
     indices_per_bin, bin_names = fudt.group_by_column(
         dataset, column_index, groupings, numerical_bins_number)
+
+    assert fudt.validate_indices_per_bin(indices_per_bin), \
+        'Binned indices list is invalid.'
+
     population_confusion_matrix = systematic_performance_bias_indexed(
         indices_per_bin, ground_truth, predictions, labels)
     return population_confusion_matrix, bin_names
@@ -93,6 +106,9 @@ def systematic_performance_bias_indexed(
     function, which can be used when one already has the desired instance
     binning.
 
+    For warnings and errors raised by this method please see the documentation
+    of :func:`fatf.utils.data.tools.validate_indices_per_bin` function.
+
     Parameters
     ----------
     indices_per_bin : List[List[integer]]
@@ -108,6 +124,19 @@ def systematic_performance_bias_indexed(
     population_confusion_matrix : List[numpy.ndarray]
         A list of confusion matrices for each sub-population.
     """
+    assert fudt.validate_indices_per_bin(indices_per_bin), \
+        'Binned indices list is invalid.'
+
+    if labels is None:
+        if not fuav.is_1d_array(ground_truth):
+            raise IncorrectShapeError('The ground_truth parameter should be a '
+                                      '1-dimensional numpy array.')
+        if not fuav.is_1d_array(predictions):
+            raise IncorrectShapeError('The predictions parameter should be a '
+                                      '1-dimensional numpy array.')
+        labels = np.sort(np.unique(np.concatenate(
+            [ground_truth, predictions]))).tolist()
+
     population_confusion_matrix = []
     for bin_indices in indices_per_bin:
         confusion_matrix = fumm.get_confusion_matrix(
@@ -163,7 +192,7 @@ def apply_metric_function(population_confusion_matrix: List[np.ndarray],
         A list with the value of the selected metric for every sub-population.
     """
     # Validate the confusion matrices type
-    if not isinstance(population_confusion_matrix, list):
+    if isinstance(population_confusion_matrix, list):
         if not population_confusion_matrix:
             raise ValueError('The population_confusion_matrix parameter '
                              'cannot be an empty list.')
@@ -265,11 +294,11 @@ def apply_metric(population_confusion_matrix: List[np.ndarray],
     if metric == 'accuracy':
         metrics = apply_metric_function(population_confusion_matrix,
                                         available_metrics[metric],
-                                        label_index,
                                         **kwargs)
     else:
         metrics = apply_metric_function(population_confusion_matrix,
                                         available_metrics[metric],
+                                        label_index,
                                         **kwargs)
 
     return metrics
@@ -355,7 +384,7 @@ def systematic_performance_bias_check(metrics_list: List[Number],
         specified ``threshold``) different predictive performance, ``False``
         otherwise.
     """
-    grid_check = systematic_performance_bias_grid_check(metrics_list,
-                                                        threshold)
+    grid_check = systematic_performance_bias_grid_check(
+        metrics_list, threshold)
     is_biased = grid_check.any()
     return is_biased

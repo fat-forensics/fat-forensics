@@ -377,3 +377,74 @@ def apply_to_column_grouping(
     applied = [fnc(labels[grp], predictions[grp]) for grp in row_grouping]
 
     return applied
+
+
+def validate_indices_per_bin(indices_per_bin: List[List[int]]) -> bool:
+    """
+    Validates a list of binned indices.
+
+    Parameters
+    ----------
+    indices_per_bin : List[List[integer]]
+        A list of lists with the latter one holding row indices of a particular
+        group.
+
+    Warns
+    -----
+    UserWarning
+        Some of the indices may be missing -- gaps in the consecutive list of
+        indices were found.
+
+    Raises
+    ------
+    TypeError
+        The ``indices_per_bin`` parameter is not a list, one of the elements of
+        the ``indices_per_bin`` list is not a list or one of the elements of
+        the latter list is not an integer.
+    ValueError
+        The ``indices_per_bin`` list is empty. Some of the indices are
+        duplicated or are negative integers.
+
+    Returns
+    -------
+    is_valid : boolean
+        ``True`` if the input is valid, ``False`` otherwise.
+    """
+    is_valid = False
+
+    flat_list = []
+    if isinstance(indices_per_bin, list):
+        if not indices_per_bin:
+            raise ValueError('The indices_per_bin list cannot be empty.')
+        for indices_bin in indices_per_bin:
+            if isinstance(indices_bin, list):
+                flat_list += indices_bin
+                for index in indices_bin:
+                    if isinstance(index, int):
+                        if index < 0:
+                            raise ValueError('One of the indices is a '
+                                             'negative integer -- all should '
+                                             'be non-negative.')
+                    else:
+                        raise TypeError('Indices should be integers. *{}* is '
+                                        'not an integer.'.format(index))
+            else:
+                raise TypeError('One of the elements embedded in the '
+                                'indices_per_bin list is not a list.')
+        if len(flat_list) != len(set(flat_list)):
+            raise ValueError('Some of the indices are duplicated.')
+    else:
+        raise TypeError('The indices_per_bin parameter has to be a list.')
+
+    # Check whether the indices are consecutive numbers without any gaps
+    indices_number = max(flat_list) + 1  # The indexing starts from 0
+    all_indices = range(indices_number)
+    missing_indices = set(all_indices).difference(flat_list)
+    if missing_indices:
+        warnings.warn(
+            'The following indices are missing (based on the top index): {}.\n'
+            'It is possible that more indices are missing if they were the '
+            'last one(s).'.format(missing_indices), UserWarning)
+
+    is_valid = True
+    return is_valid

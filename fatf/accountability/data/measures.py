@@ -8,7 +8,7 @@ Implements data accountability measures.
 import warnings
 
 from numbers import Number
-from typing import List, Tuple, Union
+from typing import List, Optional, Tuple, Union
 
 import numpy as np
 
@@ -137,7 +137,7 @@ def sampling_bias_indexed(indices_per_bin: List[List[int]]
 
         flat_list = []
         for indices_bin in indices_per_bin:
-            if isinstance(i, list):
+            if isinstance(indices_bin, list):
                 flat_list += indices_bin
                 for index in indices_bin:
                     if isinstance(index, int):
@@ -355,17 +355,8 @@ def _get_weights(indices_per_bin: List[List[int]]) -> np.ndarray:
             'It is possible that more indices are missing if they were the '
             'last one(s).'.format(missing_indices), UserWarning)
 
-    groups_counts = [len(i) for i in indices_per_bin]
-    max_count = max(groups_counts)
-
-    scales = [max_count / i if i else 0 for i in groups_counts]
-
-    assert len(scales) == len(groups_counts), 'Number of groups has to agree.'
-    scales_sum = 0
-    for i, group_count in enumerate(groups_counts):
-        scales_sum += scales[i] * group_count
-
-    scales = [i / scales_sum for i in scales]
+    groups_number = len(indices_per_bin)
+    scales = [(1 / len(i)) / groups_number for i in indices_per_bin]
 
     weights = np.array(indices_number * [np.nan])
     for i, bin_indices in enumerate(indices_per_bin):

@@ -70,6 +70,7 @@ class Augmentation(metaclass=ABCMeta):
         assert self._validate_input(dataset, categorical_indices), \
             'Input is invalid'
         self.dataset = dataset
+        self.is_structured = fuav.is_structured_array(dataset)
 
         # If string based columns found, add them to categorical_indices.
         numerical_indices, non_numerical_indices = \
@@ -97,7 +98,7 @@ class Augmentation(metaclass=ABCMeta):
             non_numerical_indices.shape[0]
         self.categorical_indices = categorical_indices
         # Find indices that aren't in self.categorical_indices
-        if fuav.is_structured_array(self.dataset):
+        if self.is_structured:
             indices = np.array(self.dataset.dtype.names)
         else:
             indices = np.arange(0, self.dataset.shape[1], 1)
@@ -141,7 +142,7 @@ class Augmentation(metaclass=ABCMeta):
                 isinstance(categorical_indices, np.ndarray)):
             raise TypeError('categorical_indices must be a numpy.ndarray or '
                             'None')
-        
+    
         if not fuav.is_2d_array(dataset):
             raise IncorrectShapeError('The input dataset must be a '
                                       '2-dimensional array.')
@@ -160,7 +161,7 @@ class Augmentation(metaclass=ABCMeta):
 
     def _validate_sample_input(self,
                                data_row: Optional[np.ndarray] = None,
-                               num_samples: int = 10):
+                               num_samples: Optional[int] = 10):
         """
         Validates sample input for all `sample` functions.
         
@@ -177,9 +178,6 @@ class Augmentation(metaclass=ABCMeta):
             If input is valid.
         """
         is_input_ok = False
-        if (not isinstance(data_row, np.ndarray) and not
-                isinstance(data_row, np.void)):
-            raise TypeError('data_row must be numpy.ndarray.')
 
         if not isinstance(num_samples, int):
             raise TypeError('num_samples must be an integer.')
@@ -187,25 +185,29 @@ class Augmentation(metaclass=ABCMeta):
         if num_samples < 1:
             raise ValueError('num_samples must be an integer greater than 0.')
 
-        if not fuav.is_1d_like(data_row):
-            raise IncorrectShapeError('data_row must be a 1-dimensional '
-                                      'array.')
+        if data_row is not None:
+            if (not isinstance(data_row, np.ndarray) and not
+                    isinstance(data_row, np.void)):
+                raise TypeError('data_row must be numpy.ndarray.')
+            if not fuav.is_1d_like(data_row):
+                raise IncorrectShapeError('data_row must be a 1-dimensional '
+                                        'array.')
 
-        if not fuav.are_similar_dtype_arrays(
-                self.dataset, np.array(data_row, dtype=data_row.dtype),
-                strict_comparison=True):
-            raise ValueError('data_row provided is not of the same dtype as '
-                             'the dataset used to initialise this class. '
-                             'Please ensure that the dataset and data_row '
-                             'dtypes are identical.')
+            if not fuav.are_similar_dtype_arrays(
+                    self.dataset, np.array(data_row, dtype=data_row.dtype),
+                    strict_comparison=True):
+                raise ValueError('data_row provided is not of the same dtype '
+                                 'as the dataset used to initialise this '
+                                 'class. Please ensure that the dataset and '
+                                 'data_row dtypes are identical.')
 
-        # If structured and different number of features, would be caught
-        # in the previous if statement.
-        if not fuav.is_structured_array(self.dataset):
-            if data_row.shape[0] != self.dataset.shape[1]:
-                raise ValueError('data_row must contain the same number of '
-                                'features as the dataset used in the class '
-                                'constructor.')
+            # If structured and different number of features, would be caught
+            # in the previous if statement.
+            if not self.is_structured:
+                if data_row.shape[0] != self.dataset.shape[1]:
+                    raise ValueError('data_row must contain the same number of '
+                                    'features as the dataset used in the class '
+                                    'constructor.')
 
         is_input_ok = True
 
@@ -215,14 +217,26 @@ class Augmentation(metaclass=ABCMeta):
     @abstractmethod
     def sample(self,
                data_row: Optional[np.ndarray] = None,
-               num_samples: Optional[int] = 10) -> np.ndarray:
+               num_samples: Optional[int] = None) -> np.ndarray: 
         """
         Abstract method that must be implemented for each child class.
 
         Must sample around data_row or if data_row is not given then should
         generate samples from the whole dataset.
+
+        Parameters
+        ----------
+        data_row : Optional[numpy.ndarray], default = None
+            Row of data to sample around.
+        num_samples : Optional[integer], default = None
+            Number of samples to generate.
+        
+        Returns
+        -------
+        data : numpy.ndarray
+            Sampled data.
         """
-        pass
+        raise NotImplementedError('Sample method needs to be overwritten.') #pragma: no cover
 
 
 class NormalSampling(Augmentation):
@@ -235,10 +249,12 @@ class NormalSampling(Augmentation):
 
     Attributes
     ----------
-    non_categorical_sampling_values : dictionary[Union[str, int], Tuple[float, float, float]]
+    non_categorical_sampling_values : dictionary[Union[str, int],
+            Tuple[float, float, float]]
         Dictionary mapping non-categorical feature indices to tuples containing
         (mean, variance, std) for each non-categorical feature.
-    categorical_sampling_values : dictionary[Union[str, int], Tuple[List[Union[str, int]], np.ndarray]]
+    categorical_sampling_values : dictionary[Union[str, int], 
+            Tuple[List[Union[str, int]], np.ndarray]]
         Dcitionary mapping categorical feature indices to tuples containing
         (list of values, frequencies of values) for each categorical feature.
     """
@@ -246,124 +262,122 @@ class NormalSampling(Augmentation):
                  dataset: np.ndarray,
                  categorical_indices: np.ndarray = None) -> None:
         super(NormalSampling, self).__init__(dataset, categorical_indices)
-        numerical_features = \
-            fuat.as_unstructured(self.dataset[self.non_categorical_indices])
+
+        if self.non_categorical_indices.size > 0:
+            if self.is_structured:
+                numerical_features = fuat.as_unstructured(
+                    self.dataset[self.non_categorical_indices])
+            else:
+                numerical_features = self.dataset[:, 
+                                                  self.non_categorical_indices]
+        else:
+            numerical_features = np.array([])
+        
+        # Check if non-categorical indices are numerical and need 
+        # generalising for sampling (could try to combine with 
+        # fatf.transparency.models.feature_influence._generalise_dataset_type)
+        if self.is_structured:
+            new_dtypes = []
+            for cf in self.dataset.dtype.names:
+                if cf in self.non_categorical_indices:
+                    dtype = fuat.generalise_dtype(self.dataset.dtype[cf],
+                                                  np.dtype(np.float64))
+                    new_dtypes.append((cf, dtype))
+                else:
+                    new_dtypes.append((cf, self.dataset.dtype[cf]))
+            self.dataset_generalised = self.dataset.astype(new_dtypes)
+        else:
+            dtype = fuat.generalise_dtype(self.dataset.dtype,
+                                          np.dtype(np.float64))
+            self.dataset_generalised = dataset.astype(dtype)
 
         non_categorical_sampling_values = dict()
         # In case numerical_features is empty array
         if numerical_features.size > 0:
-            features_mean = np.mean(numerical_features,axis=1)
-            features_var = np.var(numerical_features, axis=1)
+            features_mean = np.mean(numerical_features,axis=0)
+            features_var = np.var(numerical_features, axis=0)
             features_std = np.sqrt(features_var)
             for cf, mean, var, std in zip(
                     self.non_categorical_indices, features_mean, features_var, 
                     features_std):
                 non_categorical_sampling_values[cf] = (mean, var, std)
-        categorical__sampling_values = dict()
+
+        categorical_sampling_values = dict()
         for cf in self.categorical_indices:
-            feature_vector = self.dataset[cf]
+            if self.is_structured:
+                feature_vector = self.dataset[cf]
+            else:
+                feature_vector = self.dataset[:, cf]
             feature_counter = collections.Counter(feature_vector)
             values = list(feature_counter.keys())
             frequencies = np.array(list(feature_counter.values()),
                                    dtype=np.float)
             frequencies /= np.sum(frequencies)
-            categorical__sampling_values[cf] = (values, frequencies)
+            categorical_sampling_values[cf] = (values, frequencies)
 
         self.non_categorical_sampling_values = non_categorical_sampling_values
-        self.categorical_sampling_values = categorical__sampling_values
+        self.categorical_sampling_values = categorical_sampling_values
 
 
 
     def sample(self,
                data_row: Optional[np.ndarray] = None,
-               num_samples: Optional[int] = 10) -> np.ndarray:
+               num_samples: Optional[int] = 50) -> np.ndarray:
         """
         Samles from normal around `data_row` or around mean.
 
+        Generates data around instance `data_row` or around the mean of the
+        dataset. For numerical data, features are sampled around the value in
+        `data_row` or from the mean of the dataset, with standard deviation
+        of the feature in the dataset. For categorical features, a distribution
+        is constructed over the values in the dataset and randomly sampled
+        from, ignoring the categorical value in `data_row`.
+
         If `data_row` is None, then samples will be generated around feature
-        means using `self.feature_means` attribute.
+        means using `self.feature_means` attribute. 
+        For parameters please see the  documentation of the 
+        :func`fatf.utils.data.Augmentation.sample` function.
         """
-        self._validate_sample_input(data_row, num_samples)
-        pass
-'''
-def lime(num_samples,
-         data_set,
-         data_row=None):
-    """Generates a neighborhood around a prediction.
+        assert self._validate_sample_input(data_row, num_samples), \
+            'Input is invald'
+        
+        is_global = data_row is None
 
-    For numerical features, perturb them by sampling from a Normal(0,1) and
-    doing the inverse operation of mean-centering and scaling, according to
-    the means and stds in the training data. For categorical features,
-    perturb by sampling according to the training distribution, and making
-    a binary feature that is 1 when the value is the same as the instance
-    being explained.
+        num_features = (len(self.categorical_indices) +
+                        len(self.non_categorical_indices))
+        shape = (num_samples,) if self.is_structured else \
+            (num_samples, num_features)
+        data = np.zeros(shape, dtype=self.dataset_generalised.dtype)
 
-    Args:
-        data_row: 1d numpy array, corresponding to a row
-        num_samples: size of the neighborhood to learn the linear model
+        if self.categorical_indices.size > 0:
+            for cf in self.categorical_indices:
+                sampling_values = self.categorical_sampling_values[cf]
+                values = np.random.choice(sampling_values[0], size=num_samples,
+                                        replace=True, p=sampling_values[1])
+                if self.is_structured:
+                    data[cf] = values
+                else:
+                    data[:, cf] = values
 
-    Returns:
-        A tuple (data, inverse), where:
-            data: dense num_samples * K matrix, where categorical features
-            are encoded with either 0 (not equal to the corresponding value
-            in data_row) or 1. The first row is the original instance.
-            inverse: same as data, except the categorical features are not
-            binary, but categorical (as the original data)
-    """
+        if self.non_categorical_indices.size > 0:
+            features = np.random.normal(
+                0, 1, num_samples * len(self.non_categorical_indices))
 
-    # TODO: Check input array is 2D; data row is 1D
-    # TODO: num samples has to be a positive integer
+            if fuav.is_structured_array(data):
+                data[self.non_categorical_indices] = \
+                    list(zip(*features.reshape(
+                    len(self.non_categorical_indices), num_samples)))
+            else:
+                data[:, self.non_categorical_indices] = features.reshape(
+                    num_samples, len(self.non_categorical_indices))
 
-    # TODO
-    categorical_features, numerical_features = TODO_get_feature_types()
+            for ncf in self.non_categorical_indices:
+                sampling_values = self.non_categorical_sampling_values[ncf]
+                mean, std = sampling_values[0], sampling_values[2]
+                mean = data_row[ncf] if not is_global else mean
+                if self.is_structured:
+                    data[ncf] = (data[ncf] * std + mean)
+                else:
+                    data[:, ncf] = (data[:, ncf] * std + mean)
 
-    features_mean = np.mean(data_set, axis=1)
-    features_var = np.var(data_set, axis=1)
-    features_std = np.sqrt(features_var)
-
-    feature_frequencies = dict()
-    feature_values = dict()
-    for cf in categorical_features:
-        feature_vector = data_set[cf]
-        feature_counter = collections.Counter(feature_vector)
-
-        feature_values[cf] = list(feature_counter.keys())
-
-        feature_frequencies[cf] = np.array(list(feature_counter.values()))
-        feature_frequencies[cf] /= np.sum(feature_frequencies[cf])
-
-    # If data point is not given take a global sample (based on the mean of all features)
-    data_row = features_mean if data_row is None else data_row
-
-    num_features = data_set.shape[0]
-    data = np.zeros((num_samples, num_features))
-
-    data = np.random.normal(
-            0, 1, num_samples * num_features).reshape(
-            num_samples, num_features)
-    data = data * features_std + data_row
-
-    data[0] = data_row.copy()
-    for column in categorical_features:
-        vals = feature_values[column]
-        freqs = feature_frequencies[column]
-
-        new_column = np.random.choice(vals, size=num_samples,
-                                          replace=True, p=freqs)
-        new_column[0] = data[0, column]
-
-        data[:, column] = new_column
-    data[0] = data_row.copy()
-
-    return data
-
-
-def lime_data(generated_data, original_data):
-    binary_data = generated_data.copy()
-    for column in categorical_features:
-        binary_column = np.array([1 if x == data_row[column]
-                                  else 0 for x in inverse_column])
-        binary_column[0] = 1
-        data[:, column] = binary_column
-    pass
-'''
+        return data

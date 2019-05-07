@@ -6,6 +6,7 @@ Functions for testing data augmentation classes.
 # License: new BSD
 
 import pytest
+import collections
 
 import numpy as np
 
@@ -35,11 +36,17 @@ NUMERICAL_STRUCT_ARRAY = np.array(
 CATEGORICAL_NP_ARRAY = np.array([
     ['a', 'b', 'c'],
     ['a', 'f', 'g'],
-    ['b', 'c', 'c']])
+    ['b', 'c', 'c'],
+    ['b', 'f', 'c'],
+    ['a', 'f', 'c'],
+    ['a', 'b', 'g']])
 CATEGORICAL_STRUCT_ARRAY = np.array(
     [('a', 'b', 'c'),
      ('a', 'f', 'g'),
-     ('b', 'c', 'c')],
+     ('b', 'c', 'c'),
+     ('b', 'f', 'c'),
+     ('a', 'f', 'c'),
+     ('a', 'b', 'g')],
     dtype=[('a', 'U1'), ('b', 'U1'), ('c', 'U1')])
 MIXED_ARRAY = np.array(
     [(0, 'a', 0.08, 'a'),
@@ -49,6 +56,39 @@ MIXED_ARRAY = np.array(
      (0, 'c', 0.36, 'b'),
      (1, 'f', 0.07, 'bb')],
     dtype=[('a', 'i'), ('b', 'U1'), ('c', 'f'), ('d', 'U2')])
+
+NUMERICAL_NP_RESULTS = np.array([
+    [0.370, -0.069, 0.317, 1.081],
+    [-0.175, -0.117, 0.658, 0.887],
+    [-0.350, 0.271, -0.090, 0.570]])
+NUMERICAL_STRUCT_RESULTS = np.array([
+    (0.180, -0.281, -0.252, 0.632),
+    (-1.426, -0.506, -0.437, 0.707),
+    (-1.286, 0.157, 0.616, 0.324)],
+    dtype=[('a', 'f'), ('b', 'f'), ('c', 'f'), ('d', 'f')])
+NUMERICAL_NP_CAT_RESULTS = np.array([
+    [0., 0.021, -0.339, 0.510],
+    [0., -0.286, 0.784, 0.407],
+    [1., 0.457, 0.505, 0.090]])
+NUMERICAL_STRUCT_CAT_RESULTS = np.array([
+    (0, -0.308, -0.448, 0.892),
+    (1, -0.101, 0.426, 0.529),
+    (0, -0.092, 0.429, 0.509)],
+    dtype=[('a', 'i'), ('b', 'f'), ('c', 'f'), ('d', 'f')])
+CATEGORICAL_NP_RESULTS = np.array([
+    ['b', 'c', 'g'],
+    ['a', 'f', 'g'],
+    ['a', 'b', 'g']])
+CATEGORICAL_STRUCT_RESULTS = np.array([
+    ('a', 'b', 'c'),
+    ('b', 'f', 'c'),
+    ('b', 'b', 'c')],
+    dtype=[('a', 'U1'), ('b', 'U1'), ('c', 'U1')])
+MIXED_RESULTS = np.array([
+    (-0.142, 'c', -0.322, 'b'),
+    (-0.499, 'a', -0.084, 'a',),
+    (-0.232, 'f', -0.069, 'bb')],
+    dtype=[('a', '<f8'), ('b', 'U1'), ('c', '<f8'), ('d', 'U2')])
 
 
 class BaseAugmentor(fuda.Augmentation):
@@ -63,6 +103,7 @@ class BaseAugmentor(fuda.Augmentation):
     
     def sample(self, data_row=None, num_samples=10):
         self._validate_sample_input(data_row, num_samples)
+        return True
 
 
 class BrokenAugmentor(fuda.Augmentation):
@@ -70,7 +111,7 @@ class BrokenAugmentor(fuda.Augmentation):
     Class with no `sample` function defined.
     """
     def __init__(self, dataset, categorical_indices=None):
-        super(BaseAugmentor, self).__init__(dataset, categorical_indices)
+        super(BrokenAugmentor, self).__init__(dataset, categorical_indices) #pragma: no cover
 
 
 def test_Augmentation():
@@ -203,6 +244,19 @@ def test_Augmentation():
         sample = augmentor.sample(NUMERICAL_STRUCT_ARRAY)
     assert str(exin.value) == msg
 
+    # All ok
+    augmentor = BaseAugmentor(NUMERICAL_NP_ARRAY)
+    assert augmentor.sample(NUMERICAL_NP_ARRAY[0, :])
+    assert augmentor.sample(num_samples=100)
+    assert augmentor.sample(NUMERICAL_NP_ARRAY[0, :], num_samples=100)
+
+    augmentor = BaseAugmentor(CATEGORICAL_STRUCT_ARRAY, 
+                              categorical_indices=np.array(['a' ,'b' ,'c']))
+    assert augmentor.sample(CATEGORICAL_STRUCT_ARRAY[0])
+    assert augmentor.sample(num_samples=100)
+    assert augmentor.sample(CATEGORICAL_STRUCT_ARRAY[0], num_samples=100)
+
+
 
 def test_NormalSampling():
     """
@@ -237,3 +291,107 @@ def test_NormalSampling():
     assert np.array_equal(augmentor.categorical_indices,
                           np.array([0, 1, 2]))
     assert np.array_equal(augmentor.non_categorical_indices, np.array([]))
+
+    # Pure numerical sampling
+    augmentor = fuda.NormalSampling(NUMERICAL_NP_ARRAY)
+    augmentor_struct = fuda.NormalSampling(NUMERICAL_STRUCT_ARRAY)
+    samples = augmentor.sample(NUMERICAL_NP_ARRAY[0, :], num_samples=3)
+    samples_struct = augmentor_struct.sample(NUMERICAL_STRUCT_ARRAY[0],
+                                             num_samples=3)
+    assert np.allclose(samples, NUMERICAL_NP_RESULTS, atol=1e-2)
+    assert all([np.allclose(samples_struct[x], NUMERICAL_STRUCT_RESULTS[x],
+                atol=1e-1) for x in samples_struct.dtype.names])
+
+    samples = augmentor.sample(NUMERICAL_NP_ARRAY[0, :], num_samples=1000)
+    samples_struct = augmentor_struct.sample(NUMERICAL_STRUCT_ARRAY[0],
+                                             num_samples=1000)
+    assert np.allclose(samples.mean(axis=0), NUMERICAL_NP_ARRAY[0, :],
+                       atol=1e-1)
+    assert all([np.allclose(np.mean(samples_struct[x]),
+                NUMERICAL_STRUCT_ARRAY[0][x], atol=1e-1) for x in 
+                samples_struct.dtype.names])
+
+    # Numerical sampling with one categorical_indices defined
+    augmentor = fuda.NormalSampling(NUMERICAL_NP_ARRAY, np.array([0]))
+    augmentor_struct = fuda.NormalSampling(NUMERICAL_STRUCT_ARRAY,
+                                           np.array(['a']))
+    samples = augmentor.sample(NUMERICAL_NP_ARRAY[0, :], num_samples=3)
+    samples_struct = augmentor_struct.sample(NUMERICAL_STRUCT_ARRAY[0],
+                                             num_samples=3)
+    assert np.allclose(samples, NUMERICAL_NP_CAT_RESULTS, atol=1e-2)
+    assert all([np.allclose(samples_struct[x], NUMERICAL_STRUCT_CAT_RESULTS[x],
+                atol=1e-1) for x in samples_struct.dtype.names])
+    
+    samples = augmentor.sample(NUMERICAL_NP_ARRAY[0, :], num_samples=100)
+    samples_struct = augmentor_struct.sample(NUMERICAL_STRUCT_ARRAY[0],
+                                             num_samples=100)
+    assert np.allclose(samples.mean(axis=0)[1:], NUMERICAL_NP_ARRAY[0, 1:],
+                       atol=1e-1)
+    assert all([np.allclose(np.mean(samples_struct[x]),
+                NUMERICAL_STRUCT_ARRAY[0][x], atol=1e-1) for x in 
+                samples_struct.dtype.names[1:]])
+    # Test the categorical feature
+    collection = collections.Counter(samples[:, 0])
+    collection_struct = collections.Counter(samples_struct['a'])
+    freq = np.array([collection[k] for k in [0, 1, 2]], dtype=np.float)
+    freq_struct = np.array([collection_struct[k] for k in [0, 1, 2]],
+                           dtype=np.float)
+    freq, freq_struct = freq / np.sum(freq), freq_struct / np.sum(freq_struct)
+    assert np.allclose(freq, np.array([0.5, 0.3, 0.2]), atol=1e-1)
+    assert np.allclose(freq_struct, np.array([0.5, 0.3, 0.2]), atol=1e-1)
+
+    # Pure categorical array
+    augmentor = fuda.NormalSampling(CATEGORICAL_NP_ARRAY, np.array([0, 1, 2]))
+    augmentor_struct = fuda.NormalSampling(CATEGORICAL_STRUCT_ARRAY,
+                                           np.array(['a', 'b', 'c']))
+    samples = augmentor.sample(CATEGORICAL_NP_ARRAY[0], num_samples=3)
+    samples_struct = augmentor_struct.sample(CATEGORICAL_STRUCT_ARRAY[0],
+                                             num_samples=3)
+    assert np.array_equal(samples, CATEGORICAL_NP_RESULTS)
+    assert np.array_equal(samples_struct, CATEGORICAL_STRUCT_RESULTS)
+
+    samples = augmentor.sample(CATEGORICAL_NP_ARRAY[0], num_samples=100)
+    samples_struct = augmentor_struct.sample(CATEGORICAL_STRUCT_ARRAY[0],
+                                             num_samples=100)
+    # Check proportions of categorical features
+    freqs, freqs_struct = [], []
+    vals = [['a', 'b'], ['b', 'f', 'c'], ['c', 'g']]
+    proportions = [np.array([0.66, 0.33]), np.array([0.33, 0.5, 0.16]),
+                   np.array([0.66, 0.33])]
+    for cf, cfs, val in zip([0, 1, 2], ['a', 'b', 'c'], vals):
+        collection = collections.Counter(samples[:, cf])
+        collection_struct = collections.Counter(samples_struct[cfs])
+        freq = np.array([collection[k] for k in val], dtype=np.float)
+        freq_struct = np.array([collection_struct[k] for k in val],
+                                dtype=np.float)
+        freqs.append(freq / np.sum(freq))
+        freqs_struct.append(freq_struct / np.sum(freq_struct))
+    # Check for all features that unstructured and structured have right
+    # value proportions
+    for f, fs, p in zip(freqs, freqs_struct, proportions):
+        assert np.allclose(f, p, atol=1e-1)
+        assert np.allclose(fs, p, atol=1e-1)
+
+    # Mixed array with categorical_indices defined when feature is string
+    augmentor = fuda.NormalSampling(MIXED_ARRAY, np.array(['b', 'd']))
+    samples = augmentor.sample(MIXED_ARRAY[0], num_samples=3)
+    assert all([np.allclose(samples[x], MIXED_RESULTS[x], atol=1e-2)
+                for x in ['a', 'c']])
+    assert np.array_equal(samples[['b', 'd']], MIXED_RESULTS[['b', 'd']])
+
+    samples = augmentor.sample(MIXED_ARRAY[0], num_samples=1000)
+    assert all([np.allclose(np.mean(samples[x]), MIXED_ARRAY[0][x], 
+                atol=1e-1) for x in ['a', 'c']])
+    # Check proportions of categorical features
+    freqs, freqs_struct = [], []
+    vals = [['a', 'f', 'c'], ['a', 'aa', 'b', 'bb']]
+    proportions = [np.array([0.33, 0.33, 0.33]),
+                   np.array([0.33, 0.16, 0.16, 0.33])]
+    for cf, val in zip(['b', 'd'], vals):
+        collection = collections.Counter(samples[cf])
+        freq = np.array([collection[k] for k in val], dtype=np.float)
+        freqs.append(freq / np.sum(freq))
+    # Check for all features that unstructured and structured have right
+    # value proportions
+    assert all([np.allclose(f, p, atol=1e-1) for f,p in 
+                zip(freqs, proportions)])

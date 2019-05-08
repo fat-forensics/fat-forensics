@@ -36,12 +36,18 @@ class Augmentation(metaclass=ABCMeta):
         A 2-dimensional numerical numpy array with a dataset to be used.
     categorical_indices : numpy.ndarray
         An array of indices that should be treat as categorical variables.
+    non_categorical_indices : numpy.ndarray
+        An array of indices that are not categorical variables.
+    is_structured : boolean
+        If the input dataset is structured or not.
 
     Warns
     -----
     UserWarning
         If index of a string type column is not in `categorical_indices` it
-        it will be added.
+        it will be added or if no `categorical_indices` were provided, whether
+        or not a feature is categorical will be inferred based on the data
+        type.
     
     Raises
     ------
@@ -125,9 +131,11 @@ class Augmentation(metaclass=ABCMeta):
             The input data is not a 2-dimensional array. The categorical indices
             list/array (``categorical_features``) is not 1-dimensional.
         TypeError
-            `categorical_indices` is not eiher a numpy.ndarray or None. `dataset`
-            is not a numpy.ndarray.
-        
+            `categorical_indices` is not eiher a numpy.ndarray or None. 
+            `dataset` is not a numpy.ndarray.
+        IndexError
+            Indices in `categorical_indices` are not valid for `dataset`.
+
         Returns
         -------
         is_input_ok : boolean
@@ -236,12 +244,18 @@ class Augmentation(metaclass=ABCMeta):
         data : numpy.ndarray
             Sampled data.
         """
-        raise NotImplementedError('Sample method needs to be overwritten.') #pragma: no cover
+        raise NotImplementedError('Sample method needs to be overwritten.')
 
 
 class NormalSampling(Augmentation):
     """
-    Class that samples using a normal distribution (0, 1).
+    Class that samples using a normal distribution.
+
+    Sampling can be performed either using the mean of the dataset or a normal
+    centered on a certain data point. In both cases, the standard deviation
+    of each feature in the dataset is used. For categorical features, the
+    probability for each unique value is calculated based off how many times
+    the value appears in the dataset and the values are sample from this.
 
     For additional parameteres, attributes, warnings and exceptions raised
     please see the  documentation of the :func`fatf.utils.data.Augmentation`
@@ -249,14 +263,18 @@ class NormalSampling(Augmentation):
 
     Attributes
     ----------
-    non_categorical_sampling_values : dictionary[Union[str, int],
+    non_categorical_sampling_values : dictionary[Union[string, integer],
             Tuple[float, float, float]]
         Dictionary mapping non-categorical feature indices to tuples containing
         (mean, variance, std) for each non-categorical feature.
-    categorical_sampling_values : dictionary[Union[str, int], 
-            Tuple[List[Union[str, int]], np.ndarray]]
+    categorical_sampling_values : dictionary[Union[string, integer], 
+            Tuple[List[Union[string, integer]], numpy.ndarray]]
         Dcitionary mapping categorical feature indices to tuples containing
         (list of values, frequencies of values) for each categorical feature.
+    dataset_generalised : numpy.ndarray
+        Dataset attribute with generalised dtype in case sampling does not
+        agree with base dtype. For example, if dtype of a feature is `int` and
+        sampling will genereate `float` values.
     """
     def __init__(self,
                  dataset: np.ndarray,
@@ -334,7 +352,8 @@ class NormalSampling(Augmentation):
         from, ignoring the categorical value in `data_row`.
 
         If `data_row` is None, then samples will be generated around feature
-        means using `self.feature_means` attribute. 
+        means using `self.feature_means` attribute.
+
         For parameters please see the  documentation of the 
         :func`fatf.utils.data.Augmentation.sample` function.
         """

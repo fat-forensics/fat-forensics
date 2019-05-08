@@ -1,160 +1,174 @@
-def check_systematic_error(self,
-                           predictions: np.ndarray,
-                           requested_checks: Optional[List[str]] = None,
-                           features_to_check: Optional[List[str]] = None,
-                           boundaries_for_numerical: Optional[Dict[str, np.ndarray]] = None) -> dict:
-    """ Checks for systematic error in the dataset.
+"""
+Implements data fairness measures.
+"""
+# Author: Kacper Sokol <k.sokol@bristol.ac.uk>
+#         Rafael Poyiadzi <rp13102@bristol.ac.uk>
+# License: new BSD
 
-    Will check if the different sub-populations defined by the
-    features_to_check have similar behaviour under the model.
+from numbers import Number
+from typing import List, Optional, Tuple, Union
 
-    Parameters
-    ----------
-    predictions: np.ndarray
-        Predictionas of a model, built using the data provided.
-    requested_checks: list of strings
-        Corresponding to which checks to perform
-    features_to_check: List of Strings
-        for which features to consider the sub-populations.
-    boundaries_for_numerical: Dict of List of tuples
-        defining the bins of numerical data.
+import numpy as np
+import numpy.lib.recfunctions as recfn
 
-    Returns
-    -------
-    summary: dict
-        Dictionary of confusion matrices for each sub-population,
-        if checks==None, else, Dictionary of Dictionaries,
-        one for each sub-population.
+from fatf.exceptions import IncorrectShapeError
 
-        """
-    if not boundaries_for_numerical:
-        boundaries_for_numerical = {}
-    self.predictions = predictions
-    multiclass = False
-    classes_list = list(set(self.targets))
-    if len(classes_list) > 2:
-        multiclass = True
+import fatf.utils.array.tools as fuat
+import fatf.utils.array.validation as fuav
 
-    if not requested_checks:
-        if multiclass:
-            requested_checks = list(self.checks_multiclass.keys())
-        else:
-            requested_checks = list(self.checks.keys())
+__all__ = ['systemic_bias', 'systemic_bias_check']
 
-    if not features_to_check:
-        if self.features_to_check is None:
-            raise ValueError('no features to check provided')
-    else:
-        self.features_to_check = features_to_check
-    cross_product = self._get_cross_product(boundaries_for_numerical)
-    summary = {}
-    for combination in cross_product:
-        filtered_predictions, filtered_targets = \
-            self._apply_combination_filter(combination, boundaries_for_numerical)
-        conf_mat = _get_confusion_matrix(filtered_targets,
-                                              filtered_predictions,
-                                              classes_list)
-        if not requested_checks:
-            summary[combination] = conf_mat
-        else:
-            summary[combination] = {}
-            if multiclass:
-                for idx, target_class in enumerate(classes_list):
-                    summary[combination][target_class] = {}
-                    for item in requested_checks:
-                        summary[combination][target_class][item] = \
-                            self.checks_multiclass[item](conf_mat, idx)
-            else:
-                for item in requested_checks:
-                    summary[combination][item] = self.checks[item](conf_mat)
-    return summary
+Index = Union[int, str]  # A column index type
 
 
-def check_sampling_bias(self,
-                        features_to_check: Optional[List[str]] = None,
-                        return_weights: Optional[bool] = False,
-                        boundaries_for_numerical: Optional[Dict[str, np.ndarray]] = None) -> Union[Tuple[dict, np.ndarray], dict]:
-    """ Checks for sampling bias in the dataset.
-
-    Will check if the different sub-populations defined by the
-    features_to_check have similar representation (sample size).
-
-    Parameters
-    ----------
-    features_to_check: List of Strings
-        for which features to consider the sub-populations.
-    return_weights: Boolean
-        on whether to return weights to be used for cost-sensitive learning.
-    boundaries_for_numerical: Dict of List of tuples
-        defining the bins of numerical data.
-
-    Returns
-    -------
-        counts: dict
-            of data for each sub-population defined by the cross-product
-            of the provided features.
-        weights: Optional, np.ndarray
-            weights to be used for cost-sensitive learning.
-
-        """
-    if not boundaries_for_numerical:
-        boundaries_for_numerical = {}
-
-    if not features_to_check:
-        if self.features_to_check is None:
-            raise ValueError('no features to check provided')
-    else:
-        self.features_to_check = features_to_check
-    counts: dict = {}
-    cross_product = self._get_cross_product(boundaries_for_numerical)
-    counts = self._get_counts(cross_product, boundaries_for_numerical)
-    if not return_weights:
-        return counts
-    else:
-        weights = self._get_weights_costsensitivelearning(counts, boundaries_for_numerical)
-        return counts, weights
-
-
-def check_systemic_bias(self,
-                        threshold: float = 0.1) -> list:
-    """ Checks for systemic bias in the dataset.
-
-    Will check if similar instances, that differ only on the
-    protected attribute have been treated differently. Treated
-    refers to the 'target' of the instance.
-
-    Parameters
-    ----------
-    threshold: Float
-        value for what counts as similar. Default to 0.1.
-
-    Returns
-    -------
-    distance_list: list
-        List of pairs of instances that are similar but have been treated
-            differently.
-
+def systemic_bias(dataset: np.ndarray, ground_truth: np.ndarray,
+                  protected_features: List[Index]) -> np.ndarray:
     """
-    n_samples = self.dataset.shape[0]
-    if self.structured_bool:
-        protected = self.dataset[self.protected_field]
-    else:
-        protected = self.dataset[:, self.protected_field].astype(int)
-    distance_list = []
-    for i in range(n_samples):
-        v0 = self.dataset[i]
-        protected0 = protected[i]
-        target0 = self.targets[i]
-        for j in range(i):
-            v1 = self.dataset[j]
-            protected1 = protected[j]
-            target1 = self.targets[j]
-            dist = self._apply_distance_funcs(v0, v1, toignore=[self.protected_field])
+    Checks for systemic bias in a dataset.
 
-            same_protected = protected0 == protected1
-            same_target = target0 == target1
-            if (dist <= threshold and
-                same_protected == False and
-                same_target == False):
-                distance_list.append((dist, (i,j)))
-    return distance_list
+    This function checks whether there exist data points that share the same
+    unprotected features but differ in protected features. For all of these
+    instances their label (ground truth) will be checked and if it is
+    different, a particular data points pair will be indicated to be biased.
+    This dependency is represented as a boolean, square numpy array that shows
+    whether systemic bias exists (``True``) for any pair of data points.
+
+    Parameters
+    ----------
+    dataset : numpy.ndarray
+        A dataset to be evaluated for systemic bias.
+    ground_truth : numpy.ndarray
+        The labels corresponding to the dataset.
+    protected_features : List[column index]
+        A list of column indices in the dataset that hold protected attributes.
+
+    Raises
+    ------
+    IncorrectShapeError
+        The dataset is not a 2-dimensional numpy array, the ground truth is not
+        a 1-dimensional numpy array or the number of rows in the dataset is not
+        equal to the number of elements in the ground truth array.
+    IndexError
+        Some of the column indices given in the ``protected_features`` list are
+        not valid for the input dataset.
+    TypeError
+        The ``protected_features`` parameter is not a list.
+    ValueError
+        There are duplicate values in the protected feature indices list.
+
+    Returns
+    -------
+    systemic_bias_matrix: numpy.ndarray
+        A square, diagonally symmetrical and boolean numpy array that indicates
+        which pair of data point share the same unprotected features but differ
+        in protected features and the ground truth annotation.
+    """
+    if not fuav.is_2d_array(dataset):
+        raise IncorrectShapeError('The dataset should be a 2-dimensional '
+                                  'numpy array.')
+    if not fuav.is_1d_array(ground_truth):
+        raise IncorrectShapeError('The ground truth should be a 1-dimensional '
+                                  'numpy array.')
+    if ground_truth.shape[0] != dataset.shape[0]:
+        raise IncorrectShapeError('The number of rows in the dataset and the '
+                                  'ground truth should be equal.')
+    if isinstance(protected_features, list):
+        pfa = np.asarray(protected_features)
+        if not fuat.are_indices_valid(dataset, pfa):
+            iid = np.sort(fuat.get_invalid_indices(dataset, pfa)).tolist()
+            raise IndexError('The following protected feature indices are not '
+                             'valid for the dataset array: {}.'.format(iid))
+        if len(set(protected_features)) != len(protected_features):
+            raise ValueError('Some of the protected indices are duplicated.')
+    else:
+        raise TypeError('The protected_features parameter should be a list.')
+
+    is_structured = fuav.is_structured_array(dataset)
+
+    if is_structured:
+        unprotected_features_array = recfn.drop_fields(dataset,
+                                                       protected_features)
+        if unprotected_features_array is None:
+            unprotected_features_array = np.ones((dataset.shape[0]),
+                                                 dtype=[('ones', int)])
+    else:
+        unprotected_features_array = np.delete(
+            dataset, protected_features, axis=1)
+        if not unprotected_features_array.size:
+            unprotected_features_array = np.ones((dataset.shape[0], 0))
+
+    assert unprotected_features_array.shape[0] == dataset.shape[0], \
+            'Must share rows number.'
+
+    systemic_bias_columns = []
+    for i in range(unprotected_features_array.shape[0]):
+        if is_structured:
+            equal_unprotected = (
+                unprotected_features_array == unprotected_features_array[i])
+        else:
+            equal_unprotected = np.apply_along_axis(
+                np.array_equal, 1, unprotected_features_array,
+                unprotected_features_array[i, :])
+
+        equal_unprotected_indices = np.where(equal_unprotected)
+
+        # Check whether the ground truth is different for these rows
+        unequal_ground_truth = (ground_truth[i] !=
+                                ground_truth[equal_unprotected_indices])
+
+        equal_unprotected[equal_unprotected_indices] = unequal_ground_truth
+        systemic_bias_columns.append(equal_unprotected)
+
+    systemic_bias_matrix = np.stack(systemic_bias_columns, axis=1)
+    assert np.array_equal(systemic_bias_matrix, systemic_bias_matrix.T), \
+        'The matrix has to be diagonally symmetric.'
+    assert (np.diagonal(systemic_bias_matrix) == False).all(), \
+        'Same elements cannot be systemically biased.'
+    return systemic_bias_matrix
+
+
+def systemic_bias_check(systemic_bias_matrix: np.ndarray) -> bool:
+    """
+    Indicates whether a dataset has a systemic bias.
+
+    Parameters
+    ----------
+    systemic_bias_matrix : numpy.ndarray
+        A square (equal number of rows and columns) boolean numpy array that
+        indicates which pair of data points share the same unprotected features
+        but differ in protected features and ground truth annotation. (The
+        number of rows/columns should be equal to the number of data points in
+        the original data set.)
+
+    Raises
+    ------
+    IncorrectShapeError
+        The systemic bias matrix is not 2-dimensional or square.
+    TypeError
+        The systemic bias matrix is not of boolean type.
+    ValueError
+        The systemic bias matrix is a structured numpy array or is not
+        diagonally symmetric.
+
+    Returns
+    -------
+    systemic_bias_present : boolean
+        ``True`` if systemic bias is present, ``False`` otherwise.
+    """
+    if not fuav.is_2d_array(systemic_bias_matrix):
+        raise IncorrectShapeError('The systemic bias matrix has to be '
+                                  '2-dimensional.')
+    if fuav.is_structured_array(systemic_bias_matrix):
+        raise ValueError('The systemic bias matrix cannot be a structured '
+                         'numpy array.')
+    if systemic_bias_matrix.dtype != bool:
+        raise TypeError('The systemic bias matrix has to be of boolean type.')
+    if systemic_bias_matrix.shape[0] != systemic_bias_matrix.shape[1]:
+        raise IncorrectShapeError('The systemic bias matrix has to be square.')
+    if (not np.array_equal(systemic_bias_matrix, systemic_bias_matrix.T)
+            or (np.diagonal(systemic_bias_matrix) == True).any()):
+        raise ValueError('The systemic bias matrix has to be diagonally '
+                         'symmetric.')
+
+    systemic_bias_present = systemic_bias_matrix.any()
+    return systemic_bias_present

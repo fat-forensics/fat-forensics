@@ -936,9 +936,9 @@ class TestCounterfactualExplainer(object):
         assert str(w[0].message) == wmsg
         assert str(w[1].message) == wmsg
         #
-        assert np.array_equal(cfs, np.array([]))
-        assert np.array_equal(cfs_dist, np.array([]))
-        assert np.array_equal(cfs_pred, np.array([]))
+        assert cfs.size == 0
+        assert cfs_dist.size == 0
+        assert cfs_pred.size == 0
 
         with pytest.warns(UserWarning) as w:
             cfe = ftpc.CounterfactualExplainer(
@@ -956,9 +956,9 @@ class TestCounterfactualExplainer(object):
             np.array(['d', 'd@b.com', '4', '0011']),
             counterfactual_class='good')
         #
-        assert np.array_equal(cfs, np.array([]))
-        assert np.array_equal(cfs_dist, np.array([]))
-        assert np.array_equal(cfs_pred, np.array([]))
+        assert cfs.size == 0
+        assert cfs_dist.size == 0
+        assert cfs_pred.size == 0
 
         cfe = ftpc.CounterfactualExplainer(
             model=self.KNN_STRUCT,

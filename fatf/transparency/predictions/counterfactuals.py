@@ -108,7 +108,8 @@ class CounterfactualExplainer(object):
     counterfactual_feature_indices : List[column indices],
                                      optional (default=None)
         A list of column indices indicating which features should be used to
-        compose counterfactual examples.
+        compose counterfactual examples. If `None`` all of the features will be
+        used to generate counterfactuals.
     max_counterfactual_length : integer, optional (default=2)
         The maximum length of counterfactuals -- the number of features altered
         to compose a counterfactual instance. By default it is set to 2. If set
@@ -179,7 +180,7 @@ class CounterfactualExplainer(object):
         list nor ``None``. The ``numerical_indices`` parameter is neither a
         list nor ``None``. Some of the indices given in these two lists do not
         share a common type -- only all strings or all integers are allowed.
-        The ``counterfactual_feature_indices parameter`` is neither a list nor
+        The ``counterfactual_feature_indices`` parameter is neither a list nor
         ``None``. The ``max_counterfactual_length`` parameter is not an
         integer. The ``feature_ranges`` parameter is neither a dictionary nor
         nor ``None``. A feature range is not a list for a categorical feature
@@ -226,7 +227,7 @@ class CounterfactualExplainer(object):
     all_indices : Set[column indices]
         A set of all the column (feature) indices in the data set from which
         counterfactuals are generated.
-    categorical_indice : Set[column indices]
+    categorical_indices : Set[column indices]
         A set of categorical columns (feature) indices in the data set.
     numerical_indices : Set[column indices]
         A set of numerical columns (feature) indices in the data set.
@@ -894,9 +895,9 @@ class CounterfactualExplainer(object):
         else:
             assert not counterfactuals_distances, 'Should be an empty list.'
             assert not counterfactuals_predictions, 'Should be an empty list.'
-            counterfactuals = np.array([])
-            counterfactuals_distances = np.array([])
-            counterfactuals_predictions = np.array([])
+            counterfactuals = np.ndarray((0, 0))
+            counterfactuals_distances = np.ndarray((0, ))
+            counterfactuals_predictions = np.ndarray((0, ))
 
         return (counterfactuals, counterfactuals_distances,
                 counterfactuals_predictions)

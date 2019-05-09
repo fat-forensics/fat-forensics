@@ -17,6 +17,25 @@ import fatf.utils.models.validation as fumv
 
 __all__ = []
 
+
+def demographic_parity():
+    pass
+
+
+def equal_opportunity():
+    pass
+
+
+def equal_accuracy():
+    pass
+
+
+def disparate_impact():
+    pass
+
+
+
+
 def euc_dist(v0: np.ndarray,
              v1: np.ndarray) -> float:
     return np.linalg.norm(v0 - v1)**2
@@ -65,54 +84,7 @@ class FairnessChecks(object):
         self.targets = targets
         self.distance_funcs = distance_funcs
         self.check_funcs()
-        self.checks = {'accuracy': lambda x: sum(np.diag(x)) / np.sum(x),
-                      'true_positives': lambda x: x[0, 0],
-                      'true_negatives': lambda x: x[1, 1],
-                      'false_positives': lambda x: x[0, 1],
-                      'false_negatives': lambda x: x[1, 0],
-                      'true_positive_rate': tpr,
-                      'true_negative_rate': tnr,
-                      'false_positive_rate': fpr,
-                      'false_negative_rate': fnr,
-                      'treatment': lambda x: x[0, 1] / x[1, 0]
-                      }
 
-        self.checks_multiclass = {'accuracy': lambda x, i: sum(np.diag(x)) / np.sum(x),
-                                  'true_positives': lambda x, i: x[i, i],
-                                  'true_negatives': lambda x, i: np.sum(np.diag(x)) - x[i, i],
-                                  'false_positives': lambda x, i: np.sum(x[i, :]) - x[i, i],
-                                  'false_negatives': lambda x, i: np.sum(x[:, i]) - x[i, i],
-                                  'true_positive_rate': tpr_mc,
-                                  'true_negative_rate': tnr_mc,
-                                  'false_positive_rate': fpr_mc,
-                                  'false_negative_rate': fnr_mc,
-                                  'treatment': treatment_mc
-                                  }
-
-
-    @property
-    def features_to_check(self):
-        return self.__features_to_check
-
-    @features_to_check.setter
-    def features_to_check(self, features_to_check):
-        self.__features_to_check = features_to_check
-
-    @property
-    def distance_funcs(self):
-        return self.__distance_funcs
-
-    @distance_funcs.setter
-    def distance_funcs(self, distance_funcs):
-        self.__distance_funcs = distance_funcs
-
-    @property
-    def targets(self):
-        return self.__targets
-
-    @targets.setter
-    def targets(self, targets):
-        self.__targets = targets
 
     def check_funcs(self):
         distance_funcs_keys = set(self.distance_funcs.keys())
@@ -142,63 +114,6 @@ class FairnessChecks(object):
                 dist += self.distance_funcs[feature](v0[feature], v1[feature])
         return dist
 
-    def _get_weights_costsensitivelearning(self,
-                                           counts: Dict[tuple, dict],
-                                           boundaries_for_numerical: Dict[str, np.array]) -> np.ndarray:
-        """ Computed weights to be used for cost-sensitive learning.
-
-        Computes weights for each instance to be used for cost-sensitive
-        learning. The weights correspond are inversely proportional
-        to the number of occurences of the given combination.
-
-        Parameters
-        ----------
-        counts: Dictionary
-            of the combinations of the features_to_check (cross-product) with
-            their number of occurences.
-        boundaries_for_numerical: Dict of List of tuples
-            defining the bins of numerical data.
-
-        Returns
-        -------
-        weights: np.array
-            of weights, one for each instance.
-
-            """
-        n_samples = self.dataset.shape[0]
-        cumulative = sum([sum(item.values()) for item in counts.values()])
-        comb_weights: dict = {}
-        for key, val in counts.items():
-            comb_weights[key] = cumulative / sum(val.values())
-        indices = list(range(n_samples))
-        weights = np.array(np.zeros(len(indices))).reshape(-1, 1)
-        for comb, vals in comb_weights.items():
-            mask = self._get_mask(self.dataset,
-                                  self.features_to_check,
-                                  comb,
-                                  boundaries_for_numerical)
-            weights[mask] = vals
-        min_weight = np.min(weights)
-        weights /= min_weight
-        return weights
-
-    def _get_counts(self,
-                    cross_product: List[Tuple[Union[int, float, Tuple[int, float]]]],
-                    boundaries_for_numerical: Dict[str, np.array]) -> dict:
-        """
-        Applies the mask on the target_field of the dataset to get the counts.
-        """
-        counts_dict = {}
-        for combination in cross_product:
-            mask = self._get_mask(self.dataset,
-                                  self.features_to_check,
-                                  combination,
-                                  boundaries_for_numerical)
-            unique, counts = np.unique(self.targets[mask], return_counts = True)
-            hist = dict(zip(unique, counts))
-            if len(hist) != 0:
-                counts_dict[combination] =  hist
-        return counts_dict
 
     def _get_cross_product(self,
                            boundaries_for_numerical: Optional[Dict[str, np.array]] = None) -> list:
@@ -272,19 +187,6 @@ class FairnessChecks(object):
         intersection_indices = list(list_of_sets[0].intersection(*list_of_sets))
         mask[intersection_indices] = True
         return mask
-
-    def _get_bins(self,
-                  boundaries: List[int]) -> list:
-        """
-    	Produces bins, given a set of boundaries.
-        Example: boundaries = [20, 40, 60]
-                bins = [(20, 40), (40, 60)]
-        """
-        bins = []
-        n_boundaries = len(boundaries)
-        for i in range(n_boundaries-1):
-            bins.append((boundaries[i], boundaries[i+1]))
-        return bins
 
 
     def _apply_combination_filter(self,
@@ -412,14 +314,6 @@ class FairnessChecks(object):
         filtered_targets = self.targets[mask]
         filtered_predictions = self.predictions[mask]
         return filtered_dataset, filtered_targets, filtered_predictions
-
-    def _remove_field(self,
-                      dataset: np.ndarray,
-                      field: str) -> np.ndarray:
-        field_names = list(dataset.dtype.names)
-        if field in field_names:
-            field_names.remove(field)
-        return dataset[field_names]
 
     def _split_dataset(self,
                        feature: str,

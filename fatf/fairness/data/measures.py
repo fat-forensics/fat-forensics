@@ -89,13 +89,13 @@ def systemic_bias(dataset: np.ndarray, ground_truth: np.ndarray,
         unprotected_features_array = recfn.drop_fields(dataset,
                                                        protected_features)
         if unprotected_features_array is None:
-            unprotected_features_array = np.ones((dataset.shape[0]),
+            unprotected_features_array = np.ones((dataset.shape[0], ),
                                                  dtype=[('ones', int)])
     else:
         unprotected_features_array = np.delete(
             dataset, protected_features, axis=1)
         if not unprotected_features_array.size:
-            unprotected_features_array = np.ones((dataset.shape[0], 0))
+            unprotected_features_array = np.ones((dataset.shape[0], 1))
 
     assert unprotected_features_array.shape[0] == dataset.shape[0], \
             'Must share rows number.'

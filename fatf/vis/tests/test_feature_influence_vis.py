@@ -78,6 +78,16 @@ FAKE_PD_ARRAY = np.array([[0.50, 0.50, 0.00],
                           [0.33, 0.33, 0.34],
                           [0.90, 0.07, 0.03],
                           [0.20, 0.30, 0.40]])  # yapf: disable
+FAKE_VARIANCE_2D = np.array([
+   [[0.10, 0.05, 0.15],
+    [0.20, 0.05, 0.00],
+    [0.05, 0.01, 0.01]],
+   [[0.26, 0.15, 0.21],
+    [0.08, 0.05, 0.01],
+    [0.15, 0.10, 0.17]],
+   [[0.05, 0.01, 0.01],
+    [0.20, 0.05, 0.00],
+    [0.05, 0.01, 0.01]]])
 FAKE_PD_ARRAY_2D = np.array([
    [[0.50, 0.50, 0.00],
     [0.90, 0.07, 0.03],
@@ -99,6 +109,16 @@ FAKE_VARIANCE = np.array([[0.20, 0.05, 0.00],
                           [0.26, 0.15, 0.21],
                           [0.08, 0.05, 0.01],
                           [0.15, 0.10, 0.17]])
+FAKE_VARIANCE_2D = np.array([
+   [[0.10, 0.05, 0.15],
+    [0.20, 0.05, 0.00],
+    [0.05, 0.01, 0.01]],
+   [[0.26, 0.15, 0.21],
+    [0.08, 0.05, 0.01],
+    [0.15, 0.10, 0.17]],
+   [[0.05, 0.01, 0.01],
+    [0.20, 0.05, 0.00],
+    [0.05, 0.01, 0.01]]])
 FAKE_LINESPACE_CAT = np.array(['a', 'b', 'c', 'd', 'e', 'f'])
 
 STRUCT_ARRAY = np.array([(4, 2), (2, 4)], dtype=[('a', int), ('b', int)])
@@ -363,20 +383,19 @@ def test_validate_input():
                              None, False, False)
     assert str(exin.value) == msg
 
-    msg= ('A variance array was provided but a 3-dimensional array was also '
-          'given. To plot a 2-feature partial depenedence, variance cannot '
-          'be used. The variance array will be ignored.')
-    with pytest.warns(UserWarning) as warning:
+    msg= ('The partial dependence array and variance must be the same shape. '
+          'For 2 feature partial dependence, both should be dimensional, '
+          'otherwise, 2-dimensional.')
+    with pytest.raises(ValueError) as exin:
         fvfi._validate_input(NUMERICAL_4D_ARRAY[0], dist, 1, [False, False],
                              None, None, None, NUMERICAL_2D_ARRAY[:, 0], False,
                              True)
-    assert len(warning) == 1
-    assert str(warning[0].message) == msg
+    assert str(exin.value) == msg
 
     # All OK
     assert fvfi._validate_input(NUMERICAL_2D_ARRAY, NUMERICAL_2D_ARRAY[:, 0],
                                 1, False, 'feature name', 'class name', None, 
-                                NUMERICAL_2D_ARRAY[:, 0], True, True)
+                                NUMERICAL_2D_ARRAY, True, True)
     fig, my_plot = plt.subplots(1, 1)
     assert fvfi._validate_input(NUMERICAL_3D_ARRAY, NUMERICAL_2D_ARRAY[:, 0],
                                 1, False, 'feature name', 'class name', my_plot, None,
@@ -390,6 +409,9 @@ def test_validate_input():
     assert fvfi._validate_input(NUMERICAL_4D_ARRAY, dist, 1, False,
                                 ['feature name', 'feature_name'], 'class',
                                 None, None, False, False)
+    assert fvfi._validate_input(NUMERICAL_4D_ARRAY, dist, 1, False,
+                                None, None, None, NUMERICAL_4D_ARRAY, False,
+                                False)
     plt.close(fig=fig)
 
 
@@ -1446,6 +1468,144 @@ def test_plot_individual_conditional_expectation():
     assert text_string == correct_text_string
     plt.close(fig=figure)
 
+    # Test 2-D ICE
+    # Only 2-D iCE
+    msg = ('2-feature individual conditional expectation cannot be visualised '
+           'and as such the mean and variance will be plotted.')
+    with pytest.warns(UserWarning) as warning:
+        figure, plot_axis = fvfi.plot_individual_conditional_expectation(
+            FAKE_ICE_ARRAY_2D, FAKE_LINESPACE_2D, class_index, False, None, 
+            class_name, None)
+    assert len(warning) == 1
+    assert str(warning[0].message) == msg
+
+    assert isinstance(figure, plt.Figure)
+    p_title, p_x_label, p_x_range, p_y_label, p_y_range = futv.get_plot_data(
+        plot_axis)
+    assert p_title == ('Individual Conditional Expectation mean and variance '
+                       'for {}'.format(class_name))
+    assert p_x_label == 'feature 0'
+    assert np.array_equal(p_x_range, np.array([0., 1.]))
+    assert p_y_label == 'feature 1'
+    assert np.array_equal(p_y_range, np.array([0.32, 0.5]))
+    correct_xdata = [0., 0.5, 0.5, 0., 0.5, 1., 1., 0.5, 0., 0.5, 0.5, 0., 0.5,
+                     1., 1., 0.5]
+    correct_ydata = [0.32, 0.32, 0.41, 0.41, 0.32, 0.32, 0.41, 0.41, 0.41, 
+                     0.41, 0.5, 0.5, 0.41, 0.41, 0.5, 0.5]
+    correct_zdata = [0.0049, 0.1149, 0.0242, 0.0156, 0.1149, 
+                     0.0018, 0.0022, 0.0242, 0.0156, 0.0242, 0.0104,
+                     0.0098, 0.0242, 0.0022, 0.0018, 0.0104]
+    surf = plot_axis.get_children()[1]
+    xdata, ydata, zdata, ones = surf._vec
+    assert np.allclose(xdata, correct_xdata)
+    assert np.allclose(ydata, correct_ydata, atol=1e-2)
+    assert np.allclose(zdata, correct_zdata, atol=1e-2)
+    mean = FAKE_ICE_ARRAY_2D.mean(axis=0)
+    facecolors = plt.cm.cividis(mean[:, :, class_index], alpha=0.9)
+    assert np.array_equal(surf._facecolors3d,
+                          facecolors[0:2, 0:2, :].reshape((-1, 4)))
+
+    # 2-D ICE plot should just call 2-D  plot but raise warning with 
+    # distribution plots
+    dist  = (np.array([0., .2, .4, .6, .8, 1.]), 
+             np.array([0.1, 0.2, 0.5, 0.1, 0.1]))
+    dist2 = (np.array(['c', 'b', 'a']),
+             np.array([0.2, 0.3, 0.5]))
+    # Test reordering of values in dist to feature_linespace
+    correct_dist2 = (np.array(['a', 'b', 'c']), np.array([0.5, 0.3, 0.2]))
+    msg = ('2-feature individual conditional expectation cannot be visualised '
+           'and as such the mean and variance will be plotted.')
+    with pytest.warns(UserWarning) as warning:
+        figure, axis = fvfi.plot_individual_conditional_expectation(
+            FAKE_ICE_ARRAY_2D, FAKE_LINESPACE_2D_CAT, class_index,
+            [False, True], ['feature 0', None], None, [dist, dist2])
+    assert len(warning) == 1
+    assert str(warning[0].message) == msg
+
+    assert isinstance(figure, plt.Figure)
+    assert figure._suptitle.get_text() == \
+        ('Individual Conditional Expectation mean and variance for '
+         'class {}'.format(class_index))
+    plot_axis, dist_x, dist_y = axis
+    p_title, p_x_label, p_x_range, p_y_label, p_y_range = futv.get_plot_data(
+        plot_axis)
+    assert p_title == ''
+    assert p_x_label == 'feature 0'
+    assert np.array_equal(p_x_range, np.array([0., 1.]))
+    assert p_y_label == 'feature 1'
+    assert np.array_equal(p_y_range, np.array([0, 3.0]))
+    correct_xdata = [0., 0.5, 0.5, 0., 0.5, 1., 1., 0.5, 0., 0.5, 0.5, 0., 
+                     0.5, 1., 1., 0.5, 0., 0.5, 0.5, 0., 0.5, 1., 1., 0.5]
+    correct_ydata = [0., 0., 1., 1., 0., 0., 1., 1., 1., 1., 2., 2., 1., 1., 
+                     2., 2., 2., 2., 3., 3., 2., 2., 3., 3.]
+    correct_zdata = correct_zdata + [0.0098, 0.0104, 0.0104, 0.0098, 0.0104,
+                                     0.0018, 0.0018, 0.0104]
+    surf = plot_axis.get_children()[1]
+    xdata, ydata, zdata, ones = surf._vec
+    assert np.allclose(xdata, correct_xdata)
+    assert np.allclose(ydata, correct_ydata, atol=1e-2)
+    assert np.allclose(zdata, correct_zdata, atol=1e-2)
+    assert np.array_equal(surf._facecolors3d,
+                          facecolors[:, 0:2, :].reshape((-1, 4)))
+    p_title, p_x_label, p_x_range, p_y_label, p_y_range = futv.get_plot_data(
+        dist_x)
+    assert p_title == ''
+    assert p_x_label == 'Histogram of values for feature 0'
+    assert np.array_equal(p_x_range, np.array([0., 1.]))
+    assert p_y_label == ''
+    assert np.array_equal(p_y_range, np.array([0., 1.05]))
+    bars = dist_x.patches
+    texts = dist_x.texts
+    assert len(bars) == dist[0].shape[0] - 1
+    assert len(texts) == dist[0].shape[0] - 1
+
+    heights = np.array([bar.get_height() for bar in bars])
+    alphas = np.array([bar.get_alpha() for bar in bars])
+    colours = np.array([bar.get_facecolor() for bar in bars])
+    correct_colours = np.repeat(
+        np.array([0.25, 0.41, 0.88, 0.6])[np.newaxis, :], len(bars), axis=0)
+    labels = np.array([text.get_text() for text in dist_x.get_xticklabels()])
+    text_positions = np.array([text.get_position() for text in texts])
+    correct_text_positions = np.stack([dist[0][:-1]+0.1,
+                                       dist[1]], axis=1)
+    text_string = [text.get_text() for text in texts]
+    correct_text_string = ['%.2f'%num for num in dist[1]]
+    assert np.array_equal(dist[1], heights)
+    assert np.array_equal(np.array([0.6]*len(dist[1])), alphas)
+    assert np.allclose(correct_colours, colours, atol=1e-2)
+    assert np.array_equal(correct_text_positions, text_positions)
+    assert text_string == correct_text_string
+
+    p_title, p_x_label, p_x_range, p_y_label, p_y_range = futv.get_plot_data(
+        dist_y)
+    assert p_title == ''
+    assert p_x_label == 'Histogram of values for feature 1'
+    assert np.array_equal(p_y_range, np.array([0, 1.05]))
+    assert p_y_label == ''
+    assert np.array_equal(p_x_range, np.array([-0.5, 3.5]))
+    bars = dist_y.patches
+    texts = dist_y.texts
+    assert len(bars) == dist2[0].shape[0]
+    assert len(texts) == dist2[0].shape[0]
+
+    heights = np.array([bar.get_height() for bar in bars])
+    alphas = np.array([bar.get_alpha() for bar in bars])
+    colours = np.array([bar.get_facecolor() for bar in bars])
+    correct_colours = np.repeat(
+        np.array([0.25, 0.41, 0.88, 0.6])[np.newaxis, :], len(bars), axis=0)
+    labels = np.array([text.get_text() for text in dist_y.get_yticklabels()])
+    text_positions = np.array([text.get_position() for text in texts])
+    correct_text_positions = np.stack([np.array([0., 1.5, 3.]),
+                                       correct_dist2[1]], axis=1)
+    text_string = [text.get_text() for text in texts]
+    correct_text_string = ['%.2f'%num for num in correct_dist2[1]]
+    assert np.array_equal(correct_dist2[1], heights)
+    assert np.array_equal(np.array([0.6]*len(dist2[1])), alphas)
+    assert np.allclose(correct_colours, colours, atol=1e-2)
+    assert np.allclose(correct_text_positions, text_positions)
+    assert text_string == correct_text_string
+    plt.close(figure)
+
 
 def test_plot_partial_dependence():
     """
@@ -2005,6 +2165,33 @@ def test_plot_partial_dependence():
     assert np.array_equal(im.get_extent(), np.array([0.0, 1.0, 0.32, 0.5]))
     assert np.array_equal(im.get_array(), FAKE_PD_ARRAY_2D[:, :, 1])
 
+    figure, plot_axis = fvfi.plot_partial_dependence(
+        FAKE_PD_ARRAY_2D, (FAKE_LINESPACE_2D_CAT[1], FAKE_LINESPACE_2D_CAT[0]),
+        class_index, [True, False], FAKE_VARIANCE_2D, False, None, class_name)
+    assert isinstance(figure, plt.Figure)
+    p_title, p_x_label, p_x_range, p_y_label, p_y_range = futv.get_plot_data(
+        plot_axis)
+    assert p_title == 'Partial Dependence for {}'.format(class_name)
+    assert p_x_label == 'feature 0'
+    assert np.array_equal(p_x_range, np.array([0.0, 3.0]))
+    assert p_y_label == 'feature 1'
+    assert np.array_equal(p_y_range, np.array([0., 1.]))
+    correct_xdata = [0., 1., 1., 0., 1., 2., 2., 1., 2., 3., 3., 2., 0., 1., 
+                     1., 0., 1., 2., 2., 1., 2., 3., 3., 2.]
+    correct_ydata = [0., 0., 0.5, 0.5, 0., 0., 0.5, 0.5, 0., 0., 0.5, 0.5,
+                     0.5, 0.5, 1., 1., 0.5, 0.5, 1., 1., 0.5, 0.5, 1., 1.,]
+    correct_zdata = [0.05, 0.05, 0.05, 0.15, 0.05, 0.01, 0.1, 0.05, 0.01, 
+                     0.01, 0.1, 0.1, 0.15, 0.05, 0.05, 0.01, 0.05, 0.1, 0.01,
+                     0.05, 0.1, 0.1, 0.01, 0.01]
+    surf = plot_axis.get_children()[1]
+    xdata, ydata, zdata, ones = surf._vec
+    assert np.array_equal(xdata, correct_xdata)
+    assert np.array_equal(ydata, correct_ydata)
+    assert np.array_equal(zdata, correct_zdata)
+    facecolors = plt.cm.cividis(FAKE_PD_ARRAY_2D[:, :, class_index], alpha=0.9)
+    assert np.array_equal(surf._facecolors3d,
+                          facecolors[0:2, :, :].reshape((-1, 4)))
+
     # Test 2-D Partial Dependence with PD plot with feature distributions
     dist  = (np.array([0., .2, .4, .6, .8, 1.]), 
              np.array([0.1, 0.2, 0.5, 0.1, 0.1]))
@@ -2183,6 +2370,109 @@ def test_plot_partial_dependence():
     assert np.allclose(correct_text_positions, text_positions)
     assert text_string == correct_text_string
     assert len(labels) == 0
+
+
+    # Test 2-D Partial Dependence with PD plot with feature distributions
+    # with one string with variance
+    dist  = (np.array([0., .2, .4, .6, .8, 1.]), 
+             np.array([0.1, 0.2, 0.5, 0.1, 0.1]))
+    dist2 = (np.array(['c', 'b', 'a']), 
+             np.array([0.2, 0.3, 0.5]))
+    # Test reordering of values in dist to feature_linespace
+    correct_dist2 = (np.array(['a', 'b', 'c']), np.array([0.5, 0.3, 0.2]))
+    msg = ('Selected feature is categorical (string-base elements), however '
+           'the treat_as_categorical was set to False. Such a combination is '
+           'not possible. The feature will be treated as categorical.')
+    with pytest.warns(UserWarning) as warning:
+        figure, axis = fvfi.plot_partial_dependence(
+            FAKE_PD_ARRAY_2D, FAKE_LINESPACE_2D_CAT, class_index, False,
+            FAKE_VARIANCE_2D, False, ['feature 0', None], None, [dist, dist2])
+    assert len(warning) == 1
+    assert str(warning[0].message) == msg
+
+    assert isinstance(figure, plt.Figure)
+    assert figure._suptitle.get_text() == \
+        'Partial Dependence for class {}'.format(class_index)
+    plot_axis, dist_x, dist_y = axis
+    p_title, p_x_label, p_x_range, p_y_label, p_y_range = futv.get_plot_data(
+        plot_axis)
+    assert p_title == ''
+    assert p_x_label == 'feature 0'
+    assert np.array_equal(p_x_range, np.array([0., 1.]))
+    assert p_y_label == 'feature 1'
+    assert np.array_equal(p_y_range, np.array([0, 3.0]))
+    correct_xdata = [0., 0.5, 0.5, 0., 0.5, 1., 1., 0.5, 0., 0.5, 0.5, 0., 
+                     0.5, 1., 1., 0.5, 0., 0.5, 0.5, 0., 0.5, 1., 1., 0.5]
+    correct_ydata = [0., 0., 1., 1., 0., 0., 1., 1., 1., 1., 2., 2., 1., 1., 
+                     2., 2., 2., 2., 3., 3., 2., 2., 3., 3.]
+    correct_zdata = [0.05, 0.05, 0.05, 0.15, 0.05, 0.01, 0.1, 0.05, 0.15, 0.05,
+                     0.05, 0.01, 0.05, 0.1, 0.01, 0.05, 0.01, 0.05, 0.05, 0.01,
+                     0.05, 0.01, 0.01, 0.05]
+    surf = plot_axis.get_children()[1]
+    xdata, ydata, zdata, ones = surf._vec
+    assert all(xdata == correct_xdata)
+    assert all(ydata == correct_ydata)
+    assert all(zdata == correct_zdata)
+    facecolors = plt.cm.cividis(FAKE_PD_ARRAY_2D[:, :, class_index], alpha=0.9)
+    assert np.array_equal(surf._facecolors3d,
+                          facecolors[:, 0:2, :].reshape((-1, 4)))
+    p_title, p_x_label, p_x_range, p_y_label, p_y_range = futv.get_plot_data(
+        dist_x)
+    assert p_title == ''
+    assert p_x_label == 'Histogram of values for feature 0'
+    assert np.array_equal(p_x_range, np.array([0., 1.]))
+    assert p_y_label == ''
+    assert np.array_equal(p_y_range, np.array([0., 1.05]))
+    bars = dist_x.patches
+    texts = dist_x.texts
+    assert len(bars) == dist[0].shape[0] - 1
+    assert len(texts) == dist[0].shape[0] - 1
+
+    heights = np.array([bar.get_height() for bar in bars])
+    alphas = np.array([bar.get_alpha() for bar in bars])
+    colours = np.array([bar.get_facecolor() for bar in bars])
+    correct_colours = np.repeat(
+        np.array([0.25, 0.41, 0.88, 0.6])[np.newaxis, :], len(bars), axis=0)
+    labels = np.array([text.get_text() for text in dist_x.get_xticklabels()])
+    text_positions = np.array([text.get_position() for text in texts])
+    correct_text_positions = np.stack([dist[0][:-1]+0.1,
+                                       dist[1]], axis=1)
+    text_string = [text.get_text() for text in texts]
+    correct_text_string = ['%.2f'%num for num in dist[1]]
+    assert np.array_equal(dist[1], heights)
+    assert np.array_equal(np.array([0.6]*len(dist[1])), alphas)
+    assert np.allclose(correct_colours, colours, atol=1e-2)
+    assert np.array_equal(correct_text_positions, text_positions)
+    assert text_string == correct_text_string
+
+    p_title, p_x_label, p_x_range, p_y_label, p_y_range = futv.get_plot_data(
+        dist_y)
+    assert p_title == ''
+    assert p_x_label == 'Histogram of values for feature 1'
+    assert np.array_equal(p_y_range, np.array([0, 1.05]))
+    assert p_y_label == ''
+    assert np.array_equal(p_x_range, np.array([-0.5, 3.5]))
+    bars = dist_y.patches
+    texts = dist_y.texts
+    assert len(bars) == dist2[0].shape[0]
+    assert len(texts) == dist2[0].shape[0]
+
+    heights = np.array([bar.get_height() for bar in bars])
+    alphas = np.array([bar.get_alpha() for bar in bars])
+    colours = np.array([bar.get_facecolor() for bar in bars])
+    correct_colours = np.repeat(
+        np.array([0.25, 0.41, 0.88, 0.6])[np.newaxis, :], len(bars), axis=0)
+    labels = np.array([text.get_text() for text in dist_y.get_yticklabels()])
+    text_positions = np.array([text.get_position() for text in texts])
+    correct_text_positions = np.stack([np.array([0., 1.5, 3.]),
+                                       correct_dist2[1]], axis=1)
+    text_string = [text.get_text() for text in texts]
+    correct_text_string = ['%.2f'%num for num in correct_dist2[1]]
+    assert np.array_equal(correct_dist2[1], heights)
+    assert np.array_equal(np.array([0.6]*len(dist2[1])), alphas)
+    assert np.allclose(correct_colours, colours, atol=1e-2)
+    assert np.allclose(correct_text_positions, text_positions)
+    assert text_string == correct_text_string
     plt.close(figure)
 
 

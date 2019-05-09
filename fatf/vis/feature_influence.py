@@ -162,12 +162,6 @@ def _validate_input(ice_pdp_array: np.ndarray,
                                  'provide a list of length 2 containing '
                                  'strings or None.')
         if isinstance(variance, np.ndarray):
-            if len(ice_pdp_array.shape) == 3:
-                msg = ('A variance array was provided but a 3-dimensional '
-                       'array was also given. To plot a 2-feature partial '
-                       'depenedence, variance cannot be used. The variance '
-                       'array will be ignored.')
-                warnings.warn(msg, category=UserWarning)
             if fuav.is_structured_array(variance):
                 raise ValueError('The variance array cannot be a structured '
                                  'array.')
@@ -180,6 +174,11 @@ def _validate_input(ice_pdp_array: np.ndarray,
                     'the number of linespace steps ({}) in the input '
                     'array.'.format(variance.shape[0], 
                                     ice_pdp_array.shape[-2]))
+            if len(ice_pdp_array.shape) != len(variance.shape):
+                raise ValueError('The partial dependence array and variance '
+                                 'must be the same shape. For 2 feature '
+                                 'partial dependence, both should be '
+                                 'dimensional, otherwise, 2-dimensional.')
         else:
             if variance_area:
                 raise ValueError('Variance vector has not been given but '
@@ -473,18 +472,32 @@ def _prepare_a_canvas(
         else:
             if feature_name is None:
                 feature_name = 'Selected Feature\'s Linespace'
-        projection = '3d' if plot_axis_3d else None
+        sharex, sharey = None, None
+        if plot_axis_3d:
+            projection = '3d'
+            width_ratios = [1, 1]
+            height_ratios = [4, 1]
+            pos = [0, 1]
+        else:
+            projection = None
+            width_ratios, height_ratios = [3, 1], [1, 4]
+            pos = [1, 0]
         plot_figure = plt.figure()
         if plot_distribution:
             if is_2d:
-                gs = gridspec.GridSpec(2, 2, width_ratios=[3, 1], 
-                                       height_ratios = [1, 4])
-                plot_axis = plot_figure.add_subplot(gs[1, 0],frameon = False,
+                gs = gridspec.GridSpec(2, 2, width_ratios=width_ratios, 
+                                       height_ratios=height_ratios)
+                if plot_axis_3d:
+                    plot_axis = plot_figure.add_subplot(gs[pos[0], :],
                                                     projection=projection)
+                else:
+                    plot_axis = plot_figure.add_subplot(gs[pos[0], 0],
+                                                        projection=projection)
+                    sharex, sharey = plot_axis, plot_axis
                 dist_axis_x = plot_figure.add_subplot(
-                    gs[0,0], sharex=plot_axis, frameon=True)
+                    gs[pos[1],0], sharex=sharex, frameon=True)
                 dist_axis_y = plot_figure.add_subplot(
-                    gs[1, 1], sharey=plot_axis, frameon=True)
+                    gs[1, 1], sharey=sharey, frameon=True)
                 dist_axis_x.set_xlim(x_range)
                 dist_axis_x.set_ylim([-0.05, 1.05])
                 dist_axis_y.set_ylim(y_range)
@@ -508,7 +521,7 @@ def _prepare_a_canvas(
             plot_axis.set_ylim(np.array([-0.05, 1.05]))
             plot_axis.set_ylabel('{} class probability'.format(class_name))
         if plot_axis_3d:
-            plot_axis.set_zlabel('Instances')
+            plot_axis.set_zlabel('Variance')
             plot_axis.set_zticklabels([])
     else:
         plot_figure = None
@@ -705,6 +718,7 @@ def _plot_2_feature_distribution(
     treat_as_categorical: List[bool],
     feature_linespace: Tuple[np.ndarray, np.ndarray],
     feature_name: List[str],
+    orientation: List[str],
     axis: Tuple[plt.Axes, plt.Axes]
 ) -> Tuple[plt.Axes, plt.Axes]:
     """
@@ -726,7 +740,7 @@ def _plot_2_feature_distribution(
     for categorical, distribution, linespace, name, ax, orientation in \
             zip(treat_as_categorical, feature_distribution, 
             feature_linespace, feature_name, axis, 
-            ['vertical', 'horizontal']):
+            orientation):
         if categorical:
             # Get feature_distribution in same order as feature_linespace
             values, counts = distribution
@@ -739,10 +753,6 @@ def _plot_2_feature_distribution(
         _, ax = plot_feature_distribution(
             distribution, categorical, name, plot_axis=ax,
             orientation=orientation)
-    axis[0].tick_params(axis='x', which='both', bottom=False,
-                            top=False, labelbottom=False)
-    axis[1].tick_params(axis='y', which='both', bottom=False,
-                            top=False, labelleft=False)
     return axis
 
 
@@ -770,7 +780,8 @@ def _plot_individual_conditional_expectation_1d(
         is ``None`` when the user passed in ``plot_axis`` attribute, otherwise,
         when a blank plot is created, this is a figure object holding the plot
         axis (``plot_axis``).
-    plot_axis : Union[matplotlib.pyplot.Axes, Tuple[matplotlib.pyplot.Axes, ...]]]
+    plot_axis : Union[matplotlib.pyplot.Axes,
+            Tuple[matplotlib.pyplot.Axes, ...]]]
         A matplotlib axes with the ICE plot or a tuple of matplotlib axes of
         length 2 where the first element is the axes with the ICE plot and the
         second axes has the feature distribution.
@@ -856,77 +867,33 @@ def _plot_individual_conditional_expectation_2d(
         is ``None`` when the user passed in ``plot_axis`` attribute, otherwise,
         when a blank plot is created, this is a figure object holding the plot
         axis (``plot_axis``).
-    plot_axis : Union[matplotlib.pyplot.Axes, Tuple[matplotlib.pyplot.Axes, ...]]]
+    plot_axis : Union[matplotlib.pyplot.Axes,
+            Tuple[matplotlib.pyplot.Axes, ...]]]
         A matplotlib axes with the ICE plot or a tuple of matplotlib axes of
         length 3 where the first element is the axes with the ICE plot and the
         second axes has the feature distribution for the first feature, and the
         third axes ha the feature distribution for the second feature.
     """
-    plot_distribution = feature_distribution is not None
+    msg = ('2-feature individual conditional expectation cannot be visualised '
+           'and as such the mean and variance will be plotted.')
+    warnings.warn(msg, category=UserWarning)
+    pd_array = ice_array.mean(axis=0)
+    var = ice_array.var(axis=0)
 
-    if len(feature_name) == 1 and feature_name[0] is None:
-        feature_name = ['feature {}'.format(0),
-                        'feature {}'.format(1)]
-    else:
-        if feature_name [0] is None:
-            feature_name [0] = 'feature {}'.format(0)
-        if feature_name[1] is None:
-            feature_name[1] = 'feature {}'.format(1)
+    plot_figure, plot_axis = _plot_partial_dependence_2d(
+        pd_array, feature_linespace, class_index, treat_as_categorical, var,
+        feature_name, class_name, feature_distribution, plot_axis)
 
     if class_name is None:
         class_name = 'class {}'.format(class_index)
 
-    plot_title = 'Individual Conditional Expectation'
-    plot_distribution = feature_distribution[0] is not None
+    title = ('Individual Conditional Expectation mean and variance for '
+            '{}'.format(class_name))
 
-    locs, ranges, strides = [], [], []
-    for categorical, linespace in zip(treat_as_categorical, feature_linespace):
-        if categorical:
-            ranges.append([-0.5, len(linespace)+0.5])
-            locs.append(np.linspace(0, linespace.shape[0], len(linespace)))
-            strides.append(1.5)
-        else:
-            ranges.append([linespace[0], linespace[-1]])
-            locs.append([])
-            strides.append(linespace[1]-linespace[0])
-
-    x_range, y_range = ranges[0], ranges[1]
-    x_locs, y_locs = locs[0], locs[1]
-    x_stride, y_stride = strides[0], strides[1]
-    plot_figure, plot_axis = _prepare_a_canvas(
-        plot_title, plot_axis, class_index, class_name, feature_name, x_range,
-        plot_distribution, True, y_range, True)
-
-    plot_axis.set_zlim([0.5, ice_array.shape[0]+0.5])
-    if plot_distribution:
-        (plot_axis, dist_axis_x, dist_axis_y) = plot_axis
-        plot_axis.set_title('')
-        if isinstance(plot_figure, plt.Figure):
-            plot_figure.suptitle('Partial Dependence for {}'.format(class_name))
-        dist_axis_x, dist_axis_y = _plot_2_feature_distribution(
-            feature_distribution, treat_as_categorical, feature_linespace,
-            feature_name, (dist_axis_x, dist_axis_y))
-
-    if plot_distribution:
-        plot_axis = (plot_axis, dist_axis_x, dist_axis_y)
-
-    img = ice_array[0, :, :, class_index]
-    x, y = np.meshgrid(np.linspace(x_range[0],x_range[1],img.shape[0]), np.linspace(y_range[0],y_range[1],img.shape[1]))
-    for i in range(0, ice_array.shape[0]):
-        Z = (i)*np.ones(x.shape)
-        facecolors = plt.cm.cividis(ice_array[i, :, :, class_index], alpha=0.3)
-        plot_axis.plot_surface(x, y, Z, rstride=1, cstride=1, 
-                           facecolors=facecolors, vmin=0, vmax=1, shade=True)
-
-    #plot_axis.plot_surface(x1, x2, Z, rstride=1, cstride=1,
-    #                      cmap=plt.cm.cividis, vmin=0, vmax=1)
-    # tight_layout with gridspecs raise a warning that the results might
-    # be incorrect. (Problem seen here 
-    # https://matplotlib.org/gallery/subplots_axes_and_figures/demo_tight_layout.html)
-    if isinstance(plot_figure, plt.Figure):
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore", UserWarning)
-            plot_figure.tight_layout(rect=[0.05, 0.05, 1, 0.95])
+    if feature_distribution[0] is not None:
+        plot_figure.suptitle(title)
+    else:
+        plot_axis.set_title(title)
 
     return plot_figure, plot_axis
 
@@ -1025,10 +992,10 @@ def plot_individual_conditional_expectation(
         if treat_as_categorical[i] is None:
             treat_as_categorical[i] = is_categorical_column[i]
         elif not treat_as_categorical[i] and is_categorical_column[i]:
-            message = ('Selected feature is categorical (string-base elements), '
-                    'however the treat_as_categorical was set to False. Such '
-                    'a combination is not possible. The feature will be '
-                    'treated as categorical.')
+            message = ('Selected feature is categorical (string-base '
+                       'elements), however the treat_as_categorical was set '
+                       'to False. Such a combination is not possible. The '
+                       'feature will be treated as categorical.')
             warnings.warn(message, category=UserWarning)
             treat_as_categorical[i] = True
 
@@ -1070,7 +1037,8 @@ def _plot_partial_dependence_1d(
         is ``None`` when the user passed in ``plot_axis`` attribute, otherwise,
         when a blank plot is created, this is a figure object holding the plot
         axis (``plot_axis``).
-    plot_axis : Union[matplotlib.pyplot.Axes, Tuple[matplotlib.pyplot.Axes, ...]]]
+    plot_axis : Union[matplotlib.pyplot.Axes,
+            Tuple[matplotlib.pyplot.Axes, ...]]]
         A matplotlib axes with the PD plot or a tuple of matplotlib axes of
         length 2 where the first element is the axes with the PD plot and the
         second axes has the feature distribution.
@@ -1083,10 +1051,10 @@ def _plot_partial_dependence_1d(
                              len(feature_linespace))
     else:
         x_range = [feature_linespace[0], feature_linespace[-1]]
+    plot_variance = True if variance is not None else False
     plot_figure, plot_axis = _prepare_a_canvas(
         plot_title, plot_axis, class_index, class_name, feature_name, x_range,
         plot_distribution)
-
     if plot_distribution:
         (plot_axis, dist_axis) = plot_axis
         if treat_as_categorical:
@@ -1157,6 +1125,7 @@ def _plot_partial_dependence_2d(
     feature_linespace: Tuple[np.ndarray, np.ndarray],
     class_index: int,
     treat_as_categorical: Optional[bool] = None,
+    variance: Optional[np.ndarray] = None,
     feature_name: Optional[List[str]] = None,
     class_name: Optional[str] = None,
     feature_distribution : Optional[Tuple[np.ndarray, ...]] = None,
@@ -1194,42 +1163,105 @@ def _plot_partial_dependence_2d(
     if class_name is None:
         class_name = 'class {}'.format(class_index)
 
+    if variance is not None:
+        plot_variance = True
+        orientation = ['vertical', 'vertical']
+    else:
+        plot_variance = False
+        orientation = ['vertical', 'horizontal']
+
+    if pd_array[:, :, class_index].min() < 0.0:
+        vmin = pd_array[:, :, class_index].min()
+    else:
+        vmin = 0
+    if pd_array[:, :, class_index].max() > 1.0:
+        vmax = pd_array[:, :, class_index].max()
+    else:
+        vmax = 1.0
+
     plot_title = 'Partial Dependence for {}'.format(class_name)
     plot_distribution = feature_distribution[0] is not None
 
     locs, ranges = [], []
     for categorical, linespace in zip(treat_as_categorical, feature_linespace):
         if categorical:
-            ranges.append([-0.5, len(linespace)+0.5])
-            locs.append(np.linspace(0, linespace.shape[0], len(linespace)))
+            # Need to fix spacing so labels appear in the middle of partitions
+            # if 3-D plot with variance
+            if plot_variance:
+                ranges.append([0, linespace.shape[0]])
+                locs.append(np.arange(0.5, linespace.shape[0], 1))
+            else:
+                ranges.append([-0.5, len(linespace)+0.5])
+                locs.append(np.linspace(0, linespace.shape[0], len(linespace)))
         else:
             ranges.append([linespace[0], linespace[-1]])
             locs.append([])
     x_range, y_range = ranges[0], ranges[1]
     x_locs, y_locs = locs[0], locs[1]
-
     plot_figure, plot_axis = _prepare_a_canvas(
         plot_title, plot_axis, class_index, class_name, feature_name, x_range,
-        plot_distribution, True, y_range)
+        plot_distribution, True, y_range, plot_variance)
 
     if plot_distribution:
         (plot_axis, dist_axis_x, dist_axis_y) = plot_axis
         plot_axis.set_title('')
         if isinstance(plot_figure, plt.Figure):
-            plot_figure.suptitle('Partial Dependence for {}'.format(class_name))
+            plot_figure.suptitle('Partial Dependence for '
+                                 '{}'.format(class_name))
         dist_axis_x, dist_axis_y = _plot_2_feature_distribution(
             feature_distribution, treat_as_categorical, feature_linespace,
-            feature_name, (dist_axis_x, dist_axis_y))
-
-    im = plot_axis.imshow(pd_array[:, :, class_index], extent=x_range+y_range,
-                          origin='lower', cmap=plt.cm.cividis, aspect='auto',
-                          vmin=0., vmax=1.)
+            feature_name, orientation,
+            (dist_axis_x, dist_axis_y))
+        if not plot_variance:
+            dist_axis_x.tick_params(axis='x', which='both', bottom=False,
+                                        top=False, labelbottom=False)
+            dist_axis_y.tick_params(axis='y', which='both', bottom=False,
+                                    top=False, labelleft=False)
     plot_figure.subplots_adjust(left=0.80)
+    if treat_as_categorical[0]:
+        plot_axis.set_xticks(x_locs)
+        plot_axis.set_yticklabels(feature_linespace[0])
+    if treat_as_categorical[1]:
+        plot_axis.set_yticks(y_locs)
+        plot_axis.set_yticklabels(feature_linespace[1])
     cbar_ax = plot_figure.add_axes([0.05, 0.18, 0.02, 0.5])
-    cbar = plot_figure.colorbar(im, cax=cbar_ax, aspect=5)
+    pd_plot = pd_array[:, :, class_index]
+    if plot_variance:
+        var_plot = variance[:, :, class_index]
+        if treat_as_categorical[0]:
+            x_lin = np.arange(x_range[0], x_range[1]+1, 1)
+            repeated_pd, repeated_var = pd_plot[:, -1], var_plot[:, -1]
+            pd_plot = np.hstack([pd_plot, repeated_pd[:, np.newaxis]])
+            var_plot = np.hstack([var_plot, repeated_var[:, np.newaxis]])
+        else:
+            x_lin = np.linspace(x_range[0],x_range[1], pd_array.shape[0])
+        if treat_as_categorical[1]:
+            y_lin = np.arange(y_range[0], y_range[1]+1, 1)
+            repeated_pd, repeated_var = pd_plot[-1, :], var_plot[-1, :]
+            pd_plot = np.vstack([pd_plot, repeated_pd[np.newaxis, :]])
+            var_plot = np.vstack([var_plot, repeated_var[np.newaxis, :]])
+        else:
+            y_lin = np.linspace(y_range[0],y_range[1],
+                                pd_array.shape[1])
+        x, y = np.meshgrid(x_lin, y_lin)
+        plot_axis.set_zlim([var_plot.min(), var_plot.max()])
+        facecolors = plt.cm.cividis(pd_plot, alpha=0.9)
+        surf = plot_axis.plot_surface(
+            x, y, var_plot, rstride=1, cstride=1, 
+            facecolors=facecolors, vmin=vmin, vmax=vmax, shade=False)
+        m = plt.cm.ScalarMappable(cmap=plt.cm.cividis)
+        m.set_array([])
+        cbar = plot_figure.colorbar(m, cax=cbar_ax, aspect=5)
+        cbar.ax.set_ylabel('Probability')
+    else:
+        im = plot_axis.imshow(
+            pd_plot, extent=x_range+y_range, 
+            origin='lower', cmap=plt.cm.cividis, aspect='auto', vmin=vmin,
+            vmax=vmax)
+        cbar = plot_figure.colorbar(im, cax=cbar_ax, aspect=5)
+        cbar.ax.set_ylabel('Probability')
     cbar.ax.tick_params(labelsize=10)
     cbar_ax.yaxis.set_ticks_position('left')
-
     if plot_distribution:
         plot_axis = (plot_axis, dist_axis_x, dist_axis_y)
 
@@ -1321,7 +1353,8 @@ def plot_partial_dependence(
         is ``None`` when the user passed in ``plot_axis`` attribute, otherwise,
         when a blank plot is created, this is a figure object holding the plot
         axis (``plot_axis``).
-    plot_axis : Union[matplotlib.pyplot.Axes, Tuple[matplotlib.pyplot.Axes, ...]]]
+    plot_axis : Union[matplotlib.pyplot.Axes,
+            Tuple[matplotlib.pyplot.Axes, ...]]]
         A matplotlib axes with the PD plot or a tuple of matplotlib axes of
         length 2 where the first element is the axes with the PD plot and the
         second axes has the feature distribution for the first feature. Can
@@ -1361,17 +1394,18 @@ def plot_partial_dependence(
         if treat_as_categorical[i] is None:
             treat_as_categorical[i] = is_categorical_column[i]
         elif not treat_as_categorical[i] and is_categorical_column[i]:
-            message = ('Selected feature is categorical (string-base elements), '
-                    'however the treat_as_categorical was set to False. Such '
-                    'a combination is not possible. The feature will be '
-                    'treated as categorical.')
+            message = ('Selected feature is categorical (string-base '
+                       'elements), however the treat_as_categorical was set '
+                       'to False. Such a combination is not possible. The '
+                       'feature will be treated as categorical.')
             warnings.warn(message, category=UserWarning)
             treat_as_categorical[i] = True
 
     if is_2d:
         plot_figure, plot_axis = _plot_partial_dependence_2d(
             pd_array, feature_linespace, class_index, treat_as_categorical,
-            feature_name, class_name, feature_distribution, plot_axis)
+            variance, feature_name, class_name, feature_distribution,
+            plot_axis)
     else:
         plot_figure, plot_axis = _plot_partial_dependence_1d(
             pd_array, feature_linespace[0], class_index, 

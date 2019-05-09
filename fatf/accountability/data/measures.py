@@ -5,8 +5,6 @@ Implements data accountability measures.
 #         Rafael Poyiadzi <rp13102@bristol.ac.uk>
 # License: new BSD
 
-import warnings
-
 from numbers import Number
 from typing import List, Optional, Tuple, Union
 
@@ -22,12 +20,11 @@ __all__ = ['sampling_bias',
 Index = Union[int, str]  # A column index type
 
 
-def sampling_bias(
-        dataset: np.ndarray,
-        column_index: Index,
-        groupings: Optional[List[Union[Number, Tuple[str]]]] = None,
-        numerical_bins_number: int = 5
-) -> Tuple[List[int], np.ndarray, List[str]]:
+def sampling_bias(dataset: np.ndarray,
+                  column_index: Index,
+                  groupings: Optional[List[Union[Number, Tuple[str]]]] = None,
+                  numerical_bins_number: int = 5
+                  ) -> Tuple[List[int], np.ndarray, List[str]]:
     """
     Computes information needed for evaluating and remedying sampling bias.
 
@@ -84,8 +81,8 @@ def sampling_bias(
     return counts, weights, bin_names
 
 
-def sampling_bias_indexed(indices_per_bin: List[List[int]]
-                          ) -> Tuple[List[int], np.ndarray]:
+def sampling_bias_indexed(
+        indices_per_bin: List[List[int]]) -> Tuple[List[int], np.ndarray]:
     """
     Computes information needed for evaluating and remedying sampling bias.
 
@@ -126,8 +123,8 @@ def sampling_bias_indexed(indices_per_bin: List[List[int]]
     return counts, weights
 
 
-def sampling_bias_grid_check(counts: List[int],
-                             threshold: Number = 0.8) -> np.ndarray:
+def sampling_bias_grid_check(  # type: ignore
+        counts: List[int], threshold: Number = 0.8) -> np.ndarray:
     """
     Checks for a pairwise sampling bias based on the provided threshold.
 
@@ -167,7 +164,7 @@ def sampling_bias_grid_check(counts: List[int],
     assert _validate_threshold(threshold), 'Invalid threshold parameter.'
 
     counts_array = np.asarray(counts)
-    inv_threshold = 1 - threshold
+    inv_threshold = 1 - threshold  # type: ignore
     # Get pairwise proportions
     proportions = counts_array[np.newaxis, :] / counts_array[:, np.newaxis]
     proportions = np.abs(proportions - 1)
@@ -179,7 +176,8 @@ def sampling_bias_grid_check(counts: List[int],
     return grid_check
 
 
-def sampling_bias_check(counts: List[int], threshold: Number = 0.8) -> bool:
+def sampling_bias_check(  # type: ignore
+        counts: List[int], threshold: Number = 0.8) -> bool:
     """
     Checks for a pairwise sampling bias based on the provided threshold.
 
@@ -261,7 +259,7 @@ def _validate_threshold(threshold: Number) -> bool:
     is_valid = False
 
     if isinstance(threshold, Number):
-        if threshold < 0 or threshold > 1:
+        if threshold < 0 or threshold > 1:  # type: ignore
             raise ValueError('The threshold should be between 0 and 1 '
                              'inclusive.')
     else:
@@ -295,7 +293,7 @@ def _get_weights(indices_per_bin: List[List[int]]) -> np.ndarray:
         An array of weights, one for each instance.
     """
     assert isinstance(indices_per_bin, list), 'Must be a list.'
-    flat_list = []
+    flat_list = []  # type: List[int]
     for indices_bin in indices_per_bin:
         assert isinstance(indices_bin, list), 'Must be a list.'
         flat_list += indices_bin

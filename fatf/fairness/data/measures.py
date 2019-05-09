@@ -5,8 +5,7 @@ Implements data fairness measures.
 #         Rafael Poyiadzi <rp13102@bristol.ac.uk>
 # License: new BSD
 
-from numbers import Number
-from typing import List, Optional, Tuple, Union
+from typing import List, Union
 
 import numpy as np
 import numpy.lib.recfunctions as recfn
@@ -63,6 +62,7 @@ def systemic_bias(dataset: np.ndarray, ground_truth: np.ndarray,
         which pair of data point share the same unprotected features but differ
         in protected features and the ground truth annotation.
     """
+    # pylint: disable=too-many-branches
     if not fuav.is_2d_array(dataset):
         raise IncorrectShapeError('The dataset should be a 2-dimensional '
                                   'numpy array.')
@@ -98,7 +98,7 @@ def systemic_bias(dataset: np.ndarray, ground_truth: np.ndarray,
             unprotected_features_array = np.ones((dataset.shape[0], 1))
 
     assert unprotected_features_array.shape[0] == dataset.shape[0], \
-            'Must share rows number.'
+        'Must share rows number.'
 
     systemic_bias_columns = []
     for i in range(unprotected_features_array.shape[0]):
@@ -113,8 +113,8 @@ def systemic_bias(dataset: np.ndarray, ground_truth: np.ndarray,
         equal_unprotected_indices = np.where(equal_unprotected)
 
         # Check whether the ground truth is different for these rows
-        unequal_ground_truth = (ground_truth[i] !=
-                                ground_truth[equal_unprotected_indices])
+        unequal_ground_truth = (ground_truth[i]
+                                != ground_truth[equal_unprotected_indices])
 
         equal_unprotected[equal_unprotected_indices] = unequal_ground_truth
         systemic_bias_columns.append(equal_unprotected)
@@ -122,7 +122,7 @@ def systemic_bias(dataset: np.ndarray, ground_truth: np.ndarray,
     systemic_bias_matrix = np.stack(systemic_bias_columns, axis=1)
     assert np.array_equal(systemic_bias_matrix, systemic_bias_matrix.T), \
         'The matrix has to be diagonally symmetric.'
-    assert (np.diagonal(systemic_bias_matrix) == False).all(), \
+    assert not np.diagonal(systemic_bias_matrix).any(), \
         'Same elements cannot be systemically biased.'
     return systemic_bias_matrix
 
@@ -166,7 +166,7 @@ def systemic_bias_check(systemic_bias_matrix: np.ndarray) -> bool:
     if systemic_bias_matrix.shape[0] != systemic_bias_matrix.shape[1]:
         raise IncorrectShapeError('The systemic bias matrix has to be square.')
     if (not np.array_equal(systemic_bias_matrix, systemic_bias_matrix.T)
-            or (np.diagonal(systemic_bias_matrix) == True).any()):
+            or np.diagonal(systemic_bias_matrix).any()):
         raise ValueError('The systemic bias matrix has to be diagonally '
                          'symmetric.')
 

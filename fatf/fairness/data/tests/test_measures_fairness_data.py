@@ -58,14 +58,14 @@ def test_systemic_bias():
                      [5, 4, 3],
                      [3, 2, 3],
                      [5, 4, 2],
-                     [3, 2, 3]])
+                     [3, 2, 3]])  # yapf: disable
     data_struct = np.array(
         [(5, '02', 3),
          (5, '04', 3),
          (3, '02', 3),
          (5, '04', 2),
          (3, '02', 3)],
-    dtype=[('a', int), ('b', 'U2'), ('c', float)])
+        dtype=[('a', int), ('b', 'U2'), ('c', float)])  # yapf: disable
     ground_truth = np.array(['a', 'a', 'b', 'b', 'a'])
 
     zero_indices = []

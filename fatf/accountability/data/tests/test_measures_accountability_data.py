@@ -17,9 +17,10 @@ def test_get_weights():
     """
     weights = fadm._get_weights([[0, 4, 6], [3, 2, 5, 1, 8],
                                  [7, 9, 10, 11, 12, 13, 14]])
-    true_weights = np.array([0.111, 0.067, 0.067, 0.067, 0.111, 0.067, 0.111,
-                             0.048, 0.067, 0.048, 0.048, 0.048, 0.048, 0.048,
-                             0.048])
+    true_weights = np.array([
+        0.111, 0.067, 0.067, 0.067, 0.111, 0.067, 0.111, 0.048, 0.067, 0.048,
+        0.048, 0.048, 0.048, 0.048, 0.048
+    ])
     assert np.allclose(weights, true_weights, atol=1e-3)
 
 
@@ -71,26 +72,26 @@ def test_sampling_bias_grid_check():
     counts = [12, 11, 10]
     grid_check_true = np.array([[False, False, False],
                                 [False, False, False],
-                                [False, False, False]])
+                                [False, False, False]])  # yapf: disable
     grid_check = fadm.sampling_bias_grid_check(counts)
     assert np.array_equal(grid_check, grid_check_true)
 
     counts = [7, 8, 9]
     grid_check_true = np.array([[False, False, True],
                                 [False, False, False],
-                                [True, False, False]])
+                                [True, False, False]])  # yapf: disable
     grid_check = fadm.sampling_bias_grid_check(counts)
     assert np.array_equal(grid_check, grid_check_true)
 
     counts = [2, 3, 4]
     grid_check_true = np.array([[False, True, True],
                                 [True, False, True],
-                                [True, True, False]])
+                                [True, True, False]])  # yapf: disable
     grid_check = fadm.sampling_bias_grid_check(counts)
     assert np.array_equal(grid_check, grid_check_true)
 
 
-def test_sampling_bias_grid_check():
+def test_sampling_bias_check():
     """
     Tests :func:`fatf.accountability.data.metrics.sampling_bias_check`.
     """
@@ -152,9 +153,10 @@ def test_sampling_bias_indexed():
 
     binning = [[0, 4, 6], [3, 2, 5, 1, 8], [7, 9, 10, 11, 12, 13, 14]]
     true_counts = [3, 5, 7]
-    true_weights = np.array([0.111, 0.067, 0.067, 0.067, 0.111, 0.067, 0.111,
-                             0.048, 0.067, 0.048, 0.048, 0.048, 0.048, 0.048,
-                             0.048])
+    true_weights = np.array([
+        0.111, 0.067, 0.067, 0.067, 0.111, 0.067, 0.111, 0.048, 0.067, 0.048,
+        0.048, 0.048, 0.048, 0.048, 0.048
+    ])
     counts, weights = fadm.sampling_bias_indexed(binning)
     assert counts == true_counts
     assert np.allclose(weights, true_weights, atol=1e-3)
@@ -182,9 +184,10 @@ def test_sampling_bias():
         ['b', '2', '1']
     ])  # yapf: disable
     true_counts = [3, 5, 7]
-    true_weights = np.array([0.111, 0.067, 0.067, 0.067, 0.111, 0.067, 0.111,
-                             0.048, 0.067, 0.048, 0.048, 0.048, 0.048, 0.048,
-                             0.048])
+    true_weights = np.array([
+        0.111, 0.067, 0.067, 0.067, 0.111, 0.067, 0.111, 0.048, 0.067, 0.048,
+        0.048, 0.048, 0.048, 0.048, 0.048
+    ])
     true_bin_names = ["('0',)", "('1',)", "('2',)"]
 
     counts, weights, bin_names = fadm.sampling_bias(dataset, 1)

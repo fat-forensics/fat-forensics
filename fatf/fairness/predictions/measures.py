@@ -21,7 +21,7 @@ FeatureRange = Union[Tuple[Number, Number], List[Union[Number, str]]]
 Index = Union[int, str]  # Possible types of column indices
 
 
-def counterfactual_fairness(
+def counterfactual_fairness(  # type: ignore
         instance: Union[np.ndarray, np.void],
         protected_feature_indices: List[Index],
         #
@@ -82,6 +82,7 @@ def counterfactual_fairness(
         A 1-dimensional numpy array with predictions for every counterfactual
         data point.
     """
+    # pylint: disable=too-many-arguments,too-many-locals
     cfex = ftpc.CounterfactualExplainer(
         model=model,
         predictive_function=predictive_function,

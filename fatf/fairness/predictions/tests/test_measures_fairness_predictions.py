@@ -96,13 +96,13 @@ def test_counterfactual_fairness_check():
     assert str(exin.value) == incorrect_shape_dist
 
     with pytest.raises(ValueError) as exin:
-        ffpm.counterfactual_fairness_check(distances=one_d_array_str,
-                                           threshold=42)
+        ffpm.counterfactual_fairness_check(
+            distances=one_d_array_str, threshold=42)
     assert str(exin.value) == value_error_dist
 
     with pytest.raises(TypeError) as exin:
-        ffpm.counterfactual_fairness_check(distances=one_d_array,
-                                           threshold='42')
+        ffpm.counterfactual_fairness_check(
+            distances=one_d_array, threshold='42')
     assert str(exin.value) == type_error_threshold
 
     # Test functionality
@@ -128,6 +128,4 @@ def test_counterfactual_fairness_check():
 
     # Test precedence
     assert not ffpm.counterfactual_fairness_check(
-        unfair_counterfactuals=two_d_array,
-        distances=one_d_array,
-        threshold=7)
+        unfair_counterfactuals=two_d_array, distances=one_d_array, threshold=7)

@@ -410,9 +410,10 @@ def validate_indices_per_bin(indices_per_bin: List[List[int]]) -> bool:
     is_valid : boolean
         ``True`` if the input is valid, ``False`` otherwise.
     """
+    # pylint: disable=too-many-nested-blocks
     is_valid = False
 
-    flat_list = []
+    flat_list = []  # type: List[int]
     if isinstance(indices_per_bin, list):
         if not indices_per_bin:
             raise ValueError('The indices_per_bin list cannot be empty.')

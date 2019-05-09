@@ -52,21 +52,21 @@ def test_systematic_performance_bias_grid_check():
     performances = [12, 11, 10]
     grid_check_true = np.array([[False, False, False],
                                 [False, False, False],
-                                [False, False, False]])
+                                [False, False, False]])  # yapf: disable
     grid_check = famm.systematic_performance_bias_grid_check(performances)
     assert np.array_equal(grid_check, grid_check_true)
 
     performances = [7, 8, 9]
     grid_check_true = np.array([[False, False, True],
                                 [False, False, False],
-                                [True, False, False]])
+                                [True, False, False]])  # yapf: disable
     grid_check = famm.systematic_performance_bias_grid_check(performances)
     assert np.array_equal(grid_check, grid_check_true)
 
     performances = [2, 3, 4]
     grid_check_true = np.array([[False, True, True],
                                 [True, False, True],
-                                [True, True, False]])
+                                [True, True, False]])  # yapf: disable
     grid_check = famm.systematic_performance_bias_grid_check(performances)
     assert np.array_equal(grid_check, grid_check_true)
 
@@ -110,7 +110,7 @@ def test_apply_metric_function():
                          '*{}*.')
 
     def zero():
-        return 'zero'
+        return 'zero'  # pragma: nocover
 
     def one(one):
         return 0.5
@@ -158,10 +158,11 @@ def test_apply_metric():
     value_error = ('The selected metric (*{}*) is not recognised. The '
                    'following options are available: {}.')
 
-    available_metrics = ['true positive rate', 'true negative rate',
-                         'false positive rate', 'false negative rate',
-                         'positive predictive value', 'accuracy', 'treatment',
-                         'negative predictive value']
+    available_metrics = [
+        'true positive rate', 'true negative rate', 'false positive rate',
+        'false negative rate', 'positive predictive value', 'accuracy',
+        'treatment', 'negative predictive value'
+    ]
 
     cfmx = np.array([[1, 2], [3, 4]])
 
@@ -199,7 +200,7 @@ def test_systematic_performance_bias_indexed():
     incorrect_shape_error_p = ('The predictions parameter should be a '
                                '1-dimensional numpy array.')
 
-    flat = np.array([1,2])
+    flat = np.array([1, 2])
     square = np.array([[1, 2], [3, 4]])
     with pytest.raises(IncorrectShapeError) as exin:
         famm.systematic_performance_bias_indexed([[0]], square, square)
@@ -251,22 +252,11 @@ def test_systematic_performance_bias():
     :func:`fatf.accountability.models.metrics.systematic_performance_bias`
     function.
     """
-    dataset = np.array([
-        ['0', '3', '0'],
-        ['0', '5', '0'],
-        ['0', '7', '0'],
-        ['0', '5', '0'],
-        ['0', '7', '0'],
-        ['0', '3', '0'],
-        ['0', '5', '0'],
-        ['0', '3', '0'],
-        ['0', '7', '0'],
-        ['0', '5', '0'],
-        ['0', '7', '0'],
-        ['0', '7', '0'],
-        ['0', '5', '0'],
-        ['0', '7', '0'],
-        ['0', '7', '0']])
+    dataset = np.array([['0', '3', '0'], ['0', '5', '0'], ['0', '7', '0'],
+                        ['0', '5', '0'], ['0', '7', '0'], ['0', '3', '0'],
+                        ['0', '5', '0'], ['0', '3', '0'], ['0', '7', '0'],
+                        ['0', '5', '0'], ['0', '7', '0'], ['0', '7', '0'],
+                        ['0', '5', '0'], ['0', '7', '0'], ['0', '7', '0']])
     indices_per_bin = [[0, 5, 7], [1, 6, 9, 3, 12], [2, 4, 8, 10, 11, 13, 14]]
     ground_truth = np.zeros((15, ), dtype=int)
     ground_truth[indices_per_bin[0]] = [0, 1, 0]

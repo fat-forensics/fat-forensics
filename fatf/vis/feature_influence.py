@@ -27,16 +27,18 @@ __all__ = ['plot_individual_conditional_expectation',
            'plot_partial_dependence']  # yapf: disable
 
 
-def _validate_input(ice_pdp_array: np.ndarray,
-                    feature_linespace: Union[np.ndarray, Tuple[np.ndarray, ...]],
-                    class_index: int,
-                    treat_as_categorical: Union[None, bool, List[bool]],
-                    feature_name: Union[None, str, List[str]],
-                    class_name: Union[None, str],
-                    plot_axis: Union[None, plt.Axes],
-                    variance: Union[None, np.ndarray],
-                    variance_area: Union[None, bool],
-                    test_partial_dependence: bool = False) -> bool:
+def _validate_input(
+        ice_pdp_array: np.ndarray,
+        feature_linespace: Union[np.ndarray, Tuple[np.ndarray, ...]],
+        class_index: int,
+        treat_as_categorical: Union[None, bool, List[bool]],
+        feature_name: Union[None, str, List[str]],
+        class_name: Union[None, str],
+        plot_axis: Union[None, plt.Axes],
+        variance: Union[None, np.ndarray],
+        variance_area: Union[None, bool],
+        test_partial_dependence: bool = False
+) -> bool:
     """
     Validates input parameters for ICE and PD plotting functions.
 
@@ -215,8 +217,6 @@ def _validate_input(ice_pdp_array: np.ndarray,
                                  'linespaces. To plot 2 feature individual '
                                  'conditional expectation, a 4-dimensional '
                                  'array must be provided.')
-    #if not fuav.is_numerical_array(feature_linespace):
-    #    raise ValueError('The linespace array has to be numerical.')
     for linespace, index in zip(feature_linespace, [-2, -3]):
         if linespace.shape[0] != ice_pdp_array.shape[index]:
             raise ValueError('The length of the linespace array ({}) does not '
@@ -250,13 +250,15 @@ def _validate_input(ice_pdp_array: np.ndarray,
     return input_is_valid
 
 
-def _validate_feature(feature_distribution: Tuple[np.ndarray, np.ndarray],
-                      treat_as_categorical: bool,
-                      feature_name: Union[None, str],
-                      feature_linespace: Union[None, np.ndarray],
-                      test_feature_linespace: bool,
-                      orientation: Union[None, str],
-                      plot_axis: Union[None, plt.Axes]) -> bool:
+def _validate_feature(
+        feature_distribution: Tuple[np.ndarray, np.ndarray],
+        treat_as_categorical: bool,
+        feature_name: Union[None, str],
+        feature_linespace: Union[None, np.ndarray],
+        test_feature_linespace: bool,
+        orientation: Union[None, str],
+        plot_axis: Union[None, plt.Axes]
+) -> bool:
     """
     Validates input for feature distribution function.
 
@@ -372,7 +374,7 @@ def _prepare_a_canvas(
         plot_distribution: bool = False,
         is_2d: bool = False,
         y_range: Optional[List[Number]] = None,
-        plot_axis_3d: Optional[bool] = False,
+        plot_axis_3d: bool = False,
 ) -> Tuple[Union[plt.Figure, None], Union[plt.Axes, Tuple[plt.Axes]]]: # yapf: disable
     """
     Prepares a matplotlib axis (canvas) for ICE and PDP plotting.
@@ -382,6 +384,7 @@ def _prepare_a_canvas(
     provided ``plot_axis`` is extended with the provided title and the axes
     labels are overwritten if either ``class_name`` or ``feature_name`` is
     given.
+
 
     Parameters
     ----------
@@ -425,6 +428,7 @@ def _prepare_a_canvas(
         true when `_prepare_a_canvas` is called from :func:`fatf.vis.
         feature_influence._plot_individual_conditional_expectation_2d`
         function.
+
     Raises
     ------
     ValueError
@@ -575,7 +579,7 @@ def plot_feature_distribution(
         feature_distribution : List[np.ndarray],
         treat_as_categorical: bool = False,
         feature_name: Optional[str] = None,
-        orientation: Optional[str] = 'vertical',
+        orientation: str = 'vertical',
         plot_axis: Optional[plt.Axes] = None
 ) -> Tuple[Union[plt.Figure, None], plt.Axes]:
     """
@@ -606,17 +610,18 @@ def plot_feature_distribution(
         The name of the feature for which feature distribution originally
         calculated. It is used to generate a name for the x-axis if plot_axis
         is None.
-    orientation : string, optionl (default='vertical')
+    orientation : string, (default='vertical')
         Whether to plot distribution as vertical or horizontal. This is mainly
-        used for 2-D ICE and PD plots.
+        used for 2-D ICE and PD plots. Decides whether to call horizontal 
+        barplot or vertical bar plot.
     plot_axis : matplotlib.pyplot.Axes, optional (default=None)
         A matplotlib axes on which the feature distribution will be plotted.
         This is useful to have feature distribution as a subplot of an ICE
         or PD plot which can be achieved by passing the `feature_distribution`
         parameter to the funcions :func:`fatf.transparency.models.
         plot_individual_conditional_expectation` or :func:`fatf.transparency.
-        models.plot_partial_dependence`.
-        If  ``None``, a new axes will be created.
+        models.plot_partial_dependence`. If ``None``, a new axes will be
+        created.
 
     Returns
     -------
@@ -717,8 +722,8 @@ def _plot_2_feature_distribution(
     feature_distribution: List[Tuple[np.ndarray, np.ndarray]],
     treat_as_categorical: List[bool],
     feature_linespace: Tuple[np.ndarray, np.ndarray],
-    feature_name: List[str],
-    orientation: List[str],
+    feature_name: List[Union[None, str]],
+    orientation: List[Union[None, str]],
     axis: Tuple[plt.Axes, plt.Axes]
 ) -> Tuple[plt.Axes, plt.Axes]:
     """
@@ -729,11 +734,27 @@ def _plot_2_feature_distribution(
     other is a subplot along the y axis. Should only be called from
     :func:`fatf.vis.feature_influence._individual_condtional_expectation_2d`
     and  :func:`fatf.vis.feature_influence._partial_depedence_2d`. For
-    parameter description see these functions.
+    additional parameter description see these functions.
 
+    Parameters
+    ----------
+    feature_distribution : List[Tuple[numpy.ndarray]]
+        See :func:`fatf.vis.feature_influence._partial_depedence_2d`
+    treat_as_categorical : List[boolean]
+        See :func:`fatf.vis.feature_influence._partial_depedence_2d`
+    feature_linespace : Tuple[numpy.ndarray, numpy.ndarray]
+        :func:`fatf.vis.feature_influence._partial_depedence_2d`
+    feature_nane : List[string]
+        :func:`fatf.vis.feature_influence._partial_depedence_2d`
+    orientation: List[string]
+        List of length two of strings either 'vertical' or 'horizontal'
+        specifying which orientation each axes is. Decides whether to call
+        horizontal barplot or vertical bar plot.
+    axis : Tuple[matplotlib.pyplot.Axes, matplotlib.pyplot.Axes]
+        Tuple of axes to plot feature distributions on.
     Returns
     ------
-    axis: Tuple[plt.Axes, plt.Axes]
+    axis: Tuple[matplotlib.pyplot.Axes, matplotlib.pyplot.Axes]
         A tuple of length two containing both axis that the feature
         distributions have been plotted on.
     """
@@ -760,12 +781,13 @@ def _plot_individual_conditional_expectation_1d(
         ice_array: np.ndarray,
         feature_linespace: np.ndarray,
         class_index: int,
-        treat_as_categorical: bool = False,
-        feature_name: Optional[str] = None,
-        class_name: Optional[str] = None,
-        feature_distribution : Optional[List[Tuple[np.ndarray, np.ndarray]]] = None,
-        plot_axis: Optional[plt.Axes] = None
-) -> Tuple[Union[plt.Figure, None], Union[plt.Axes, Tuple[plt.Axes, ...]]]:
+        treat_as_categorical: bool,
+        feature_name: Optional[str],
+        class_name: Optional[str],
+        feature_distribution : Optional[Tuple[np.ndarray, np.ndarray]],
+        plot_axis: Optional[plt.Axes]
+) -> Tuple[Union[plt.Figure, None], Union[plt.Axes, Tuple[plt.Axes,
+     plt.Axes]]]:
     """
     Plots individual conditional expectation for 1 feature.
 
@@ -781,7 +803,7 @@ def _plot_individual_conditional_expectation_1d(
         when a blank plot is created, this is a figure object holding the plot
         axis (``plot_axis``).
     plot_axis : Union[matplotlib.pyplot.Axes,
-            Tuple[matplotlib.pyplot.Axes, ...]]]
+            Tuple[matplotlib.pyplot.Axes, matplotlib.pyplot.Axes]]]
         A matplotlib axes with the ICE plot or a tuple of matplotlib axes of
         length 2 where the first element is the axes with the ICE plot and the
         second axes has the feature distribution.
@@ -847,12 +869,13 @@ def _plot_individual_conditional_expectation_2d(
     ice_array: np.ndarray,
     feature_linespace: np.ndarray,
     class_index: int,
-    treat_as_categorical: bool = False,
-    feature_name: Optional[str] = None,
-    class_name: Optional[str] = None,
-    feature_distribution : Optional[List[Tuple[np.ndarray, np.ndarray]]] = None,
-    plot_axis: Optional[plt.Axes] = None
-) -> Tuple[Union[plt.Figure, None], Union[plt.Axes, Tuple[plt.Axes, ...]]]:
+    treat_as_categorical: Optional[List[bool]],
+    feature_name: Optional[List[str]],
+    class_name: Optional[str],
+    feature_distribution : List[Union[None, Tuple[np.ndarray, np.ndarray]]],
+    plot_axis: Optional[plt.Axes]
+) -> Tuple[Union[plt.Figure, None], Union[plt.Axes, Tuple[plt.Axes,
+     plt.Axes, plt.Axes]]]:
     """
     Plots individual conditional expectation for 2 features.
 
@@ -868,11 +891,11 @@ def _plot_individual_conditional_expectation_2d(
         when a blank plot is created, this is a figure object holding the plot
         axis (``plot_axis``).
     plot_axis : Union[matplotlib.pyplot.Axes,
-            Tuple[matplotlib.pyplot.Axes, ...]]]
+            Tuple[matplotlib.pyplot.Axes, matplotlib.pyplot.Axes, matplotlib.pyplot.Axes]]]
         A matplotlib axes with the ICE plot or a tuple of matplotlib axes of
         length 3 where the first element is the axes with the ICE plot and the
         second axes has the feature distribution for the first feature, and the
-        third axes ha the feature distribution for the second feature.
+        third axes has the feature distribution for the second feature.
     """
     msg = ('2-feature individual conditional expectation cannot be visualised '
            'and as such the mean and variance will be plotted.')
@@ -900,16 +923,22 @@ def _plot_individual_conditional_expectation_2d(
 
 def plot_individual_conditional_expectation(
         ice_array: np.ndarray,
-        feature_linespace: np.ndarray,
+        feature_linespace: Union[np.ndarray, Tuple[np.ndarray, np.ndarray]],
         class_index: int,
-        treat_as_categorical: bool = False,
-        feature_name: Optional[str] = None,
+        treat_as_categorical: Optional[Union[bool,
+            List[Union[None, bool]]]] = False,
+        feature_name: Optional[Union[str, List[Union[None, str]]]] = None,
         class_name: Optional[str] = None,
-        feature_distribution : Optional[List[Tuple[np.ndarray, np.ndarray]]] = None,
+        feature_distribution : Optional[Union[Tuple[np.ndarray, np.ndarray],
+            List[Tuple[np.ndarray, np.ndarray]]]] = None,
         plot_axis: Optional[plt.Axes] = None
-) -> Tuple[Union[plt.Figure, None], Union[plt.Axes, Tuple[plt.Axes, ...]]]:
+) -> Tuple[Union[plt.Figure, None], Union[plt.Axes, Tuple[plt.Axes,
+     plt.Axes, plt.Axes]]]:
     """
     Plots Individual Conditional Expectation for a selected class.
+
+    Plotting function for either 1-feature or 2-feature individual conditional
+    expectation.
 
     For exceptions raised by this function please see the documentation of
     :func:`fatf.vis.feature_influence._prepare_a_canvas` and
@@ -923,28 +952,37 @@ def plot_individual_conditional_expectation(
         the desired spectrum of the selected feature. This should be the output
         of the :func:`fatf.transparency.models.feature_influence.
         individual_conditional_expectation` function.
-    feature_linespace : numpy.ndarray
+    feature_linespace : Union[numpy.ndarray,
+            Tuple[numpy.ndarray, numpy.ndarray]]
         A one-dimensional array -- (steps_number, ) -- with the values for
         which the selected feature was sampled when the dataset was evaluated
         for a predictive model. This should be the output of the :func:`fatf.
         transparency.models.feature_influence.
-        individual_conditional_expectation` function.
+        individual_conditional_expectation` function. For 2-feature ICE, this
+        should be a tuple of one-dimensional arrays with the values for
+        both features was sampled.
     class_index : integer
         The index of the class for which ICE will be plotted, taken from the
         original dataset. For ICE's computed using a regression model,
         `class_index` should be 0.
-    feature_name : string, optional (default=None)
-        The name of the feature for which ICE was originally calculated.
+    feature_name : Union[string, List[Union[None, string]]],
+            optional (default=None)
+        The name of the feature for which ICE was originally calculated. For
+        2-feature ICE, should be a list of names or None so that name be
+        inferred as either 'feature 0' or 'feature 1'.
     class_name : string, optional (default=None)
         The name of the class that ``class_index`` parameter points to. If
         ``None``, the class name will be the same as the class index.
-    feature_distribution : List[numpy.ndarray]
-        A list of length 2 where they are [values, counts]. The first
+    feature_distribution : Union[Tuple[numpy.ndarray, numpy.ndarray],
+            List[Tuple[numpy.ndarray, numpy.ndarray]]], optional (default=None)
+        A tuple of length 2 where they are (values, counts). The first
         array is of shape (samples,) or (samples+1,). It contains x-axis data
         points either for histogram, gaussian kde or unique values of the array
         The second element of the list should be probability densities for each
         value in the first array. This should be the output of the :func:`fatf.
-        transparency.models.compute_feature_distribution`.
+        transparency.models.compute_feature_distribution`. For 2-feature ICE,
+        this will be a List of length two of tuples specifying the values and
+        counts for both features used.
     plot_axis : matplotlib.pyplot.Axes, optional (default=None)
         A matplotlib axes on which the ICE will be plotted. This is useful if
         one wants to overlay multiple ICE plot on top of each other. If
@@ -957,8 +995,14 @@ def plot_individual_conditional_expectation(
         is ``None`` when the user passed in ``plot_axis`` attribute, otherwise,
         when a blank plot is created, this is a figure object holding the plot
         axis (``plot_axis``).
-    plot_axis : matplotlib.pyplot.Axes
-        A matplotlib axes with the ICE plot.
+    plot_axis : Union[matplotlib.pyplot.Axes,
+            Tuple[matplotlib.pyplot.Axes, ...]]]
+        A matplotlib axes with the ICE plot. If 1-feature ICE and feature
+        distribution is provided, this will be a tuple of length 2 where the
+        first axes is the ICE plot and second is feature distribution plot. For
+        2-feature ICE, will be tuple of length 3 where first axes is ICE plot,
+        second is feature distribution for first feature and second is feature
+        distribution for second feature.
     """
     # pylint: disable=too-many-arguments
     assert _validate_input(ice_array, feature_linespace, class_index,
@@ -1016,14 +1060,15 @@ def _plot_partial_dependence_1d(
     pd_array: np.ndarray,
     feature_linespace: np.ndarray,
     class_index: int,
-    treat_as_categorical: Optional[bool] = None,
-    variance: Optional[np.ndarray] = None,
-    variance_area: Optional[bool] = False,
-    feature_name: Optional[str] = None,
-    class_name: Optional[str] = None,
-    feature_distribution : Optional[Tuple[np.ndarray, np.ndarray]] = None,
-    plot_axis: Optional[plt.Axes] = None
-) -> Tuple[Union[plt.Figure, None], Union[plt.Axes, Tuple[plt.Axes, ...]]]:
+    treat_as_categorical: Optional[bool],
+    variance: Optional[np.ndarray],
+    variance_area: Optional[bool],
+    feature_name: Optional[str],
+    class_name: Optional[str],
+    feature_distribution : Optional[Tuple[np.ndarray, np.ndarray]],
+    plot_axis: Optional[plt.Axes]
+) -> Tuple[Union[plt.Figure, None], Union[plt.Axes, Tuple[plt.Axes,
+     plt.Axes]]]:
     """
     Plots partial dependence for 1 feature.
 
@@ -1038,7 +1083,7 @@ def _plot_partial_dependence_1d(
         when a blank plot is created, this is a figure object holding the plot
         axis (``plot_axis``).
     plot_axis : Union[matplotlib.pyplot.Axes,
-            Tuple[matplotlib.pyplot.Axes, ...]]]
+            Tuple[matplotlib.pyplot.Axes, matplotlib.pyplot.Axes]]]
         A matplotlib axes with the PD plot or a tuple of matplotlib axes of
         length 2 where the first element is the axes with the PD plot and the
         second axes has the feature distribution.
@@ -1124,12 +1169,12 @@ def _plot_partial_dependence_2d(
     pd_array: np.ndarray,
     feature_linespace: Tuple[np.ndarray, np.ndarray],
     class_index: int,
-    treat_as_categorical: Optional[bool] = None,
-    variance: Optional[np.ndarray] = None,
-    feature_name: Optional[List[str]] = None,
-    class_name: Optional[str] = None,
-    feature_distribution : Optional[Tuple[np.ndarray, ...]] = None,
-    plot_axis: Optional[plt.Axes] = None
+    treat_as_categorical: List[Union[None, bool]],
+    variance: Optional[np.ndarray],
+    feature_name: List[Union[None, str]],
+    class_name: Optional[str],
+    feature_distribution : Optional[List[Tuple[np.ndarray, np.ndarray]]],
+    plot_axis: Optional[plt.Axes]
 ) -> Tuple[Union[plt.Figure, None], Union[plt.Axes, Tuple[plt.Axes, ...]]]:
     """
     Plots partial dependence for 2 features at once.
@@ -1278,14 +1323,16 @@ def _plot_partial_dependence_2d(
 
 def plot_partial_dependence(
         pd_array: np.ndarray,
-        feature_linespace: Tuple[np.ndarray, ...],
+        feature_linespace: Union[np.ndarray, Tuple[np.ndarray, np.ndarray]],
         class_index: int,
-        treat_as_categorical: Optional[bool] = None,
+        treat_as_categorical: Optional[Union[bool, 
+            List[Union[None, bool]]]] = None,
         variance: Optional[np.ndarray] = None,
         variance_area: Optional[bool] = False,
-        feature_name: Optional[str] = None,
+        feature_name: Optional[Union[str, List[Union[None, str]]]] = None,
         class_name: Optional[str] = None,
-        feature_distribution : Optional[Tuple[np.ndarray, ...]] = None,
+        feature_distribution : Optional[Union[Tuple[np.ndarray, np.ndarray],
+            List[Tuple[np.ndarray, np.ndarray]]]] = None,
         plot_axis: Optional[plt.Axes] = None
 ) -> Tuple[Union[plt.Figure, None], Union[plt.Axes, Tuple[plt.Axes, ...]]]:
     """
@@ -1307,10 +1354,10 @@ def plot_partial_dependence(
     feature_linespace : Tuple[numpy.ndarray, ...]
         A tuple of one-dimensional array -- (steps_number, ) -- with the values
         for which the selected feature was sampled when the dataset was
-        evaluated for a predictive model. For plotting 2 feature partial
-        dependence, this should be a tuple of length 2. This should be the
+        evaluated for a predictive model. This should be the
         output of the :func:`fatf.transparency.models.feature_influence.
-        individual_conditional_expectation` function. 
+        individual_conditional_expectation` function. For 2-feature PD, this
+        should be a tuple of one-dimensional arrays with the values for
     class_index : integer
         The index of the class for which PD will be plotted, taken from the
         original dataset. For PD computed using a regression model,
@@ -1321,14 +1368,18 @@ def plot_partial_dependence(
         Dependence. This should be the output of the :func:`fatf.transparency.
         models.feature_influence.partial_dependence` or :func:`
         fatf.transparency.models.feature_influence.partial_dependence_ice`
-        function. Variance cannot be used with 2-D partial dependence
+        function. For 2-feature PD, an array of shape (n_steps1, n_steps2,
+        n_classes).
     variance_area : boolean, optional (default=False)
         Specifies whether to use error bars method of plotting or solid areas
         to show the variance at each point. If True, the variance will be shown
         by a solid area surrounding the partial dependence line, else then
-        error bar method is used.
+        error bar method is used. For 2-feature PD, this will be ignored as
+        variance will be plotted as a 3-D plot.
     feature_name : string, optional (default=None)
-        The name of the feature for which PD was originally calculated.
+        The name of the feature for which PD was originally calculated. For
+        2-feature ICE, should be a list of names or None so that name be
+        inferred as either 'feature 0' or 'feature 1'.
     class_name : string, optional (default=None)
         The name of the class that ``class_index`` parameter points to. If
         ``None``, the class name will be the same as the class index.
@@ -1338,9 +1389,9 @@ def plot_partial_dependence(
         points either for histogram, gaussian kde or unique values of the array
         The second element of the list should be probability densities for each
         value in the first array. This should be the output of the :func:`fatf.
-        transparency.models.compute_feature_distribution`. If 2-D PD then this
-        should be a tuple of length 4 where they are (values_1, counts_1,
-        values_2, counts_2)
+        transparency.models.compute_feature_distribution`. For 2-feature PD,
+        this will be a List of length two of tuples specifying the values and
+        counts for both features used.
     plot_axis : matplotlib.pyplot.Axes, optional (default=None)
         A matplotlib axes on which the PD will be plotted. This is useful if
         one wants to overlay PD onto an ICE plot. If ``None``, a new axes will
@@ -1357,10 +1408,10 @@ def plot_partial_dependence(
             Tuple[matplotlib.pyplot.Axes, ...]]]
         A matplotlib axes with the PD plot or a tuple of matplotlib axes of
         length 2 where the first element is the axes with the PD plot and the
-        second axes has the feature distribution for the first feature. Can
-        also be a tuple of length 3 where there is an additional axes for the
-        feature distribution for the second feature if 2-feature partial
-        dependence was plotted.
+        second axes has the feature distribution for the first feature. For
+        2-feature PD, will be tuple of length 3 where first axes is PD plot,
+        second is feature distribution for first feature and second is feature
+        distribution for second feature.
     """
     # pylint: disable=too-many-arguments
     assert _validate_input(pd_array, feature_linespace, class_index,

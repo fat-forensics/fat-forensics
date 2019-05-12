@@ -7,7 +7,8 @@ Holds model metric tools.
 import inspect
 
 from numbers import Number
-from typing import Callable, Dict, List, Optional, Tuple, Union
+from typing import Callable, List, Optional, Tuple, Union
+from typing import Dict  # pylint: disable=unused-import
 
 import numpy as np
 

@@ -297,3 +297,88 @@ def test_apply_to_column_grouping():
 
     vls = fudt.apply_to_column_grouping(labels, ground_truth, groupings, fnc)
     assert vls == [4 / 5, 1 / 3]
+
+
+def test_validate_indices_per_bin():
+    """
+    Tests :func:`fatf.utils.data.tools.validate_indices_per_bin` function.
+    """
+    type_error_out = 'The indices_per_bin parameter has to be a list.'
+    value_error_empty = 'The indices_per_bin list cannot be empty.'
+    value_error_negative_index = ('One of the indices is a negative integer '
+                                  '-- all should be non-negative.')
+    type_error_nonnumber_index = ('Indices should be integers. *{}* is not an '
+                                  'integer.')
+    type_error_in = ('One of the elements embedded in the indices_per_bin '
+                     'list is not a list.')
+    value_error_duplicates = 'Some of the indices are duplicated.'
+
+    with pytest.raises(TypeError) as exin:
+        fudt.validate_indices_per_bin('list')
+    assert str(exin.value) == type_error_out
+
+    with pytest.raises(TypeError) as exin:
+        fudt.validate_indices_per_bin([[1], [2], 'list', [4]])
+    assert str(exin.value) == type_error_in
+
+    with pytest.raises(TypeError) as exin:
+        fudt.validate_indices_per_bin([[1], [2], [3, 'list'], [4]])
+    assert str(exin.value) == type_error_nonnumber_index.format('list')
+
+    with pytest.raises(ValueError) as exin:
+        fudt.validate_indices_per_bin([])
+    assert str(exin.value) == value_error_empty
+
+    with pytest.raises(ValueError) as exin:
+        fudt.validate_indices_per_bin([[1], [2], [-1], [4]])
+    assert str(exin.value) == value_error_negative_index
+
+    with pytest.raises(ValueError) as exin:
+        fudt.validate_indices_per_bin([[0, 1], [2], [3, 0], [4]])
+    assert str(exin.value) == value_error_duplicates
+
+    user_warning = ('The following indices are missing (based on the top '
+                    'index): {}.\nIt is possible that more indices are '
+                    'missing if they were the last one(s).')
+    with pytest.warns(UserWarning) as w:
+        assert fudt.validate_indices_per_bin([[0, 4], [3, 2, 5], [6]])
+    assert len(w) == 1
+    assert str(w[0].message) == user_warning.format('{1}')
+
+
+def test_validate_binary_matrix():
+    """
+    Tests :func:`fatf.utils.data.tools.validate_binary_matrix` function.
+    """
+    incorrect_shape_2d = 'The {}matrix has to be 2-dimensional.'
+    incorrect_shape_square = 'The {}matrix has to be square.'
+    type_error = 'The {}matrix has to be of boolean type.'
+    value_error_diagonal = 'The {}matrix has to be diagonally symmetric.'
+    value_error_structured = 'The {}matrix cannot be a structured numpy array.'
+
+    with pytest.raises(IncorrectShapeError) as exin:
+        fudt.validate_binary_matrix(np.array([1, 2, 3]), '     xxx  ')
+    assert str(exin.value) == incorrect_shape_2d.format('xxx ')
+
+    with pytest.raises(ValueError) as exin:
+        fudt.validate_binary_matrix(np.array([(1, )], dtype=[('a', int)]))
+    assert str(exin.value) == value_error_structured.format('')
+
+    with pytest.raises(TypeError) as exin:
+        fudt.validate_binary_matrix(np.array([[1, 2, 3]]), 'xxx')
+    assert str(exin.value) == type_error.format('xxx ')
+
+    with pytest.raises(IncorrectShapeError) as exin:
+        fudt.validate_binary_matrix(np.array([[True, False, False]]), '     ')
+    assert str(exin.value) == incorrect_shape_square.format('')
+
+    with pytest.raises(ValueError) as exin:
+        fudt.validate_binary_matrix(np.array([[False, True], [False, False]]))
+    assert str(exin.value) == value_error_diagonal.format('')
+
+    with pytest.raises(ValueError) as exin:
+        fudt.validate_binary_matrix(np.array([[True, True], [True, True]]))
+    assert str(exin.value) == value_error_diagonal.format('')
+
+    assert fudt.validate_binary_matrix(
+        np.array([[False, False], [False, False]]))

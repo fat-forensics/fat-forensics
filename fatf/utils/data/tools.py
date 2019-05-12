@@ -105,7 +105,7 @@ def group_by_column(
     indices_per_bin : List[List[integer]]
         A list of lists with the latter one holding row indices of a particular
         group.
-    bin_names : List[List[string]]
+    bin_names : List[string]
         A list of lists with the latter one holding a group description.
     """
     # pylint: disable=too-many-locals,too-many-branches,too-many-statements
@@ -377,3 +377,129 @@ def apply_to_column_grouping(
     applied = [fnc(labels[grp], predictions[grp]) for grp in row_grouping]
 
     return applied
+
+
+def validate_indices_per_bin(indices_per_bin: List[List[int]]) -> bool:
+    """
+    Validates a list of binned indices.
+
+    Parameters
+    ----------
+    indices_per_bin : List[List[integer]]
+        A list of lists with the latter one holding row indices of a particular
+        group.
+
+    Warns
+    -----
+    UserWarning
+        Some of the indices may be missing -- gaps in the consecutive list of
+        indices were found.
+
+    Raises
+    ------
+    TypeError
+        The ``indices_per_bin`` parameter is not a list, one of the elements of
+        the ``indices_per_bin`` list is not a list or one of the elements of
+        the latter list is not an integer.
+    ValueError
+        The ``indices_per_bin`` list is empty. Some of the indices are
+        duplicated or are negative integers.
+
+    Returns
+    -------
+    is_valid : boolean
+        ``True`` if the input is valid, ``False`` otherwise.
+    """
+    # pylint: disable=too-many-nested-blocks
+    is_valid = False
+
+    flat_list = []  # type: List[int]
+    if isinstance(indices_per_bin, list):
+        if not indices_per_bin:
+            raise ValueError('The indices_per_bin list cannot be empty.')
+        for indices_bin in indices_per_bin:
+            if isinstance(indices_bin, list):
+                flat_list += indices_bin
+                for index in indices_bin:
+                    if isinstance(index, int):
+                        if index < 0:
+                            raise ValueError('One of the indices is a '
+                                             'negative integer -- all should '
+                                             'be non-negative.')
+                    else:
+                        raise TypeError('Indices should be integers. *{}* is '
+                                        'not an integer.'.format(index))
+            else:
+                raise TypeError('One of the elements embedded in the '
+                                'indices_per_bin list is not a list.')
+        if len(flat_list) != len(set(flat_list)):
+            raise ValueError('Some of the indices are duplicated.')
+    else:
+        raise TypeError('The indices_per_bin parameter has to be a list.')
+
+    # Check whether the indices are consecutive numbers without any gaps
+    indices_number = max(flat_list) + 1  # The indexing starts from 0
+    all_indices = range(indices_number)
+    missing_indices = set(all_indices).difference(flat_list)
+    if missing_indices:
+        warnings.warn(
+            'The following indices are missing (based on the top index): {}.\n'
+            'It is possible that more indices are missing if they were the '
+            'last one(s).'.format(missing_indices), UserWarning)
+
+    is_valid = True
+    return is_valid
+
+
+def validate_binary_matrix(binary_array: np.ndarray,
+                           name: Optional[str] = None) -> bool:
+    """
+    Validates a binary, square and symmetric numpy array.
+
+    Parameters
+    ----------
+    binary_array : numpy.ndarray
+        A square (equal number of rows and columns), boolean  symmetric numpy
+        array.
+
+    Raises
+    ------
+    IncorrectShapeError
+        The matrix is not 2-dimensional or square.
+    TypeError
+        The matrix is not of boolean type.
+    ValueError
+        The matrix is a structured numpy array or is not diagonally symmetric.
+
+    Returns
+    -------
+    is_valid : boolean
+        ``True`` if the matrix is valid, ``False`` otherwise.
+    """
+    if name is None:
+        name = ''
+    else:
+        assert isinstance(name, str), 'The name parameter has to be string.'
+        name = name.strip()
+        name = '{} '.format(name) if name else name
+    is_valid = False
+
+    if not fuav.is_2d_array(binary_array):
+        raise IncorrectShapeError('The {}matrix has to be '
+                                  '2-dimensional.'.format(name))
+    if fuav.is_structured_array(binary_array):
+        raise ValueError('The {}matrix cannot be a structured numpy '
+                         'array.'.format(name))
+    if binary_array.dtype != bool:
+        raise TypeError('The {}matrix has to be of boolean '
+                        'type.'.format(name))
+    if binary_array.shape[0] != binary_array.shape[1]:
+        raise IncorrectShapeError('The {}matrix has to be '
+                                  'square.'.format(name))
+    if (not np.array_equal(binary_array, binary_array.T)
+            or np.diagonal(binary_array).any()):
+        raise ValueError('The {}matrix has to be diagonally '
+                         'symmetric.'.format(name))
+
+    is_valid = True
+    return is_valid

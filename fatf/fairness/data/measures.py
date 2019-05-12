@@ -14,6 +14,7 @@ from fatf.exceptions import IncorrectShapeError
 
 import fatf.utils.array.tools as fuat
 import fatf.utils.array.validation as fuav
+import fatf.utils.data.tools as fudt
 
 __all__ = ['systemic_bias', 'systemic_bias_check']
 
@@ -113,10 +114,8 @@ def systemic_bias(dataset: np.ndarray, ground_truth: np.ndarray,
         equal_unprotected_indices = np.where(equal_unprotected)
 
         # Check whether the ground truth is different for these rows
-        unequal_ground_truth = (ground_truth[i]
-                                != ground_truth[equal_unprotected_indices])
-
-        equal_unprotected[equal_unprotected_indices] = unequal_ground_truth
+        equal_unprotected[equal_unprotected_indices] = (
+            ground_truth[i] != ground_truth[equal_unprotected_indices])
         systemic_bias_columns.append(equal_unprotected)
 
     systemic_bias_matrix = np.stack(systemic_bias_columns, axis=1)
@@ -155,20 +154,7 @@ def systemic_bias_check(systemic_bias_matrix: np.ndarray) -> bool:
     systemic_bias_present : boolean
         ``True`` if systemic bias is present, ``False`` otherwise.
     """
-    if not fuav.is_2d_array(systemic_bias_matrix):
-        raise IncorrectShapeError('The systemic bias matrix has to be '
-                                  '2-dimensional.')
-    if fuav.is_structured_array(systemic_bias_matrix):
-        raise ValueError('The systemic bias matrix cannot be a structured '
-                         'numpy array.')
-    if systemic_bias_matrix.dtype != bool:
-        raise TypeError('The systemic bias matrix has to be of boolean type.')
-    if systemic_bias_matrix.shape[0] != systemic_bias_matrix.shape[1]:
-        raise IncorrectShapeError('The systemic bias matrix has to be square.')
-    if (not np.array_equal(systemic_bias_matrix, systemic_bias_matrix.T)
-            or np.diagonal(systemic_bias_matrix).any()):
-        raise ValueError('The systemic bias matrix has to be diagonally '
-                         'symmetric.')
-
+    assert fudt.validate_binary_matrix(systemic_bias_matrix,
+                                       'systemic bias'), 'Invalid matrix.'
     systemic_bias_present = systemic_bias_matrix.any()
     return systemic_bias_present

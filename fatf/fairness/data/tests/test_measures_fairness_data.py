@@ -15,7 +15,7 @@ import fatf.fairness.data.measures as ffdm
 
 def test_systemic_bias():
     """
-    Tests :func:`fatf.fairness.data.metrics.systemic_bias` function.
+    Tests :func:`fatf.fairness.data.measures.systemic_bias` function.
     """
     incorrect_shape_data = 'The dataset should be a 2-dimensional numpy array.'
     incorrect_shape_gt = ('The ground truth should be a 1-dimensional numpy '
@@ -127,7 +127,7 @@ def test_systemic_bias():
 
 def test_systemic_bias_check():
     """
-    Tests :func:`fatf.fairness.data.metrics.systemic_bias_check` function.
+    Tests :func:`fatf.fairness.data.measures.systemic_bias_check` function.
     """
     incorrect_shape_error = 'The systemic bias matrix has to be 2-dimensional.'
     incorrect_shape_error_square = 'The systemic bias matrix has to be square.'

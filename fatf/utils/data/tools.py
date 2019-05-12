@@ -449,3 +449,57 @@ def validate_indices_per_bin(indices_per_bin: List[List[int]]) -> bool:
 
     is_valid = True
     return is_valid
+
+
+def validate_binary_matrix(binary_array: np.ndarray,
+                           name: Optional[str] = None) -> bool:
+    """
+    Validates a binary, square and symmetric numpy array.
+
+    Parameters
+    ----------
+    binary_array : numpy.ndarray
+        A square (equal number of rows and columns), boolean  symmetric numpy
+        array.
+
+    Raises
+    ------
+    IncorrectShapeError
+        The matrix is not 2-dimensional or square.
+    TypeError
+        The matrix is not of boolean type.
+    ValueError
+        The matrix is a structured numpy array or is not diagonally symmetric.
+
+    Returns
+    -------
+    is_valid : boolean
+        ``True`` if the matrix is valid, ``False`` otherwise.
+    """
+    if name is None:
+        name = ''
+    else:
+        assert isinstance(name, str), 'The name parameter has to be string.'
+        name = name.strip()
+        name = '{} '.format(name) if name else name
+    is_valid = False
+
+    if not fuav.is_2d_array(binary_array):
+        raise IncorrectShapeError('The {}matrix has to be '
+                                  '2-dimensional.'.format(name))
+    if fuav.is_structured_array(binary_array):
+        raise ValueError('The {}matrix cannot be a structured numpy '
+                         'array.'.format(name))
+    if binary_array.dtype != bool:
+        raise TypeError('The {}matrix has to be of boolean '
+                        'type.'.format(name))
+    if binary_array.shape[0] != binary_array.shape[1]:
+        raise IncorrectShapeError('The {}matrix has to be '
+                                  'square.'.format(name))
+    if (not np.array_equal(binary_array, binary_array.T)
+            or np.diagonal(binary_array).any()):
+        raise ValueError('The {}matrix has to be diagonally '
+                         'symmetric.'.format(name))
+
+    is_valid = True
+    return is_valid

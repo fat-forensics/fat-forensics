@@ -171,7 +171,7 @@ def sampling_bias_grid_check(  # type: ignore
 
     # Check if any pair differs by more than the threshold
     grid_check = proportions > inv_threshold
-    grid_check = np.logical_or(grid_check, grid_check.T)
+    np.logical_or(grid_check, grid_check.T, out=grid_check)
 
     return grid_check
 

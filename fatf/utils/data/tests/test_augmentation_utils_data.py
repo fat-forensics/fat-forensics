@@ -35,7 +35,7 @@ input_y = y[:2]
 test_instance_1 = testdata_struct[1]
 test_y_1 = y[1]
 
-expected_output_1 = [np.array([(63, 57)], dtype=[('Age', '<i4'), ('Weight', '<i4')]), 
+expected_output_1 = [np.array([(63, 57)], dtype=[('Age', '<i4'), ('Weight', '<i4')]),
                      np.array([[0.15201248595867722]])]
 
 
@@ -71,7 +71,7 @@ def test_sample_2classes(input_dataset, input_t, test_instance, test_y, expected
                         1)
     assert np.all(output[0] == expected_output[0])
     assert np.all(output[1] == expected_output[1])
-  
+
 input_t = np.vstack((input_y, 1-input_y))
 test_t_0 = input_t[0]
 input_dataset_cat = np.array([(74, 'a'), ( 3, 'b')],
@@ -91,24 +91,24 @@ def test_sample_categorical(input_dataset, input_t, test_instance, test_y, expec
     assert np.all(output[0] == expected_output[0])
     assert float(format(output[1][0][0], '.8f')) == expected_output[1][0][0]
     assert float(format(output[1][0][1], '.8f')) == expected_output[1][0][1]
-    
-    
+
+
 @pytest.mark.parametrize("input_dataset, input_y",
-                         [(input_dataset_0, input_y)])   
+                         [(input_dataset_0, input_y)])
 def test_beta_parameters(input_dataset, input_y):
-    with pytest.raises(ValueError) as excinfo:          
+    with pytest.raises(ValueError) as excinfo:
         mdl = Mixup(input_dataset,
                     input_y,
                     beta_parameters=[1])
-    assert str(excinfo.value) == 'Need two parameters for beta distribution' 
+    assert str(excinfo.value) == 'Need two parameters for beta distribution'
 
-    with pytest.raises(ValueError) as excinfo:          
+    with pytest.raises(ValueError) as excinfo:
         mdl = Mixup(input_dataset,
                     input_y,
                     beta_parameters=[-1, 1])
-    assert str(excinfo.value) == 'Beta parameters need to be positive' 
-    
-    with pytest.raises(TypeError) as excinfo:          
+    assert str(excinfo.value) == 'Beta parameters need to be positive'
+
+    with pytest.raises(TypeError) as excinfo:
         mdl = Mixup(input_dataset,
                     input_y,
                     beta_parameters=['a', 1])

@@ -169,7 +169,8 @@ class TestAugmentation(object):
             """
             Dummy init method.
             """
-            super().__init__(dataset, categorical_indices=categorical_indices)
+            super().__init__(dataset,  # pragma: nocover
+                             categorical_indices=categorical_indices)
 
     class BrokenAugmentor2(fuda.Augmentation):
         """
@@ -389,8 +390,6 @@ class TestNormalSampling(object):
     """
     Tests :class:`fatf.utils.data.augmentation.NormalSampling` class.
     """
-    fatf.setup_random_seed()
-
     numerical_np_0_augmentor = fuda.NormalSampling(NUMERICAL_NP_ARRAY, [0])
     numerical_np_augmentor = fuda.NormalSampling(NUMERICAL_NP_ARRAY)
     numerical_struct_a_augmentor = fuda.NormalSampling(NUMERICAL_STRUCT_ARRAY,
@@ -469,6 +468,8 @@ class TestNormalSampling(object):
         """
         Tests :func:`~fatf.utils.data.augmentation.NormalSampling.sample`.
         """
+        fatf.setup_random_seed()
+
         # Pure numerical sampling of a data point
         # ...numpy array results
         samples = self.numerical_np_augmentor.sample(

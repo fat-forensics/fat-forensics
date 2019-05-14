@@ -169,8 +169,9 @@ class TestAugmentation(object):
             """
             Dummy init method.
             """
-            super().__init__(dataset,  # pragma: nocover
-                             categorical_indices=categorical_indices)
+            super().__init__(  # pragma: nocover
+                dataset,
+                categorical_indices=categorical_indices)
 
     class BrokenAugmentor2(fuda.Augmentation):
         """

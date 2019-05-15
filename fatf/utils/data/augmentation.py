@@ -6,6 +6,8 @@ Data augmentation classes.
 #         Rafael Poyiadzi <rp13102@bristol.ac.uk>
 # License: new BSD
 
+# pylint: disable=too-many-lines
+
 import abc
 import warnings
 
@@ -276,7 +278,7 @@ class Augmentation(abc.ABC):
         Returns
         -------
         is_valid : boolean
-            ``True`` if input parameter are valid, ``False`` otherwise.
+            ``True`` if input parameters are valid, ``False`` otherwise.
         """
         is_valid = False
 
@@ -329,7 +331,7 @@ class NormalSampling(Augmentation):
     appearance in the dataset.
 
     For additional parameters, attributes, warnings and exceptions raised by
-    this class please see the  documentation of its parent class:
+    this class please see the documentation of its parent class:
     :class:`fatf.utils.data.augmentation.Augmentation`.
 
     Attributes
@@ -486,6 +488,27 @@ class NormalSampling(Augmentation):
 def _validate_input_mixup(
         beta_parameters: Union[None, Tuple[Number, Number]]) -> bool:
     """
+    Validates :class:``.Mixup`` class-specific input parameters.
+
+    Parameters
+    ----------
+    beta_parameters : Union[Tuple[number, number], None]
+        Either ``None`` (for the default values) or a pair of numbers that will
+        be used as beta distribution parameters.
+
+    Raises
+    ------
+    TypeError
+        The ``beta_parameters`` parameter is neither ``None`` nor a tuple. One
+        of the values in the ``beta_parameters`` tuple is not a number.
+    ValueError
+        The ``beta_parameters`` tuple is not a pair (2-tuple). One of the
+        numbers in the ``beta_parameters`` tuple is not positive.
+
+    Returns
+    -------
+    is_valid : boolean
+        ``True`` if input is valid, ``False`` otherwise.
     """
     is_valid = False
 
@@ -498,7 +521,7 @@ def _validate_input_mixup(
                              '2-tuple (a pair) of numbers.')
         for index, name in enumerate(['first', 'second']):
             if isinstance(beta_parameters[index], Number):
-                if beta_parameters[index] <= 0:
+                if beta_parameters[index] <= 0:  # type: ignore
                     raise ValueError('The {} beta parameter cannot be a '
                                      'negative number.'.format(name))
             else:
@@ -515,34 +538,74 @@ def _validate_input_mixup(
 
 class Mixup(Augmentation):
     """
-    Object to perform data generation following the Mixup method.
+    Sampling data with the Mixup method.
 
-    For a specific point, select points frm the dataset at random, then draw
-    samples frm Beta distribution, and form new points according to the convex
-    combinations of the points.
+    This object implements the Mixup method introduced by [ZHANG2018MIXUP]_.
+    For a specific data point it select points at random from the ``dataset``
+    (making sure that the sample is stratified when the ``ground_truth``
+    parameter is given), then it draws samples from a Beta distribution and it
+    forms new data points (samples) according to the convex combination of the
+    original data pint and the randomly sampled dataset points.
+
+    .. note::
+       Sampling from the ``dataset`` mean is not yet implemented.
+
+    For additional parameters, attributes, warnings and exceptions raised by
+    this class please see the documentation of its parent class:
+    :class:`fatf.utils.data.augmentation.Augmentation` and the function that
+    validates the input parameter
+    :func:`fatf.utils.data.augmentation._validate_input_mixup`.
+
+    .. [ZHANG2018MIXUP] Zhang, H., Cisse, M., Dauphin, Y. N. and Lopez-Paz, D.,
+       2018. mixup: Beyond Empirical Risk Minimization. International
+       Conference on Learning Representations (ICLR 2018).
+
+    Parameters
+    ----------
+    beta_parameters : Tuple[number, number]], optional (default=None)
+        A pair of numerical parameters used with the Beta distribution. If
+        ``None``, the beta parameters will be set to ``(2, 5)``.
+
+    Raises
+    ------
+    TypeError
+        The ``beta_parameters`` parameter is neither ``None`` nor a tuple. One
+        of the values in the ``beta_parameters`` tuple is not a number.
+    ValueError
+        The ``beta_parameters`` tuple is not a pair (2-tuple). One of the
+        numbers in the ``beta_parameters`` tuple is not positive.
 
     Attributes
     ----------
     threshold : number
-        Pass.
+        A threshold used for mixing the random sample from the ``dataset`` with
+        the instance used to generate a sample. The threshold value is 0.5.
     beta_parameters : Tuple[number, number]
-        Pass.
+        A pair of numbers used with the Beta distribution sampling.
     ground_truth_unique : np.ndarray
-        Pass.
+        A sorted array holding all the unique values of the ground truth.
     ground_truth_frequencies : np.ndarray
-        Pass.
+        An array holding frequencies of all the unique values in the ground
+        truth array. The order of the frequencies correspond with the order of
+        the unique values. The frequencies are normalised and they sum up to 1.
     indices_per_label : List[np.ndarray]
-        Pass.
+        A list of arrays holding (``dataset``) row indices corresponding to
+        each of the unique ground truth values. The order of this list
+        corresponds with the order of the unique values.
     ground_truth_probabilities : np.ndarray
-        [number of instances, number of unique classes]
-        Pass.
+        A numpy array of [number of dataset instances, number of unique ground
+        truth values] shape that holds one-hot encoding (pseudo-probabilities)
+        of the ground truth labels. The column ordering of this array
+        corresponds with the order of the unique values.
     """
-    def __init__(self,
-                 dataset: np.ndarray,
-                 ground_truth: Optional[np.ndarray] = None,
-                 categorical_indices: Optional[np.ndarray] = None,
-                 beta_parameters: Optional[Tuple[Number, Number]] = None
-                 ) -> None:
+
+    # pylint: disable=too-few-public-methods
+    def __init__(
+            self,
+            dataset: np.ndarray,
+            ground_truth: Optional[np.ndarray] = None,
+            categorical_indices: Optional[np.ndarray] = None,
+            beta_parameters: Optional[Tuple[Number, Number]] = None) -> None:
         """
         Constructs a ``Mixup`` data augmentation class.
         """
@@ -550,7 +613,7 @@ class Mixup(Augmentation):
             dataset,
             ground_truth=ground_truth,
             categorical_indices=categorical_indices)
-        assert _validate_input_mixup(beta_parameters), 'Invalid mixup input.'
+        assert _validate_input_mixup(beta_parameters), 'Invalid Mixup input.'
 
         self.threshold = 0.50
 
@@ -565,8 +628,10 @@ class Mixup(Augmentation):
             ground_truth_unique, counts = np.unique(
                 self.ground_truth, return_counts=True)
             ground_truth_frequencies = counts / counts.sum()
-            indices_per_label = [np.where(self.ground_truth == label)[0]
-                                 for label in ground_truth_unique]
+            indices_per_label = [
+                np.where(self.ground_truth == label)[0]
+                for label in ground_truth_unique
+            ]
 
             # Get pseudo-probabilities per instance, i.e. 1 indicates the label
             ground_truth_probabilities = np.zeros(
@@ -581,14 +646,54 @@ class Mixup(Augmentation):
 
         # Check beta parameters
         if beta_parameters is None:
-            beta_parameters = (2, 5)
+            beta_parameters = (2, 5)  # type: ignore
         self.beta_parameters = beta_parameters
 
-    def _validate_sample_input_mixup(self,
-                                     data_row_target: Union[Number, str, None],
-                                     with_replacement: bool,
-                                     return_probabilities: bool) -> bool:
+    def _validate_sample_input_mixup(
+            self, data_row_target: Union[Number, str, None],
+            with_replacement: bool, return_probabilities: bool) -> bool:
         """
+        Validates ``sample`` method input parameters for the ``Mixup`` class.
+
+        This function checks the validity of ``data_row_target``,
+        ``with_replacement`` and ``return_probabilities`` parameters.
+
+        Parameters
+        ----------
+        data_row_target : Union[number, string, None]
+            Either ``None`` or a label (class) of the data row to sample new
+            data around.
+        with_replacement : boolean
+            A boolean parameter that indicates whether the ``dataset`` row
+            indices should be sampled with replacements (``True``) or not
+            (``False``).
+        return_probabilities : boolean
+            A boolean parameter that indicates whether the sampled target array
+            should a class probability matrix (``True``) or a 1-dimensional
+            array with the labels (``False``).
+
+        Warns
+        -----
+        UserWarning
+            The user is warned when the ``data_row_target`` parameter is given
+            but the ``Mixup`` class was initialised without the ground truth
+            for the ``dataset``, therefore sampling target values is not
+            possible and the ``data_row_target`` parameter will be ignored.
+
+        Raises
+        ------
+        TypeError
+            The ``return_probabilities`` or ``with_replacement`` parameters are
+            not booleans. The ``data_row_target`` parameter is neither a number
+            not a string.
+        ValueError
+            The ``data_row_target`` parameter has a value that does not appear
+            in the ground truth vector used to initialise this class.
+
+        Returns
+        -------
+        is_valid : boolean
+            ``True`` if input parameters are valid, ``False`` otherwise.
         """
         is_valid = False
 
@@ -626,6 +731,35 @@ class Mixup(Augmentation):
     def _get_stratified_indices(self, samples_number: int,
                                 with_replacement: bool) -> np.ndarray:
         """
+        Selects random row indices from the ``dataset``.
+
+        Selects ``samples_number`` number of row indices at random either with
+        replacements or not (depending on the value of the ``with_replacement``
+        parameter). The indices selection is stratified according to the ground
+        truth distribution if ground truth vector was given when this class
+        was initialised. Otherwise, the indices are generated at random.
+
+        Parameters
+        ----------
+        samples_number : integer
+            The number of data points to be sampled.
+        with_replacement : boolean
+            A boolean parameter that indicates whether the ``dataset`` row
+            indices should be sampled with replacements (``True``) or not
+            (``False``).
+
+        Warns
+        -----
+        UserWarning
+            The user is warned that the random row indices will not be
+            stratified according to the ground truth distribution if ground
+            truth vector was not given when this class was initialised.
+
+        Returns
+        -------
+        random_indices : numpy.ndarray
+            A 1-dimensional numpy array of shape [samples_number, ] that holds
+            randomly selected row indices from the ``dataset``.
         """
         assert isinstance(samples_number, int), 'Has to be an integer.'
         assert samples_number > 0, 'Has to be positive.'
@@ -646,8 +780,10 @@ class Mixup(Augmentation):
                 replace=with_replacement)
         else:
             # Get sample quantities per class -- stratified
-            samples_per_label = [int(freq * samples_number)
-                                 for freq in self.ground_truth_frequencies]
+            samples_per_label = [
+                int(freq * samples_number)
+                for freq in self.ground_truth_frequencies
+            ]
 
             # Due to integer casting there may be a sub- or under-sampling
             # happening. This gets corrected for below.
@@ -663,7 +799,7 @@ class Mixup(Augmentation):
             random_indices = []
             for i, label_sample_quantity in enumerate(samples_per_label):
                 random_indices_label = np.random.choice(
-                    self.indices_per_label[i],
+                    self.indices_per_label[i],  # type: ignore
                     label_sample_quantity,
                     replace=with_replacement)
                 random_indices.append(random_indices_label)
@@ -671,14 +807,44 @@ class Mixup(Augmentation):
 
         return random_indices
 
-    def _get_sample_targets(self,
-                            data_row_target: Union[Number, str],
+    def _get_sample_targets(self, data_row_target: Union[Number, str],
                             return_probabilities: bool,
                             random_draws_lambda: np.ndarray,
                             random_draws_lambda_1: np.ndarray,
                             random_indices: np.ndarray) -> np.ndarray:
         """
+        Samples target values for the sampled data instance.
+
+        The target values can either be represented as a class probability
+        matrix (``return_probabilities`` set to ``True``) or an array with a
+        single label per instance selected based on the highest probability
+        (``return_probabilities`` set to ``False``).
+
+        Parameters
+        ----------
+        data_row_target : Union[number, string]
+            A label (class) of the data row to sample new data around.
+        return_probabilities : boolean,
+            A boolean parameter that indicates whether the sampled target array
+            should a class probability matrix (``True``) or a 1-dimensional
+            array with the labels (``False``).
+        random_draws_lambda : numpy.ndarray,
+            A numpy array with the Beta distribution sample.
+        random_draws_lambda_1 : numpy.ndarray,
+            A numpy array with *1 -* the Beta distribution sample.
+        random_indices : numpy.ndarray
+            A 1-dimensional numpy array of shape [samples_number, ] that holds
+            randomly selected row indices from the ``dataset``.
+
+        Returns
+        -------
+        samples_target : numpy.ndarray
+            Either a numpy array of shape [samples_number, number of unique
+            labels (classes)] holding the class probabilities for the sampled
+            data or a 1-dimensional numpy array with labels for the sampled
+            data.
         """
+        # pylint: disable=too-many-arguments
         assert isinstance(data_row_target, (Number, str)), 'Invalid label.'
         assert isinstance(return_probabilities, bool), 'Must be boolean.'
         #
@@ -693,17 +859,12 @@ class Mixup(Augmentation):
         assert encoded_data_row_target.sum() == 1, 'Invalid probability array.'
 
         # Sort out labels -- this will be probability vectors
-        samples_target = (
-            np.apply_along_axis(
-                np.multiply,
-                0,
-                self.ground_truth_probabilities[random_indices],
-                random_draws_lambda_1)
-            + np.apply_along_axis(
-                np.multiply,
-                0,
-                encoded_data_row_target,
-                random_draws_lambda))
+        st1 = np.apply_along_axis(
+            np.multiply, 0, self.ground_truth_probabilities[random_indices],
+            random_draws_lambda_1)
+        st2 = np.apply_along_axis(np.multiply, 0, encoded_data_row_target,
+                                  random_draws_lambda)
+        samples_target = st1 + st2
 
         # Sort out labels -- this will be numbers
         # samples_target = (
@@ -718,20 +879,84 @@ class Mixup(Augmentation):
 
         return samples_target
 
-    def sample(self,
-               data_row: Optional[Union[np.ndarray, np.void]] = None,
-               data_row_target: Optional[Union[Number, str]] = None,
-               samples_number: int = 50,
-               with_replacement: bool = True,
-               return_probabilities: bool = False) -> Tuple[np.ndarray, ...]:
+    def sample(  # type: ignore
+            self,
+            data_row: Optional[Union[np.ndarray, np.void]] = None,
+            data_row_target: Optional[Union[Number, str]] = None,
+            samples_number: int = 50,
+            with_replacement: bool = True,
+            return_probabilities: bool = False) -> Tuple[np.ndarray, ...]:
         """
-        Pass.
+        Samples new data around the provided ``data_row`` using Mixup method.
+
+        If ``data_row_target`` is ``None``, only sampled data will be returned.
+        Otherwise, if ``data_row_target`` is provided, the ``Mixup`` class will
+        also attempt to sample labels. In this case the labels can either be
+        an array of class probabilities when the ``return_probabilities``
+        parameter is set to ``True``, or an array with a single label per
+        instance selected based on the highest probability when the
+        ``return_probabilities`` parameter is set to ``False``.
+
+        .. note::
+           Sampling from the ``dataset`` mean is not yet implemented.
+
+        For the documentation of extra parameters, warnings and errors please
+        see the description of the
+        :func:`~fatf.utils.data.augmentation.Augmentation.sample` method in the
+        parent :class:`fatf.utils.data.augmentation.Augmentation` class.
+
+        Parameters
+        ----------
+        data_row_target : Union[number, string], optional (default=None)
+            A label (class) of the provided ``data_row``. If ``None`` the
+            function will only return sampled data, otherwise it will also
+            return targets for the sampled data.
+        with_replacement : boolean, optional (default=True)
+            If ``True`` data points are sampled with replacements from the
+            original ``dataset``.
+        return_probabilities : boolean, optional (default=False)
+            If ``True`` the target (class) samples for the sampled data points
+            are in form of a class probability matrix, otherwise they are a
+            flat array with the target labels.
+
+        Warns
+        -----
+        UserWarning
+            The user is warned when the ``data_row_target`` parameter is given
+            but the ``Mixup`` class was initialised without the ground truth
+            for the ``dataset``, therefore sampling target values is not
+            possible and the ``data_row_target`` parameter will be ignored.
+            The user is also warned that the random row indices will not be
+            stratified according to the ground truth distribution if ground
+            truth vector was not given when this class was initialised.
+
+        Raises
+        ------
+        TypeError
+            The ``return_probabilities`` or ``with_replacement`` parameters are
+            not booleans. The ``data_row_target`` parameter is neither a number
+            not a string.
+        ValueError
+            The ``data_row_target`` parameter has a value that does not appear
+            in the ground truth vector used to initialise this class.
+
+        Returns
+        -------
+        samples : numpy.ndarray
+            A numpy array of shape [``samples_number``, number of features]
+            that holds the sampled data.
+        samples_target : numpy.ndarray, optional (returned when
+        the ``data_row_target`` parameter is not ``None``)
+            Either a numpy array of shape [samples_number, number of unique
+            labels (classes)] holding the class probabilities for the sampled
+            data or a 1-dimensional numpy array with labels for the sampled
+            data.
         """
+        # pylint: disable=arguments-differ,too-many-locals,too-many-arguments
         assert self._validate_sample_input(
             data_row, samples_number), 'Invalid mixup sampling input.'
         assert self._validate_sample_input_mixup(
-            data_row_target,
-            with_replacement,
+            data_row_target, with_replacement,
             return_probabilities), 'Invalid mixup sampling input.'
 
         if data_row is None:
@@ -739,8 +964,8 @@ class Mixup(Augmentation):
                                       'yet implemented for the Mixup class.')
 
         # Get stratified random row indices of the original data set
-        random_indices = self._get_stratified_indices(
-            samples_number, with_replacement)
+        random_indices = self._get_stratified_indices(samples_number,
+                                                      with_replacement)
         random_data_points = self.dataset[random_indices]
 
         random_draws_lambda = np.random.beta(*self.beta_parameters,
@@ -750,7 +975,7 @@ class Mixup(Augmentation):
 
         # Create an array to hold the samples.
         if self.is_structured:
-            shape = (samples_number, )
+            shape = (samples_number, )  # type: Tuple[int, ...]
         else:
             shape = (samples_number, self.features_number)
         samples = np.zeros(shape, dtype=self.dataset.dtype)
@@ -775,9 +1000,10 @@ class Mixup(Augmentation):
 
         # Get target values/probabilities sample if requested
         if data_row_target is None or self.ground_truth_unique is None:
-            return samples
+            to_return = samples
         else:
             samples_target = self._get_sample_targets(
                 data_row_target, return_probabilities, random_draws_lambda,
                 random_draws_lambda_1, random_indices)
-            return samples, samples_target
+            to_return = samples, samples_target
+        return to_return

@@ -28,7 +28,8 @@ Index = Union[int, str]
 
 def _validate_input(dataset: np.ndarray,
                     ground_truth: Optional[np.ndarray] = None,
-                    categorical_indices: Optional[List[Index]] = None) -> bool:
+                    categorical_indices: Optional[List[Index]] = None,
+                    int_to_float: bool = True) -> bool:
     """
     Validates the input parameters of an arbitrary augmentation class.
 
@@ -40,6 +41,11 @@ def _validate_input(dataset: np.ndarray,
         A 1-dimensional numpy array with labels for the supplied dataset.
     categorical_indices : List[column indices], optional (default=None)
         A list of column indices that should be treat as categorical features.
+    int_to_float : boolean, optional (default=True)
+        If ``True``, all of the integer dtype columns in the ``dataset`` will
+        be generalised to ``numpy.float64`` type. Otherwise, integer type
+        columns will remain integer and floating point type columns will remain
+        floating point.
 
     Raises
     ------
@@ -54,7 +60,8 @@ def _validate_input(dataset: np.ndarray,
     TypeError
         The ``categorical_indices`` parameter is neither a list nor ``None``.
         The ``dataset`` or the ``ground_truth`` array (if not ``None``) are not
-        of base (numerical and/or string) type.
+        of base (numerical and/or string) type. The ``int_to_float`` parameter
+        is not a boolean.
 
     Returns
     -------
@@ -93,6 +100,9 @@ def _validate_input(dataset: np.ndarray,
             raise TypeError('The categorical_indices parameter must be a '
                             'Python list or None.')
 
+    if not isinstance(int_to_float, bool):
+        raise TypeError('The int_to_float parameter has to be a boolean.')
+
     is_valid = True
     return is_valid
 
@@ -123,6 +133,11 @@ class Augmentation(abc.ABC):
         If ``None`` is given this will be inferred from the data array:
         string-based columns will be treated as categorical features and
         numerical columns will be treated as numerical features.
+    int_to_float : boolean
+        If ``True``, all of the integer dtype columns in the ``dataset`` will
+        be generalised to ``numpy.float64`` type. Otherwise, integer type
+        columns will remain integer and floating point type columns will remain
+        floating point.
 
     Warns
     -----
@@ -145,7 +160,8 @@ class Augmentation(abc.ABC):
     TypeError
         The ``categorical_indices`` parameter is neither a list nor ``None``.
         The ``dataset`` or the ``ground_truth`` array (if not ``None``) are not
-        of base (numerical and/or string) type.
+        of base (numerical and/or string) type. The ``int_to_float`` parameter
+        is not a boolean.
 
     Attributes
     ----------
@@ -164,20 +180,29 @@ class Augmentation(abc.ABC):
         A list of column indices that should be treat as numerical features.
     features_number : integer
         The number of features (columns) in the input ``dataset``.
+    sample_dtype : Union[numpy.dtype, List[Tuple[string, numpy.dtype]]
+        A dtype with numerical dtypes (in case of a structured data array)
+        generalised to support the assignment of sampled values. For example,
+        if the dtype of a numerical feature is ``int`` and the sampling
+        generates ``float`` this dtype will generalise the type of that column
+        to ``float``.
     """
 
-    # pylint: disable=too-few-public-methods
+    # pylint: disable=too-few-public-methods,too-many-instance-attributes
     def __init__(self,
                  dataset: np.ndarray,
                  ground_truth: Optional[np.ndarray] = None,
-                 categorical_indices: Optional[np.ndarray] = None) -> None:
+                 categorical_indices: Optional[np.ndarray] = None,
+                 int_to_float: bool = True) -> None:
         """
         Constructs an ``Augmentation`` abstract class.
         """
+        # pylint: disable=too-many-locals
         assert _validate_input(
             dataset,
             ground_truth=ground_truth,
-            categorical_indices=categorical_indices), 'Invalid input.'
+            categorical_indices=categorical_indices,
+            int_to_float=int_to_float), 'Invalid input.'
 
         self.dataset = dataset
         self.data_points_number = dataset.shape[0]
@@ -210,6 +235,27 @@ class Augmentation(abc.ABC):
         self.categorical_indices = sorted(list(categorical_indices))
         self.numerical_indices = sorted(list(numerical_indices))
         self.features_number = len(all_indices)
+
+        # Sort out the dtype of the sampled array.
+        ntype = np.dtype(np.float64) if int_to_float else np.dtype(np.int64)
+        if self.is_structured:
+            sample_dtype = []
+            for column_name in self.dataset.dtype.names:
+                if column_name in self.numerical_indices:
+                    new_dtype = fuat.generalise_dtype(
+                        self.dataset.dtype[column_name], ntype)
+                    sample_dtype.append((column_name, new_dtype))
+                elif column_name in self.categorical_indices:
+                    sample_dtype.append((column_name,
+                                         self.dataset.dtype[column_name]))
+                else:
+                    assert False, 'Unknown column name.'  # pragma: nocover
+        else:
+            if fuav.is_numerical_array(self.dataset):
+                sample_dtype = fuat.generalise_dtype(self.dataset.dtype, ntype)
+            else:
+                sample_dtype = self.dataset.dtype
+        self.sample_dtype = sample_dtype
 
     @abc.abstractmethod
     def sample(self,
@@ -344,23 +390,21 @@ class NormalSampling(Augmentation):
         Dictionary mapping categorical column feature indices to tuples two
         1-dimensional numpy arrays: one with unique values for that column
         and the other one with their normalised (sum up to 1) frequencies.
-    sample_dtype : Union[numpy.dtype, List[Tuple[string, numpy.dtype]]
-        A dtype with numerical dtypes (in case of a structured data array)
-        generalised to support the assignment of sampled values. For example,
-        if the dtype of a numerical feature is ``int`` and the sampling
-        generates ``float`` this dtype will generalise the type of that column
-        to ``float``.
     """
 
     # pylint: disable=too-few-public-methods
     def __init__(self,
                  dataset: np.ndarray,
-                 categorical_indices: Optional[List[Index]] = None) -> None:
+                 categorical_indices: Optional[List[Index]] = None,
+                 int_to_float: bool = True) -> None:
         """
         Constructs a ``NormalSampling`` data augmentation class.
         """
         # pylint: disable=too-many-locals,too-many-branches
-        super().__init__(dataset, categorical_indices=categorical_indices)
+        super().__init__(
+            dataset,
+            categorical_indices=categorical_indices,
+            int_to_float=int_to_float)
 
         # Get sampling parameters for numerical features.
         numerical_sampling_values = dict()
@@ -394,27 +438,6 @@ class NormalSampling(Augmentation):
             categorical_sampling_values[column_name] = (feature_values,
                                                         values_frequencies)
         self.categorical_sampling_values = categorical_sampling_values
-
-        # Sort out the dtype of the sampled array.
-        if self.is_structured:
-            sample_dtype = []
-            for column_name in self.dataset.dtype.names:
-                if column_name in self.numerical_indices:
-                    new_dtype = fuat.generalise_dtype(
-                        self.dataset.dtype[column_name], np.dtype(np.float64))
-                    sample_dtype.append((column_name, new_dtype))
-                elif column_name in self.categorical_indices:
-                    sample_dtype.append((column_name,
-                                         self.dataset.dtype[column_name]))
-                else:
-                    assert False, 'Unknown column name.'  # pragma: nocover
-        else:
-            if fuav.is_numerical_array(self.dataset):
-                sample_dtype = fuat.generalise_dtype(self.dataset.dtype,
-                                                     np.dtype(np.float64))
-            else:
-                sample_dtype = self.dataset.dtype
-        self.sample_dtype = sample_dtype
 
     def sample(self,
                data_row: Optional[Union[np.ndarray, np.void]] = None,
@@ -600,19 +623,21 @@ class Mixup(Augmentation):
     """
 
     # pylint: disable=too-few-public-methods
-    def __init__(
-            self,
-            dataset: np.ndarray,
-            ground_truth: Optional[np.ndarray] = None,
-            categorical_indices: Optional[np.ndarray] = None,
-            beta_parameters: Optional[Tuple[Number, Number]] = None) -> None:
+    def __init__(self,
+                 dataset: np.ndarray,
+                 ground_truth: Optional[np.ndarray] = None,
+                 categorical_indices: Optional[np.ndarray] = None,
+                 beta_parameters: Optional[Tuple[Number, Number]] = None,
+                 int_to_float: bool = True) -> None:
         """
         Constructs a ``Mixup`` data augmentation class.
         """
+        # pylint: disable=too-many-arguments
         super().__init__(
             dataset,
             ground_truth=ground_truth,
-            categorical_indices=categorical_indices)
+            categorical_indices=categorical_indices,
+            int_to_float=int_to_float)
         assert _validate_input_mixup(beta_parameters), 'Invalid Mixup input.'
 
         self.threshold = 0.50
@@ -932,6 +957,9 @@ class Mixup(Augmentation):
 
         Raises
         ------
+        NotImplementedError
+            Raised when the user is trying to sample around the mean of the
+            ``dataset`` -- this functionality is not yet implemented.
         TypeError
             The ``return_probabilities`` or ``with_replacement`` parameters are
             not booleans. The ``data_row_target`` parameter is neither a number
@@ -978,16 +1006,20 @@ class Mixup(Augmentation):
             shape = (samples_number, )  # type: Tuple[int, ...]
         else:
             shape = (samples_number, self.features_number)
-        samples = np.zeros(shape, dtype=self.dataset.dtype)
+        samples = np.zeros(shape, dtype=self.sample_dtype)
 
         # Sort out numerical features
+        # yapf: disable
         for index in self.numerical_indices:
-            column_values = (random_draws_lambda_1 * random_data_points[index]
-                             + random_draws_lambda * data_row[index])
             if self.is_structured:
-                samples[index] = column_values
+                samples[index] = (
+                    random_draws_lambda_1 * random_data_points[index]
+                    + random_draws_lambda * data_row[index])
             else:
-                samples[:, index] = column_values
+                samples[:, index] = (
+                    random_draws_lambda_1 * random_data_points[:, index]
+                    + random_draws_lambda * data_row[index])
+        # yapf: enable
 
         # Sort out categorical features
         for index in self.categorical_indices:
@@ -999,7 +1031,7 @@ class Mixup(Augmentation):
                 samples[~mask, index] = random_data_points[~mask, index]
 
         # Get target values/probabilities sample if requested
-        if data_row_target is None or self.ground_truth_unique is None:
+        if self.ground_truth_unique is None or data_row_target is None:
             to_return = samples
         else:
             samples_target = self._get_sample_targets(

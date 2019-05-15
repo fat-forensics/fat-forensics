@@ -2,10 +2,14 @@
 Holds functions responsible for models validation across FAT-Forensics.
 """
 # Author: Kacper Sokol <k.sokol@bristol.ac.uk>
+#         Alex Hepburn <ah13558@bristol.ac.uk>
 # License: new BSD
 
+from typing import Dict, Tuple
 import inspect
 import warnings
+
+import fatf.utils.validation as fuv
 
 __all__ = ['check_model_functionality']
 
@@ -44,36 +48,14 @@ def check_model_functionality(model_object: object,
         A Boolean variable that indicates whether the model object has all the
         desired functionality.
     """
-    is_functional = True
-
     methods = {'fit': 2, 'predict': 1}
     if require_probabilities:
         methods['predict_proba'] = 1
 
-    message_strings = []
-    for method in methods:
-        if not hasattr(model_object, method):
-            is_functional = False
-            message_strings.append(
-                'The model class is missing \'{}\' method.'.format(method))
-        else:
-            method_object = getattr(model_object, method)
-            required_param_n = 0
-            params = inspect.signature(method_object).parameters
-            for param in params:
-                if params[param].default is params[param].empty:
-                    required_param_n += 1
-            if required_param_n != methods[method]:
-                is_functional = False
-                message_strings.append(
-                    ('The \'{}\' method of the class has incorrect number '
-                     '({}) of the required parameters. It needs to have '
-                     'exactly {} required parameters. Try using optional '
-                     'parameters if you require more functionality.').format(
-                         method, required_param_n, methods[method]))
+    is_functional, message = fuv._check_object_functionality(
+        model_object, 'model', methods)
 
     if not is_functional and not suppress_warning:
-        message = '\n'.join(message_strings)
         warnings.warn(message, category=UserWarning)
 
     return is_functional

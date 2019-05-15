@@ -706,3 +706,173 @@ class TestNormalSampling(object):
             freq = freq / freq.sum()
             assert np.array_equal(val, vals[i])
             assert np.allclose(freq, proportions[i], atol=1e-1)
+
+
+
+
+
+class TestMixup(object):
+    """
+    Tests :class:`fatf.utils.data.augmentation.Mixup` class.
+    """
+    augmentor = fuda.Mixup(MIXED_ARRAY,
+                           np.array([0, 1, 0, 0, 0, 1]),
+                           ['b', 'd'])
+
+    def test_a(self):
+        """
+        Tests :class:`fatf.utils.data.augmentation.NormalSampling` class init.
+        """
+        fatf.setup_random_seed()
+        zz = self.augmentor.sample(MIXED_ARRAY[0], 0, 5)
+
+        answer_sample = np.array(
+            [(0, 'a', 0.3317898 , 'a'),
+             (0, 'a', 0.08      , 'a'),
+             (0, 'a', 0.58676827, 'a'),
+             (0, 'a', 0.7247355 , 'a'),
+             (0, 'a', 0.07265811, 'a')],
+            dtype=[('a', '<i4'), ('b', '<U1'), ('c', '<f4'), ('d', '<U2')])
+        answer_gt = np.array([[1, 0.],
+                              [1, 0.],
+                              [1, 0.],
+                              [1, 0.],
+                              [0.26581121, 0.73418879]])
+        assert np.allclose(zz[1], answer_gt, atol=1e-3)
+        for i in ['a', 'c']:
+            assert np.allclose(zz[0][i], answer_sample[i], atol=1e-3)
+        for i in ['b', 'd']:
+            assert np.array_equal(zz[0][i], answer_sample[i])
+
+
+        zz = self.augmentor.sample(MIXED_ARRAY[0], 1, 5)
+        answer_sample = np.array(
+            [(0, 'a', 0.828684  , 'a'),
+             (0, 'a', 0.60111123, 'a'),
+             (0, 'a', 0.25465372, 'a'),
+             (0, 'a', 0.3767466 , 'a'),
+             (0, 'a', 0.07084764, 'a')],
+            dtype=[('a', '<i4'), ('b', '<U1'), ('c', '<f4'), ('d', '<U2')])
+        answer_gt = np.array([[0.82272962, 0.17727038],
+                              [0.80170953, 0.19829047],
+                              [0.62376321, 0.37623679],
+                              [0.4565332, 0.5434668 ],
+                              [0, 1.        ]])
+        assert np.allclose(zz[1], answer_gt, atol=1e-3)
+        for i in ['a', 'c']:
+            assert np.allclose(zz[0][i], answer_sample[i], atol=1e-3)
+        for i in ['b', 'd']:
+            assert np.array_equal(zz[0][i], answer_sample[i])
+
+
+
+
+
+
+y = np.array([0, 1])
+testdata_struct = np.array([(74, 52), ( 3, 86), (26, 56), (70, 57), (48, 57), (30, 98),
+       (41, 73), (24,  1), (44, 66), (62, 96), (63, 51), (26, 88),
+       (94, 64), (59, 19), (14, 88), (16, 15), (94, 48), (41, 25),
+       (36, 57), (37, 52), (21, 42)],
+      dtype=[('Age', '<i4'), ('Weight', '<i4')])
+
+testdata = np.array([(74, 52), ( 3, 86), (26, 56), (70, 57), (48, 57), (30, 98),
+       (41, 73), (24,  1), (44, 66), (62, 96), (63, 51), (26, 88),
+       (94, 64), (59, 19), (14, 88), (16, 15), (94, 48), (41, 25),
+       (36, 57), (37, 52), (21, 42)])
+
+input_dataset_0 = testdata[:2]
+input_y = y[:2]
+
+test_instance_0 = testdata[1]
+test_y_0 = y[1]
+
+expected_output_0 = [np.array([[63, 57]]), np.array([[0.15201248595867722]])]
+
+input_dataset_1 = testdata_struct[:2]
+input_y = y[:2]
+
+test_instance_1 = testdata_struct[1]
+test_y_1 = y[1]
+
+expected_output_1 = [np.array([(63, 57)], dtype=[('Age', '<i4'), ('Weight', '<i4')]),
+                     np.array([[0.15201248595867722]])]
+
+
+@pytest.mark.parametrize("input_dataset, input_y, test_instance, test_y, expected_output",
+                         [(input_dataset_0, input_y, test_instance_0, test_y_0, expected_output_0),
+                          (input_dataset_1, input_y, test_instance_1, test_y_1, expected_output_1)])
+def _test_sample(input_dataset, input_y, test_instance, test_y, expected_output):
+    mdl = fuda.Mixup(input_dataset,
+                input_y)
+    N = 1
+    np.random.seed(42)
+    output = mdl.sample(test_instance,
+                        N)
+    assert np.all(output[0] == expected_output[0])
+    assert np.all(output[1] == expected_output[1])
+
+input_t = np.vstack((input_y, 1-input_y))
+test_t_0 = input_t[0]
+test_instance_2cl_0 = input_dataset_0[0]
+test_instance_2cl_1 = input_dataset_1[0]
+
+expected_output_0 = (np.array([[27, 74]]), np.array([[0.6492304718478048, 0.35076952815219514]]))
+expected_output_1 = (np.array([(27, 74)], dtype=[('Age', '<i4'), ('Weight', '<i4')]), np.array([[0.6492304718478048, 0.35076952815219514]]))
+@pytest.mark.parametrize("input_dataset, input_t, test_instance, test_y, expected_output",
+                         [(input_dataset_0, input_t, test_instance_2cl_0, test_t_0, expected_output_0),
+                          (input_dataset_1, input_t, test_instance_2cl_1, test_t_0, expected_output_1)])
+def _test_sample_2classes(input_dataset, input_t, test_instance, test_y, expected_output):
+    mdl = fuda.Mixup(input_dataset,
+                input_t)
+    np.random.seed(53)
+    output = mdl.sample(test_instance,
+                        test_y,
+                        1)
+    assert np.all(output[0] == expected_output[0])
+    assert np.all(output[1] == expected_output[1])
+
+input_t = np.vstack((input_y, 1-input_y))
+test_t_0 = input_t[0]
+input_dataset_cat = np.array([(74, 'a'), ( 3, 'b')],
+      dtype=[('Age', '<i4'), ('work', '<U2')])
+
+test_instance_cat_0 = input_dataset_cat[0]
+expected_output_0 = (np.array([(20, 'a')], dtype=[('Age', '<i4'), ('work', '<U2')]), np.array([[0.74975274, 0.25024726]]))
+
+
+
+@pytest.mark.parametrize("input_dataset, input_t, test_instance, test_y, expected_output",
+                         [(input_dataset_cat, input_t, test_instance_cat_0, test_t_0, expected_output_0)])
+def _test_sample_categorical(input_dataset, input_t, test_instance, test_y, expected_output):
+    mdl = fuda.Mixup(input_dataset,
+                input_t)
+    np.random.seed(7)
+    output = mdl.sample(test_instance,
+                        test_y,
+                        1)
+    assert np.all(output[0] == expected_output[0])
+    assert float(format(output[1][0][0], '.8f')) == expected_output[1][0][0]
+    assert float(format(output[1][0][1], '.8f')) == expected_output[1][0][1]
+
+
+@pytest.mark.parametrize("input_dataset, input_y",
+                         [(input_dataset_0, input_y)])
+def _test_beta_parameters(input_dataset, input_y):
+    with pytest.raises(ValueError) as excinfo:
+        mdl = fuda.Mixup(input_dataset,
+                    input_y,
+                    beta_parameters=[1])
+    assert str(excinfo.value) == 'Need two parameters for beta distribution'
+
+    with pytest.raises(ValueError) as excinfo:
+        mdl = fuda.Mixup(input_dataset,
+                    input_y,
+                    beta_parameters=[-1, 1])
+    assert str(excinfo.value) == 'Beta parameters need to be positive'
+
+    with pytest.raises(TypeError) as excinfo:
+        mdl = fuda.Mixup(input_dataset,
+                    input_y,
+                    beta_parameters=['a', 1])
+    assert str(excinfo.value) == 'Beta parameters need to be int or float'

@@ -32,6 +32,14 @@ class IncompatibleModelError(FATFException):
     functionality.
     """
 
+class IncompatibleExplainerError(FATFException):
+    """
+    Exception raised when explainer lacks desired functionaility.
+
+    For example, is can be raised when explainer object does not have function
+    ``explain_instance`` or if ``explain_instance`` function does not have
+    exactly one required parameter.
+    """
 
 class UnfittedModelError(FATFException):
     """

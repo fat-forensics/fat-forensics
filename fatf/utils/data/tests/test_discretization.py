@@ -125,7 +125,7 @@ class TestDiscretiser():
     Tests :class:`fatf.utils.data.discretize.Discretizer` abstract class.
     """
 
-    class BrokenDiscretizer1(fudd.Discretizer):
+    class BrokenDiscretizer1(fudd.Discretization):
         """
         A broken data augmentation implementation.
 
@@ -142,14 +142,14 @@ class TestDiscretiser():
                 categorical_indices=categorical_indices,
                 feature_names=feature_names)
 
-    class BrokenDiscretizer2(fudd.Discretizer):
+    class BrokenDiscretizer2(fudd.Discretization):
         """
         A broken data augmentation implementation.
 
         This class does not have a ``sample`` method.
         """
 
-    class BaseDiscretizer(fudd.Discretizer):
+    class BaseDiscretizer(fudd.Discretization):
         """
         A dummy data discretizer implementation.
 
@@ -175,7 +175,8 @@ class TestDiscretiser():
 
     def test_discretizer_class_init(self):
         """
-        Tests :class:`fatf.utils.data.discretization.Discretizer` class init.
+        Tests :class:`fatf.utils.data.discretization.Discretization`
+        class init.
         """
         abstract_method_error = ("Can't instantiate abstract class "
                                  '{} with abstract methods discretize')
@@ -198,8 +199,8 @@ class TestDiscretiser():
         assert str(exin.value) == msg
 
         with pytest.raises(TypeError) as exin:
-            fudd.Discretizer(NUMERICAL_NP_ARRAY)
-        assert str(exin.value) == abstract_method_error.format('Discretizer')
+            fudd.Discretization(NUMERICAL_NP_ARRAY)
+        assert str(exin.value) == abstract_method_error.format('Discretization')
 
         # Test for a categorical index warning
         with pytest.warns(UserWarning) as warning:
@@ -361,6 +362,12 @@ class TestQuartileDiscretizer(object):
         # Test calculating numerical and categorical indices
         assert self.numerical_np_0_discretizer.categorical_indices == [0]
         assert self.numerical_np_0_discretizer.numerical_indices == [1, 2, 3]
+
+        # Test feature_value_names
+        interval_format = self.numerical_np_0_discretizer.interval_format
+        feature_interval_names = self.numerical_np_0_discretizer.feature_interval_names
+        assert self.numerical_np_0_discretizer.feature_value_names == \
+            dict(zip([1, 2, 3], ['1 <= ']))
 
     def test_discretize(self):
         """

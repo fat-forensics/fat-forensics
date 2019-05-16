@@ -16,7 +16,7 @@ from fatf.exceptions import IncorrectShapeError
 import fatf.utils.array.tools as fuat
 import fatf.utils.array.validation as fuav
 
-__all__ = []
+__all__ = ['QuartileDiscretizer']
 
 Index = Union[int, str]
 
@@ -85,7 +85,7 @@ def _validate_input(dataset: np.ndarray,
     return is_valid
 
 
-class Discretizer(abc.ABC):
+class Discretization(abc.ABC):
     """
     Abstract class for all discretisers
 
@@ -95,6 +95,16 @@ class Discretizer(abc.ABC):
     method. The validation of the input parameter to the initialisation
     method is done via the :func:`fatf.utils.data.discretize._validate_input`
     function.
+    
+    .. warning::
+       Attribute ``feature_value_names`` must be overwritten . This attribute
+       is of type Dictionary[Index, Dictionary[Any, string]] where the
+       outer dictionary is mapping a index of a feature that has been 
+       discretized to a dictionary. The second dictionary maps values in that 
+       discretized feature vector to the string description of what those 
+       values mean, e.g. if we discretized a feature vector into quartiles
+       the inner dictionary would be {0: 'feature < q1', 1: 'q1 < feature < 
+       q2', 2: 'q2 < feature < q3', 3: 'feature > q3'}.
 
     Parameters
     ----------
@@ -150,7 +160,7 @@ class Discretizer(abc.ABC):
                  categorical_indices: Optional[List[Index]] = None,
                  feature_names: Optional[List[str]] = None):
         """
-        Constructs an ``Discretizer`` abstract class.
+        Constructs an ``Discretization`` abstract class.
         """
         assert _validate_input(
             dataset, 
@@ -274,22 +284,35 @@ class Discretizer(abc.ABC):
         return is_valid
 
 
-class QuartileDiscretizer(Discretizer):
+class QuartileDiscretizer(Discretization):
     """
-    Discretizer that discretizes data into quartiles.
+    Discretization that discretizes data into quartiles.
     """
     def __init__(self,
                  dataset: np.ndarray,
                  categorical_indices: Optional[List[Index]] = None,
                  feature_names: Optional[List[str]] = None):
         """
-        Constructs an ``QuartileDiscretizer`` abstract class.
+        Constructs an ``QuartileDiscretization`` abstract class.
+
+        For additional parameters, attributes, warnings and exceptions raised by
+        this class please see the  documentation of its parent class:
+        :class:`fatf.utils.data.discretization.Discretization`.
+
+        Attributes
+        ----------
+        bins : Dictionary[Index, numpy.array]
+            A dictionary mapping indices to numpy array specifying the 
+            quartile ranges.
+        feature_value_names : Dictionary[Index, List[string]]
         """
-        super().__init__(dataset, categorical_indices=categorical_indices)
+        super().__init__(dataset, categorical_indices=categorical_indices,
+                         feature_names=feature_names)
 
         self.bins = {}
         self.feature_value_names = {}
-        feature_names = []
+        feature_interval_names = \
+            ['%s <= %.2f'] + ['%.2f < %s <= %.2f']*2 + ['%s > %.2f']
         for feature in self.numerical_indices:
             if self.is_structured:
                 qts = np.array(np.percentile(dataset[feature], [25, 50, 75]))
@@ -297,12 +320,17 @@ class QuartileDiscretizer(Discretizer):
                 qts = np.array(np.percentile(dataset[:, feature],
                                              [25, 50, 75]))
             self.bins[feature] = qts
-            
+            feature_name = self.feature_names[feature]
+            interval_format = [(feature_name, qts[0]), (qts[0], feature_name,
+                qts[1]), (qts[1], feature_name, qts[2]), (feature_name, qts[2])]
+            self.feature_value_names[feature] = [interval%x for
+                (interval, x) in zip(feature_interval_names, interval_format)]
 
     def discretize(self, data: np.ndarray) -> np.ndarray:
         """
         Discretizes data into quartiles.
         """
+        self._validate_discretize_input(data)
         discretized_data = data.copy()
 
         for feature, values in self.bins.items():

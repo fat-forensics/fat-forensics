@@ -22,7 +22,8 @@ Index = Union[int, str]
 
 
 def _validate_input(dataset: np.ndarray,
-                    categorical_indices: Optional[List[Index]] = None) -> bool:
+                    categorical_indices: Optional[List[Index]] = None,
+                    feature_names: Optional[List[str]] = None) -> bool:
     """
     Validates the input parameters of an arbitrary discretize class.
 
@@ -67,6 +68,18 @@ def _validate_input(dataset: np.ndarray,
         else:
             raise TypeError('The categorical_indices parameter must be a '
                             'Python list or None.')
+
+    if feature_names is not None:
+        if not isinstance(feature_names, list):
+            raise TypeError('The feature_names parameter must be a Python '
+                            'list or None.')
+        else:
+            for name in feature_names:
+                if not isinstance(name, str):
+                    raise TypeError('The feature_names must be strings.')
+            if len(feature_names) != dataset.shape[1]:
+                raise ValueError('The length of feature_names must be equal '
+                                 'to the number of features in the dataset.')
 
     is_valid = True
     return is_valid
@@ -128,16 +141,21 @@ class Discretizer(abc.ABC):
         A list of column indices that should be treat as numerical features.
     features_number : integer
         The number of features (columns) in the input ``dataset``.
+    feature_names : Dict[Index, str]
+        A dictionary of feature names. If None then feature names are inferred
+        by indices.
     """
     def __init__(self,
                  dataset: np.ndarray,
-                 categorical_indices: Optional[List[Index]]):
+                 categorical_indices: Optional[List[Index]] = None,
+                 feature_names: Optional[List[str]] = None):
         """
         Constructs an ``Discretizer`` abstract class.
         """
         assert _validate_input(
             dataset, 
-            categorical_indices=categorical_indices), 'Invalid Input'
+            categorical_indices=categorical_indices,
+            feature_names=feature_names), 'Invalid Input'
 
         self.dataset = dataset
         self.data_points_number = dataset.shape[0]
@@ -165,13 +183,20 @@ class Discretizer(abc.ABC):
                 categorical_indices = cat_indices.union(categorical_indices)
             numerical_indices = all_indices.difference(categorical_indices)
 
+        if self.is_structured:
+            indices = self.dataset.dtype.names
+        else:
+            indices = list(range(self.dataset.shape[1]))
+        if feature_names is None:
+            feature_names = [str(x) for x in indices]
+
         self.categorical_indices = sorted(list(categorical_indices))
         self.numerical_indices = sorted(list(numerical_indices))
         self.features_number = len(all_indices)
+        self.feature_names = dict(zip(indices, feature_names))
 
     @abc.abstractmethod
-    def discretize(self,
-                   data: np.ndarray) -> np.ndarray:
+    def discretize(self, data: np.ndarray) -> np.ndarray:
         """
         Discretizes non-categorical features in ``data``.
 
@@ -247,3 +272,45 @@ class Discretizer(abc.ABC):
 
         is_valid = True
         return is_valid
+
+
+class QuartileDiscretizer(Discretizer):
+    """
+    Discretizer that discretizes data into quartiles.
+    """
+    def __init__(self,
+                 dataset: np.ndarray,
+                 categorical_indices: Optional[List[Index]] = None,
+                 feature_names: Optional[List[str]] = None):
+        """
+        Constructs an ``QuartileDiscretizer`` abstract class.
+        """
+        super().__init__(dataset, categorical_indices=categorical_indices)
+
+        self.bins = {}
+        self.feature_value_names = {}
+        feature_names = []
+        for feature in self.numerical_indices:
+            if self.is_structured:
+                qts = np.array(np.percentile(dataset[feature], [25, 50, 75]))
+            else:
+                qts = np.array(np.percentile(dataset[:, feature],
+                                             [25, 50, 75]))
+            self.bins[feature] = qts
+            
+
+    def discretize(self, data: np.ndarray) -> np.ndarray:
+        """
+        Discretizes data into quartiles.
+        """
+        discretized_data = data.copy()
+
+        for feature, values in self.bins.items():
+            if self.is_structured or fuav.is_1d_array(data):
+                values = np.searchsorted(values, discretized_data[feature])
+                discretized_data[feature] = values
+            else:
+                values = np.searchsorted(values, discretized_data[:, feature])
+                discretized_data[:, feature] = values
+
+        return discretized_data

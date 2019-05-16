@@ -55,7 +55,13 @@ MIXED_ARRAY = np.array(
      (1, 'f', 0.07, 'bb')],
     dtype=[('a', 'i'), ('b', 'U1'), ('c', 'f'), ('d', 'U2')])
 # yapf: enable
-
+NUMERICAL_NP_CAT_DISCRETIZED = np.array([
+    [0., 0., 1., 2.],
+    [1., 0., 0., 0.],
+    [0., 2., 3., 3.],
+    [2., 2., 3., 1.],
+    [1., 0., 2., 3.],
+    [0., 2., 0., 0.]])
 
 def test_validate_input():
     """
@@ -68,6 +74,12 @@ def test_validate_input():
                         'dataset: {}.')
     type_error_cidx = ('The categorical_indices parameter must be a Python '
                        'list or None.')
+    type_error_feature_names = ('The feature_names parameter must be a Python '
+                                'list or None.')
+    type_error_feature_name = ('The feature_names must be strings.')
+    incorrect_shape_feature_names = ('The length of feature_names must be '
+                                     'equal to the number of features in the '
+                                     'dataset.')
 
     with pytest.raises(IncorrectShapeError) as exin:
         fudd._validate_input(np.array([0, 4, 3, 0]))
@@ -91,6 +103,18 @@ def test_validate_input():
     assert str(exin.value) == index_error_cidx.format([1])
 
     #
+    with pytest.raises(TypeError) as exin:
+        fudd._validate_input(NUMERICAL_NP_ARRAY, feature_names='a')
+    assert str(exin.value) == type_error_feature_names
+
+    with pytest.raises(TypeError) as exin:
+        fudd._validate_input(NUMERICAL_NP_ARRAY, feature_names=[1])
+    assert str(exin.value) == type_error_feature_name
+
+    with pytest.raises(ValueError) as exin:
+        fudd._validate_input(NUMERICAL_NP_ARRAY, feature_names=['a'])
+    assert str(exin.value) == incorrect_shape_feature_names
+
     assert fudd._validate_input(
         MIXED_ARRAY,
         categorical_indices=['a', 'b'])
@@ -108,13 +132,15 @@ class TestDiscretiser():
         This class does not have a ``sample`` method.
         """
 
-        def __init__(self, dataset, categorical_indices=None):
+        def __init__(self, dataset, categorical_indices=None,
+                     feature_names=None):
             """
             Dummy init method.
             """
             super().__init__(  # pragma: nocover
                 dataset,
-                categorical_indices=categorical_indices)
+                categorical_indices=categorical_indices,
+                feature_names=feature_names)
 
     class BrokenDiscretizer2(fudd.Discretizer):
         """
@@ -132,11 +158,13 @@ class TestDiscretiser():
         discretize_input` testing.
         """
 
-        def __init__(self, dataset, categorical_indices=None):
+        def __init__(self, dataset, categorical_indices=None,
+                     feature_names=None):
             """
             Dummy init method.
             """
-            super().__init__(dataset, categorical_indices=categorical_indices)
+            super().__init__(dataset, categorical_indices=categorical_indices,
+                             feature_names=feature_names)
 
         def discretize(self, data):
             """
@@ -194,13 +222,16 @@ class TestDiscretiser():
         assert np.array_equal(discretizer.categorical_indices, ['b', 'd'])
 
         # Validate internal variables
-        categorical_np_discretizer = self.BaseDiscretizer(CATEGORICAL_NP_ARRAY)
+        categorical_np_discretizer = self.BaseDiscretizer(
+            CATEGORICAL_NP_ARRAY, feature_names=['aa', 'bb', 'cc'])
         assert np.array_equal(categorical_np_discretizer.dataset,
                               CATEGORICAL_NP_ARRAY)
         assert not categorical_np_discretizer.is_structured
         assert categorical_np_discretizer.categorical_indices == [0, 1, 2]
         assert categorical_np_discretizer.numerical_indices == []
         assert categorical_np_discretizer.features_number == 3
+        assert categorical_np_discretizer.feature_names == \
+            dict(zip([0, 1, 2, 3], ['aa', 'bb', 'cc']))
 
         categorical_struct_discretizer = self.BaseDiscretizer(
             CATEGORICAL_STRUCT_ARRAY)
@@ -211,6 +242,8 @@ class TestDiscretiser():
                 == ['a', 'b', 'c'])  # yapf: disable
         assert categorical_struct_discretizer.numerical_indices == []
         assert categorical_struct_discretizer.features_number == 3
+        assert categorical_struct_discretizer.feature_names == \
+            dict(zip(['a', 'b', 'c'], ['a', 'b', 'c']))
 
         mixed_discretizer = self.BaseDiscretizer(MIXED_ARRAY)
         assert np.array_equal(mixed_discretizer.dataset, MIXED_ARRAY)
@@ -218,14 +251,19 @@ class TestDiscretiser():
         assert mixed_discretizer.categorical_indices == ['b', 'd']
         assert mixed_discretizer.numerical_indices == ['a', 'c']
         assert mixed_discretizer.features_number == 4
+        assert mixed_discretizer.feature_names == \
+            dict(zip(['a', 'b', 'c', 'd'], ['a', 'b', 'c', 'd']))
 
-        numerical_np_discretizer = self.BaseDiscretizer(NUMERICAL_NP_ARRAY, [0, 1])
+        numerical_np_discretizer = self.BaseDiscretizer(
+            NUMERICAL_NP_ARRAY, [0, 1], feature_names=['a', 'b', 'c', 'd'])
         assert np.array_equal(numerical_np_discretizer.dataset,
                               NUMERICAL_NP_ARRAY)
         assert not numerical_np_discretizer.is_structured
         assert numerical_np_discretizer.categorical_indices == [0, 1]
         assert numerical_np_discretizer.numerical_indices == [2, 3]
         assert numerical_np_discretizer.features_number == 4
+        assert numerical_np_discretizer.feature_names == \
+            dict(zip([0, 1, 2, 3], ['a', 'b', 'c', 'd']))
 
     def test_discretizer_sample_validation(self):
         """
@@ -306,3 +344,31 @@ class TestDiscretiser():
         assert np.array_equal(
             categorical_np_discretizer.discretize(CATEGORICAL_NP_ARRAY),
             ones_cat_2d)
+
+
+class TestQuartileDiscretizer(object):
+    """
+    Tests :class:`fatf.utils.data.discretization.QuartileDiscretizer` class.
+    """
+    numerical_np_0_discretizer = fudd.QuartileDiscretizer(
+            NUMERICAL_NP_ARRAY, [0])
+
+    def test_init(self):
+        """
+        Tests :class:`fatf.utils.data.discretization.QuartileDiscretizer`
+        class init.
+        """
+        # Test calculating numerical and categorical indices
+        assert self.numerical_np_0_discretizer.categorical_indices == [0]
+        assert self.numerical_np_0_discretizer.numerical_indices == [1, 2, 3]
+
+    def test_discretize(self):
+        """
+        Tests :func:`~fatf.utils.data.discretization.QuartileDiscretizer.
+        discretize`.
+        """
+        # Pure numerical sampling of a data point
+        # ...numpy array results
+        discretized = self.numerical_np_0_discretizer.discretize(
+            NUMERICAL_NP_ARRAY)
+        assert np.array_equal(discretized, NUMERICAL_NP_CAT_DISCRETIZED)

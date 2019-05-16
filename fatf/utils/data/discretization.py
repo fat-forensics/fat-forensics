@@ -77,14 +77,17 @@ class Discretizer(abc.ABC):
     Abstract class for all discretisers
 
      An abstract class that all discretizer classes should inherit from. It 
-    contains abstract ``__init__``. The validation of the input parameter to 
-    the initialisation method is done via the 
-    :func:`fatf.utils.data.discretize._validate_input` function.
+    contains abstract ``__init__`` and ``discretize`` methods and an input
+    validator -- ``_validate_discretize_input`` -- for the ``discretize``
+    method. The validation of the input parameter to the initialisation
+    method is done via the :func:`fatf.utils.data.discretize._validate_input`
+    function.
 
     Parameters
     ----------
     dataset : numpy.ndarray
-        A 2-dimensional numpy array with a dataset to be discretized.
+        A 2-dimensional numpy array with a dataset that the data to be
+        disretized belongs to.
     categorical_indices : List[column indices], optional (default=None)
         A list of column indices that should be treat as categorical features.
         If ``None`` is given this will be inferred from the data array:
@@ -168,27 +171,18 @@ class Discretizer(abc.ABC):
 
     @abc.abstractmethod
     def discretize(self,
-                   data: np.ndarray):
+                   data: np.ndarray) -> np.ndarray:
         """
-        Samples a given number of data points based on the initialisation data.
+        Discretizes non-categorical features in ``data``.
 
         This is an abstract method that must be implemented for each child
-        object. This method should provide two modes of operation:
-
-        - if ``data_row`` is ``None``, the sample should be from the
-          distribution of the whole dataset that was used to initialise this
-          class; and
-
-        - if ``data_row`` is a numpy array with a data point, the sample should
-          be from the vicinity of this data point.
+        object. This method should return an numpy.ndarray of the same shape
+        as ``data`` parameter with non-categorical features been discretized.
 
         Parameters
         ----------
-        data_row : Union[numpy.ndarray, numpy.void], optional (default=None)
-            A data point. If given, the sample will be generated around that
-            point.
-        samples_number : integer, optional (default=50)
-            The number of samples to be generated.
+        data : Union[numpy.ndarray, numpy.void]
+            A data point or an array of data points to be discretized.
 
         Raises
         ------
@@ -197,17 +191,17 @@ class Discretizer(abc.ABC):
 
         Returns
         -------
-        samples : numpy.ndarray
-            Sampled data.
+        discretized_data : numpy.ndarray
+            Data that has been discretized.
         """
         assert self._validate_discretize_input(  # pragma: nocover
-            data), 'Invalid sample method input.'
+            data), 'Invalid discretize method input.'
 
         raise NotImplementedError(  # pragma: nocover
-            'sample method needs to be overwritten.')
+            'discretize method needs to be overwritten.')
 
     def _validate_discretize_input(self,
-                                   data:np.ndarray):
+                                   data:np.ndarray) -> bool:
         """
         Validates input parameters of the ``discretize`` method.
 
@@ -230,28 +224,26 @@ class Discretizer(abc.ABC):
             ``True`` if input parameter are valid, ``False`` otherwise.
         """
         is_valid = False
-        if fuav.is_1d_like(data):
-            are_similar = fuav.are_similar_dtype_arrays(
-                    self.dataset, np.array(data), strict_comparison=True)
-            if not are_similar:
-                raise TypeError('The dtype of the data is different to '
-                                'the dtype of the data array used to '
-                                'initialise this class.')
 
-            if not self.is_structured:
-                if data.shape[0] != self.dataset.shape[1]:
-                    raise IncorrectShapeError('The data must contain the '
-                                                'same number of features as the '
-                                                'dataset used to initialise '
-                                                'this class.')
+        are_similar = fuav.are_similar_dtype_arrays(
+                    self.dataset, np.array(data), strict_comparison=True)
+        if not are_similar:
+            raise TypeError('The dtype of the data is different to '
+                            'the dtype of the data array used to '
+                            'initialise this class.')
+        if fuav.is_1d_like(data):
+            features_number = data.shape[0]
         elif fuav.is_2d_array(data):
-            if not self.is_structured:
-                if data.shape[0] != self.dataset.shape[1]:
-                    raise IncorrectShapeError('The data must contain the '
-                                                'same number of features as the '
-                                                'dataset used to initialise '
-                                                'this class.')
+            features_number = data.shape[1]
         else:
             raise IncorrectShapeError(
                 'data must be a 1-dimensional array, 2-dimensional array or '
                 'void object for structured rows.')
+        if not self.is_structured:
+            if features_number != self.dataset.shape[1]:
+                raise IncorrectShapeError(
+                    'The data must contain the same number of features as '
+                    'the dataset used to initialise this class.')
+
+        is_valid = True
+        return is_valid

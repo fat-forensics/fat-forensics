@@ -247,7 +247,8 @@ class TestDiscretiser():
         # Validate sample input rows
         numerical_np_discretizer = self.BaseDiscretizer(NUMERICAL_NP_ARRAY)
         categorical_np_discretizer = self.BaseDiscretizer(CATEGORICAL_NP_ARRAY)
-        numerical_struct_discretizer = self.BaseDiscretizer(NUMERICAL_STRUCT_ARRAY)
+        numerical_struct_discretizer = \
+            self.BaseDiscretizer(NUMERICAL_STRUCT_ARRAY)
         categorical_struct_discretizer = self.BaseDiscretizer(
             CATEGORICAL_STRUCT_ARRAY, categorical_indices=['a', 'b', 'c'])
 
@@ -256,7 +257,6 @@ class TestDiscretiser():
             numerical_np_discretizer.discretize(NUMERICAL_3D_ARRAY)
         assert str(exin.value) == incorrect_shape_data_row
 
-        # 1-D data
         # data type
         with pytest.raises(TypeError) as exin:
             numerical_np_discretizer.discretize(np.array(['a', 'b', 'c', 'd']))
@@ -279,6 +279,30 @@ class TestDiscretiser():
         with pytest.raises(IncorrectShapeError) as exin:
             categorical_np_discretizer.discretize(np.array(['a', 'b']))
         assert str(exin.value) == incorrect_shape_features
+        with pytest.raises(IncorrectShapeError) as exin:
+            numerical_np_discretizer.discretize(np.array([[0.1, 1, 2],
+                                                          [0.1, 1, 2]]))
+        assert str(exin.value) == incorrect_shape_features
+        with pytest.raises(IncorrectShapeError) as exin:
+            categorical_np_discretizer.discretize(np.array([['a', 'b'],
+                                                            ['a', 'b']]))
+        assert str(exin.value) == incorrect_shape_features
 
-        # 2-D data
-        
+        # All OK
+        ones_np_1d = np.ones(NUMERICAL_NP_ARRAY[0, :].shape)
+        ones_np_2d = np.ones(NUMERICAL_NP_ARRAY.shape)
+        ones_cat_1d = np.ones(CATEGORICAL_NP_ARRAY[0, :].shape)
+        ones_cat_2d = np.ones(CATEGORICAL_NP_ARRAY.shape)
+
+        assert np.array_equal(
+            numerical_np_discretizer.discretize(NUMERICAL_NP_ARRAY[0, :]),
+            ones_np_1d)
+        assert np.array_equal(
+            numerical_np_discretizer.discretize(NUMERICAL_NP_ARRAY),
+            ones_np_2d)
+        assert np.array_equal(
+            categorical_np_discretizer.discretize(CATEGORICAL_NP_ARRAY[0, :]),
+            ones_cat_1d)
+        assert np.array_equal(
+            categorical_np_discretizer.discretize(CATEGORICAL_NP_ARRAY),
+            ones_cat_2d)

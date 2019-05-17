@@ -266,15 +266,13 @@ class Discretization(abc.ABC):
             raise TypeError('The dtype of the data is different to '
                             'the dtype of the data array used to '
                             'initialise this class.')
-        if fuav.is_1d_like(data):
-            features_number = data.shape[0]
-        elif fuav.is_2d_array(data):
-            features_number = data.shape[1]
-        else:
+        if not (fuav.is_1d_like(data) or fuav.is_2d_array(data)):
             raise IncorrectShapeError(
                 'data must be a 1-dimensional array, 2-dimensional array or '
                 'void object for structured rows.')
         if not self.is_structured:
+            features_number = data.shape[0] if fuav.is_1d_like(data) \
+                else data.shape[1]
             if features_number != self.dataset.shape[1]:
                 raise IncorrectShapeError(
                     'The data must contain the same number of features as '

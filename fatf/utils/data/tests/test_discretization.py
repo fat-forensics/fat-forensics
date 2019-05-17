@@ -62,6 +62,22 @@ NUMERICAL_NP_CAT_DISCRETIZED = np.array([
     [2., 2., 3., 1.],
     [1., 0., 2., 3.],
     [0., 2., 0., 0.]])
+NUMERICAL_STRUCT_CAT_DISCRETIZED = np.array([
+    (0., 0., 1., 2.),
+    (1., 0., 0., 0.),
+    (0., 2., 3., 3.),
+    (2., 2., 3., 1.),
+    (1., 0., 2., 3.),
+    (0., 2., 0., 0.)],
+    dtype=[('a', 'i'), ('b', 'i'), ('c', 'f'), ('d', 'f')])
+MIXED_DISCRETIZED = np.array(
+    [(0, 'a', 1., 'a'),
+     (0, 'f', 0., 'bb'),
+     (2, 'c', 3., 'aa'),
+     (2, 'a', 3., 'a'),
+     (0, 'c', 2., 'b'),
+     (2, 'f', 0., 'bb')],
+    dtype=[('a', 'i'), ('b', 'U1'), ('c', 'f'), ('d', 'U2')])
 
 def test_validate_input():
     """
@@ -353,6 +369,16 @@ class TestQuartileDiscretizer(object):
     """
     numerical_np_0_discretizer = fudd.QuartileDiscretizer(
             NUMERICAL_NP_ARRAY, [0])
+    numerical_struct_0_discretizer = fudd.QuartileDiscretizer(
+            NUMERICAL_STRUCT_ARRAY, ['a'])
+    
+    categorical_np_discretizer = fudd.QuartileDiscretizer(
+        CATEGORICAL_NP_ARRAY, [0, 1, 2])
+    categorical_struct_discretizer = fudd.QuartileDiscretizer(
+        CATEGORICAL_STRUCT_ARRAY, ['a', 'b', 'c'])
+
+    mixed_struct_discretizer = fudd.QuartileDiscretizer(
+        MIXED_ARRAY, ['b', 'd'])
 
     def test_init(self):
         """
@@ -363,6 +389,21 @@ class TestQuartileDiscretizer(object):
         assert self.numerical_np_0_discretizer.categorical_indices == [0]
         assert self.numerical_np_0_discretizer.numerical_indices == [1, 2, 3]
 
+        assert self.numerical_struct_0_discretizer.categorical_indices == ['a']
+        assert self.numerical_struct_0_discretizer.numerical_indices == \
+            ['b', 'c', 'd']
+
+        assert self.categorical_np_discretizer.categorical_indices == \
+            [0, 1, 2]
+        assert self.categorical_np_discretizer.numerical_indices == []
+
+        assert self.categorical_struct_discretizer.categorical_indices == \
+            ['a', 'b', 'c']
+        assert self.categorical_struct_discretizer.numerical_indices == []
+    
+        assert self.mixed_struct_discretizer.categorical_indices == ['b', 'd']
+        assert self.mixed_struct_discretizer.numerical_indices == ['a', 'c']
+
         # Test feature_value_names
         correct_feature_names = {
             1: ['1 <= 0.00', '0.00 < 1 <= 0.50', '0.50 < 1 <= 1.00',
@@ -371,8 +412,26 @@ class TestQuartileDiscretizer(object):
                 '2 > 0.64'],
             3: ['3 <= 0.34', '0.34 < 3 <= 0.58', '0.58 < 3 <= 0.79',
                 '3 > 0.79']}
+        correct_feature_names_struct = {
+            'b': ['b <= 0.00', '0.00 < b <= 0.50', '0.50 < b <= 1.00',
+                'b > 1.00'],
+            'c': ['c <= 0.07', '0.07 < c <= 0.22', '0.22 < c <= 0.64',
+                'c > 0.64'],
+            'd': ['d <= 0.34', '0.34 < d <= 0.58', '0.58 < d <= 0.79',
+                'd > 0.79']}
+        correct_feature_names_mixed = {
+            'a': ['a <= 0.00', '0.00 < a <= 0.50', '0.50 < a <= 1.00',
+                'a > 1.00'],
+            'c': ['c <= 0.07', '0.07 < c <= 0.22', '0.22 < c <= 0.64',
+                'c > 0.64']}
         assert self.numerical_np_0_discretizer.feature_value_names == \
             correct_feature_names
+        assert self.numerical_struct_0_discretizer.feature_value_names == \
+            correct_feature_names_struct
+        assert self.categorical_np_discretizer.feature_value_names == {}
+        assert self.categorical_struct_discretizer.feature_value_names == {}
+        assert self.mixed_struct_discretizer.feature_value_names == \
+            correct_feature_names_mixed
 
     def test_discretize(self):
         """
@@ -384,3 +443,31 @@ class TestQuartileDiscretizer(object):
         discretized = self.numerical_np_0_discretizer.discretize(
             NUMERICAL_NP_ARRAY)
         assert np.array_equal(discretized, NUMERICAL_NP_CAT_DISCRETIZED)
+        discretized = self.numerical_np_0_discretizer.discretize(
+            NUMERICAL_NP_ARRAY[0])
+        assert np.array_equal(discretized, NUMERICAL_NP_CAT_DISCRETIZED[0])
+
+        discretized = self.numerical_struct_0_discretizer.discretize(
+            NUMERICAL_STRUCT_ARRAY)
+        assert np.array_equal(discretized, NUMERICAL_STRUCT_CAT_DISCRETIZED)
+        discretized = self.numerical_struct_0_discretizer.discretize(
+            NUMERICAL_STRUCT_ARRAY[0])
+        assert np.array_equal(discretized, NUMERICAL_STRUCT_CAT_DISCRETIZED[0])
+
+        discretized = self.categorical_np_discretizer.discretize(
+            CATEGORICAL_NP_ARRAY)
+        assert np.array_equal(discretized, CATEGORICAL_NP_ARRAY)
+        discretized = self.categorical_np_discretizer.discretize(
+            CATEGORICAL_NP_ARRAY[0])
+        assert np.array_equal(discretized, CATEGORICAL_NP_ARRAY[0])
+
+        discretized = self.categorical_struct_discretizer.discretize(
+            CATEGORICAL_STRUCT_ARRAY)
+        assert np.array_equal(discretized, CATEGORICAL_STRUCT_ARRAY)
+        discretized = self.categorical_struct_discretizer.discretize(
+            CATEGORICAL_STRUCT_ARRAY[0])
+        assert np.array_equal(discretized, CATEGORICAL_STRUCT_ARRAY[0])
+
+        discretized = self.mixed_struct_discretizer.discretize(
+            MIXED_ARRAY)
+        assert np.array_equal(discretized, MIXED_DISCRETIZED)

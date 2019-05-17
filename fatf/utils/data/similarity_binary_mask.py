@@ -55,15 +55,13 @@ def _validate_input(dataset: np.ndarray,
                 dataset, np.array([data_row]), strict_comparison=True)
     if not are_similar:
         raise TypeError('The dtype of the data_row is different to '
-                        'the dtype of the data array used to '
-                        'initialise this class.')
+                        'the dtype of the dataset provided.')
 
     if not fuav.is_structured_array(dataset):
                 if data_row.shape[0] != dataset.shape[1]:
                     raise IncorrectShapeError('The data_row must contain the '
                                               'same number of features as the '
-                                              'dataset used to initialise '
-                                              'this class.')
+                                              'dataset provided.')
 
     is_valid = True
     return is_valid
@@ -107,7 +105,12 @@ def similarity_binary_mask(dataset: np.ndarray,
     assert _validate_input(dataset, data_row), 'Input is not valid.'
     is_structured = fuav.is_structured_array(dataset)
 
-    binary_dataset = dataset.copy()
+    if is_structured:
+        dtypes = [(name, np.int32) for name in dataset.dtype.names]
+    else:
+        dtypes = np.int32
+
+    binary_dataset = np.zeros_like(dataset, dtype=dtypes)
 
     indices = dataset.dtype.names if is_structured else \
         list(range(dataset.shape[1]))
@@ -119,12 +122,5 @@ def similarity_binary_mask(dataset: np.ndarray,
         else:
             column = dataset[:, index]
             binary_dataset[:, index] = column == data_row[index]
-    
-    if is_structured:
-        dtypes = [(name, np.int32) for name in dataset.dtype.names]
-    else:
-        dtypes = np.int32
-    
-    binary_dataset = binary_dataset.astype(dtypes)
 
     return binary_dataset

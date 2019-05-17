@@ -364,10 +364,15 @@ class TestQuartileDiscretizer(object):
         assert self.numerical_np_0_discretizer.numerical_indices == [1, 2, 3]
 
         # Test feature_value_names
-        interval_format = self.numerical_np_0_discretizer.interval_format
-        feature_interval_names = self.numerical_np_0_discretizer.feature_interval_names
+        correct_feature_names = {
+            1: ['1 <= 0.00', '0.00 < 1 <= 0.50', '0.50 < 1 <= 1.00',
+                '1 > 1.00'],
+            2: ['2 <= 0.07', '0.07 < 2 <= 0.22', '0.22 < 2 <= 0.64',
+                '2 > 0.64'],
+            3: ['3 <= 0.34', '0.34 < 3 <= 0.58', '0.58 < 3 <= 0.79',
+                '3 > 0.79']}
         assert self.numerical_np_0_discretizer.feature_value_names == \
-            dict(zip([1, 2, 3], ['1 <= ']))
+            correct_feature_names
 
     def test_discretize(self):
         """

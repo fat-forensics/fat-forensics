@@ -154,6 +154,9 @@ class Discretization(abc.ABC):
     feature_names : Dict[Index, str]
         A dictionary of feature names. If None then feature names are inferred
         by indices.
+    feature_value_names : Dictionary[Index, List[string]]
+        A dictionary mapping indices to list of values specifying the
+        bounds used to discretize the data.
     """
     def __init__(self,
                  dataset: np.ndarray,
@@ -204,6 +207,7 @@ class Discretization(abc.ABC):
         self.numerical_indices = sorted(list(numerical_indices))
         self.features_number = len(all_indices)
         self.feature_names = dict(zip(indices, feature_names))
+        self.feature_value_names = {}
 
     @abc.abstractmethod
     def discretize(self, data: np.ndarray) -> np.ndarray:
@@ -285,6 +289,19 @@ class Discretization(abc.ABC):
 class QuartileDiscretizer(Discretization):
     """
     Discretization that discretizes data into quartiles.
+
+    This class discretizes numerical data by mapping the values in dataset to
+    which quartile the value is in for a given feature. 
+
+    For additional parameters, attributes, warnings and exceptions raised by
+    this class please see the  documentation of its parent class:
+    :class:`fatf.utils.data.discretization.Discretization`.
+
+    Attributes
+    ----------
+    bins : Dictionary[Index, numpy.array]
+        A dictionary mapping indices to numpy array specifying the 
+        quartile ranges.
     """
     def __init__(self,
                  dataset: np.ndarray,
@@ -292,17 +309,6 @@ class QuartileDiscretizer(Discretization):
                  feature_names: Optional[List[str]] = None):
         """
         Constructs an ``QuartileDiscretization`` abstract class.
-
-        For additional parameters, attributes, warnings and exceptions raised by
-        this class please see the  documentation of its parent class:
-        :class:`fatf.utils.data.discretization.Discretization`.
-
-        Attributes
-        ----------
-        bins : Dictionary[Index, numpy.array]
-            A dictionary mapping indices to numpy array specifying the 
-            quartile ranges.
-        feature_value_names : Dictionary[Index, List[string]]
         """
         super().__init__(dataset, categorical_indices=categorical_indices,
                          feature_names=feature_names)

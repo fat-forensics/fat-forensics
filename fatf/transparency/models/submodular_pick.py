@@ -30,14 +30,13 @@ class SKLearnExplainer():
     def __init__(
             self,
             dataset: np.ndarray,
-            global_classifier: object,
+            local_model: object,
             feature_names: List[str] = None,
             treat_as_categorical: Optional[np.ndarray] = None):
         self.dataset = dataset
         self.num_features = dataset.shape[1]
         self.treat_as_categorical = treat_as_categorical
-        self.global_model = global_classifier
-        self.sampler = fuda.NormalSampling(self.dataset)
+        self.local_model = local_model
         if feature_names is None:
             self.feature_names = np.arange(0, self.num_features, 1)
         else:
@@ -50,16 +49,7 @@ class SKLearnExplainer():
         """
         Generates samples around instance using Normal(0, 1)
         """
-        y = self.global_model.predict_proba(instance.reshape(1, -1))
-        # Explain instances for the label with the highest probability
-        label = y.argmax()
-
-        samples = self.sampler.sample(instance, samples_number=num_samples)
-
-        yss = self.global_model.predict_proba(samples)
-        classifier = Ridge()
-        classifier.fit(samples, yss[:, label])
-        coed = classifier.coef_
+        coed = self.local_model.coef_
         explanations = dict(zip(self.feature_names, coed))
 
         return explanations

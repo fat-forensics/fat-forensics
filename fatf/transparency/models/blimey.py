@@ -4,7 +4,7 @@ Blimey implementation.
 # Author: Alex Hepburn <ah13558@bristol.ac.uk>
 # License: new BSD
 
-from typing import Dict, Tuple, Union, Optional
+from typing import Dict, Tuple, Union, Optional, List
 import numpy as np
 
 import fatf.utils.data.augmentation as fuda
@@ -13,7 +13,7 @@ import fatf.utils.data.discretization as fudd
 import fatf.utils.validation as fuv
 import fatf.utils.models.validation as fumv
 import fatf.utils.array.tools as fuat
-import fatf.utils.data.simiarlity_binary_mask as fuds
+import fatf.utils.data.similarity_binary_mask as fuds
 import fatf.utils.array.validation as fuav
 
 from fatf.exceptions import IncompatibleModelError, IncorrectShapeError
@@ -84,21 +84,21 @@ def _input_is_valid(dataset: np.ndarray,
             'This functionality requires the global model to be capable of '
             'outputting probabilities via predict_proba method.')
 
-    if not fuv.check_explainer_functionality(explainer):
-        raise IncompatibleModelError(
-            'This functionality requires the explainer object to be capable '
-            'of outputting explanations via explain_instance method.')
+    #if not fuv.check_explainer_functionality(explainer):
+    #    raise IncompatibleModelError(
+    #        'This functionality requires the explainer object to be capable '
+    #        'of outputting explanations via explain_instance method.')
 
-    if not isinstance(augmentor, fuda.Augmentation):
+    if not issubclass(augmentor, fuda.Augmentation):
         raise TypeError('The augmentor object must inherit from abstract '
                         'class fatf.utils.augmentation.Augmentation.')
     
-    if not isinstance(discretizer, fudd.Discretizer):
+    if not issubclass(discretizer, fudd.Discretization):
         raise TypeError('The discretizer object must inherit from abstract '
                         'class fatf.utils.discretization.Discretization.')
 
     if class_names is not None:
-        if class_names is not isinstance(class_names, list):
+        if not isinstance(class_names, list):
             raise TypeError('The class_names parameter must be None or a '
                             'list.')
         else:
@@ -114,7 +114,7 @@ def _input_is_valid(dataset: np.ndarray,
         features_number = dataset.shape[1]
 
     if feature_names is not None:
-        if feature_names is not isinstance(feature_names, list):
+        if not isinstance(feature_names, list):
             raise TypeError('The feature_names parameter must be None or a '
                             'list.')
         else:
@@ -185,15 +185,24 @@ class blimey(object):
 
         self.kwargs = kwargs
         self.dataset = dataset
+        self.global_model = global_model
         self.augmentor = augmentor(dataset, **kwargs)
         self.discretizer = discretizer(dataset, feature_names=feature_names,
                                        **kwargs)
         self.discretized_dataset = self.discretizer.discretize(self.dataset)
         self.explainer_class = explainer
         self.prediction_probabilities = global_model.predict_proba(dataset)
-        self.n_classes = self.prediction_probabilites.shape[1]
+        self.n_classes = self.prediction_probabilities.shape[1]
         self.local_model = local_model
 
+        if fuav.is_structured_array(self.dataset):
+            self.indices = self.dataset.dtype.names
+        else:
+            self.indices = np.arange(0, self.dataset.shape[1], 1)
+
+        self.class_names = class_names
+        self.feature_names = feature_names
+        # TODO: categorical indices
         # pre-process class_names and feature_names
         # TODO: preprocess
 
@@ -213,15 +222,24 @@ class blimey(object):
             data_row, samples_number=samples_number, **self.kwargs)
 
         binary_data = fuds.similarity_binary_mask(
-            discretized_dataset, discretized_data_row)
+            self.discretized_dataset, discretized_data_row)
+        
+        discretized_value_names = self.discretizer.feature_value_names
+        
+        discretized_feature_names = []
+        for i, index in enumerate(self.indices):
+            if index in discretized_value_names.keys():
+                discretized_feature_names.append(discretized_value_names[index][int(discretized_data_row[index])])
+            else:
+                discretized_feature_names.append(self.feature_names[i])
 
         blimey_explanation = {}
         for i in range(self.n_classes):
             local_model = self.local_model(**self.kwargs)
             local_model.fit(binary_data, self.prediction_probabilities[:, i])
-            explainer = self.explainer_class(local_model)
-            explanation = explainer.explain_instance(discretized_data_row)
-            blimey_exmaplantion[self.class_names[i]] = explanation
-        
+            explainer = self.explainer_class(self.dataset, local_model=local_model, feature_names=discretized_feature_names, **self.kwargs)
+            explanation = explainer.explain_instance(discretized_data_row, **self.kwargs)
+            blimey_explanation[self.class_names[i]] = explanation
+
         return blimey_explanation
         

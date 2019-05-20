@@ -352,7 +352,8 @@ class NormalSampling(Augmentation):
     # pylint: disable=too-few-public-methods
     def __init__(self,
                  dataset: np.ndarray,
-                 categorical_indices: Optional[List[Index]] = None) -> None:
+                 categorical_indices: Optional[List[Index]] = None,
+                 **kwargs) -> None:
         """
         Constructs an ``NormalSampling`` data augmentation class.
         """

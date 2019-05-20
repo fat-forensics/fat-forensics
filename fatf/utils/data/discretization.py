@@ -306,7 +306,8 @@ class QuartileDiscretizer(Discretization):
     def __init__(self,
                  dataset: np.ndarray,
                  categorical_indices: Optional[List[Index]] = None,
-                 feature_names: Optional[List[str]] = None):
+                 feature_names: Optional[List[str]] = None,
+                 **kwargs):
         """
         Constructs an ``QuartileDiscretization`` abstract class.
         """

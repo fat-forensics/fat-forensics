@@ -12,6 +12,10 @@ import numpy as np
 from fatf.exceptions import IncorrectShapeError
 
 import fatf.utils.data.density as fudd
+import fatf.utils.tools as fut
+
+_NUMPY_VERSION = [int(i) for i in np.version.version.split('.')]
+_NUMPY_1_14 = fut.at_least_verion([1, 14], _NUMPY_VERSION)
 
 # yapf: disable
 NUMERICAL_NP_ARRAY = np.array(
@@ -271,8 +275,11 @@ class TestDensityCheck(object):
         assert self.cat_sc_zero._numerical_indices == []
         assert self.cat_sc_zero._categorical_indices == ['x', 'xx']
         assert self.cat_sc_zero._is_structured is True
-        assert (self.cat_sc_zero._distance_function
-                == self.cat_sc_zero._mixed_distance)  # yapf: disable
+        if _NUMPY_1_14:
+            dist_func = self.cat_sc_zero._mixed_distance_n  # pragma: nocover
+        else:
+            dist_func = self.cat_sc_zero._mixed_distance_o  # pragma: nocover
+        assert self.cat_sc_zero._distance_function == dist_func
 
         #######################################################################
 
@@ -290,8 +297,11 @@ class TestDensityCheck(object):
         assert self.num_sc_i_dc._numerical_indices == ['b']
         assert self.num_sc_i_dc._categorical_indices == ['a']
         assert self.num_sc_i_dc._is_structured is True
-        assert (self.num_sc_i_dc._distance_function
-                == self.num_sc_i_dc._mixed_distance)  # yapf: disable
+        if _NUMPY_1_14:
+            dist_func = self.num_sc_i_dc._mixed_distance_n  # pragma: nocover
+        else:
+            dist_func = self.num_sc_i_dc._mixed_distance_o  # pragma: nocover
+        assert self.num_sc_i_dc._distance_function == dist_func
 
         #######################################################################
 
@@ -309,7 +319,7 @@ class TestDensityCheck(object):
         assert self.cat_np_dc._categorical_indices == [0, 1]
         assert self.cat_np_dc._is_structured is False
         assert (self.cat_np_dc._distance_function
-                == self.cat_np_dc._mixed_distance)  # yapf: disable
+                == self.cat_np_dc._mixed_distance_n)  # yapf: disable
 
         #######################################################################
 
@@ -328,18 +338,44 @@ class TestDensityCheck(object):
         assert self.mix_sc_dc._is_structured is True
         assert self.mix_sc_dc._distance_function == mix_dist
 
-    def test_mixed_distance(self):
+    def test_mixed_distance_o(self):
         """
-        Tests :func:`~fatf.utils.data.density.DensityCheck._mixed_distance`.
-        """
-        dc = fudd.DensityCheck(MIXED_ARRAY)
+        Tests :func:`~fatf.utils.data.density.DensityCheck._mixed_distance_o`.
 
-        dist = dc._mixed_distance(MIXED_ARRAY[0], MIXED_ARRAY[0])
+        This implementation only handles structured arrays.
+        """
+        num_dist = np.sqrt((3 - 30)**2 + (86 - 98)**2)
+
+        dist = self.num_sc_dc._mixed_distance_o(NUMERICAL_STRUCT_ARRAY[1],
+                                                NUMERICAL_STRUCT_ARRAY[5])
+        assert pytest.approx(dist, abs=1e-3) == num_dist
+
+        dist = self.cat_sc_dc._mixed_distance_o(CATEGORICAL_STRUCT_ARRAY[1],
+                                                CATEGORICAL_STRUCT_ARRAY[5])
+        assert dist == 1
+
+        dist = self.mix_sc_dc._mixed_distance_o(MIXED_ARRAY[0], MIXED_ARRAY[0])
+        assert dist == 0
+        dist = self.mix_sc_dc._mixed_distance_o(MIXED_ARRAY[1], MIXED_ARRAY[5])
+        assert pytest.approx(dist, abs=1e-3) == (0 + 1 + num_dist)
+
+    def test_mixed_distance_n(self):
+        """
+        Tests :func:`~fatf.utils.data.density.DensityCheck._mixed_distance_n`.
+        """
+        num_dist = np.sqrt((3 - 30)**2 + (86 - 98)**2)
+
+        dist = self.num_np_dc._mixed_distance_n(NUMERICAL_NP_ARRAY[0],
+                                                NUMERICAL_NP_ARRAY[0])
         assert dist == 0
 
-        dist = dc._mixed_distance(MIXED_ARRAY[1], MIXED_ARRAY[5])
-        true_dist = 0 + 1 + np.sqrt((3 - 30)**2 + (86 - 98)**2)
-        assert pytest.approx(dist, abs=1e-3) == true_dist
+        dist = self.num_np_dc._mixed_distance_n(NUMERICAL_NP_ARRAY[1],
+                                                NUMERICAL_NP_ARRAY[5])
+        assert pytest.approx(dist, abs=1e-3) == num_dist
+
+        dist = self.cat_np_dc._mixed_distance_n(CATEGORICAL_NP_ARRAY[1],
+                                                CATEGORICAL_NP_ARRAY[5])
+        assert dist == 1
 
     def test_compute_scores(self):
         """

@@ -18,8 +18,12 @@ from fatf.exceptions import IncorrectShapeError
 import fatf.utils.array.tools as fuat
 import fatf.utils.array.validation as fuav
 import fatf.utils.distances as fud
+import fatf.utils.tools as fut
 
 __all__ = ['DensityCheck']
+
+_NUMPY_VERSION = [int(i) for i in np.version.version.split('.')]
+_NUMPY_1_14 = fut.at_least_verion([1, 14], _NUMPY_VERSION)
 
 DataRow = Union[np.ndarray, np.void]
 DistanceFunction = Callable[[DataRow, DataRow], Number]
@@ -259,11 +263,16 @@ class DensityCheck(object):
                                   normalise_scores), 'Invalid input.'
 
         self.data_set = data_set
+        self._is_structured = fuav.is_structured_array(self.data_set)
+        #
         self.neighbours = neighbours
         if distance_function is None:
-            self._distance_function = self._mixed_distance
-        else:
-            self._distance_function = distance_function  # type: ignore
+            if not _NUMPY_1_14 and self._is_structured:
+                distance_function = self._mixed_distance_o  # pragma: nocover
+            else:
+                distance_function = self._mixed_distance_n
+        self._distance_function = distance_function  # type: ignore
+        #
         self.normalise_scores = normalise_scores
 
         # Sort out column indices
@@ -291,8 +300,6 @@ class DensityCheck(object):
         self._categorical_indices = sorted(list(_categorical_indices))
         self._numerical_indices = sorted(list(_numerical_indices))
 
-        self._is_structured = fuav.is_structured_array(self.data_set)
-
         self._samples_number = self.data_set.shape[0]
 
         self.distance_matrix = fud.get_distance_matrix(self.data_set,
@@ -313,7 +320,7 @@ class DensityCheck(object):
                 self.scores -= self.scores_min
                 self.scores /= self.scores_max - self.scores_min
 
-    def _mixed_distance(self, array_x: DataRow, array_y: DataRow) -> Number:
+    def _mixed_distance_n(self, array_x: DataRow, array_y: DataRow) -> Number:
         """
         Calculates a distance between two data points.
 
@@ -321,6 +328,11 @@ class DensityCheck(object):
         values are the same and 1 otherwise) distances. It is calculated by
         summing up the Euclidean distance between the numerical features and
         the binary distance between categorical features.
+
+        .. note::
+           This implementation is designed for numpy version 1.14 or greater.
+           Due to structured rows (numpy void) indexing this implementation
+           will result in ``IndexError`` if used with older numpy version.
 
         Parameters
         ----------
@@ -343,6 +355,52 @@ class DensityCheck(object):
         if self._categorical_indices:
             cat_dist = fud.binary_distance(array_x[self._categorical_indices],
                                            array_y[self._categorical_indices])
+        else:
+            cat_dist = 0
+
+        distance = num_dist + cat_dist
+        return distance  # type: ignore
+
+    def _mixed_distance_o(self, array_x: DataRow, array_y: DataRow) -> Number:
+        """
+        Calculates a distance between two data points.
+
+        This distance function is a mixture of Euclidean and binary (0 when the
+        values are the same and 1 otherwise) distances. It is calculated by
+        summing up the Euclidean distance between the numerical features and
+        the binary distance between categorical features.
+
+        .. note::
+           This implementation is designed for any numpy version and structured
+           numpy arrays. It avoids extracting multiple column indices from
+           structured rows (numpy void).
+
+        Parameters
+        ----------
+        array_x : Union[numpy.ndarray, numpy.void]
+            1-dimensional data array of the same length as ``array_y``.
+        array_y : Union[numpy.ndarray, numpy.void]
+            1-dimensional data array of the same length as ``array_x``.
+
+        Returns
+        -------
+        distance : number
+            A distance between ``array_x`` and ``array_y``.
+        """
+        assert self._is_structured, 'The dataset for this implementation.'
+        as_array_x = np.asarray([array_x])
+        as_array_y = np.asarray([array_y])
+        if self._numerical_indices:
+            num_dist = fud.euclidean_distance(
+                as_array_x[self._numerical_indices][0],
+                as_array_y[self._numerical_indices][0])
+        else:
+            num_dist = 0
+
+        if self._categorical_indices:
+            cat_dist = fud.binary_distance(
+                as_array_x[self._categorical_indices][0],
+                as_array_y[self._categorical_indices][0])
         else:
             cat_dist = 0
 

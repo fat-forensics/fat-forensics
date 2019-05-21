@@ -18,6 +18,7 @@ import fatf.utils.array.validation as fuav
 from fatf.exceptions import IncorrectShapeError
 
 __all__ = ['get_distance_matrix',
+           'get_point_distance',
            'euclidean_distance',
            'euclidean_point_distance',
            'euclidean_array_distance',

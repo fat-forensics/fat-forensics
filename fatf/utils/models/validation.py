@@ -16,7 +16,8 @@ __all__ = ['check_model_functionality']
 
 def check_model_functionality(model_object: object,
                               require_probabilities: bool = False,
-                              suppress_warning: bool = False) -> bool:
+                              suppress_warning: bool = False,
+                              is_instance: bool = True) -> bool:
     """
     Checks whether a model object has all the required functionality.
 
@@ -36,6 +37,9 @@ def check_model_functionality(model_object: object,
     suppress_warning : boolean, optional (default=False)
         A boolean parameter that indicates whether the function should suppress
         its warning message. Defaults to False.
+    is_instance : boolean, optional (default=True)
+        A boolean parameter that indices whether the model is an instanatiated
+        object or just an object reference.
 
     Warns
     -----
@@ -48,12 +52,15 @@ def check_model_functionality(model_object: object,
         A Boolean variable that indicates whether the model object has all the
         desired functionality.
     """
-    methods = {'fit': 2, 'predict': 1}
+    if is_instance:
+        methods = {'fit': 2, 'predict': 1}
+    else:
+        methods = {'fit': 3, 'predict': 2}
     if require_probabilities:
-        methods['predict_proba'] = 1
+        methods['predict_proba'] = 1 if is_instance else 2
 
     is_functional, message = fuv._check_object_functionality(
-        model_object, 'model', methods)
+        model_object, 'model', methods, is_instance=is_instance)
 
     if not is_functional and not suppress_warning:
         warnings.warn(message, category=UserWarning)

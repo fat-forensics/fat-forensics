@@ -14,7 +14,8 @@ __all__ = ['check_explainer_functionality']
 
 def _check_object_functionality(given_object: object,
                                 object_name: str,
-                                methods: Dict[str, int]) -> Tuple[bool, str]:
+                                methods: Dict[str, int],
+                                is_instance: bool = True) -> Tuple[bool, str]:
     """
     Checks whether an object has specified methods with nubmer of parameters.
 
@@ -47,6 +48,9 @@ def _check_object_functionality(given_object: object,
                     required_param_n += 1
             if required_param_n != methods[method]:
                 is_functional = False
+                if not is_instance:
+                    required_param_n -= 1 # Remove ``self``` if not instance.
+                    methods[method] -= 1
                 message_strings.append(
                     ('The \'{}\' method of the class has incorrect number '
                      '({}) of the required parameters. It needs to have '

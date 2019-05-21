@@ -121,6 +121,13 @@ def test_check_model_functionality():
                    ' 1 required parameters. Try using optional '
                    'parameters if you require more functionality.')
     assert m_message_1 in w_message and m_message_2 in w_message
+    # Not an instance
+    with pytest.warns(UserWarning) as warning:
+        assert fumv.check_model_functionality(
+            ClassFit1Predict2, suppress_warning=False,
+            is_instance=False) is False
+    w_message = str(warning[0].message)
+    assert m_message_1 in w_message and m_message_2 in w_message
 
     with pytest.warns(UserWarning) as warning:
         assert fumv.check_model_functionality(
@@ -134,6 +141,12 @@ def test_check_model_functionality():
                    '(0) of the required parameters. It needs to have exactly'
                    ' 1 required parameters. Try using optional '
                    'parameters if you require more functionality.')
+    assert m_message_1 in w_message and m_message_2 in w_message
+    # Not an instance
+    with pytest.warns(UserWarning) as warning:
+        assert fumv.check_model_functionality(
+            ClassFit3Predict0, suppress_warning=False,
+            is_instance=False) is False
     assert m_message_1 in w_message and m_message_2 in w_message
 
     with pytest.warns(UserWarning) as warning:
@@ -150,23 +163,49 @@ def test_check_model_functionality():
                    'parameters if you require more functionality.')
     assert (m_message_1 in w_message and m_message_2 in w_message
             and 'missing \'predict_proba\'' in w_message)
+    # Not an instance
+    with pytest.warns(UserWarning) as warning:
+        assert fumv.check_model_functionality(ClassFit3Predict0, True,
+                                              False, False) is False
+    w_message = str(warning[0].message)
 
     assert fumv.check_model_functionality(
         class_fit_2_predict_1_predict_proba_0) is True
     assert fumv.check_model_functionality(
+        ClassFit2Predict1, is_instance=False) is True
+    assert fumv.check_model_functionality(
         class_fit_2_predict_1_predict_proba_0, True,
         suppress_warning=True) is False
     assert fumv.check_model_functionality(
+        ClassFit2Predict1PredictProba0, True,
+        suppress_warning=True, is_instance=False) is False
+    assert fumv.check_model_functionality(
         class_fit_3_predict_1_predict_proba_0, suppress_warning=True) is False
+    assert fumv.check_model_functionality(
+        ClassFit3Predict1PredictProba0, suppress_warning=True,
+        is_instance=False) is False
     assert fumv.check_model_functionality(
         class_fit_3_predict_1_predict_proba_0, True,
         suppress_warning=True) is False
+    assert fumv.check_model_functionality(
+        ClassFit3Predict1PredictProba0, True,
+        suppress_warning=True, is_instance=False) is False
 
     # Test predict_proba
     assert fumv.check_model_functionality(class_fit_2_predict_1) is True
+    assert fumv.check_model_functionality(ClassFit21Predict1,
+                                          is_instance=False) is True
     assert fumv.check_model_functionality(
         class_fit_2_predict_1, True, suppress_warning=True) is False
     assert fumv.check_model_functionality(
+        ClassFit2Predict1, True, suppress_warning=True,
+        is_instance=False) is False
+    assert fumv.check_model_functionality(
         class_fit_2_predict_1_predict_proba_1, False) is True
     assert fumv.check_model_functionality(
+        ClassFit2Predict1PredictProba1, False,
+        is_instance=False) is True
+    assert fumv.check_model_functionality(
         class_fit_2_predict_1_predict_proba_1, True) is True
+    assert fumv.check_model_functionality(
+        ClassFit2Predict1PredictProba1, True, is_instance=False) is True

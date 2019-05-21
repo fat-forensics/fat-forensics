@@ -19,6 +19,8 @@ import fatf.utils.data.augmentation as fuda
 
 from fatf.exceptions import IncompatibleExplainerError, IncorrectShapeError
 
+Index = Union[int, str]
+
 __all__ = ['submodular_pick']
 
 
@@ -32,10 +34,10 @@ class SKLearnExplainer():
             dataset: np.ndarray,
             local_model: object,
             feature_names: List[str] = None,
-            treat_as_categorical: Optional[np.ndarray] = None):
+            categorical_indices: Optional[List[Index]] = None):
         self.dataset = dataset
         self.num_features = dataset.shape[1]
-        self.treat_as_categorical = treat_as_categorical
+        self.categorical_indices = categorical_indices
         self.local_model = local_model
         if feature_names is None:
             self.feature_names = np.arange(0, self.num_features, 1)

@@ -201,6 +201,11 @@ def test_euclidean_distance():
                                       VECTOR_2D_NUMERICAL_STRUCT_A2[i])
         assert DISTANCES_2D_NUMERICAL_A[i, i] == pytest.approx(dist)
 
+    # Test euclidean distance for 1-element voids
+    dist = fud.euclidean_distance(VECTOR_2D_NUMERICAL_STRUCT_A1[0][['a']],
+                                  VECTOR_2D_NUMERICAL_STRUCT_A2[0][['a']])
+    assert dist == 4
+
 
 def test_euclidean_point_distance():
     """
@@ -311,6 +316,12 @@ def test_euclidean_point_distance():
                                             VECTOR_2D_NUMERICAL_STRUCT_A1)
         assert np.isclose(
             DISTANCES_2D_NUMERICAL_A[:, i], dist, rtol=1e-3).all()
+
+    # Test euclidean point distance for 1-element voids
+    dist = fud.euclidean_point_distance(
+        VECTOR_2D_NUMERICAL_STRUCT_A1[0][['a']],
+        VECTOR_2D_NUMERICAL_STRUCT_A2[['a']])
+    assert np.array_equal(dist, [4, 9, 6])
 
 
 def test_euclidean_array_distance():
@@ -632,6 +643,11 @@ def test_hamming_distance():
             normalise=True)
         assert DISTANCES_2D_CATEGORICAL_A_NORMALISED[i, i] == dist
 
+    # Test hamming distance for 1-element voids
+    dist = fud.hamming_distance(VECTOR_2D_CATEGORICAL_STRUCT_A2[1][['name']],
+                                VECTOR_2D_CATEGORICAL_STRUCT_A1[0][['name']])
+    assert dist == 3
+
 
 def test_hamming_point_distance():
     """
@@ -801,6 +817,12 @@ def test_hamming_point_distance():
             normalise=True)
         assert np.isclose(DISTANCES_2D_CATEGORICAL_A_NORMALISED[:, i],
                           dist).all()
+
+    # Test hamming point distance for 1-element voids
+    dist = fud.hamming_point_distance(
+        VECTOR_2D_CATEGORICAL_STRUCT_A2[1][['name']],
+        VECTOR_2D_CATEGORICAL_STRUCT_A1[['name']])
+    assert np.array_equal(dist, [3, 4, 8])
 
 
 def test_hamming_array_distance():
@@ -1163,6 +1185,14 @@ def test_binary_distance():
             normalise=True)
         assert DISTANCES_2D_NUMERICAL_A_BINARY_NORMALISED[i, i] == dist
 
+    # Test binary distance for 1-element voids
+    dist = fud.binary_distance(VECTOR_2D_NUMERICAL_STRUCT_A1[2][['b']],
+                               VECTOR_2D_NUMERICAL_STRUCT_A2[0][['b']])
+    assert dist == 1
+    dist = fud.binary_distance(VECTOR_2D_NUMERICAL_STRUCT_A1[2][['b']],
+                               VECTOR_2D_NUMERICAL_STRUCT_A2[2][['b']])
+    assert dist == 0
+
 
 def test_binary_point_distance():
     """
@@ -1434,6 +1464,12 @@ def test_binary_point_distance():
             normalise=True)
         assert np.isclose(DISTANCES_2D_NUMERICAL_A_BINARY_NORMALISED[:, i],
                           dist).all()
+
+    # Test binary point distance for 1-element voids
+    dist = fud.binary_point_distance(
+        VECTOR_2D_CATEGORICAL_STRUCT_A1[1][['name']],
+        VECTOR_2D_CATEGORICAL_STRUCT_A1[['name']])
+    assert np.array_equal(dist, [1, 0, 1])
 
 
 def test_binary_array_distance():

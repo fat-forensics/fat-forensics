@@ -256,8 +256,8 @@ def euclidean_distance(x: Union[np.ndarray, np.void],
         raise IncorrectShapeError('The y array should be 1-dimensional.')
 
     # Transform the arrays to unstructured
-    x_array = fuat.as_unstructured(x)
-    y_array = fuat.as_unstructured(y)
+    x_array = fuat.as_unstructured(x).reshape(-1)
+    y_array = fuat.as_unstructured(y).reshape(-1)
 
     if not fuav.is_numerical_array(x_array):
         raise ValueError('The x array should be purely numerical.')
@@ -311,7 +311,7 @@ def euclidean_point_distance(y: Union[np.ndarray, np.void],
         raise IncorrectShapeError('The X array should be 2-dimensional.')
 
     # Transform the arrays to unstructured
-    y_array = fuat.as_unstructured(y)
+    y_array = fuat.as_unstructured(y).reshape(-1)
     X_array = fuat.as_unstructured(X)  # pylint: disable=invalid-name
 
     if not fuav.is_numerical_array(y_array):
@@ -488,8 +488,8 @@ def hamming_distance(x: Union[np.ndarray, np.void],
         raise IncorrectShapeError('The y array should be 1-dimensional.')
 
     # Transform the arrays to unstructured
-    x_array = fuat.as_unstructured(x)
-    y_array = fuat.as_unstructured(y)
+    x_array = fuat.as_unstructured(x).reshape(-1)
+    y_array = fuat.as_unstructured(y).reshape(-1)
 
     if not fuav.is_textual_array(x_array):
         raise ValueError('The x array should be textual.')
@@ -552,7 +552,7 @@ def hamming_point_distance(y: Union[np.ndarray, np.void], X: np.ndarray,
         raise IncorrectShapeError('The X array should be 2-dimensional.')
 
     # Transform the arrays to unstructured
-    y_array = fuat.as_unstructured(y)
+    y_array = fuat.as_unstructured(y).reshape(-1)
     X_array = fuat.as_unstructured(X)  # pylint: disable=invalid-name
 
     if not fuav.is_textual_array(y_array):
@@ -671,8 +671,8 @@ def binary_distance(x: Union[np.ndarray, np.void],
         raise IncorrectShapeError('The y array should be 1-dimensional.')
 
     # Transform the arrays to unstructured
-    x_array = fuat.as_unstructured(x)
-    y_array = fuat.as_unstructured(y)
+    x_array = fuat.as_unstructured(x).reshape(-1)
+    y_array = fuat.as_unstructured(y).reshape(-1)
 
     if x_array.shape[0] != y_array.shape[0]:
         raise IncorrectShapeError('The x and y arrays should have the same '
@@ -729,7 +729,7 @@ def binary_point_distance(y: Union[np.ndarray, np.void], X: np.ndarray,
         raise IncorrectShapeError('The X array should be 2-dimensional.')
 
     # Transform the arrays to unstructured
-    y_array = fuat.as_unstructured(y)
+    y_array = fuat.as_unstructured(y).reshape(-1)
     X_array = fuat.as_unstructured(X)  # pylint: disable=invalid-name
 
     # Compare shapes

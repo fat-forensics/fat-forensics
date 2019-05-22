@@ -127,7 +127,7 @@ def submodular_pick(
     The explainer object should contain a method called ``explain_instance``
     that has exactly one required parameter and returns a dictionary mapping
     feature names or indices to a float value indicating that features
-    importance. In order to pass additioanl arguments to 
+    importance. In order to pass additioanl arguments to
     ``explainer.explain_instnace`` function please use ``**kwargs``.
 
     Parameters
@@ -176,7 +176,7 @@ def submodular_pick(
 
     Returns
     -------
-    submodular_pick_explanations : List[Dictionary[Union[integer, string], 
+    submodular_pick_explanations : List[Dictionary[Union[integer, string],
             numpy.float64]]
         List of explanations chosen by submodular pick algorithm.
     submodular_pick_indices : List[integer]
@@ -185,12 +185,12 @@ def submodular_pick(
 
     References
     ----------
-    .. [1] Ribeiro, Marco Tulio, Sameer Singh, and Carlos Guestrin. "Why 
-       should i trust you?: Explaining the predictions of any classifier." 
-       Proceedings of the 22nd ACM SIGKDD international conference on 
+    .. [1] Ribeiro, Marco Tulio, Sameer Singh, and Carlos Guestrin. "Why
+       should i trust you?: Explaining the predictions of any classifier."
+       Proceedings of the 22nd ACM SIGKDD international conference on
        knowledge discovery and data mining. ACM, 2016.
     """
-    assert _input_is_valid(dataset, explainer, sample_size, 
+    assert _input_is_valid(dataset, explainer, sample_size,
                            num_explanations), 'Input must be valid.'
 
     sampled = False
@@ -228,14 +228,14 @@ def submodular_pick(
     for _ in range(num_explanations):
         coverages = []
         for i in remaining_indices:
-            coverage = np.dot((np.sum(np.abs(W)[submodular_pick_indices + [i]], 
+            coverage = np.dot((np.sum(np.abs(W)[submodular_pick_indices + [i]],
                        axis=0) > 0), importance)
             coverages.append((i, coverage))
         best_ind = coverages[np.argmax([k[1] for k in coverages])][0]
         submodular_pick_indices.append(best_ind)
         remaining_indices -= {best_ind}
 
-    submodular_pick_explanations = [explanations[i] for i in 
+    submodular_pick_explanations = [explanations[i] for i in
                                     submodular_pick_indices]
 
     if sampled:

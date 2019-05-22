@@ -35,32 +35,32 @@ NUMERICAL_NP_ARRAY = np.array([
     [0, 1, 0.07, 0.21]])
 
 NUMERICAL_NP_BLIMEY = {
-    'Class A': {'A <= 0.00': -0.2735,
-                'B <= 0.00': 0.1709,
-                '0.07 < C <= 0.22': 0.1026,
-                '0.58 < D <= 0.79': 0.1026}, 
-    'Class B': {'A <= 0.00': 0.0470,
-                'B <= 0.00': -0.1752,
-                '0.07 < C <= 0.22': -0.0385,
-                '0.58 < D <= 0.79': -0.0385},
-    'Class C': {'A <= 0.00': 0.2265,
-                'B <= 0.00': 0.0043,
-                '0.07 < C <= 0.22': -0.0641,
-                '0.58 < D <= 0.79': -0.0641}}
+    'Class A': {'A <= 0.00': -0.3665,
+                'B <= 0.00': 0.1791,
+                '0.07 < C <= 0.22': -0.0152,
+                '0.58 < D <= 0.79': 0.0821},
+    'Class B': {'A <= 0.00': 0.1489,
+                'B <= 0.00': -0.0791,
+                '0.07 < C <= 0.22': 0.0546,
+                '0.58 < D <= 0.79': 0.0073},
+    'Class C': {'A <= 0.00': 0.2177,
+                'B <= 0.00': -0.1000,
+                '0.07 < C <= 0.22': -0.0393,
+                '0.58 < D <= 0.79': -0.0894}}
 
 NUMERICAL_NP_BLIMEY_CAT= {
-    'Class A': {'A': -0.2735,
-                'B <= 0.00': 0.1709,
-                '0.07 < C <= 0.22': 0.1026,
-                '0.58 < D <= 0.79': 0.1026}, 
-    'Class B': {'A': 0.0470,
-                'B <= 0.00': -0.1752,
-                '0.07 < C <= 0.22': -0.0385,
-                '0.58 < D <= 0.79': -0.0385},
-    'Class C': {'A': 0.2265,
-                'B <= 0.00': 0.0043,
-                '0.07 < C <= 0.22': -0.0641,
-                '0.58 < D <= 0.79': -0.0641}}
+    'Class A': {'A': -0.1824,
+                'B <= 0.00': 0.1318,
+                '0.07 < C <= 0.22': 0.0526,
+                '0.58 < D <= 0.79': 0.0276},
+    'Class B': {'A': -0.0425,
+                'B <= 0.00': -0.0670,
+                '0.07 < C <= 0.22': -0.0730,
+                '0.58 < D <= 0.79': -0.0237},
+    'Class C': {'A': 0.2249,
+                'B <= 0.00': -0.0648,
+                '0.07 < C <= 0.22': 0.0204,
+                '0.58 < D <= 0.79': -0.0039}}
 
 class InvalidModel(object):
     """
@@ -113,7 +113,7 @@ def test_input_is_valid():
 
     msg = ('The input dataset must only contain base types (textual and '
            'numerical).')
-    with pytest.raises(ValueError) as exin:
+    with pytest.raises(TypeError) as exin:
         ftmb._input_is_valid(np.array([[0, None], [0, 8]]), None, None, None,
                              None, None)
     assert str(exin.value) == msg
@@ -213,7 +213,7 @@ class TestBlimey():
     knn_numerical = fum.KNN()
     knn_numerical.fit(NUMERICAL_NP_ARRAY, NUMERICAL_NP_ARRAY_TARGET)
 
-    numerical_blimey = ftmb.blimey(
+    numerical_blimey = ftmb.Blimey(
         dataset=NUMERICAL_NP_ARRAY,
         augmentor=fuda.NormalSampling,
         discretizer=fudd.QuartileDiscretizer,
@@ -223,7 +223,7 @@ class TestBlimey():
         class_names=['Class A', 'Class B', 'Class C'],
         feature_names=['A', 'B', 'C', 'D'])
 
-    numerical_blimey_cat = ftmb.blimey(
+    numerical_blimey_cat = ftmb.Blimey(
         dataset=NUMERICAL_NP_ARRAY,
         augmentor=fuda.NormalSampling,
         discretizer=fudd.QuartileDiscretizer,
@@ -244,9 +244,9 @@ class TestBlimey():
         """
         Tests :func:`fatf.transparency.models.blimey.Blimey.explain_instance`.
         """
+        fatf.setup_random_seed()
         exp = self.numerical_blimey.explain_instance(NUMERICAL_NP_ARRAY[0])
         assert _is_explanation_equal(exp, NUMERICAL_NP_BLIMEY)
 
         exp = self.numerical_blimey_cat.explain_instance(NUMERICAL_NP_ARRAY[0])
-        print(exp)
         assert _is_explanation_equal(exp, NUMERICAL_NP_BLIMEY_CAT)

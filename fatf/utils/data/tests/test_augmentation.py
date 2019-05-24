@@ -109,6 +109,7 @@ def test_validate_input():
                         'dataset: {}.')
     type_error_cidx = ('The categorical_indices parameter must be a Python '
                        'list or None.')
+    type_error_itf = 'The int_to_float parameter has to be a boolean.'
 
     with pytest.raises(IncorrectShapeError) as exin:
         fuda._validate_input(np.array([0, 4, 3, 0]))
@@ -147,10 +148,17 @@ def test_validate_input():
 
     #
 
+    with pytest.raises(TypeError) as exin:
+        fuda._validate_input(NUMERICAL_NP_ARRAY, int_to_float='True')
+    assert str(exin.value) == type_error_itf
+
+    #
+
     assert fuda._validate_input(
         MIXED_ARRAY,
         categorical_indices=['a', 'b'],
-        ground_truth=np.array([1, 2, 3, 4, 5, 6]))
+        ground_truth=np.array([1, 2, 3, 4, 5, 6]),
+        int_to_float=False)
 
 
 class TestAugmentation(object):
@@ -189,11 +197,17 @@ class TestAugmentation(object):
         testing.
         """
 
-        def __init__(self, dataset, categorical_indices=None):
+        def __init__(self,
+                     dataset,
+                     categorical_indices=None,
+                     int_to_float=True):
             """
             Dummy init method.
             """
-            super().__init__(dataset, categorical_indices=categorical_indices)
+            super().__init__(
+                dataset,
+                categorical_indices=categorical_indices,
+                int_to_float=int_to_float)
 
         def sample(self, data_row=None, samples_number=10):
             """
@@ -287,6 +301,47 @@ class TestAugmentation(object):
         assert numerical_np_augmentor.categorical_indices == [0, 1]
         assert numerical_np_augmentor.numerical_indices == [2, 3]
         assert numerical_np_augmentor.features_number == 4
+
+        # Test type generalisation
+        assert numerical_np_augmentor.sample_dtype == np.float64
+        #
+        dtype = mixed_augmentor.sample_dtype
+        assert len(dtype) == 4
+        for i in range(4):
+            assert len(dtype[i]) == 2
+        assert dtype[0][0] == 'a'
+        assert dtype[0][1] == np.float64
+        assert dtype[1][0] == 'b'
+        assert dtype[1][1] == 'U1'
+        assert dtype[2][0] == 'c'
+        assert dtype[2][1] == np.float64
+        assert dtype[3][0] == 'd'
+        assert dtype[3][1] == 'U2'
+        #
+        # Test type generalisation
+        numerical_struct_augmentor_i2f = self.BaseAugmentor(
+            NUMERICAL_STRUCT_ARRAY, int_to_float=True)
+        dtype = numerical_struct_augmentor_i2f.sample_dtype
+        assert len(dtype) == 4
+        for i, name in enumerate(['a', 'b', 'c', 'd']):
+            assert len(dtype[i]) == 2
+            assert dtype[i][0] == name
+            assert dtype[i][1] == np.float64
+        #
+        numerical_struct_augmentor = self.BaseAugmentor(
+            NUMERICAL_STRUCT_ARRAY, int_to_float=False)
+        dtype = numerical_struct_augmentor.sample_dtype
+        assert len(dtype) == 4
+        for i in range(4):
+            assert len(dtype[i]) == 2
+        assert dtype[0][0] == 'a'
+        assert dtype[0][1] == np.int64
+        assert dtype[1][0] == 'b'
+        assert dtype[1][1] == np.int64
+        assert dtype[2][0] == 'c'
+        assert dtype[2][1] == np.float64
+        assert dtype[3][0] == 'd'
+        assert dtype[3][1] == np.float64
 
     def test_augmentation_sample_validation(self):
         """
@@ -396,6 +451,8 @@ class TestNormalSampling(object):
     numerical_struct_a_augmentor = fuda.NormalSampling(NUMERICAL_STRUCT_ARRAY,
                                                        ['a'])
     numerical_struct_augmentor = fuda.NormalSampling(NUMERICAL_STRUCT_ARRAY)
+    numerical_struct_augmentor_f = fuda.NormalSampling(
+        NUMERICAL_STRUCT_ARRAY, int_to_float=False)
     categorical_np_augmentor = fuda.NormalSampling(CATEGORICAL_NP_ARRAY)
     categorical_np_012_augmentor = fuda.NormalSampling(CATEGORICAL_NP_ARRAY,
                                                        [0, 1, 2])
@@ -428,7 +485,6 @@ class TestNormalSampling(object):
         # Test attributes unique to NormalSampling
         csv = self.numerical_np_0_augmentor.categorical_sampling_values
         nsv = self.numerical_np_0_augmentor.numerical_sampling_values
-        dtype = self.numerical_np_0_augmentor.sample_dtype
         #
         assert len(csv) == 1
         assert 0 in csv
@@ -446,24 +502,6 @@ class TestNormalSampling(object):
         assert nsv[2][1] == pytest.approx(.366, abs=1e-3)
         assert nsv[3][0] == pytest.approx(.563, abs=1e-3)
         assert nsv[3][1] == pytest.approx(.257, abs=1e-3)
-        #
-        assert dtype == np.float64
-
-        # Test type generalisation
-        dtype = self.mixed_augmentor.sample_dtype
-        assert len(dtype) == 4
-        assert len(dtype[0]) == 2
-        assert dtype[0][0] == 'a'
-        assert dtype[0][1] == np.float64
-        assert len(dtype[1]) == 2
-        assert dtype[1][0] == 'b'
-        assert dtype[1][1] == 'U1'
-        assert len(dtype[2]) == 2
-        assert dtype[2][0] == 'c'
-        assert dtype[2][1] == np.float64
-        assert len(dtype[3]) == 2
-        assert dtype[3][0] == 'd'
-        assert dtype[3][1] == 'U2'
 
     def test_sample(self):
         """
@@ -706,3 +744,282 @@ class TestNormalSampling(object):
             freq = freq / freq.sum()
             assert np.array_equal(val, vals[i])
             assert np.allclose(freq, proportions[i], atol=1e-1)
+
+        #######################################################################
+
+        # Sample without float cast
+        samples = self.numerical_struct_augmentor_f.sample(samples_number=5)
+        samples_answer = np.array(
+            [(-1, 0, 0.172, 0.624),
+             (1, 1, 0.343, 0.480),
+             (0, 0, 0.649, 0.374),
+             (0, 0, 0.256, 0.429),
+             (0, 0, 0.457, 0.743)],
+            dtype=NUMERICAL_STRUCT_ARRAY.dtype)  # yapf: disable
+        for i in ['a', 'b', 'c', 'd']:
+            assert np.allclose(samples[i], samples_answer[i], atol=1e-3)
+
+        # Cast to float on in the tests to compare (this ouput was generated
+        # with self.numerical_struct_augmentor)
+        samples = self.numerical_struct_augmentor_f.sample(samples_number=5)
+        samples_answer = np.array(
+            [(1.250, 0.264, 0.381, 0.479),
+             (-0.181, 1.600, 0.602, 0.345),
+             (0.472, 0.609, -0.001, 1.026),
+             (0.105, 1.091, 0.384, 0.263),
+             (1.263, -0.007, 0.762, 0.603)],
+            dtype=NUMERICAL_STRUCT_ARRAY.dtype)  # yapf: disable
+        for i in ['a', 'b', 'c', 'd']:
+            assert np.allclose(samples[i], samples_answer[i], atol=1e-3)
+
+
+def test_validate_input_mixup():
+    """
+    Tests :func:`fatf.utils.data.augmentation._validate_input_mixup` function.
+    """
+    type_error_out = ('The beta_parameters parameter has to be a tuple with '
+                      'two numbers or None to use the default parameters '
+                      'value.')
+    type_error_in = 'The {} beta parameter has to be a numerical type.'
+    value_error_out = ('The beta_parameters parameter has to be a 2-tuple '
+                       '(a pair) of numbers.')
+    value_error_in = 'The {} beta parameter cannot be a negative number.'
+
+    with pytest.raises(TypeError) as exin:
+        fuda._validate_input_mixup('tuple')
+    assert str(exin.value) == type_error_out
+
+    with pytest.raises(ValueError) as exin:
+        fuda._validate_input_mixup(('tuple', ))
+    assert str(exin.value) == value_error_out
+
+    with pytest.raises(TypeError) as exin:
+        fuda._validate_input_mixup(('1', 2))
+    assert str(exin.value) == type_error_in.format('first')
+    with pytest.raises(TypeError) as exin:
+        fuda._validate_input_mixup((1, '2'))
+    assert str(exin.value) == type_error_in.format('second')
+
+    with pytest.raises(ValueError) as exin:
+        fuda._validate_input_mixup((0, 0))
+    assert str(exin.value) == value_error_in.format('first')
+    with pytest.raises(ValueError) as exin:
+        fuda._validate_input_mixup((0.1, 0))
+    assert str(exin.value) == value_error_in.format('second')
+
+    assert fuda._validate_input_mixup(None)
+    assert fuda._validate_input_mixup((.1, .1))
+
+
+class TestMixup(object):
+    """
+    Tests :class:`fatf.utils.data.augmentation.Mixup` class.
+    """
+    numerical_labels = np.array([0, 1, 0, 0, 0, 1])
+    categorical_labels = np.array(['b', 'a', 'a', 'a', 'a', 'b'])
+
+    numerical_np_augmentor = fuda.Mixup(NUMERICAL_NP_ARRAY, int_to_float=False)
+    numerical_struct_augmentor = fuda.Mixup(
+        NUMERICAL_STRUCT_ARRAY,
+        categorical_labels,
+        beta_parameters=(3, 6),
+        int_to_float=False)
+    categorical_np_augmentor = fuda.Mixup(
+        CATEGORICAL_NP_ARRAY, int_to_float=False)
+    categorical_struct_augmentor = fuda.Mixup(
+        CATEGORICAL_STRUCT_ARRAY,
+        categorical_indices=['a', 'b', 'c'],
+        int_to_float=False)
+    mixed_augmentor = fuda.Mixup(
+        MIXED_ARRAY, numerical_labels, int_to_float=False)
+    mixed_augmentor_i2f = fuda.Mixup(MIXED_ARRAY, numerical_labels)
+
+    def test_init(self):
+        """
+        Tests :class:`fatf.utils.data.augmentation.Mixup` class initialisation.
+        """
+        # Test class inheritance
+        assert (self.numerical_np_augmentor.__class__.__bases__[0].__name__
+                == 'Augmentation')  # yapf: disable
+
+        # Check threshold
+        assert self.mixed_augmentor.threshold == 0.5
+
+        # Check beta parameters
+        assert self.numerical_struct_augmentor.beta_parameters == (3, 6)
+        assert self.mixed_augmentor.beta_parameters == (2, 5)
+
+        # Check ground_truth_unique, ground_truth_frequencies,
+        # indices_per_label and ground_truth_probabilities
+        assert self.numerical_np_augmentor.ground_truth is None
+        assert self.numerical_np_augmentor.ground_truth_unique is None
+        assert self.numerical_np_augmentor.ground_truth_frequencies is None
+        assert self.numerical_np_augmentor.ground_truth_probabilities is None
+        assert self.numerical_np_augmentor.indices_per_label is None
+        #
+        assert np.array_equal(self.numerical_struct_augmentor.ground_truth,
+                              self.categorical_labels)
+        assert np.array_equal(
+            self.numerical_struct_augmentor.ground_truth_unique,
+            np.array(['a', 'b']))
+        assert np.array_equal(
+            self.numerical_struct_augmentor.ground_truth_frequencies,
+            np.array([4 / 6, 2 / 6]))
+        assert np.array_equal(
+            self.numerical_struct_augmentor.ground_truth_probabilities,
+            np.array([[0, 1], [1, 0], [1, 0], [1, 0], [1, 0], [0, 1]]))
+        assert len(self.numerical_struct_augmentor.indices_per_label) == 2
+        assert np.array_equal(
+            self.numerical_struct_augmentor.indices_per_label[0],
+            np.array([1, 2, 3, 4]))
+        assert np.array_equal(
+            self.numerical_struct_augmentor.indices_per_label[1],
+            np.array([0, 5]))
+
+    def test_sample_errors(self):
+        """
+        Tests for errors in :func:`~fatf.utils.data.augmentation.Mixup.sample`.
+        """
+        not_implemented_error = ('Sampling around the data mean is not yet '
+                                 'implemented for the Mixup class.')
+        type_error_probs = 'return_probabilities parameter has to be boolean.'
+        type_error_replace = 'with_replacement parameter has to be boolean.'
+        type_error_target = ('The data_row_target parameter should either be '
+                             'None or a string/number indicating the target '
+                             'class.')
+        value_error_target = ('The value of the data_row_target parameter is '
+                              'not present in the ground truth labels used to '
+                              'initialise this class. The data row target '
+                              'value is not recognised.')
+        user_warning = ('This Mixup class has not been initialised with a '
+                        'ground truth vector. The value of the '
+                        'data_row_target parameter will be ignored, therefore '
+                        'target values samples will not be returned.')
+
+        with pytest.raises(TypeError) as exin:
+            self.numerical_np_augmentor.sample(data_row_target=('4', '2'))
+        assert str(exin.value) == type_error_target
+
+        with pytest.raises(ValueError) as exin:
+            self.numerical_struct_augmentor.sample(data_row_target='1')
+        assert str(exin.value) == value_error_target
+
+        with pytest.warns(UserWarning) as warning:
+            with pytest.raises(NotImplementedError) as exin:
+                self.numerical_np_augmentor.sample(data_row_target='1')
+            assert str(exin.value) == not_implemented_error
+        assert len(warning) == 1
+        assert str(warning[0].message) == user_warning
+
+        with pytest.raises(TypeError) as exin:
+            self.numerical_np_augmentor.sample(return_probabilities=1)
+        assert str(exin.value) == type_error_probs
+
+        with pytest.raises(TypeError) as exin:
+            self.numerical_np_augmentor.sample(with_replacement=1)
+        assert str(exin.value) == type_error_replace
+
+        with pytest.raises(NotImplementedError) as exin:
+            self.numerical_np_augmentor.sample()
+        assert str(exin.value) == not_implemented_error
+
+    def test_sample(self):
+        """
+        Tests :func:`~fatf.utils.data.augmentation.Mixup.sample` method.
+        """
+        user_warning_gt = (
+            'This Mixup class has not been initialised with a ground truth '
+            'vector. The value of the data_row_target parameter will be '
+            'ignored, therefore target values samples will not be returned.')
+        user_warning_strat = (
+            'Since the ground truth vector was not provided while '
+            'initialising the Mixup class it is not possible to get a '
+            'stratified sample of data points. Instead, Mixup will choose '
+            'data points at random, which is equivalent to assuming that the '
+            'class distribution is balanced.')
+        fatf.setup_random_seed()
+
+        # Mixed array with ground truth and probabilities
+        samples = self.mixed_augmentor_i2f.sample(
+            MIXED_ARRAY[0], 0, 5, return_probabilities=True)
+        assert len(samples) == 2
+        answer_sample = np.array(
+            [(0.000, 'a', 0.332, 'a'),
+             (0.000, 'a', 0.080, 'a'),
+             (0.780, 'a', 0.587, 'a'),
+             (0.992, 'a', 0.725, 'a'),
+             (0.734, 'a', 0.073, 'a')],
+            dtype=[('a', '<f4'), ('b', '<U1'),
+                   ('c', '<f4'), ('d', '<U2')])  # yapf: disable
+        answer_sample_gt = np.array([[1, 0], [1, 0], [1, 0], [1, 0],
+                                     [0.266, 0.734]])
+        assert np.allclose(samples[1], answer_sample_gt, atol=1e-3)
+        for i in ['a', 'c']:
+            assert np.allclose(samples[0][i], answer_sample[i], atol=1e-3)
+        for i in ['b', 'd']:
+            assert np.array_equal(samples[0][i], answer_sample[i])
+
+        # Mixed array with ground truth and probabilities
+        samples = self.mixed_augmentor.sample(
+            MIXED_ARRAY[0], 1, 5, return_probabilities=True)
+        assert len(samples) == 2
+        answer_sample = np.array(
+            [(0, 'a', 0.829, 'a'),
+             (0, 'a', 0.601, 'a'),
+             (0, 'a', 0.255, 'a'),
+             (0, 'a', 0.377, 'a'),
+             (0, 'a', 0.071, 'a')],
+            dtype=[('a', '<i4'), ('b', '<U1'),
+                   ('c', '<f4'), ('d', '<U2')])  # yapf: disable
+        answer_sample_gt = np.array([[0.823, 0.177], [0.802, 0.198],
+                                     [0.624, 0.376], [0.457, 0.543], [0, 1]])
+        assert np.allclose(samples[1], answer_sample_gt, atol=1e-3)
+        for i in ['a', 'c']:
+            assert np.allclose(samples[0][i], answer_sample[i], atol=1e-3)
+        for i in ['b', 'd']:
+            assert np.array_equal(samples[0][i], answer_sample[i])
+
+        # Numpy array without ground truth -- categorical
+        with pytest.warns(UserWarning) as warning:
+            samples = self.categorical_np_augmentor.sample(
+                CATEGORICAL_NP_ARRAY[0], samples_number=5)
+        assert len(warning) == 1
+        assert str(warning[0].message) == user_warning_strat
+        #
+        answer_sample = np.array([['a', 'b', 'c'], ['a', 'b', 'c'],
+                                  ['a', 'b', 'c'], ['a', 'b', 'c'],
+                                  ['a', 'b', 'c']])
+        assert np.array_equal(samples, answer_sample)
+
+        # Numpy array without ground truth -- numerical -- test for warning
+        with pytest.warns(UserWarning) as warning:
+            samples = self.numerical_np_augmentor.sample(
+                NUMERICAL_NP_ARRAY[0], data_row_target=1, samples_number=5)
+        assert len(warning) == 2
+        assert str(warning[0].message) == user_warning_gt
+        assert str(warning[1].message) == user_warning_strat
+        #
+        answer_sample = np.array([[0.792, 0.000, 0.040, 0.373],
+                                  [0.000, 0.000, 0.080, 0.690],
+                                  [1.220, 0.610, 0.476, 0.562],
+                                  [0.000, 0.000, 0.080, 0.690],
+                                  [1.389, 0.694, 0.531, 0.544]])
+        assert np.allclose(samples, answer_sample, atol=1e-3)
+
+        # Structured array with ground truth -- numerical -- no probabilities
+        samples = self.numerical_struct_augmentor.sample(
+            NUMERICAL_STRUCT_ARRAY[0], samples_number=5, data_row_target='b')
+        assert len(samples) == 2
+        answer_sample = np.array(
+            [(0, 0, 0.039, 0.358),
+             (1, 0, 0.544, 0.540),
+             (1, 0, 0.419, 0.580),
+             (0, 0, 0.080, 0.690),
+             (0, 0, 0.080, 0.690)],
+            dtype=[('a', '<i4'), ('b', '<i4'),
+                   ('c', '<f4'), ('d', '<f4')])  # yapf: disable
+        answer_sample_gt = np.array(['a', 'a', 'a', 'b', 'b'])
+        assert np.array_equal(samples[1], answer_sample_gt)
+        for index in ['a', 'b', 'c', 'd']:
+            assert np.allclose(
+                samples[0][index], answer_sample[index], atol=1e-3)

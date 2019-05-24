@@ -18,6 +18,8 @@ from fatf.exceptions import IncorrectShapeError
 import fatf.utils.array.tools as fuat
 import fatf.utils.array.validation as fuav
 
+import scipy.stats
+
 __all__ = ['NormalSampling']
 
 Index = Union[int, str]
@@ -472,9 +474,152 @@ class NormalSampling(Augmentation):
                 mean = sampling_parameters[0]
             else:
                 mean = data_row[index]
-
             sample_values = np.random.normal(0, 1, samples_number) * std + mean
 
+            if self.is_structured:
+                samples[index] = sample_values
+            else:
+                samples[:, index] = sample_values
+
+        return samples
+
+
+class TruncatedNormalSampler(Augmentation):
+    """  brief description 
+    
+    Parameters
+    ---------- 
+    param1: `int`
+            description
+    
+    Returns
+    -------
+    result: `bool`
+        description
+    
+    Raises
+    ------
+    ValueError
+        description
+    
+    Examples
+    --------
+    
+    
+    Notes
+    -----
+    
+    
+    """ 
+    def __init__(self,
+                dataset: np.ndarray,
+                categorical_indices: Optional[List[Index]] = None,
+                **kwargs) -> None:
+        """
+        Constructs an ``BetaSampling`` data augmentation class.
+        """
+        # pylint: disable=too-many-locals,too-many-branches
+        super().__init__(dataset, categorical_indices=categorical_indices)
+
+        # Get sampling parameters for numerical features.
+        numerical_sampling_values = dict()
+        if self.numerical_indices:
+            if self.is_structured:
+                num_features_array = fuat.as_unstructured(
+                    self.dataset[self.numerical_indices])
+            else:
+                num_features_array = self.dataset[:, self.numerical_indices]
+            
+            num_features_mean = num_features_array.mean(axis=0)
+            num_features_min = num_features_array.min(axis=0)
+            num_features_max = num_features_array.max(axis=0)
+            num_features_std = num_features_array.std(axis=0)
+            # Fit Beta distribution parameters
+            for i, index in enumerate(self.numerical_indices):
+                numerical_sampling_values[index] = (
+                    num_features_mean[i], num_features_std[i],
+                    num_features_min[i], num_features_max[i])
+
+        self.numerical_sampling_values = numerical_sampling_values
+        # Get sampling parameters for categorical features.
+        categorical_sampling_values = dict()
+        for column_name in self.categorical_indices:
+            if self.is_structured:
+                feature_column = self.dataset[column_name]
+            else:
+                feature_column = self.dataset[:, column_name]
+
+            feature_values, values_counts = np.unique(
+                feature_column, return_counts=True)
+            values_frequencies = values_counts / values_counts.sum()
+
+            categorical_sampling_values[column_name] = (feature_values,
+                                                        values_frequencies)
+        self.categorical_sampling_values = categorical_sampling_values
+
+        # Sort out the dtype of the sampled array.
+        if self.is_structured:
+            sample_dtype = []
+            for column_name in self.dataset.dtype.names:
+                if column_name in self.numerical_indices:
+                    new_dtype = fuat.generalise_dtype(
+                        self.dataset.dtype[column_name], np.dtype(np.float64))
+                    sample_dtype.append((column_name, new_dtype))
+                elif column_name in self.categorical_indices:
+                    sample_dtype.append((column_name,
+                                        self.dataset.dtype[column_name]))
+                else:
+                    assert False, 'Unknown column name.'  # pragma: nocover
+        else:
+            if fuav.is_numerical_array(self.dataset):
+                sample_dtype = fuat.generalise_dtype(self.dataset.dtype,
+                                                    np.dtype(np.float64))
+            else:
+                sample_dtype = self.dataset.dtype
+        self.sample_dtype = sample_dtype
+
+    def sample(self,
+            data_row: Optional[Union[np.ndarray, np.void]] = None,
+            samples_number: int = 50) -> np.ndarray:
+        """
+        Samples new data from a truncated normal distribution.
+
+        For the documentation of parameters, warnings and errors please see the
+        description of the
+        :func:`~fatf.utils.data.augmentation.Augmentation.sample` method in the
+        parent :class:`fatf.utils.data.augmentation.Augmentation` class.
+        """
+        assert self._validate_sample_input(data_row,
+                                        samples_number), 'Invalid input.'
+
+        # Create an array to hold the samples.
+        if self.is_structured:
+            shape = (samples_number, )  # type: Tuple[int, ...]
+        else:
+            shape = (samples_number, self.features_number)
+        samples = np.zeros(shape, dtype=self.sample_dtype)
+
+        # Sample categorical features.
+        for index in self.categorical_indices:
+            smaple_values = np.random.choice(
+                self.categorical_sampling_values[index][0],
+                size=samples_number,
+                replace=True,
+                p=self.categorical_sampling_values[index][1])
+            if self.is_structured:
+                samples[index] = smaple_values
+            else:
+                samples[:, index] = smaple_values
+
+        # Sample numerical features.
+        for index in self.numerical_indices:
+            sampling_parameters = self.numerical_sampling_values[index]
+            mean, std, minimum, maximum = sampling_parameters
+            if data_row is not None:
+                mean = data_row[index]
+            sample_values = scipy.stats.truncnorm.rvs(
+                (minimum - mean) / std, (maximum - mean) / std,
+                loc=mean, scale=std, size=samples_number)
             if self.is_structured:
                 samples[index] = sample_values
             else:

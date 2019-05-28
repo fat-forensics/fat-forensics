@@ -57,6 +57,9 @@ MIXED_ARRAY = np.array(
      (1, 'f', 0.07, 'bb')],
     dtype=[('a', 'i'), ('b', 'U1'), ('c', 'f'), ('d', 'U2')])
 
+NUMERICAL_NP_ARRAY_TEST_INT = np.array([
+    [1, 0, 0, 0],
+    [0, 0, 0, 0]])
 NUMERICAL_NP_ARRAY_TEST = np.array([
     [1, 0, 0.03, 0.5],
     [0, 0, 0.56, 0.32]])
@@ -570,6 +573,19 @@ def test_individual_conditional_expectation():
     clf.fit(NUMERICAL_NP_ARRAY, NUMERICAL_NP_ARRAY_TARGET)
     clf_struct = fum.KNN(k=2)
     clf_struct.fit(NUMERICAL_STRUCT_ARRAY, NUMERICAL_NP_ARRAY_TARGET)
+
+    # Test for type generalisation int -> float for classic arrays
+    ice, linespace = ftmfi.individual_conditional_expectation(
+        NUMERICAL_NP_ARRAY_TEST_INT,
+        clf,
+        0,
+        treat_as_categorical=False,
+        steps_number=3)
+    assert np.allclose(
+        ice,
+        np.array([[[0, 0, 1], [0.5, 0, 0.5], [1, 0, 0]],
+                  [[0, 0, 1], [0.5, 0, 0.5], [1, 0, 0]]]))
+    assert np.allclose(linespace, np.array([0, 0.5, 1]))
 
     # Not structured and structured -- numerical
     # ...numerical column

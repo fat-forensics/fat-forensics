@@ -25,6 +25,7 @@ _LOCAL_STRUCTURED_TO_UNSTRUCTURED = None
 __all__ = ['indices_by_type',
            'get_invalid_indices',
            'are_indices_valid',
+           'generalise_dtype',
            'structured_to_unstructured_row',
            'structured_to_unstructured',
            'as_unstructured']  # yapf: disable
@@ -180,6 +181,42 @@ def are_indices_valid(array: np.array, indices: np.array) -> bool:
 
     is_valid = not bool(invalid_indices.shape[0])
     return is_valid
+
+
+def generalise_dtype(dtype_one: np.dtype, dtype_two: np.dtype) -> np.dtype:
+    """
+    Finds the more general type of the two given.
+
+    Parameters
+    ----------
+    dtype_one : numpy.dtype
+        The first dtype to be compared.
+    dtype_two : numpy.dtype
+        The second dtype to be compared.
+
+    Raises
+    ------
+    ValueError
+        Either of the input dtypes is not a base dtype: either textual or
+        numerical type.
+
+    Returns
+    -------
+    common_dtype : numpy.dtype
+        The more general type of the two given as the input parameters.
+    """
+    error_msg = 'The {} dtype is not one of the base types (strings/numbers).'
+    if not fuav.is_base_dtype(dtype_one):
+        raise ValueError(error_msg.format('first'))
+    if not fuav.is_base_dtype(dtype_two):
+        raise ValueError(error_msg.format('second'))
+
+    type_one_array = np.ones((1, ), dtype=dtype_one)
+    type_two_array = np.ones((1, ), dtype=dtype_two)
+    common_array = np.concatenate([type_one_array, type_two_array])
+    common_dtype = common_array.dtype
+
+    return common_dtype
 
 
 def _choose_structured_to_unstructured() -> bool:

@@ -68,7 +68,7 @@ if 'PYTEST_IN_PROGRESS' not in os.environ:
     setup_warning_filters()  # pragma: no cover
 
 # Set the current package version
-__version__ = '0.0.0'
+__version__ = '0.0.1-dev1'
 
 
 # This function is tested in fatf.tests.test_rngs_seeding

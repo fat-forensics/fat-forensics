@@ -28,7 +28,9 @@ def group_by_column(
         dataset: np.ndarray,
         column_index: Index,
         groupings: Optional[List[Union[Number, Tuple[str]]]] = None,
-        numerical_bins_number: int = 5) -> Tuple[List[List[int]], List[str]]:
+        numerical_bins_number: int = 5,
+        treat_as_categorical: Optional[bool] = None
+) -> Tuple[List[List[int]], List[str]]:
     """
     Groups row indices of an array based on value grouping of a chosen column.
 
@@ -68,6 +70,14 @@ def group_by_column(
         previous boundary if one is given.
     numerical_bins_number : integer, optional (default=5)
         The number of bins used for default binning of numerical columns.
+    treat_as_categorical : boolean, optional (default=None)
+        Whether the selected column should be treated as a categorical or
+        numerical feature. If set to ``None``, the type of the column will be
+        inferred from the data therein. If set to ``False``, the column will be
+        treated as numerical unless it is string-based in which case a warning
+        will be emitted and the column will be treated as numerical despite
+        this setting. Finally, if set to ``True``, the column will be treated
+        as categorical.
 
     Warns
     -----
@@ -78,7 +88,9 @@ def group_by_column(
         are not included in any of the groupings, a warning is shown. Missing
         row indices may be a result of some of the values being not-a-number
         for a numerical column and missing some of the unique values for a
-        categorical column.
+        categorical column. ``treat_as_categorical`` parameter is set to
+        ``False``, however the feature selected is string-based
+        (i.e. categorical), therefore cannot be treated as a numerical one.
 
     Raises
     ------
@@ -91,7 +103,8 @@ def group_by_column(
         number is not an integer. The ``groupings`` parameter is neither a list
         not ``None``. One of the grouping bin boundaries (for a numerical
         feature column) is not a number. One of the groupings (for a
-        categorical feature column) is not a tuple.
+        categorical feature column) is not a tuple. The
+        ``treat_as_categorical`` parameter is neither a boolean nor ``None``.
     ValueError
         The input ``dataset`` is not of a base type. The numerical bins number
         is less than 2. The ``groupings`` list is empty. The numbers in the
@@ -106,7 +119,7 @@ def group_by_column(
         A list of lists with the latter one holding row indices of a particular
         group.
     bin_names : List[string]
-        A list of lists with the latter one holding a group description.
+        A list holding a description of each group.
     """
     # pylint: disable=too-many-locals,too-many-branches,too-many-statements
     if not fuav.is_2d_array(dataset):
@@ -134,6 +147,12 @@ def group_by_column(
         raise TypeError('The numerical_bins_number parameter has to be an '
                         'integer.')
 
+    # Check treat_as_categorical
+    if treat_as_categorical is not None:
+        if not isinstance(treat_as_categorical, bool):
+            raise TypeError('The treat_as_categorical parameter has to be a '
+                            'boolean.')
+
     if fuav.is_structured_array(dataset):
         column = dataset[column_index]
     else:
@@ -146,7 +165,29 @@ def group_by_column(
     indices_per_bin = []
     bin_names = []
 
-    if fuav.is_numerical_array(column):
+    is_numerical_column = fuav.is_numerical_array(column)
+    is_categorical_column = fuav.is_textual_array(column)
+    assert is_numerical_column is not is_categorical_column, \
+        'The column must be a base array.'
+
+    # Sort out numerical/categorical column treatment
+    if treat_as_categorical is None:
+        go_numerical = is_numerical_column
+    else:
+        if treat_as_categorical:
+            go_numerical = False
+        else:  # Treat as numerical
+            if is_numerical_column:
+                go_numerical = True
+            else:  # Is not numerical
+                warnings.warn(
+                    'Selected feature is categorical, therefore cannot be '
+                    'treated as numerical. The feature will be treated as '
+                    'categorical despite the treat_as_categorical parameter '
+                    'set to False.', UserWarning)
+                go_numerical = False
+
+    if go_numerical:
         if groupings is None:
             # Get default bins
             bins = np.linspace(
@@ -209,7 +250,7 @@ def group_by_column(
 
         assert not indices_seen_so_far.intersection(indices), 'Duplicates.'
         indices_seen_so_far = indices_seen_so_far.union(indices)
-    elif fuav.is_textual_array(column):
+    else:
         unique_elements = np.sort(np.unique(column)).tolist()
 
         if groupings is None:
@@ -266,8 +307,6 @@ def group_by_column(
 
             assert not indices_seen_so_far.intersection(indices), 'Duplicates.'
             indices_seen_so_far = indices_seen_so_far.union(indices)
-    else:
-        assert False, 'The column must be a base array.'  # pragma: no cover
 
     # Validate that all of the row indices were accounted for
     missed_indices = all_row_indices.difference(indices_seen_so_far)

@@ -180,11 +180,11 @@ def group_by_column(
             if is_numerical_column:
                 go_numerical = True
             else:  # Is not numerical
-                warnings.warn('Selected feature is categorical, therefore '
-                              'cannot be treated as numerical. The feature '
-                              'will be treated as categorical despite the '
-                              'treat_as_categorical parameter set to False.',
-                              UserWarning)
+                warnings.warn(
+                    'Selected feature is categorical, therefore cannot be '
+                    'treated as numerical. The feature will be treated as '
+                    'categorical despite the treat_as_categorical parameter '
+                    'set to False.', UserWarning)
                 go_numerical = False
 
     if go_numerical:

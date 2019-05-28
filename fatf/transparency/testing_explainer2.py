@@ -25,7 +25,7 @@ boundaries = {}
 for i in range(n_ftrs):
     boundaries[i] = {'min': min_values[i],
                       'max': max_values[i]}
- 
+
 if pr[0] == 0:
     target = np.array([0, 1])
 else:
@@ -38,7 +38,7 @@ plt.scatter(X[0, 0], X[0, 1], marker='x')
 xpl = Explainer2(mdl,
                  reg = 5,
                  )
-newx = xpl.explain(X[0, :], 
+newx = xpl.explain(X[0, :],
                    target,
                    nottochange=[1])
 

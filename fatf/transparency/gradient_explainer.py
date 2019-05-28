@@ -8,7 +8,6 @@ functions relevant to performing counterfactual explanations.
 
 import numpy as np
 from typing import Optional, Union, Callable, List, Dict
-from fatf.utils.validation import check_array_type
 import matplotlib.pyplot as plt
 from itertools import cycle
 
@@ -22,7 +21,7 @@ class Explainer2(object):
                  threshold: Optional[float] = None,
                  boundaries: Optional[Dict] = None,
                  cost_func: Optional[Callable] = None):
-        
+
         self.step = 0.00001
         self.cycle = True
         self.last_diff = 10000
@@ -30,7 +29,7 @@ class Explainer2(object):
             self.reg = [reg]
         else:
             self.reg = [5, 10, 20]
-        
+
         self.model = model
         if not threshold:
             self.threshold = 0.05
@@ -39,13 +38,13 @@ class Explainer2(object):
         self.boundaries = boundaries
         self.counter = 0
         self.stagnation_bound = 10
-        
+
         self.own_func = False
         if cost_func is not None:
             self.cost_func = cost_func
             self.own_func = True
-    
-    def __estimate_gradient(self, 
+
+    def __estimate_gradient(self,
                             instance: np.array):
         idx = self.counter
         instance[idx] += self.step
@@ -56,8 +55,8 @@ class Explainer2(object):
         grad_fx = (eval_up - eval_down) / (2 * self.step)
 
         return grad_fx.reshape(-1, 1)
-    
-    def __eval_condition(self, 
+
+    def __eval_condition(self,
                          test_prediction: np.array) -> bool:
         diff = np.linalg.norm(self.target_prediction - test_prediction)
 # =============================================================================
@@ -66,7 +65,7 @@ class Explainer2(object):
 # =============================================================================
         self.last_diff = diff
         return diff < self.threshold
-    
+
     def __optimise(self,
                    instance: np.array,
                    reg: int) -> np.array:
@@ -77,10 +76,10 @@ class Explainer2(object):
             if self.cycle:
                 self.counter += 1
                 self.counter = self.counter%self.n_ftrs
-                if self.counter in self.nottochange:                    
+                if self.counter in self.nottochange:
                     continue
             else:
-                self.counter = np.random.choice(self.tosamplefrom) 
+                self.counter = np.random.choice(self.tosamplefrom)
             self.st += 1
             grad_fx = self.__estimate_gradient(instance)
             part0 = np.linalg.norm(grad_fx)**2
@@ -101,14 +100,14 @@ class Explainer2(object):
                     if stagnated == self.stagnation_bound:
                         return instance
             else:
-                instance[self.counter] += 2 * delta  
+                instance[self.counter] += 2 * delta
                 satisfied = self.__eval_condition(part1a)
             n_steps = 1000
             colors=cycle(list((plt.cm.rainbow(np.linspace(0,1,n_steps)))))
 
             plt.scatter(instance[0], instance[1], color=next(colors), marker='x')
         return instance
-    
+
     def explain(self,
                 subject_instance: np.array,
                 target_prediction: np.array,
@@ -119,7 +118,7 @@ class Explainer2(object):
         self.n_ftrs = len(self.subject_instance)
         self.current_prediction = self.model.predict_proba(
                                     self.subject_instance.reshape(1, -1))
-        
+
         if not nottochange:
             self.nottochange = []
             self.tosamplefrom = self.n_ftrs
@@ -128,13 +127,13 @@ class Explainer2(object):
             self.tosamplefrom = list(range(self.n_ftrs))[:]
             for item in self.nottochange:
                 self.tosamplefrom.pop(self.tosamplefrom.index(item))
-        
+
         instance = self.subject_instance.copy(order='K')
         previous_modified_x = 0
         for reg in self.reg:
             print(reg)
             modified_x = self.__optimise(instance, reg)
-            
+
             pred = self.model.predict(modified_x.reshape(1, -1))
             print(modified_x, pred)
             if pred != np.argmax(self.target_prediction):

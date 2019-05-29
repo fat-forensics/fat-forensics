@@ -14,6 +14,7 @@ import fatf
 
 from fatf.exceptions import IncorrectShapeError
 
+import fatf.utils.models as fum
 import fatf.utils.data.augmentation as fuda
 import fatf.utils.array.tools as fuat
 
@@ -1052,7 +1053,7 @@ def get_truncated_mean_std(minimum, maximum, original_mean, original_std):
         return mean, std
 
 
-class TestTruncatedNormal():
+class TestTruncatedNormal(object):
     """
     Tests :class:`fatf.utils.data.augmentation.TruncatedNormal` class.
     """
@@ -1457,3 +1458,86 @@ class TestTruncatedNormal():
             dtype=NUMERICAL_STRUCT_ARRAY.dtype)  # yapf: disable
         for i in ['a', 'b', 'c', 'd']:
             assert np.allclose(samples[i], samples_answer[i], atol=1e-3)
+
+
+class TestGrowingSpheres(object):
+    """
+    Tests :class:`fatf.utils.data.augmentation.GrowingSpheres` class.
+    """
+    numerical_labels = np.array([0, 1, 0, 0, 0, 1])
+
+    numerical_classifier = fum.KNN(k=3)
+    numerical_classifier.fit(NUMERICAL_NP_ARRAY, numerical_labels)
+    numerical_struct_classifier = fum.KNN(k=3)
+    numerical_struct_classifier.fit(NUMERICAL_STRUCT_ARRAY, numerical_labels)
+    categorical_classifier = fum.KNN(k=3)
+    categorical_classifier.fit(CATEGORICAL_NP_ARRAY, numerical_labels)
+    categorical_struct_classifier = fum.KNN(k=3)
+    categorical_struct_classifier.fit(CATEGORICAL_STRUCT_ARRAY,
+                                      numerical_labels)
+    mixed_classifier = fum.KNN(k=3)
+    mixed_classifier.fit(MIXED_ARRAY, numerical_labels)
+    numerical_np_0_augmentor = fuda.GrowingSpheres(
+        NUMERICAL_NP_ARRAY, numerical_classifier, [0])
+    numerical_np_augmentor = fuda.GrowingSpheres(
+        NUMERICAL_NP_ARRAY, numerical_classifier)
+    numerical_struct_a_augmentor = fuda.GrowingSpheres(
+        NUMERICAL_STRUCT_ARRAY, numerical_struct_classifier, ['a'])
+    numerical_struct_augmentor = fuda.GrowingSpheres(
+        NUMERICAL_STRUCT_ARRAY, numerical_struct_classifier)
+    numerical_struct_augmentor_f = fuda.GrowingSpheres(
+        NUMERICAL_STRUCT_ARRAY, numerical_struct_classifier, int_to_float=False)
+    categorical_np_augmentor = fuda.GrowingSpheres(
+        CATEGORICAL_NP_ARRAY, categorical_classifier)
+    categorical_np_012_augmentor = fuda.GrowingSpheres(
+        CATEGORICAL_NP_ARRAY, categorical_classifier, [0, 1, 2])
+    categorical_struct_abc_augmentor = fuda.GrowingSpheres(
+        CATEGORICAL_STRUCT_ARRAY, categorical_struct_classifier, ['a', 'b', 'c'])
+    mixed_augmentor = fuda.GrowingSpheres(
+        MIXED_ARRAY, mixed_classifier, ['b', 'd'])
+
+    def test_init(self):
+        """
+        Tests :class:`fatf.utils.data.augmentation.GrowingSpheres` class init.
+        """
+        # Test class inheritance
+        assert (self.numerical_np_0_augmentor.__class__.__bases__[0].__name__
+                == 'Augmentation')
+
+        # Test calculating numerical and categorical indices
+        assert self.numerical_np_0_augmentor.categorical_indices == [0]
+        assert self.numerical_np_0_augmentor.numerical_indices == [1, 2, 3]
+        #
+        assert self.numerical_np_augmentor.categorical_indices == []
+        assert self.numerical_np_augmentor.numerical_indices == [0, 1, 2, 3]
+        #
+        assert self.numerical_struct_a_augmentor.categorical_indices == ['a']
+        assert (self.numerical_struct_a_augmentor.numerical_indices
+                == ['b', 'c', 'd'])  # yapf: disable
+        #
+        assert self.categorical_np_augmentor.categorical_indices == [0, 1, 2]
+        assert self.categorical_np_augmentor.numerical_indices == []
+        
+        # Test attributes unique to GrowingSpheres
+        assert self.numerical_np_0_augmentor
+
+    def test_sample(self):
+        """
+        Tests :func:`~fatf.utils.data.augmentation.GrowingSpheres.sample`.
+        """
+        max_iter_msg = 'max_iter is not a positive integer.'
+
+        with pytest.raises(TypeError) as exin:
+            self.numerical_np_0_augmentor.sample(NUMERICAL_NP_ARRAY[0],
+                                                 max_iter='a')
+        assert str(exin.value) == max_iter_msg
+
+        with pytest.raises(TypeError) as exin:
+            self.numerical_np_0_augmentor.sample(NUMERICAL_NP_ARRAY[0],
+                                                 max_iter=-1)
+        assert str(exin.value) == max_iter_msg
+
+        # TODO: fix sampling testing
+        samples = self.numerical_np_augmentor.sample(NUMERICAL_NP_ARRAY[0], 300)
+        print(samples)
+        assert False

@@ -8,12 +8,14 @@ Functions for testing data augmentation classes.
 import pytest
 
 import numpy as np
+import scipy
 
 import fatf
 
 from fatf.exceptions import IncorrectShapeError
 
 import fatf.utils.data.augmentation as fuda
+import fatf.utils.array.tools as fuat
 
 # yapf: disable
 NUMERICAL_NP_ARRAY = np.array([
@@ -1023,3 +1025,435 @@ class TestMixup(object):
         for index in ['a', 'b', 'c', 'd']:
             assert np.allclose(
                 samples[0][index], answer_sample[index], atol=1e-3)
+
+
+def get_truncated_mean_std(minimum, maximum, original_mean, original_std):
+        """
+        Function for getting the theoretical truncated normal mean and std
+        from the original normal mean and std, and the minimum and maximum
+        for which values are truncated.
+
+        Equations for calculating these can be found at:
+        https://en.wikipedia.org/wiki/Truncated_normal_distribution
+        """
+        def cdf(epsilon):
+            return 1/2 * (1 + scipy.special.erf(epsilon/np.sqrt(2)))
+
+        def norm(episilon):
+            return (1/np.sqrt(2*np.pi) * np.exp(-1/2 * episilon**2))
+        
+        alpha = (minimum-original_mean) / original_std
+        beta = (maximum-original_mean) / original_std
+        z_phi = cdf(beta) - cdf(alpha)
+        mean = original_mean + ((norm(alpha) - norm(beta)) / z_phi) * \
+               original_std
+        std = np.sqrt(original_std ** 2 * (1 + (alpha * norm(alpha) - beta * \
+              norm(beta)) / z_phi - ((norm(alpha) - norm(beta)) / z_phi) ** 2 ))
+        return mean, std
+
+
+class TestTruncatedNormal():
+    """
+    Tests :class:`fatf.utils.data.augmentation.TruncatedNormal` class.
+    """
+    numerical_np_0_augmentor = fuda.TruncatedNormal(NUMERICAL_NP_ARRAY, [0])
+    numerical_np_augmentor = fuda.TruncatedNormal(NUMERICAL_NP_ARRAY)
+    numerical_struct_a_augmentor = fuda.TruncatedNormal(NUMERICAL_STRUCT_ARRAY,
+                                                       ['a'])
+    numerical_struct_augmentor = fuda.TruncatedNormal(NUMERICAL_STRUCT_ARRAY)
+    numerical_struct_augmentor_f = fuda.TruncatedNormal(
+        NUMERICAL_STRUCT_ARRAY, int_to_float=False)
+    categorical_np_augmentor = fuda.TruncatedNormal(CATEGORICAL_NP_ARRAY)
+    categorical_np_012_augmentor = fuda.TruncatedNormal(CATEGORICAL_NP_ARRAY,
+                                                       [0, 1, 2])
+    categorical_struct_abc_augmentor = fuda.TruncatedNormal(
+        CATEGORICAL_STRUCT_ARRAY, ['a', 'b', 'c'])
+    mixed_augmentor = fuda.TruncatedNormal(MIXED_ARRAY, ['b', 'd'])
+
+    def test_init(self):
+        """
+        Tests :class:`fatf.utils.data.augmentation.TruncatedNormal` class init.
+        """
+        # Test class inheritance
+        assert (self.numerical_np_0_augmentor.__class__.__bases__[0].__name__
+                == 'Augmentation')
+
+        # Test calculating numerical and categorical indices
+        assert self.numerical_np_0_augmentor.categorical_indices == [0]
+        assert self.numerical_np_0_augmentor.numerical_indices == [1, 2, 3]
+        #
+        assert self.numerical_np_augmentor.categorical_indices == []
+        assert self.numerical_np_augmentor.numerical_indices == [0, 1, 2, 3]
+        #
+        assert self.numerical_struct_a_augmentor.categorical_indices == ['a']
+        assert (self.numerical_struct_a_augmentor.numerical_indices
+                == ['b', 'c', 'd'])  # yapf: disable
+        #
+        assert self.categorical_np_augmentor.categorical_indices == [0, 1, 2]
+        assert self.categorical_np_augmentor.numerical_indices == []
+
+        # Test attributes unique to TruncatedNormal
+        csv = self.numerical_np_0_augmentor.categorical_sampling_values
+        nsv = self.numerical_np_0_augmentor.numerical_sampling_values
+        #
+        assert len(csv) == 1
+        assert 0 in csv
+        assert len(csv[0]) == 2
+        assert np.array_equal(csv[0][0], np.array([0, 1, 2]))
+        assert np.allclose(
+            csv[0][1], np.array([3 / 6, 2 / 6, 1 / 6]), atol=1e-3)
+        #
+        assert len(nsv) == 3
+        assert 1 in nsv and 2 in nsv and 3 in nsv
+        assert len(nsv[1]) == 4 and len(nsv[2]) == 4 and len(nsv[3]) == 4
+        assert nsv[1][0] == pytest.approx(.5, abs=1e-3)
+        assert nsv[1][1] == pytest.approx(.5, abs=1e-3)
+        assert nsv[1][2] == pytest.approx(0., abs=1e-3)
+        assert nsv[1][3] == pytest.approx(1., abs=1e-3)
+
+        assert nsv[2][0] == pytest.approx(.377, abs=1e-3)
+        assert nsv[2][1] == pytest.approx(.366, abs=1e-3)
+        assert nsv[2][2] == pytest.approx(0.03, abs=1e-3)
+        assert nsv[2][3] == pytest.approx(0.99, abs=1e-3)
+
+        assert nsv[3][0] == pytest.approx(.563, abs=1e-3)
+        assert nsv[3][1] == pytest.approx(.257, abs=1e-3)
+        assert nsv[3][2] == pytest.approx(0.21, abs=1e-3)
+        assert nsv[3][3] == pytest.approx(0.89, abs=1e-3)
+
+    def test_sample(self):
+        """
+        Tests :func:`~fatf.utils.data.augmentation.TruncatedNormal.sample`.
+        """
+        fatf.setup_random_seed()
+
+        numerical_np_truncated_results = np.array([
+            [0.361, 0.396, 0.0593, 0.731],
+            [1.423, 0.094, 0.595, 0.258],
+            [0.816, 0.094, 0.356, 0.871]])
+        numerical_struct_truncated_results = np.array(
+            [(1.014, 0.111, 0.254, 0.408),
+             (0.199, 0.186, 0.178, 0.517),
+             (0.170, 0.338, 0.364, 0.560)],
+            dtype=[('a', 'f'), ('b', 'f'), ('c', 'f'), ('d', 'f')])
+        numerical_np_truncated_cat_results = np.array([
+            [1., 0.531, 0.269, 0.587],
+            [1., 0.154, 0.136, 0.751],
+            [1., 0.696, 0.594, 0.653]])
+        numerical_struct_truncated_cat_results = np.array(
+            [(0, 0.243, 0.048, 0.697),
+             (1, 0.066, 0.591, 0.842),
+             (1, 0.728, 0.214, 0.418)],
+             dtype=[('a', 'i'), ('b', 'f'), ('c', 'f'), ('d', 'f')])
+        categorical_np_results = np.array([
+            ['a', 'f', 'c'],
+            ['a', 'f', 'c'],
+            ['b', 'f', 'g']])
+        categorical_struct_results = np.array(
+            [('a', 'b', 'g'),
+             ('a', 'f', 'c'),
+             ('a', 'f', 'c')],
+             dtype=[('a', 'U1'), ('b', 'U1'), ('c', 'U1')])
+        mixed_results = np.array(
+            [(0.668, 'a', 0.522, 'bb'),
+             (0.195, 'c', 0.075, 'a'),
+             (0.266, 'f', 0.586, 'b')],
+            dtype=[('a', '<f8'), ('b', 'U1'), ('c', '<f8'), ('d', 'U2')])
+        # Calculate what mean and std of truncated normals should be
+        mini = NUMERICAL_NP_ARRAY.min(axis=0)
+        maxi = NUMERICAL_NP_ARRAY.max(axis=0)
+        std = NUMERICAL_NP_ARRAY.std(axis=0)
+        mean = NUMERICAL_NP_ARRAY.mean(axis=0)
+        numerical_truncated_results_mean, numerical_truncated_results_std = \
+            get_truncated_mean_std(mini, maxi, NUMERICAL_NP_ARRAY[0], std)
+        (numerical_truncated_results_dataset_mean, 
+            numerical_truncated_results_dataset_std) = \
+                get_truncated_mean_std(mini, maxi, mean, std)
+        mixed_numerical_values = fuat.structured_to_unstructured(
+            MIXED_ARRAY[['a', 'c']])
+        mini = mixed_numerical_values.min(axis=0)
+        maxi = mixed_numerical_values.max(axis=0)
+        std = mixed_numerical_values.std(axis=0)
+        mean = mixed_numerical_values.mean(axis=0)
+        mixed_truncated_results_mean, mixed_truncated_results_std = \
+            get_truncated_mean_std(mini, maxi, mixed_numerical_values[0],
+                                        std)
+        (mixed_truncated_results_dataset_mean,
+            mixed_truncated_results_dataset_std) = \
+                get_truncated_mean_std(mini, maxi, mean, std)
+
+        # Pure numerical sampling of a data point
+        # ...numpy array results
+        samples = self.numerical_np_augmentor.sample(
+            NUMERICAL_NP_ARRAY[0, :], samples_number=3)
+        assert np.allclose(samples, numerical_np_truncated_results, atol=1e-3)
+
+        # ...structured array results
+        samples_struct = self.numerical_struct_augmentor.sample(
+            NUMERICAL_STRUCT_ARRAY[0], samples_number=3)
+        for i in samples_struct.dtype.names:
+            assert np.allclose(
+                samples_struct[i], numerical_struct_truncated_results[i], atol=1e-3)
+        
+        # ...numpy array results mean
+        samples = self.numerical_np_augmentor.sample(
+            NUMERICAL_NP_ARRAY[0, :], samples_number=1000)
+        assert np.allclose(
+            samples.mean(axis=0), numerical_truncated_results_mean, atol=1e-1)
+        assert np.allclose(
+            samples.std(axis=0), numerical_truncated_results_std, atol=1e-1)
+
+        # ...structured array results mean
+        samples_struct = self.numerical_struct_augmentor.sample(
+            NUMERICAL_STRUCT_ARRAY[0], samples_number=1000)
+        for i, name in enumerate(samples_struct.dtype.names):
+            assert np.allclose(
+                np.mean(samples_struct[name]),
+                numerical_truncated_results_mean[i],
+                atol=1e-1)
+            assert np.allclose(
+                np.std(samples_struct[name]),
+                numerical_truncated_results_std[i],
+                atol=1e-1)
+
+        # Pure numerical sampling of the mean of the data
+        # ...numpy array mean
+        samples = self.numerical_np_augmentor.sample(samples_number=1000)
+        assert np.allclose(
+            samples.mean(axis=0), numerical_truncated_results_dataset_mean,
+            atol=1e-1)
+        assert np.allclose(
+            samples.std(axis=0), numerical_truncated_results_dataset_std,
+            atol=1e-1)
+
+        # ...structured array mean
+        samples_struct = self.numerical_struct_augmentor.sample(
+            samples_number=1000)
+        for i, name in enumerate(samples_struct.dtype.names):
+            assert np.allclose(
+                np.mean(samples_struct[name]),
+                numerical_truncated_results_dataset_mean[i],
+                atol=1e-1)
+            assert np.allclose(
+                np.std(samples_struct[name]),
+                numerical_truncated_results_dataset_std[i],
+                atol=1e-1)
+
+        #######################################################################
+
+        # Numerical sampling with one categorical index defined
+        # ...numpy array results
+        samples = self.numerical_np_0_augmentor.sample(
+            NUMERICAL_NP_ARRAY[0, :], samples_number=3)
+        assert np.allclose(samples, numerical_np_truncated_cat_results,
+                           atol=1e-3)
+
+        # ...structured array results
+        samples_struct = self.numerical_struct_a_augmentor.sample(
+            NUMERICAL_STRUCT_ARRAY[0], samples_number=3)
+        for i in samples_struct.dtype.names:
+            assert np.allclose(
+                samples_struct[i], numerical_struct_truncated_cat_results[i],
+                atol=1e-3)
+
+        # ...numpy array results mean
+        samples = self.numerical_np_0_augmentor.sample(
+            NUMERICAL_NP_ARRAY[0, :], samples_number=100)
+        # ......numerical
+        assert np.allclose(
+            samples.mean(axis=0)[1:], numerical_truncated_results_mean[1:],
+                         atol=1e-1)
+        assert np.allclose(
+            samples.std(axis=0)[1:],
+            numerical_truncated_results_std[1:],
+            atol=1e-1)
+        # ......categorical
+        val, freq = np.unique(samples[:, 0], return_counts=True)
+        freq = freq / freq.sum()
+        assert np.array_equal(val, NUMERICAL_NP_0_CAT_VAL)
+        assert np.allclose(freq, NUMERICAL_NP_0_CAT_FREQ, atol=1e-1)
+
+        # ...structured array results mean
+        samples_struct = self.numerical_struct_a_augmentor.sample(
+            NUMERICAL_STRUCT_ARRAY[0], samples_number=100)
+        # ......numerical
+        for i, name in enumerate(samples_struct.dtype.names[1:]):
+            assert np.allclose(
+                np.mean(samples_struct[name]),
+                numerical_truncated_results_mean[1:][i],
+                atol=1e-1)
+            assert np.allclose(
+                np.std(samples_struct[name]),
+                numerical_truncated_results_std[1:][i],
+                atol=1e-1)
+        # ......categorical
+        val_struct, freq_struct = np.unique(
+            samples_struct['a'], return_counts=True)
+        freq_struct = freq_struct / freq_struct.sum()
+        assert np.array_equal(val_struct, NUMERICAL_NP_0_CAT_VAL)
+        assert np.allclose(freq_struct, NUMERICAL_NP_0_CAT_FREQ, atol=1e-1)
+
+        # ...numpy array mean
+        samples = self.numerical_np_0_augmentor.sample(samples_number=1000)
+        # ......numerical
+        assert np.allclose(
+            samples.mean(axis=0)[1:],
+            numerical_truncated_results_dataset_mean[1:],
+            atol=1e-1)
+        assert np.allclose(
+            samples.std(axis=0)[1:],
+            numerical_truncated_results_dataset_std[1:],
+            atol=1e-1)
+        # ......categorical
+        val, freq = np.unique(samples[:, 0], return_counts=True)
+        freq = freq / freq.sum()
+        assert np.array_equal(val, NUMERICAL_NP_0_CAT_VAL)
+        assert np.allclose(freq, NUMERICAL_NP_0_CAT_FREQ, atol=1e-1)
+
+        # ...structured array mean
+        samples_struct = self.numerical_struct_a_augmentor.sample(
+            samples_number=1000)
+        # ......numerical
+        for i, name in enumerate(samples_struct.dtype.names[1:]):
+            assert np.allclose(
+                np.mean(samples_struct[name]),
+                numerical_truncated_results_dataset_mean[1:][i],
+                atol=1e-1)
+            assert np.allclose(
+                np.std(samples_struct[name]),
+                numerical_truncated_results_dataset_std[1:][i],
+                atol=1e-1)
+        # ......categorical
+        val_struct, freq_struct = np.unique(
+            samples_struct['a'], return_counts=True)
+        freq_struct = freq_struct / freq_struct.sum()
+        assert np.array_equal(val_struct, NUMERICAL_NP_0_CAT_VAL)
+        assert np.allclose(freq_struct, NUMERICAL_NP_0_CAT_FREQ, atol=1e-1)
+
+        #######################################################################
+        #######################################################################
+
+        # Pure categorical sampling
+        # ...numpy array
+        samples = self.categorical_np_012_augmentor.sample(
+            CATEGORICAL_NP_ARRAY[0], samples_number=3)
+        assert np.array_equal(samples, categorical_np_results)
+
+        # ...structured array
+        samples_struct = self.categorical_struct_abc_augmentor.sample(
+            CATEGORICAL_STRUCT_ARRAY[0], samples_number=3)
+        assert np.array_equal(samples_struct, categorical_struct_results)
+
+        vals = [['a', 'b'], ['b', 'c', 'f'], ['c', 'g']]
+        # ...numpy array proportions and values
+        samples = self.categorical_np_012_augmentor.sample(
+            CATEGORICAL_NP_ARRAY[0], samples_number=100)
+        #
+        proportions = [
+            np.array([0.62, 0.38]),
+            np.array([0.31, 0.17, 0.52]),
+            np.array([0.63, 0.37])
+        ]
+        for i, index in enumerate([0, 1, 2]):
+            val, freq = np.unique(samples[:, index], return_counts=True)
+            freq = freq / freq.sum()
+            assert np.array_equal(val, vals[i])
+            assert np.allclose(freq, proportions[i], atol=1e-1)
+
+        # ...structured array proportions and values
+        samples_struct = self.categorical_struct_abc_augmentor.sample(
+            CATEGORICAL_STRUCT_ARRAY[0], samples_number=100)
+        #
+        proportions = [
+            np.array([0.74, 0.26]),
+            np.array([0.38, 0.12, 0.50]),
+            np.array([0.63, 0.37])
+        ]
+        for i, index in enumerate(['a', 'b', 'c']):
+            val, freq = np.unique(samples_struct[index], return_counts=True)
+            freq = freq / freq.sum()
+            assert np.array_equal(val, vals[i])
+            assert np.allclose(freq, proportions[i], atol=1e-1)
+
+        # No need to check for mean of dataset since categorical features are
+        # sampled from the distribution of the entire dataset and not centered
+        # on the data_row.
+
+        #######################################################################
+        #######################################################################
+
+        # Mixed array with categorical indices auto-discovered
+        vals = [['a', 'c', 'f'], ['a', 'aa', 'b', 'bb']]
+        proportions = [
+            np.array([0.33, 0.33, 0.33]),
+            np.array([0.33, 0.16, 0.16, 0.33])
+        ]
+        # Instance
+        samples = self.mixed_augmentor.sample(MIXED_ARRAY[0], samples_number=3)
+        # ...categorical
+        assert np.array_equal(samples[['b', 'd']], mixed_results[['b', 'd']])
+        # ...numerical
+        for i in ['a', 'c']:
+            assert np.allclose(samples[i], mixed_results[i], atol=1e-3)
+
+        # Instance mean
+        samples = self.mixed_augmentor.sample(
+            MIXED_ARRAY[0], samples_number=1000)
+        # ...numerical
+        for i, name in enumerate(['a', 'c']):
+            assert np.allclose(
+                np.mean(samples[name]), mixed_truncated_results_mean[i],
+                        atol=1e-1)
+            assert np.allclose(
+                np.std(samples[name]), mixed_truncated_results_std[i],
+                       atol=1e-1)
+        # ...categorical
+        for i, index in enumerate(['b', 'd']):
+            val, freq = np.unique(samples[index], return_counts=True)
+            freq = freq / freq.sum()
+            assert np.array_equal(val, vals[i])
+            assert np.allclose(freq, proportions[i], atol=1e-1)
+
+        # Dataset mean
+        samples = self.mixed_augmentor.sample(samples_number=1000)
+        # ...numerical
+        for i, name in enumerate(['a', 'c']):
+            assert np.allclose(
+                np.mean(samples[name]), mixed_truncated_results_dataset_mean[i],
+                atol=1e-1)
+            assert np.allclose(
+                np.std(samples[name]), mixed_truncated_results_dataset_std[i],
+                atol=1e-1)
+        # ...categorical
+        for i, index in enumerate(['b', 'd']):
+            val, freq = np.unique(samples[index], return_counts=True)
+            freq = freq / freq.sum()
+            assert np.array_equal(val, vals[i])
+            assert np.allclose(freq, proportions[i], atol=1e-1)
+
+        #######################################################################
+
+        # Sample without float cast
+        samples = self.numerical_struct_augmentor_f.sample(samples_number=5)
+        samples_answer = np.array(
+            [(0, 0, 0.345, 0.442),
+             (1, 0, 0.311, 0.338),
+             (1, 0, 0.040, 0.553),
+             (0, 0, 0.886, 0.822),
+             (0, 0, 0.164, 0.315)],
+            dtype=NUMERICAL_STRUCT_ARRAY.dtype)  # yapf: disable
+        for i in ['a', 'b', 'c', 'd']:
+            assert np.allclose(samples[i], samples_answer[i], atol=1e-3)
+
+        # Cast to float on in the tests to compare (this ouput was generated
+        # with self.numerical_struct_augmentor)
+        samples = self.numerical_struct_augmentor_f.sample(samples_number=5)
+        samples_answer = np.array(
+            [(0.718, 0.476, 0.449, 0.615),
+             (0.047, 0.883, 0.205, 0.329),
+             (1.255, 0.422, 0.302, 0.627),
+             (1.024, 0.512, 0.122, 0.790),
+             (1.123, 0.670, 0.386, 0.471)],
+            dtype=NUMERICAL_STRUCT_ARRAY.dtype)  # yapf: disable
+        for i in ['a', 'b', 'c', 'd']:
+            assert np.allclose(samples[i], samples_answer[i], atol=1e-3)

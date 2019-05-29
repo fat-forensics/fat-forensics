@@ -16,14 +16,15 @@ from typing import List, Optional, Tuple, Union
 
 import numpy as np
 
-from fatf.exceptions import IncorrectShapeError
+from fatf.exceptions import IncorrectShapeError, IncompatibleModelError
 
 import fatf.utils.array.tools as fuat
 import fatf.utils.array.validation as fuav
+import fatf.utils.models.validation as fumv
 
 import scipy.stats
 
-__all__ = ['NormalSampling']
+__all__ = ['NormalSampling', 'Mixup', 'TruncatedNormal', 'GrowingSpheres']
 
 Index = Union[int, str]
 
@@ -509,42 +510,53 @@ class NormalSampling(Augmentation):
         return samples
 
 
-class TruncatedNormalSampler(Augmentation):
-    """  brief description 
-    
-    Parameters
-    ---------- 
-    param1: `int`
-            description
-    
-    Returns
-    -------
-    result: `bool`
-        description
-    
-    Raises
-    ------
-    ValueError
-        description
-    
-    Examples
-    --------
-    
-    
-    Notes
-    -----
-    
-    
+class TruncatedNormal(Augmentation):
+    """
+    Sampling data from a truncated normal distribution.
+
+    This class allows to sample data according to a truncated normal
+    distribution (__). The sampling can be performed either around a particular
+    data point (by supplying the ``data_row`` parameter to the ``sample``
+    method) or around the mean of the whole ``dataset`` (if ``data_row`` is
+    not given when calling the ``sample`` method). In both cases, the standard
+    deviation of each numerical feature calculated for the whole dataset is
+    used. The minimum and maximum for each numerical feature are also used as
+    the bounds for the truncated normal distribution. For categorical features,
+    the values are sampled with replacement with the probability for each
+    unique value calculated based on the frequency of its appearance in the
+    dataset.
+
+    For additional parameters, attributes, warnings and exceptions raised by
+    this class please see the documentation of its parent class:
+    :class:`fatf.utils.data.augmentation.Augmentation`.
+
+    __ https://en.wikipedia.org/wiki/Truncated_normal_distribution
+
+    Attributes
+    ----------
+    numerical_sampling_values : Dictionary[column index, 
+            Tuple[number, number, number, number]]
+        Dictionary mapping numerical column feature indices to tuples of two
+        numbers: column's *mean*, *standard deviation*, *minimum* and
+        *maximum*.
+    categorical_sampling_values :
+    Dictionary[column index, Tuple[numpy.ndarray, numpy.ndarray]]
+        Dictionary mapping categorical column feature indices to tuples two
+        1-dimensional numpy arrays: one with unique values for that column
+        and the other one with their normalised (sum up to 1) frequencies.
     """ 
+
     def __init__(self,
                 dataset: np.ndarray,
                 categorical_indices: Optional[List[Index]] = None,
+                int_to_float: bool = True,
                 **kwargs) -> None:
         """
-        Constructs an ``BetaSampling`` data augmentation class.
+        Constructs an ``TruncatedNormal`` data augmentation class.
         """
-        # pylint: disable=too-many-locals,too-many-branches
-        super().__init__(dataset, categorical_indices=categorical_indices)
+        super().__init__(dataset=dataset,
+                         categorical_indices=categorical_indices,
+                         int_to_float=int_to_float)
 
         # Get sampling parameters for numerical features.
         numerical_sampling_values = dict()
@@ -559,7 +571,7 @@ class TruncatedNormalSampler(Augmentation):
             num_features_min = num_features_array.min(axis=0)
             num_features_max = num_features_array.max(axis=0)
             num_features_std = num_features_array.std(axis=0)
-            # Fit Beta distribution parameters
+
             for i, index in enumerate(self.numerical_indices):
                 numerical_sampling_values[index] = (
                     num_features_mean[i], num_features_std[i],
@@ -582,32 +594,25 @@ class TruncatedNormalSampler(Augmentation):
                                                         values_frequencies)
         self.categorical_sampling_values = categorical_sampling_values
 
-        # Sort out the dtype of the sampled array.
-        if self.is_structured:
-            sample_dtype = []
-            for column_name in self.dataset.dtype.names:
-                if column_name in self.numerical_indices:
-                    new_dtype = fuat.generalise_dtype(
-                        self.dataset.dtype[column_name], np.dtype(np.float64))
-                    sample_dtype.append((column_name, new_dtype))
-                elif column_name in self.categorical_indices:
-                    sample_dtype.append((column_name,
-                                        self.dataset.dtype[column_name]))
-                else:
-                    assert False, 'Unknown column name.'  # pragma: nocover
-        else:
-            if fuav.is_numerical_array(self.dataset):
-                sample_dtype = fuat.generalise_dtype(self.dataset.dtype,
-                                                    np.dtype(np.float64))
-            else:
-                sample_dtype = self.dataset.dtype
-        self.sample_dtype = sample_dtype
-
     def sample(self,
             data_row: Optional[Union[np.ndarray, np.void]] = None,
             samples_number: int = 50) -> np.ndarray:
         """
         Samples new data from a truncated normal distribution.
+
+        If ``data_row`` parameter is given, the sample will be centered around
+        that data point. Otherwise, when the ``data_row`` parameter is
+        ``None``, the sample will be generated around the mean of the dataset
+        used to initialise this class.
+
+        Numerical features are sampled around their corresponding values in the
+        ``data_row`` parameter or the mean of that feature in the dataset using
+        the standard deviation, minimum and maximum calculated from the
+        dataset. Categorical features are sampled by choosing with replacement
+        all the possible values of that feature with the probability of
+        sampling each value corresponding to this value's frequency in the
+        dataset. (This means that any particular value of a categorical feature
+        in a ``data_row`` is ignored.)
 
         For the documentation of parameters, warnings and errors please see the
         description of the
@@ -615,7 +620,13 @@ class TruncatedNormalSampler(Augmentation):
         parent :class:`fatf.utils.data.augmentation.Augmentation` class.
         """
         assert self._validate_sample_input(data_row,
-                                        samples_number), 'Invalid input.'
+                                           samples_number), 'Invalid input.'
+        # Create an array to hold the samples.
+        if self.is_structured:
+            shape = (samples_number, )  # type: Tuple[int, ...]
+        else:
+            shape = (samples_number, self.features_number)
+        samples = np.zeros(shape, dtype=self.sample_dtype)
         # Sample categorical features.
         for index in self.categorical_indices:
             smaple_values = np.random.choice(
@@ -1174,3 +1185,229 @@ class Mixup(Augmentation):
                 random_draws_lambda_1, random_indices)
             to_return = samples, samples_target
         return to_return
+
+
+def _validate_input_growingspheres(global_model: object,
+                                   starting_std: np.float32,
+                                   increment_std: np.float32,
+                                   minimum_per_class: np.float32,
+                                   max_iter: int) -> bool:
+    """
+    Validates :class:``.GrowingSpheres`` class-specific input parameters.
+
+    Parameters
+    ----------
+    global_model : object
+        A trained global model that must be able to output predicted class
+        via ``predict`` method.
+    starting_std : numpy.float32
+        The standard deviation that sampling around each point will start at.
+    increment_std : numpy.float32
+        The amount to increment the standard deviation around a point with each
+        iteration of the algorithm.
+    minimum_per_class : numpy.float32
+        Minimum fraction of data points that aren't in the same class as the
+        data point that the normal is centered on.
+
+    Raises
+    ------
+    IncompatibleModelError:
+        Global model does not have ``predict`` method.
+    TypeError:
+        ``starting_std`` is not a float. ``increment_std`` is not a float.
+        ``minimum_per_class`` is not a float. ``max_iter`` is not an integer.
+    ValueError:
+        ``minimum_per_class`` greater or equal to 1, or less than or equal to
+        0. ``starting_std`` is negative. ``increment_std`` is negative.
+        ``max_iter`` is negative.
+
+    Returns
+    -------
+    is_valid : boolean
+        ``True`` if input is valid, ``False`` otherwise.
+    """
+    is_valid = False
+
+    if not fumv.check_model_functionality(global_model, suppress_warning=True):
+        raise IncompatibleModelError('This functionality requires the model '
+                                     'to be capable of outputting predicted '
+                                     'class via predict method.')
+
+    if not isinstance(starting_std, np.float32):
+        raise TypeError('starting_std is not a float.')
+    
+    if not isinstance(increment_std, np.float32):
+        raise TypeError('increment_std is not a float.')
+    
+    if not isinstance(minimum_per_class, np.float32):
+        raise TypeError('minimum_per_class is not a float.')
+    
+    if not isinstance(max_iter, int):
+        raise TypeError('max_iter is not an integer.')
+
+    if minimum_per_class >= 1.0 or minimum_per_class <= 0:
+        raise ValueError('minimum_per_class must be fraction between 0 and 1.')
+    
+    if starting_std <= 0:
+        raise ValueError('starting_std must be a positive float greater than '
+                         '0.')
+    
+    if increment_std <= 0:
+        raise ValueError('increment_std must be a positive float greater than '
+                         '0.')
+
+    is_valid = True
+    return is_valid
+
+
+class GrowingSpheres(Augmentation):
+    """
+    Sampling data with the Growing Spheres method..
+
+    This object implements a adapted version of the Growing Spheres method
+    introduced by [LAUGEL2018SPHERES]_. For a specific data point, it samples with
+    a normal distribution centered on the data point, incrementing the standard
+    deviation until a percentage of the samples are not classified as being in
+    the original class by the global model. After this is achieved, one of the
+    data points found to be in another class is used as the center of the
+    normal distribution. The process is repeated until all of the classes
+    are in the sampled dataset. All of the normal distributions are sampled
+    equally.
+
+    For additional parameters, attributes, warnings and exceptions raised by
+    this class please see the documentation of its parent class:
+    :class:`fatf.utils.data.augmentation.Augmentation` and the function that
+    validates the input parameter
+    :func:`fatf.utils.data.augmentation._validate_input.
+
+    .. [LAUGEL2018SPHERES] Laugel, T., Lesot M., Marsala, C., Renard, X.,
+       and De-tyniecki, M., 2017. Inverse classification for
+       comparison-basedinterpretability in machine learning.arXiv
+       preprintarXiv:1712.08443.
+
+    Parameters
+    ----------
+    global_model : object
+        A trained global model that must be able to output predicted class
+        via ``predict`` method.
+    starting_std : numpy.float32
+        The standard deviation that sampling around each point will start at.
+    increment_std : numpy.float32
+        The amount to increment the standard deviation around a point with each
+        iteration of the algorithm.
+    minimum_per_class : numpy.float32
+        Minimum fraction of data points that aren't in the same class as the
+        data point that the normal is centered on.
+
+    Raises
+    ------
+    IncompatibleModelError:
+        Global model does not have ``predict`` method.
+    TypeError:
+        ``starting_std`` is not a float. ``increment_std`` is not a float.
+        ``minimum_per_class`` is not a float. ``max_iter`` is not an integer.
+    ValueError:
+        ``minimum_per_class`` greater than 1 or negative. ``starting_std`` is
+        negative. ``increment_std`` is negative. ``max_iter`` is negative.
+
+    Attributes
+    ----------
+    """
+    # pylint: disable=too-few-public-methods,too-many-instance-attributes
+    def __init__(self,
+                 dataset: np.ndarray,
+                 global_model: object,
+                 ground_truth: Optional[np.ndarray] = None,
+                 categorical_indices: Optional[np.ndarray] = None,
+                 int_to_float: bool = True,
+                 starting_std: np.float32 = 0.01,
+                 increment_std: np.float32 = 0.001,
+                 minimum_per_class: np.float32 = 0.05,
+                 max_iter: int = 1000) -> None:
+        """
+        Constructs a ``GrowingSpheres`` data augmentation class.
+        """
+        super().__init__(
+            dataset,
+            ground_truth=ground_truth,
+            categorical_indices=categorical_indices,
+            int_to_float=int_to_float)
+        assert _validate_input_growingspheres(
+            global_model, starting_std, increment_std, minimum_per_class,
+            max_iter)
+        self.dataset = dataset
+        self.dataset_mean = self.dataset.mean(axis=0)
+        self.categorical_indices = categorical_indices
+        self.global_model = global_model
+        self.n_classes = self.global_model.predict_proba(dataset).shape[1]
+        self.is_structured = fuav.is_structured_array(self.dataset)
+        self.starting_std = starting_std
+        self.increment_std = increment_std
+        self.minimum_per_class = minimum_per_class
+        self.max_iter = max_iter
+
+    def sample(self,
+               data_row: np.ndarray = None,
+               samples_number: int = 50) -> np.ndarray:
+        """
+        Samples new data using growing spheres method.
+
+        For the additional documentation of parameters, warnings and errors
+        please see the description of the
+        :func:`~fatf.utils.data.augmentation.Augmentation.sample` method in the
+        parent :class:`fatf.utils.data.augmentation.Augmentation` class.
+
+        Raises
+        ------
+        RuntimeError
+            Maximum number of iterations reached without the algorithm
+            finishing.
+        """
+        label = self.global_model.predict(data_row.reshape(1, -1))
+        samples_per_sphere = [int(float(samples_number) /
+                              (self.n_classes-1))]*self.n_classes
+        if np.sum(samples_per_sphere) != samples_number:
+            samples_per_sphere[0] = (samples_number -
+                                     np.sum(samples_per_sphere[1:]))
+        
+         # Create an array to hold the samples.
+        if self.is_structured:
+            shape = (samples_per_sphere, )  # type: Tuple[int, ...]
+        else:
+            shape = (samples_per_sphere, self.features_number)
+        std = self.starting_std
+        if data_row is None:
+            means = self.dataset_mean
+        else:
+            means = data_row
+        samples_list = []
+        labels = [0]
+        iterations = 0
+        while len(labels) != self.n_classes:
+            samples = np.zeros(shape, dtype=self.sample_dtype)
+            for index in self.numerical_indices:
+                mean = means[index]
+                # Fetch mean ans standard deviation
+                sample_values = np.random.normal(0, 1, samples_per_sphere) * std \
+                    + mean
+                std += self.increment_std
+                if self.is_structured:
+                    samples[index] = sample_values
+                else:
+                    samples[:, index] = sample_values
+            predictions = self.global_model.predict(samples)
+            new = [p for p in predictions if p not in labels]
+            if len(new) >= self.minimum_per_class*samples_number:
+                for i in range(samples_per_sphere):
+                    pred = predictions[i]
+                    if pred not in labels:
+                        means = samples[i]
+                        samples_list.append(samples)
+                        std = self.starting_std
+                        labels.append(pred)
+            iterations += 1
+            if iterations > self.max_iter:
+                raise RuntimeError('Maximum iterations reached. Try increasing '
+                                   'max_iter or decreasing minimum_per_class.')
+
+        return np.vstack(samples_list)

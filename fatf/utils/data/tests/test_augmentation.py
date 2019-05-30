@@ -12,7 +12,7 @@ import scipy
 
 import fatf
 
-from fatf.exceptions import IncorrectShapeError
+from fatf.exceptions import IncorrectShapeError, IncompatibleModelError
 
 import fatf.utils.models as fum
 import fatf.utils.data.augmentation as fuda
@@ -1460,11 +1460,70 @@ class TestTruncatedNormal(object):
             assert np.allclose(samples[i], samples_answer[i], atol=1e-3)
 
 
+def test_validate_input_growingspheres():
+    """
+    Tests :func:`fatf.utils.data.augmentation._validate_input_growingspheres`.
+    """
+    incompatible_model_msg = ('This functionality requires the model '
+                              'to be capable of outputting predicted '
+                              'class via predict method.')
+    starting_std_msg = ('starting_std is not a float.')
+    increment_std_msg = ('increment_std is not a float.')
+    minimum_per_class_msg = ('minimum_per_class is not a float.')
+    minimum_per_class_value_msg = ('minimum_per_class must be a float '
+                                   'between 0 and 1.')
+    starting_std_value_msg = ('starting_std must be a positive float greater '
+                              'than 0.')
+    increment_std_value_msg = ('increment_std must be a positive float '
+                               'greater than 0.')
+
+    class invalid_model():
+        def __init__(self): pass
+        def predict_proba(self, x, y): pass
+    model = invalid_model()
+    with pytest.raises(IncompatibleModelError) as exin:
+        fuda._validate_input_growingspheres(model, None, None, None)
+    assert str(exin.value) == incompatible_model_msg
+    
+    model = fum.KNN(k=3)
+    with pytest.raises(TypeError) as exin:
+        fuda._validate_input_growingspheres(model, 'a', None, None)
+    assert str(exin.value) == starting_std_msg
+
+    with pytest.raises(TypeError) as exin:
+        fuda._validate_input_growingspheres(model, 0.1, 'a', None)
+    assert str(exin.value) == increment_std_msg
+
+    with pytest.raises(TypeError) as exin:
+        fuda._validate_input_growingspheres(model, 0.1, 0.1, 'a')
+    assert str(exin.value) == minimum_per_class_msg
+
+    with pytest.raises(ValueError) as exin:
+        fuda._validate_input_growingspheres(model, 0.1, 0.1, -0.1)
+    assert str(exin.value) == minimum_per_class_value_msg
+
+    with pytest.raises(ValueError) as exin:
+        fuda._validate_input_growingspheres(model, 0.1, 0.1, 1.1)
+    assert str(exin.value) == minimum_per_class_value_msg
+
+    with pytest.raises(ValueError) as exin:
+        fuda._validate_input_growingspheres(model, -0.1, 0.1, 0.1)
+    assert str(exin.value) == starting_std_value_msg
+
+    with pytest.raises(ValueError) as exin:
+        fuda._validate_input_growingspheres(model, 0.1, -0.1, 0.1)
+    assert str(exin.value) == increment_std_value_msg
+    
+
 class TestGrowingSpheres(object):
     """
     Tests :class:`fatf.utils.data.augmentation.GrowingSpheres` class.
     """
-    numerical_labels = np.array([0, 1, 0, 0, 0, 1])
+    # Construct new dataset made up of 3 Gaussian clouds in 2-dimensions
+    #dataset = np.vstack([
+    #    np.random.normal(0, 1, (10, 2)), np.random.normal(2, 1, (10, 2)),
+    #    np.random.normal(4, 1, (10, 2))])
+    numerical_labels = np.array([0, 1, 0, 1, 1, 0])
 
     numerical_classifier = fum.KNN(k=3)
     numerical_classifier.fit(NUMERICAL_NP_ARRAY, numerical_labels)
@@ -1525,7 +1584,10 @@ class TestGrowingSpheres(object):
         """
         Tests :func:`~fatf.utils.data.augmentation.GrowingSpheres.sample`.
         """
+        fatf.setup_random_seed()
         max_iter_msg = 'max_iter is not a positive integer.'
+        runtime_msg = ('Maximum iterations reached. Try increasing '
+                       'max_iter or decreasing minimum_per_class.')
 
         with pytest.raises(TypeError) as exin:
             self.numerical_np_0_augmentor.sample(NUMERICAL_NP_ARRAY[0],
@@ -1537,7 +1599,335 @@ class TestGrowingSpheres(object):
                                                  max_iter=-1)
         assert str(exin.value) == max_iter_msg
 
-        # TODO: fix sampling testing
-        samples = self.numerical_np_augmentor.sample(NUMERICAL_NP_ARRAY[0], 300)
-        print(samples)
-        assert False
+        numerical_samples = np.array([
+            [-0.014, 0.022, 0.071, 0.680],
+            [ 0.004, -0.003, 0.082, 0.685],
+            [-0.013, 0.001, 0.062, 0.680],
+            [-0.020, -0.021, 0.086, 0.722]])
+
+        numerical_0_samples = np.array([
+            [ 2., 0.002, 0.079, 0.711],
+            [ 0., 0.062, 0.049, 0.665],
+            [ 0., -0.005, 0.109, 0.728],
+            [ 0., 0.008, 0.099, 0.652]])
+
+        numerical_struct_samples = np.array(
+            [(-0.041, 0.015, 0.110, 0.664),
+             (-0.028, 0.119, 0.100, 0.682),
+             (0.015, 0.017, 0.069, 0.673),
+             (0.015, 0.035, 0.104, 0.692)],
+            dtype=[('a', 'f'), ('b', 'f'), ('c', 'f'), ('d', 'f')])
+
+        numerical_struct_0_samples = np.array(
+            [(0, 0.057, 0.067, 0.640),
+             (1, 0.003, 0.128, 0.724),
+             (1, 0.100, 0.112, 0.743),
+             (1, 0.086, 0.148, 0.600)],
+             dtype=[('a', 'i'), ('b', 'f'), ('c', 'f'), ('d', 'f')])
+
+        categorical_samples = np.array([
+            ['a', 'f', 'g'],
+            ['a', 'f', 'g'],
+            ['b', 'c', 'c'],
+            ['a', 'f', 'g']])
+
+        categorical_012_samples = np.array([
+            ['a', 'f', 'c'],
+            ['a', 'c', 'c'],
+            ['a', 'f', 'c'],
+            ['a', 'b', 'c']])
+        
+        categorical_struct_samples = np.array(
+            [('a', 'b', 'c'), 
+             ('a', 'c', 'g'),
+             ('a', 'f', 'c'),
+             ('a', 'f', 'c')],
+             dtype=CATEGORICAL_STRUCT_ARRAY.dtype)
+        
+        mixed_samples = np.array(
+            [(-0.002, 'f', 0.098, 'bb'),
+             (-0.023, 'f', 0.077, 'bb'),
+             (-0.015, 'a', 0.086, 'a'),
+             (0.013, 'a', 0.083, 'a')],
+            dtype=[('a', '<f8'), ('b', 'U1'), ('c', '<f8'), ('d', 'U2')])
+
+        numerical_samples_mean = np.array([
+            [0.445, 0.073, 0.411, 1.256],
+            [0.106, 0.315, 0.913, 0.601],
+            [0.111, 0.369, 0.611, 1.284],
+            [0.302, 0.248, 0.618, 1.393]])
+
+        numerical_0_samples_mean = np.array([
+            [0., 0.318, 0.712, 1.059],
+            [1., 0.336, 0.705, 1.082],
+            [0., 0.329, 0.698, 1.066],
+            [0., 0.332, 0.690, 1.030]])
+
+        numerical_struct_samples_mean = np.array(
+            [(0.001, -0.003, 0.381, 0.529),
+             (0.005, 0.028, 0.374, 0.539),
+             (-0.002, 0.009, 0.358, 0.594),
+             (0.021, -0.030, 0.334, 0.554)],
+            dtype=[('a', 'f'), ('b', 'f'), ('c', 'f'), ('d', 'f')])
+
+        numerical_struct_0_samples_mean = np.array(
+            [(0, 0.015, 0.334, 0.581),
+             (2, 0.035, 0.380, 0.502),
+             (0, 0.024, 0.485, 0.510),
+             (0, 0.004, 0.396, 0.565)],
+             dtype=[('a', 'i'), ('b', 'f'), ('c', 'f'), ('d', 'f')])
+
+        categorical_samples_mean = np.array([
+            ['a', 'b', 'c'],
+            ['b', 'f', 'g'],
+            ['b', 'c', 'c'],
+            ['b', 'c', 'g']])
+
+        categorical_012_samples_mean = np.array([
+            ['a', 'c', 'g'],
+            ['a', 'b', 'c'],
+            ['b', 'f', 'g'],
+            ['a', 'b', 'c']])
+        
+        categorical_struct_samples_mean = np.array(
+            [('b', 'f', 'c'), 
+             ('a', 'b', 'c'),
+             ('a', 'f', 'c'),
+             ('a', 'b', 'g')],
+             dtype=CATEGORICAL_STRUCT_ARRAY.dtype)
+        
+        mixed_samples_mean = np.array(
+            [(-0.002, 'a', 0.387, 'aa'),
+             (-0.010, 'c', 0.373, 'b'),
+             (0.003, 'c', 0.362, 'b'),
+             (0.003, 'f', 0.374, 'aa')],
+            dtype=[('a', '<f8'), ('b', 'U1'), ('c', '<f8'), ('d', 'U2')])
+
+        samples = self.numerical_np_augmentor.sample(
+            NUMERICAL_NP_ARRAY[0], samples_number=4)
+        assert np.allclose(samples, numerical_samples, atol=1e-2)
+
+        samples = self.numerical_np_0_augmentor.sample(
+            NUMERICAL_NP_ARRAY[0], samples_number=4)
+        assert np.allclose(samples, numerical_0_samples, atol=1e-2)
+
+        samples = self.numerical_struct_augmentor.sample(
+            NUMERICAL_STRUCT_ARRAY[0], samples_number=4)
+        for i in samples.dtype.names:
+            assert np.allclose(
+                samples[i], numerical_struct_samples[i], atol=1e-2)
+
+        samples = self.numerical_struct_a_augmentor.sample(
+            NUMERICAL_STRUCT_ARRAY[0], samples_number=4)
+        for i in samples.dtype.names:
+            assert np.allclose(
+                samples[i], numerical_struct_0_samples[i], atol=1e-2)
+
+        samples = self.categorical_np_augmentor.sample(
+            CATEGORICAL_NP_ARRAY[0], samples_number=4)
+        assert np.array_equal(samples, categorical_samples)
+        
+        samples = self.categorical_np_012_augmentor.sample(
+            CATEGORICAL_NP_ARRAY[0], samples_number=4)
+        assert np.array_equal(samples, categorical_012_samples)
+
+        samples = self.categorical_struct_abc_augmentor.sample(
+            CATEGORICAL_STRUCT_ARRAY[0], samples_number=4)
+        for i in samples.dtype.names:
+            assert np.array_equal(samples[i], categorical_struct_samples[i])
+
+        samples = self.mixed_augmentor.sample(
+            MIXED_ARRAY[0], samples_number=4)
+        assert np.array_equal(samples[['b', 'd']], mixed_samples[['b', 'd']])
+        for i in ['a', 'c']:
+            assert np.allclose(samples[i], mixed_samples[i], atol=1e-2)
+
+        # Test if minimum_per_class works
+        samples = self.numerical_np_augmentor.sample(
+            NUMERICAL_NP_ARRAY[0], samples_number=1000)
+        predictions = self.numerical_classifier.predict(samples)
+        unique, counts = np.unique(predictions, return_counts=True)
+        assert np.all(counts > 0.05*1000)
+
+        samples = self.numerical_np_0_augmentor.sample(
+            NUMERICAL_NP_ARRAY[0], samples_number=1000)
+        predictions = self.numerical_classifier.predict(samples)
+        unique, counts = np.unique(predictions, return_counts=True)
+        assert np.all(counts > 0.05*1000)
+
+        samples = self.numerical_struct_augmentor.sample(
+            NUMERICAL_STRUCT_ARRAY[0], samples_number=1000)
+        predictions = self.numerical_struct_classifier.predict(samples)
+        unique, counts = np.unique(predictions, return_counts=True)
+        assert np.all(counts > 0.05*1000)
+
+        samples = self.numerical_struct_a_augmentor.sample(
+            NUMERICAL_STRUCT_ARRAY[0], samples_number=1000)
+        predictions = self.numerical_struct_classifier.predict(samples)
+        unique, counts = np.unique(predictions, return_counts=True)
+        assert np.all(counts > 0.05*1000)
+
+        samples = self.categorical_np_augmentor.sample(
+            CATEGORICAL_NP_ARRAY[0], samples_number=1000)
+        predictions = self.categorical_classifier.predict(samples)
+        unique, counts = np.unique(predictions, return_counts=True)
+        assert np.all(counts > 0.05*1000)
+        vals = [['a', 'b'], ['b', 'c', 'f'], ['c', 'g']]
+        proportions = [
+            np.array([0.62, 0.38]),
+            np.array([0.31, 0.17, 0.52]),
+            np.array([0.63, 0.37])
+        ]
+        for i, index in enumerate([0, 1, 2]):
+            val, freq = np.unique(samples[:, index], return_counts=True)
+            freq = freq / freq.sum()
+            assert np.array_equal(val, vals[i])
+            assert np.allclose(freq, proportions[i], atol=1e-1)
+
+        samples = self.categorical_np_012_augmentor.sample(
+            CATEGORICAL_NP_ARRAY[0], samples_number=1000)
+        predictions = self.categorical_classifier.predict(samples)
+        unique, counts = np.unique(predictions, return_counts=True)
+        assert np.all(counts > 0.05*1000)
+        for i, index in enumerate([0, 1, 2]):
+            val, freq = np.unique(samples[:, index], return_counts=True)
+            freq = freq / freq.sum()
+            assert np.array_equal(val, vals[i])
+            assert np.allclose(freq, proportions[i], atol=1e-1)
+
+        samples = self.categorical_struct_abc_augmentor.sample(
+            CATEGORICAL_STRUCT_ARRAY[0], samples_number=1000)
+        predictions = self.categorical_struct_classifier.predict(samples)
+        unique, counts = np.unique(predictions, return_counts=True)
+        assert np.all(counts > 0.05*1000)
+        proportions = [
+            np.array([0.74, 0.26]),
+            np.array([0.38, 0.12, 0.50]),
+            np.array([0.63, 0.37])
+        ]
+        for i, index in enumerate(['a', 'b', 'c']):
+            val, freq = np.unique(samples[index], return_counts=True)
+            freq = freq / freq.sum()
+            assert np.array_equal(val, vals[i])
+            assert np.allclose(freq, proportions[i], atol=1e-1)
+
+        #######################################################################
+
+        # Sample without float cast
+        samples = self.numerical_struct_augmentor_f.sample(
+            NUMERICAL_STRUCT_ARRAY[0], samples_number=5)
+        samples_answer = np.array(
+            [(0, 0, 0.087, 0.708),
+             (0, 0, -0.022, 0.624),
+             (0, 0, 0.140, 0.789),
+             (0, 0, 0.052, 0.695),
+             (0, 0, 0.081, 0.676)],
+            dtype=NUMERICAL_STRUCT_ARRAY.dtype)  # yapf: disable
+        for i in ['a', 'b', 'c', 'd']:
+            assert np.allclose(samples[i], samples_answer[i], atol=1e-3)
+
+        # Test if max_iter is too low to find all classes
+        with pytest.raises(RuntimeError) as exin:
+            self.numerical_np_0_augmentor.sample(NUMERICAL_NP_ARRAY[0],
+                                                 max_iter=1)
+        assert str(exin.value) == runtime_msg
+
+        #######################################################################
+
+        # Test with mean of dataset as starting point
+        samples = self.numerical_np_augmentor.sample(samples_number=4)
+        np.set_printoptions(formatter={'float': lambda x: "{0:0.3f}".format(x)})
+        assert np.allclose(samples, numerical_samples_mean, atol=1e-2)
+
+        samples = self.numerical_np_0_augmentor.sample(samples_number=4)
+        assert np.allclose(samples, numerical_0_samples_mean, atol=1e-2)
+
+        samples = self.numerical_struct_augmentor.sample(samples_number=4)
+        for i in samples.dtype.names:
+            assert np.allclose(
+                samples[i], numerical_struct_samples_mean[i], atol=1e-2)
+
+        samples = self.numerical_struct_a_augmentor.sample(samples_number=4)
+        for i in samples.dtype.names:
+            assert np.allclose(
+                samples[i], numerical_struct_0_samples_mean[i], atol=1e-2)
+
+        samples = self.categorical_np_augmentor.sample(samples_number=4)
+        assert np.array_equal(samples, categorical_samples_mean)
+        
+        samples = self.categorical_np_012_augmentor.sample(samples_number=4)
+        assert np.array_equal(samples, categorical_012_samples_mean)
+
+        samples = self.categorical_struct_abc_augmentor.sample(samples_number=4)
+        for i in samples.dtype.names:
+            assert np.array_equal(
+                samples[i], categorical_struct_samples_mean[i])
+
+        samples = self.mixed_augmentor.sample(samples_number=4)
+        assert np.array_equal(samples[['b', 'd']], 
+                              mixed_samples_mean[['b', 'd']])
+        for i in ['a', 'c']:
+            assert np.allclose(samples[i], mixed_samples_mean[i], atol=1e-2)
+        
+        # Test if minimum_per_class works with mean of dataset
+        samples = self.numerical_np_augmentor.sample(samples_number=1000)
+        predictions = self.numerical_classifier.predict(samples)
+        unique, counts = np.unique(predictions, return_counts=True)
+        assert np.all(counts > 0.05*1000)
+
+        samples = self.numerical_np_0_augmentor.sample(samples_number=1000)
+        predictions = self.numerical_classifier.predict(samples)
+        unique, counts = np.unique(predictions, return_counts=True)
+        assert np.all(counts > 0.05*1000)
+
+        samples = self.numerical_struct_augmentor.sample(samples_number=1000)
+        predictions = self.numerical_struct_classifier.predict(samples)
+        unique, counts = np.unique(predictions, return_counts=True)
+        assert np.all(counts > 0.05*1000)
+
+        samples = self.numerical_struct_a_augmentor.sample(samples_number=1000)
+        predictions = self.numerical_struct_classifier.predict(samples)
+        unique, counts = np.unique(predictions, return_counts=True)
+        assert np.all(counts > 0.05*1000)
+
+        samples = self.categorical_np_augmentor.sample(samples_number=1000)
+        predictions = self.categorical_classifier.predict(samples)
+        unique, counts = np.unique(predictions, return_counts=True)
+        assert np.all(counts > 0.05*1000)
+        vals = [['a', 'b'], ['b', 'c', 'f'], ['c', 'g']]
+        proportions = [
+            np.array([0.62, 0.38]),
+            np.array([0.31, 0.17, 0.52]),
+            np.array([0.63, 0.37])
+        ]
+        for i, index in enumerate([0, 1, 2]):
+            val, freq = np.unique(samples[:, index], return_counts=True)
+            freq = freq / freq.sum()
+            assert np.array_equal(val, vals[i])
+            assert np.allclose(freq, proportions[i], atol=1e-1)
+
+        samples = self.categorical_np_012_augmentor.sample(samples_number=1000)
+        predictions = self.categorical_classifier.predict(samples)
+        unique, counts = np.unique(predictions, return_counts=True)
+        assert np.all(counts > 0.05*1000)
+        for i, index in enumerate([0, 1, 2]):
+            val, freq = np.unique(samples[:, index], return_counts=True)
+            freq = freq / freq.sum()
+            assert np.array_equal(val, vals[i])
+            assert np.allclose(freq, proportions[i], atol=1e-1)
+
+        samples = self.categorical_struct_abc_augmentor.sample(
+            samples_number=1000)
+        predictions = self.categorical_struct_classifier.predict(samples)
+        unique, counts = np.unique(predictions, return_counts=True)
+        assert np.all(counts > 0.05*1000)
+        proportions = [
+            np.array([0.74, 0.26]),
+            np.array([0.38, 0.12, 0.50]),
+            np.array([0.63, 0.37])
+        ]
+        for i, index in enumerate(['a', 'b', 'c']):
+            val, freq = np.unique(samples[index], return_counts=True)
+            freq = freq / freq.sum()
+            assert np.array_equal(val, vals[i])
+            assert np.allclose(freq, proportions[i], atol=1e-1)

@@ -479,15 +479,15 @@ class NormalSampling(Augmentation):
 
         # Sample categorical features.
         for index in self.categorical_indices:
-            smaple_values = np.random.choice(
+            sample_values = np.random.choice(
                 self.categorical_sampling_values[index][0],
                 size=samples_number,
                 replace=True,
                 p=self.categorical_sampling_values[index][1])
             if self.is_structured:
-                samples[index] = smaple_values
+                samples[index] = sample_values
             else:
-                samples[:, index] = smaple_values
+                samples[:, index] = sample_values
 
         # Sample numerical features.
         for index in self.numerical_indices:
@@ -629,15 +629,15 @@ class TruncatedNormal(Augmentation):
         samples = np.zeros(shape, dtype=self.sample_dtype)
         # Sample categorical features.
         for index in self.categorical_indices:
-            smaple_values = np.random.choice(
+            sample_values = np.random.choice(
                 self.categorical_sampling_values[index][0],
                 size=samples_number,
                 replace=True,
                 p=self.categorical_sampling_values[index][1])
             if self.is_structured:
-                samples[index] = smaple_values
+                samples[index] = sample_values
             else:
-                samples[:, index] = smaple_values
+                samples[:, index] = sample_values
 
         # Sample numerical features.
         for index in self.numerical_indices:
@@ -1242,7 +1242,7 @@ def _validate_input_growingspheres(global_model: object,
         raise TypeError('minimum_per_class is not a float.')
 
     if minimum_per_class >= 1.0 or minimum_per_class <= 0:
-        raise ValueError('minimum_per_class must be fraction between 0 and 1.')
+        raise ValueError('minimum_per_class must be a float between 0 and 1.')
     
     if starting_std <= 0:
         raise ValueError('starting_std must be a positive float greater than '
@@ -1308,6 +1308,13 @@ class GrowingSpheres(Augmentation):
 
     Attributes
     ----------
+    global_model : object
+    n_classes : integer
+    categorical_sampling_values :
+    Dictionary[column index, Tuple[numpy.ndarray, numpy.ndarray]]
+        Dictionary mapping categorical column feature indices to tuples two
+        1-dimensional numpy arrays: one with unique values for that column
+        and the other one with their normalised (sum up to 1) frequencies.
     """
     # pylint: disable=too-few-public-methods,too-many-instance-attributes
     def __init__(self,
@@ -1333,6 +1340,21 @@ class GrowingSpheres(Augmentation):
         self.starting_std = starting_std
         self.increment_std = increment_std
         self.minimum_per_class = minimum_per_class
+        # Get sampling parameters for categorical features.
+        categorical_sampling_values = dict()
+        for column_name in self.categorical_indices:
+            if self.is_structured:
+                feature_column = self.dataset[column_name]
+            else:
+                feature_column = self.dataset[:, column_name]
+
+            feature_values, values_counts = np.unique(
+                feature_column, return_counts=True)
+            values_frequencies = values_counts / values_counts.sum()
+
+            categorical_sampling_values[column_name] = (feature_values,
+                                                        values_frequencies)
+        self.categorical_sampling_values = categorical_sampling_values
 
     def sample(self,
                data_row: np.ndarray = None,
@@ -1359,6 +1381,7 @@ class GrowingSpheres(Augmentation):
             sampling from every class in the global model.
         TypeError
             ``max_iter`` must be a positive integer
+
         Returns
         -------
         samples : numpy.ndarray
@@ -1370,63 +1393,73 @@ class GrowingSpheres(Augmentation):
         if not isinstance(max_iter, int) or max_iter <= 0:
             raise TypeError('max_iter is not a positive integer.')
 
-        label = self.global_model.predict(data_row.reshape(1, -1))
+        # Sample from mean of dataset
+        if data_row is None:
+            data_row = self.dataset[0]
+            for index in self.categorical_indices:
+                maximum = self.categorical_sampling_values[index][1].argmax()
+                data_row[index] = \
+                    self.categorical_sampling_values[index][0][maximum]
+            for index in self.numerical_indices:
+                data_row[index] = self.dataset[index].mean(axis=0)
+        
+        # Reshape row to be used in global_model.predict
+        if self.is_structured:
+            row = np.array([data_row], dtype=self.dataset.dtype)
+        else:
+            row = data_row.reshape(1, -1)
+        label = self.global_model.predict(row)
         samples_per_sphere = [int(float(samples_number) /
-                              (self.n_classes-1))]*self.n_classes
+                              (self.n_classes))]*self.n_classes
         if np.sum(samples_per_sphere) != samples_number:
             samples_per_sphere[0] = (samples_number -
                                      np.sum(samples_per_sphere[1:]))
-        
         # Create an array to hold the samples.
         if self.is_structured:
             shape = (samples_number, )  # type: Tuple[int, ...]
         else:
             shape = (samples_number, self.features_number)
         std = self.starting_std
-        if data_row is None:
-            means = self.dataset.mean(axis=0)
-        else:
-            means = data_row
         samples_list = []
         labels = [label]
         class_counter = 0
         for iterations in range(max_iter):
-            samples = np.zeros(shape, dtype=self.sample_dtype)
+            samples_iter = np.zeros(shape, dtype=self.sample_dtype)
             # Sample categorical features.
             for index in self.categorical_indices:
-                smaple_values = np.random.choice(
+                sample_values = np.random.choice(
                     self.categorical_sampling_values[index][0],
                     size=samples_number,
                     replace=True,
                     p=self.categorical_sampling_values[index][1])
                 if self.is_structured:
-                    samples[index] = smaple_values
+                    samples_iter[index] = sample_values
                 else:
-                    samples[:, index] = smaple_values
+                    samples_iter[:, index] = sample_values
 
             # Sample numerical features.
             for index in self.numerical_indices:
-                mean = means[index]
+                mean = data_row[index]
                 # Fetch mean and standard deviation
                 sample_values = np.random.normal(0, 1, samples_number) \
                     * std + mean
                 std += self.increment_std
                 if self.is_structured:
-                    samples[index] = sample_values
+                    samples_iter[index] = sample_values
                 else:
-                    samples[:, index] = sample_values
+                    samples_iter[:, index] = sample_values
             
             # Get predictions for sampled data
-            predictions = self.global_model.predict(samples)
+            predictions = self.global_model.predict(samples_iter)
             # Get the predictions that aren't in the classes we already have
             new = [p for p in predictions if p not in labels]
             if len(new) >= self.minimum_per_class*samples_number:
                 for i in range(samples_per_sphere[class_counter]):
                     pred = predictions[i]
                     if pred not in labels:
-                        means = samples[i]
+                        means = samples_iter[i]
                         class_counter += 1
-                        samples_list.append(samples)
+                        samples_list.append(samples_iter)
                         std = self.starting_std
                         labels.append(pred)
             if len(labels) == self.n_classes:
@@ -1435,4 +1468,8 @@ class GrowingSpheres(Augmentation):
             raise RuntimeError('Maximum iterations reached. Try increasing '
                                 'max_iter or decreasing minimum_per_class.')
 
-        return np.vstack(samples_list)
+        if len(samples_list) == 1:
+            samples = samples_list[0]
+        else:
+            samples = np.vstack(samples_list)
+        return samples

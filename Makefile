@@ -182,6 +182,9 @@ check-types:
 build:
 	python3 setup.py sdist bdist_wheel
 
+clean:
+	find ./fatf -name '*.pyc' -delete
+
 readme-gen:
 	pandoc -t html README.rst -o temp/README.html
 

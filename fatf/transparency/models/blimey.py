@@ -9,9 +9,11 @@ import warnings
 
 import numpy as np
 
+import fatf.transparency.sklearn.linear_model as ftslm
+
 import fatf.utils.data.augmentation as fuda
 import fatf.utils.data.discretization as fudd
-
+import fatf.utils.explainers as fue
 import fatf.utils.array.validation as fuav
 import fatf.utils.models.validation as fumv
 import fatf.utils.array.tools as fuat
@@ -26,13 +28,14 @@ Index = Union[int, str]
 
 def _input_is_valid(dataset: np.ndarray,
                     augmentor: fuda.Augmentation,
-                    discretizer: fudd.Discretization,
-                    explainer: object,
+                    explainer: fue.Explainer,
                     global_model: object,
                     local_model: object,
                     categorical_indices: Optional[List[Index]] = None,
                     class_names: Optional[List[str]] = None,
-                    feature_names: Optional[List[str]] = None) -> bool:
+                    feature_names: Optional[List[str]] = None,
+                    discretize_first: Optional[bool] = None,
+                    discretizer: Optional[fudd.Discretization] = None) -> bool:
     """
     Validates the input parameters of Blimey class.
 
@@ -66,9 +69,11 @@ def _input_is_valid(dataset: np.ndarray,
             is_instance=False):
         raise IncompatibleModelError(
             'This functionality requires the local model to be capable of '
-            'outputting probabilities via predict_proba method.')
+            'outputting predictions via predict method.')
 
-    #TODO: check explainer is valid once we have explainer abstract class
+    if not issubclass(explainer, fue.Explainer):
+        raise TypeError('The explainer object must inherit from abstract '
+                        'class fatf.utils.explainers.Explainer.')
 
     if categorical_indices is not None:
         if isinstance(categorical_indices, list):
@@ -85,9 +90,11 @@ def _input_is_valid(dataset: np.ndarray,
         raise TypeError('The augmentor object must inherit from abstract '
                         'class fatf.utils.augmentation.Augmentation.')
 
-    if not issubclass(discretizer, fudd.Discretization):
-        raise TypeError('The discretizer object must inherit from abstract '
-                        'class fatf.utils.discretization.Discretization.')
+    if (discretizer is not None and
+            not issubclass(discretizer, fudd.Discretization)):
+        raise TypeError('The discretizer object must be None or inherit from '
+                        'abstract class fatf.utils.discretization.'
+                        'Discretization.')
 
     if class_names is not None:
         if not isinstance(class_names, list):
@@ -118,6 +125,21 @@ def _input_is_valid(dataset: np.ndarray,
                     raise TypeError('The feature name has to be either None '
                                     'or a string or a list of strings.')
 
+    if discretize_first is not None and not isinstance(discretize_first, bool):
+        raise TypeError('discretize_first must be None or a boolean.')
+
+    if discretize_first is True and discretizer is None:
+        raise ValueError('discretize_first is True but discretizer object is '
+                         'None. In order to discretize the sampled data prior '
+                         'to training a local model, please specify a '
+                         'discretizer object.')
+    
+    if discretize_first is False and discretizer is not None:
+        msg = ('discretize_first is False but discretizer has been specified. '
+               'The discretizer will be ignored and the data will not be '
+               'discretized prior to training a local model.')
+        warnings.warn(msg, UserWarning)
+
     is_input_ok = True
     return is_input_ok
 
@@ -133,13 +155,9 @@ class Blimey(object):
     augmentor : fatf.utils.data.augmentation.Augmentation,
         An object refence which is a subclass of :class:`fatf.utils.data.
         augmentation.Augmentation` which the data will be augmented using.
-    discretizer : fatf.utils.data.discretization.Discretization
-        An object reference which is a subclass of :class:`fatf.utils.data.
-        discretization.Discretization` which will discretize the data for use
-        in the local model.
-    explainer : object
-        An object reference which will explain an instance by training a
-        `local_model` on locally augmentated data.
+    explainer : fatf.utils.explainers.Explainer
+        An object reference which is a subclass of :class:`fatf.utils.
+        explainers.Explainer` and will be used to explain the ``local_model``.
     global_model : object
         A pretrained global model. This must contain method ``predict_proba``
         that will return a numpy array for probabilities of instances belonging
@@ -153,6 +171,15 @@ class Blimey(object):
         A list of strings defining the names of classes.
     feature_names : List[string], optional (default=None)
         A list of strings defining the names of the features.
+    discretize_first : boolean, optional (default=None)
+        Whether to discretize the data before training the local model. If
+        None, this will be inferred based on the parent class of the explainer
+        object.
+    discretizer : fatf.utils.data.discretization.Discretization, 
+            optional (default=None)
+        An object reference which is a subclass of :class:`fatf.utils.data.
+        discretization.Discretization` which will discretize the data for use
+        in the local model.
 
     Warns
     -----
@@ -197,8 +224,12 @@ class Blimey(object):
     is_structured : boolean
         ``True`` if the ``dataset`` is a structured numpy array, ``False``
         otherwise.
+    discretized_first : boolean
+        ``True`` if the ``dataset`` is to be discretized before trainig a local
+        model, otherwise ``False``.
     discretized_dataset : numpy.ndarray
-        A 2-dimensional numpy array with the discretized dataset.
+        A 2-dimensional numpy array with the discretized dataset. Is None if
+        ``self.discretized_first`` is False
     augmentor : fatf.utils.data.augmentation.Augmentation,
         An object refence which is a subclass of :class:`fatf.utils.data.
         augmentation.Augmentation` which the data will be augmented using.
@@ -206,7 +237,7 @@ class Blimey(object):
         An object reference which is a subclass of :class:`fatf.utils.data.
         discretization.Discretization` which will discretize the data for use
         in the local model.
-    explainer : object
+    explainer : fatf.utils.explainers.Explaienr
         An object reference which will explain an instance by training a
         `local_model` on locally augmentated data.
     global_model : object
@@ -231,21 +262,22 @@ class Blimey(object):
     def __init__(self,
                  dataset: np.ndarray,
                  augmentor: fuda.Augmentation,
-                 discretizer: fudd.Discretization,
-                 explainer: object,
+                 explainer: fue.Explainer,
                  global_model: object,
                  local_model: object,
                  categorical_indices: Optional[List[Index]] = None,
                  class_names: Optional[List[str]] = None,
                  feature_names: Optional[List[str]] = None,
+                 discretize_first: Optional[bool] = None,
+                 discretizer: Optional[fudd.Discretization] = None,
                  **kwargs):
         """
-        Constructs an ``Blimey`` class.
+        Constructs a ``Blimey`` class.
         """
-        assert _input_is_valid(dataset, augmentor, discretizer, explainer,
+        assert _input_is_valid(dataset, augmentor, explainer,
                                global_model, local_model, categorical_indices,
-                               class_names, feature_names), \
-                               'Input is not valid.'
+                               class_names, feature_names, discretize_first,
+                               discretizer), 'Input is not valid.'
 
         self.kwargs = kwargs
         self.dataset = dataset
@@ -270,14 +302,41 @@ class Blimey(object):
             self.categorical_indices = list(cat_indices.union(
                 categorical_indices))
 
+        # Infer whether to discretize data or not
+        if discretize_first is None:
+            if issubclass(explainer, ftslm.SKLearnLinearModelExplainer):
+                discretize_first = True
+            #elif issubclass(explainer, ftsdt.SkLearnDecisionTree):
+            #   discrtize_first = False
+            else:
+                raise ValueError('Unable to infer value of discretize_first '
+                                 'as the explainer used is not one of the '
+                                 'explainers defined in fatf.transparency.'
+                                 'sklearn')
+            # Inferred to be true but not discretizer given.
+            if discretize_first is True and discretizer is None:
+                msg = ('discretize_first has been inferred to be True given '
+                       'the type of explainer, but a discretier object has '
+                       'not been given. As such, the data will not be '
+                       'discretized.')
+                warnings.warn(msg, UserWarning)
+                discretize_first = False
+        self.discretize_first = discretize_first
+
         # Initialise objects
         self.global_model = global_model
         self.augmentor = augmentor(
             dataset, categorical_indices=self.categorical_indices, **kwargs)
-        self.discretizer = discretizer(
-            dataset, categorical_indices=self.categorical_indices,
-            feature_names=feature_names, **kwargs)
-        self.discretized_dataset = self.discretizer.discretize(self.dataset)
+        
+        if self.discretize_first:
+            self.discretizer = discretizer(
+                dataset, categorical_indices=self.categorical_indices,
+                feature_names=feature_names, **kwargs)
+            self.discretized_dataset = self.discretizer.discretize(
+                self.dataset)
+        else:
+            self.discretized_dataset = None
+    
         self.explainer_class = explainer
         self.n_classes = self.global_model.predict_proba(
             dataset).shape[1]
@@ -357,7 +416,6 @@ class Blimey(object):
         """
         Generates explanations for data_row.
 
-
         Parameters
         ----------
         data_row : Union[numpy.ndarray, numpy.void], optional (default=None)
@@ -386,41 +444,43 @@ class Blimey(object):
         """
         assert self._explain_instance_is_input_valid(
             data_row, samples_number), 'Input is not valid.'
-        discretized_data_row = self.discretizer.discretize(data_row)
+        feature_names = self.feature_names
 
         sampled_data = self.augmentor.sample(
             data_row, samples_number=samples_number, **self.kwargs)
         prediction_probabilities = self.global_model.predict_proba(
             sampled_data)
-        discretized_sampled_data = self.discretizer.discretize(sampled_data)
+        if self.discretize_first:
+            discretized_data_row = self.discretizer.discretize(data_row)
+            discretized_sampled_data = self.discretizer.discretize(sampled_data)
+    
+            binary_data = fuds.similarity_binary_mask(
+                discretized_sampled_data, discretized_data_row)
 
-        binary_data = fuds.similarity_binary_mask(
-            discretized_sampled_data, discretized_data_row)
-
-        discretized_value_names = self.discretizer.feature_value_names
-        discretized_feature_names = []
-        for i, index in enumerate(self.indices):
-            data_row_discretized_value = int(discretized_data_row[index])
-            if index in discretized_value_names.keys():
-                discretized_feature_names.append(
-                    discretized_value_names[index][data_row_discretized_value])
-            else:
-                discretized_feature_names.append(self.feature_names[i])
+            discretized_value_names = self.discretizer.feature_value_names
+            discretized_feature_names = []
+            for i, index in enumerate(self.indices):
+                data_row_value = int(discretized_data_row[index])
+                if index in discretized_value_names.keys():
+                    discretized_feature_names.append(
+                        discretized_value_names[index][data_row_value])
+                else:
+                    discretized_feature_names.append(self.feature_names[i])
+            
+            feature_names = discretized_feature_names
+            sampled_data = binary_data
 
         blimey_explanation = {}
         for i in range(self.n_classes):
             local_model = self.local_model(**self.kwargs)
-            local_model.fit(binary_data, prediction_probabilities[:, i])
+            local_model.fit(sampled_data, prediction_probabilities[:, i])
             explainer = self.explainer_class(
-                self.dataset,
-                local_model=local_model,
-                feature_names=discretized_feature_names,
-                categorical_indices=self.categorical_indices,
+                local_model,
+                feature_names=feature_names,
                 **self.kwargs)
-            explanation = explainer.explain_instance(discretized_data_row,
-                                                     **self.kwargs)
+            explanation = dict(
+                zip(feature_names, explainer.feature_importance(**self.kwargs)))
 
             blimey_explanation[self.class_names[i]] = explanation
 
         return blimey_explanation
-        

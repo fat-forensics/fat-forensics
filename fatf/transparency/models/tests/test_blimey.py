@@ -16,7 +16,8 @@ import fatf.transparency.models.blimey as ftmb
 import fatf.utils.models as fum
 import fatf.utils.data.augmentation as fuda
 import fatf.utils.data.discretization as fudd
-import fatf.transparency.models.submodular_pick as ftmsp
+import fatf.utils.explainers as fue
+import fatf.transparency.sklearn.linear_model as ftslm
 
 from fatf.exceptions import IncompatibleModelError, IncorrectShapeError
 
@@ -33,6 +34,37 @@ NUMERICAL_NP_ARRAY = np.array([
     [2, 1, 0.73, 0.48],
     [1, 0, 0.36, 0.89],
     [0, 1, 0.07, 0.21]])
+NUMERICAL_STRUCT_ARRAY = np.array(
+    [(0, 0, 0.08, 0.69),
+     (1, 0, 0.03, 0.29),
+     (0, 1, 0.99, 0.82),
+     (2, 1, 0.73, 0.48),
+     (1, 0, 0.36, 0.89),
+     (0, 1, 0.07, 0.21)],
+    dtype=[('a', 'i'), ('b', 'i'), ('c', 'f'), ('d', 'f')])
+CATEGORICAL_NP_ARRAY = np.array([
+    ['a', 'b', 'c'],
+    ['a', 'f', 'g'],
+    ['b', 'c', 'c'],
+    ['b', 'f', 'c'],
+    ['a', 'f', 'c'],
+    ['a', 'b', 'g']])
+CATEGORICAL_STRUCT_ARRAY = np.array(
+    [('a', 'b', 'c'),
+     ('a', 'f', 'g'),
+     ('b', 'c', 'c'),
+     ('b', 'f', 'c'),
+     ('a', 'f', 'c'),
+     ('a', 'b', 'g')],
+    dtype=[('a', 'U1'), ('b', 'U1'), ('c', 'U1')])
+MIXED_ARRAY = np.array(
+    [(0, 'a', 0.08, 'a'),
+     (0, 'f', 0.03, 'bb'),
+     (1, 'c', 0.99, 'aa'),
+     (1, 'a', 0.73, 'a'),
+     (0, 'c', 0.36, 'b'),
+     (1, 'f', 0.07, 'bb')],
+    dtype=[('a', 'i'), ('b', 'U1'), ('c', 'f'), ('d', 'U2')])
 
 NUMERICAL_NP_BLIMEY = {
     'Class A': {'A <= 0.00': -0.3665,
@@ -48,7 +80,7 @@ NUMERICAL_NP_BLIMEY = {
                 '0.07 < C <= 0.22': -0.0393,
                 '0.58 < D <= 0.79': -0.0894}}
 
-NUMERICAL_NP_BLIMEY_CAT= {
+NUMERICAL_NP_BLIMEY_CAT = {
     'Class A': {'A': -0.1824,
                 'B <= 0.00': 0.1318,
                 '0.07 < C <= 0.22': 0.0526,
@@ -61,6 +93,20 @@ NUMERICAL_NP_BLIMEY_CAT= {
                 'B <= 0.00': -0.0648,
                 '0.07 < C <= 0.22': 0.0204,
                 '0.58 < D <= 0.79': -0.0039}}
+
+NUMERICAL_NP_BLIMEY_NO_DISC = {
+    'Class A': {'A': 0.246,
+                'B': -0.228,
+                'C': -0.038,
+                'D': 0.050},
+    'Class B': {'A': -0.096, 
+                'B': 0.141,
+                'C': 0.071,
+                'D': -0.050},
+    'Class C': {'A': -0.149,
+                'B': 0.087,
+                'C': -0.032,
+                'D': 0.000}}
 
 class InvalidModel(object):
     """
@@ -123,123 +169,284 @@ def test_input_is_valid():
     model = InvalidModel()
     with pytest.raises(IncompatibleModelError) as exin:
         ftmb._input_is_valid(
-            NUMERICAL_NP_ARRAY, fuda.NormalSampling, fudd.QuartileDiscretizer,
-            ftmsp.SKLearnExplainer, model, None)
+            NUMERICAL_NP_ARRAY, fuda.NormalSampling,
+            ftslm.SKLearnLinearModelExplainer, model, None,
+            discretizer=fudd.QuartileDiscretizer)
     assert str(exin.value) == msg
 
     msg = ('This functionality requires the local model to be capable of '
-           'outputting probabilities via predict_proba method.')
+           'outputting predictions via predict method.')
     model = fum.KNN()
     with pytest.raises(IncompatibleModelError) as exin:
         ftmb._input_is_valid(
-            NUMERICAL_NP_ARRAY, fuda.NormalSampling, fudd.QuartileDiscretizer,
-            ftmsp.SKLearnExplainer, model, InvalidModel)
+            NUMERICAL_NP_ARRAY, fuda.NormalSampling,
+            ftslm.SKLearnLinearModelExplainer, model, InvalidModel,
+            discretizer=fudd.QuartileDiscretizer)
     assert str(exin.value) == msg
 
     msg = ('The following indices are invalid for the input dataset: '
            '{}.'.format(np.array(['a'])))
     with pytest.raises(IndexError) as exin:
         ftmb._input_is_valid(
-            NUMERICAL_NP_ARRAY, fuda.NormalSampling, fudd.QuartileDiscretizer,
-            ftmsp.SKLearnExplainer, model, fum.KNN, ['a'])
+            NUMERICAL_NP_ARRAY, fuda.NormalSampling,
+            ftslm.SKLearnLinearModelExplainer, model, fum.KNN, ['a'],
+            discretizer=fudd.QuartileDiscretizer)
     assert str(exin.value) == msg
 
     msg = ('The categorical_indices parameter must be a Python list or None.')
     with pytest.raises(TypeError) as exin:
         ftmb._input_is_valid(
-            NUMERICAL_NP_ARRAY, fuda.NormalSampling, fudd.QuartileDiscretizer,
-            ftmsp.SKLearnExplainer, model, fum.KNN, 'a')
+            NUMERICAL_NP_ARRAY, fuda.NormalSampling, 
+            ftslm.SKLearnLinearModelExplainer, model, fum.KNN, 'a')
     assert str(exin.value) == msg
 
     msg = ('The augmentor object must inherit from abstract class '
            'fatf.utils.augmentation.Augmentation.')
     with pytest.raises(TypeError) as exin:
         ftmb._input_is_valid(
-                NUMERICAL_NP_ARRAY, InvalidModel, fudd.QuartileDiscretizer,
-                ftmsp.SKLearnExplainer, model, fum.KNN)
+                NUMERICAL_NP_ARRAY, InvalidModel,
+                ftslm.SKLearnLinearModelExplainer, model, fum.KNN)
     assert str(exin.value) == msg
 
-    msg = ('The discretizer object must inherit from abstract class '
+    msg = ('The discretizer object must be None or inherit from abstract class '
            'fatf.utils.discretization.Discretization.')
     with pytest.raises(TypeError) as exin:
         ftmb._input_is_valid(
-            NUMERICAL_NP_ARRAY, fuda.NormalSampling, InvalidModel,
-            ftmsp.SKLearnExplainer, model, fum.KNN)
+            NUMERICAL_NP_ARRAY, fuda.NormalSampling,
+            ftslm.SKLearnLinearModelExplainer, model, fum.KNN,
+            discretizer=InvalidModel,)
     assert str(exin.value) == msg
+
+    msg = ('The explainer object must inherit from abstract class fatf.utils.'
+           'explainers.Explainer.')
+    with pytest.raises(TypeError) as exin:
+        ftmb._input_is_valid(
+            NUMERICAL_NP_ARRAY, fuda.NormalSampling,
+            InvalidModel, model, fum.KNN, discretizer=fudd.QuartileDiscretizer)
+    assert str(exin.value) == msg
+
 
     msg = 'The class_names parameter must be None or a list.'
     with pytest.raises(TypeError) as exin:
         ftmb._input_is_valid(
-            NUMERICAL_NP_ARRAY, fuda.NormalSampling, fudd.QuartileDiscretizer,
-            ftmsp.SKLearnExplainer, model, fum.KNN, class_names='a')
+            NUMERICAL_NP_ARRAY, fuda.NormalSampling,
+            ftslm.SKLearnLinearModelExplainer, model, fum.KNN, class_names='a')
     assert str(exin.value) == msg
 
     msg = ('The class_name has to be either None or a string or a list of '
            'strings.')
     with pytest.raises(TypeError) as exin:
         ftmb._input_is_valid(
-            NUMERICAL_NP_ARRAY, fuda.NormalSampling, fudd.QuartileDiscretizer,
-            ftmsp.SKLearnExplainer, model, fum.KNN, class_names=[0])
+            NUMERICAL_NP_ARRAY, fuda.NormalSampling,
+            ftslm.SKLearnLinearModelExplainer, model, fum.KNN, class_names=[0])
     assert str(exin.value) == msg
 
     msg = 'The feature_names parameter must be None or a list.'
     with pytest.raises(TypeError) as exin:
         ftmb._input_is_valid(
-            NUMERICAL_NP_ARRAY, fuda.NormalSampling, fudd.QuartileDiscretizer,
-            ftmsp.SKLearnExplainer, model, fum.KNN, feature_names='a')
+            NUMERICAL_NP_ARRAY, fuda.NormalSampling,
+            ftslm.SKLearnLinearModelExplainer, model, fum.KNN, feature_names='a')
     assert str(exin.value) == msg
     
     msg = ('The length of feature_names must be equal to the number of '
            'features in the dataset.')
     with pytest.raises(ValueError) as exin:
         ftmb._input_is_valid(
-            NUMERICAL_NP_ARRAY, fuda.NormalSampling, fudd.QuartileDiscretizer,
-            ftmsp.SKLearnExplainer, model, fum.KNN, feature_names=['a'])
+            NUMERICAL_NP_ARRAY, fuda.NormalSampling,
+            ftslm.SKLearnLinearModelExplainer, model, fum.KNN, feature_names=['a'])
     assert str(exin.value) == msg
 
     msg = ('The feature name has to be either None or a string or a list of '
            'strings.')
     with pytest.raises(TypeError) as exin:
         ftmb._input_is_valid(
-            NUMERICAL_NP_ARRAY, fuda.NormalSampling, fudd.QuartileDiscretizer,
-            ftmsp.SKLearnExplainer, model, fum.KNN, feature_names=[0, 1, 2, 3])
+            NUMERICAL_NP_ARRAY, fuda.NormalSampling,
+            ftslm.SKLearnLinearModelExplainer, model, fum.KNN, feature_names=[0, 1, 2, 3])
     assert str(exin.value) == msg
+
+    msg = ('discretize_first must be None or a boolean.')
+    with pytest.raises(TypeError) as exin:
+        ftmb._input_is_valid(
+            NUMERICAL_NP_ARRAY, fuda.NormalSampling,
+            ftslm.SKLearnLinearModelExplainer, model, fum.KNN,
+            discretize_first='a', discretizer=fudd.QuartileDiscretizer)
+    assert str(exin.value) == msg
+
+    msg = ('discretize_first is True but discretizer object is None. In order '
+           'to discretize the sampled data prior to training a local model, '
+           'please specify a discretizer object.')
+    with pytest.raises(ValueError) as exin:
+        ftmb._input_is_valid(
+            NUMERICAL_NP_ARRAY, fuda.NormalSampling,
+            ftslm.SKLearnLinearModelExplainer, model, fum.KNN,
+            discretize_first=True)
+    assert str(exin.value) == msg
+
+    msg = ('discretize_first is False but discretizer has been specified. The '
+           'discretizer will be ignored and the data will not be discretized '
+           'prior to training a local model.')
+    with pytest.warns(UserWarning) as warning:
+        ftmb._input_is_valid(
+            NUMERICAL_NP_ARRAY, fuda.NormalSampling,
+            ftslm.SKLearnLinearModelExplainer, model, fum.KNN,
+            discretize_first=False, discretizer=fudd.QuartileDiscretizer)
+    assert len(warning) == 1
+    assert str(warning[0].message) == msg
+
+    # All ok
+    assert ftmb._input_is_valid(
+        NUMERICAL_NP_ARRAY, fuda.NormalSampling,
+        ftslm.SKLearnLinearModelExplainer, model, fum.KNN,
+        discretizer=fudd.QuartileDiscretizer)
+    
+    assert ftmb._input_is_valid(
+        NUMERICAL_NP_ARRAY, fuda.NormalSampling,
+        ftslm.SKLearnLinearModelExplainer, model, fum.KNN,
+        discretizer=None)
+    
+    assert ftmb._input_is_valid(
+        NUMERICAL_NP_ARRAY, fuda.NormalSampling,
+        ftslm.SKLearnLinearModelExplainer, model, fum.KNN,
+        discretize_first=True, discretizer=fudd.QuartileDiscretizer)
 
 
 class TestBlimey():
     """
     Tests :class:`fatf.transparency.models.blimey.Blimey`.
     """
-    knn_numerical = fum.KNN()
+    knn_numerical = fum.KNN(k=3)
     knn_numerical.fit(NUMERICAL_NP_ARRAY, NUMERICAL_NP_ARRAY_TARGET)
+    
+    knn_categorical = fum.KNN(k=3)
+    knn_categorical.fit(CATEGORICAL_NP_ARRAY, NUMERICAL_NP_ARRAY_TARGET)
+
+    class_names = ['Class A', 'Class B', 'Class C']
+    feature_names = ['A', 'B', 'C', 'D']
 
     numerical_blimey = ftmb.Blimey(
         dataset=NUMERICAL_NP_ARRAY,
         augmentor=fuda.NormalSampling,
-        discretizer=fudd.QuartileDiscretizer,
-        explainer=ftmsp.SKLearnExplainer,
+        explainer=ftslm.SKLearnLinearModelExplainer,
         global_model=knn_numerical,
         local_model=Ridge,
-        class_names=['Class A', 'Class B', 'Class C'],
-        feature_names=['A', 'B', 'C', 'D'])
+        class_names=class_names,
+        feature_names=feature_names,
+        discretizer=fudd.QuartileDiscretizer)
+
+    numerical_blimey_no_discretization = ftmb.Blimey(
+        dataset=NUMERICAL_NP_ARRAY,
+        augmentor=fuda.NormalSampling,
+        explainer=ftslm.SKLearnLinearModelExplainer,
+        global_model=knn_numerical,
+        local_model=Ridge,
+        class_names=class_names,
+        feature_names=feature_names,
+        discretize_first=False)
 
     numerical_blimey_cat = ftmb.Blimey(
         dataset=NUMERICAL_NP_ARRAY,
         augmentor=fuda.NormalSampling,
-        discretizer=fudd.QuartileDiscretizer,
-        explainer=ftmsp.SKLearnExplainer,
+        explainer=ftslm.SKLearnLinearModelExplainer,
         global_model=knn_numerical,
         local_model=Ridge,
-        class_names=['Class A', 'Class B', 'Class C'],
-        feature_names=['A', 'B', 'C', 'D'],
-        categorical_indices=[0])
+        class_names=class_names,
+        feature_names=feature_names,
+        categorical_indices=[0],
+        discretizer=fudd.QuartileDiscretizer)
 
-    def test_blimey_class_init(self):
+    categorical_blimey = ftmb.Blimey(
+        dataset=CATEGORICAL_NP_ARRAY,
+        augmentor=fuda.NormalSampling,
+        explainer=ftslm.SKLearnLinearModelExplainer,
+        global_model=knn_categorical,
+        local_model=Ridge,
+        discretizer=fudd.QuartileDiscretizer)
+
+    def test_init(self):
         """
         Tests :class:`fatf.transparency.models.blimey.Blimey` class init.
         """
-        return True
+        # Class inherits from explainer but is not tree or linear
+        class ExplainerUnknown(fue.Explainer):
+            def __init__(self): pass
+            def feature_importance(self): pass
 
+        # Infer discretize_first
+        blimey_infer_discretize = ftmb.Blimey(
+            dataset=NUMERICAL_NP_ARRAY,
+            augmentor=fuda.NormalSampling,
+            explainer=ftslm.SKLearnLinearModelExplainer,
+            global_model=self.knn_numerical,
+            local_model=Ridge,
+            categorical_indices=[0],
+            discretizer=fudd.QuartileDiscretizer)
+
+        assert blimey_infer_discretize.discretize_first
+
+        '''
+        # With SKLearnDecisionTreeExplainer
+        blimey_infer_discretize = ftmb.Blimey(
+            dataset=NUMERICAL_NP_ARRAY,
+            augmentor=fuda.NormalSampling,
+            explainer=ftslm.SKLearnDecisionTreeExplainer,
+            global_model=knn_numerical,
+            local_model=Ridge,
+            class_names=['Class A', 'Class B', 'Class C'],
+            feature_names=['A', 'B', 'C', 'D'],
+            categorical_indices=[0])
+
+        assert blimey_infer_discretize.discretize_first is False
+        '''
+
+        msg = ('Unable to infer value of discretize_first as the explainer '
+               'used is not one of the explainers defined in fatf.transparency.'
+               'sklearn')
+        with pytest.raises(ValueError) as exin:
+            blimey_infer_discretize = ftmb.Blimey(
+                dataset=NUMERICAL_NP_ARRAY,
+                augmentor=fuda.NormalSampling,
+                explainer=ExplainerUnknown,
+                global_model=self.knn_numerical,
+                local_model=Ridge,
+                categorical_indices=[0],
+                discretizer=fudd.QuartileDiscretizer)
+        assert str(exin.value) == msg
+
+        msg = ('discretize_first has been inferred to be True given the type '
+               'of explainer, but a discretier object has not been given. As '
+               'such, the data will not be discretized.')
+        with pytest.warns(UserWarning) as warning:
+            blimey_infer_discretize = ftmb.Blimey(
+                dataset=NUMERICAL_NP_ARRAY,
+                augmentor=fuda.NormalSampling,
+                explainer=ftslm.SKLearnLinearModelExplainer,
+                global_model=self.knn_numerical,
+                local_model=Ridge,
+                categorical_indices=[0])
+        assert len(warning) == 1
+        assert str(warning[0].message) == msg
+        assert blimey_infer_discretize.discretize_first == False
+
+        # numerical_blimey
+        assert self.numerical_blimey.is_structured == False
+        assert self.numerical_blimey.categorical_indices == []
+        assert self.numerical_blimey.class_names == self.class_names
+        assert self.numerical_blimey.feature_names == self.feature_names
+
+        # numerical_blimey_cat
+        assert self.numerical_blimey_cat.is_structured == False
+        assert self.numerical_blimey_cat.categorical_indices == [0]
+        assert self.numerical_blimey_cat.class_names == self.class_names
+        assert self.numerical_blimey_cat.feature_names == self.feature_names
+
+        # categorical_blimey
+        assert self.categorical_blimey.is_structured == False
+        assert self.categorical_blimey.categorical_indices == [0, 1, 2]
+        assert self.categorical_blimey.class_names == ['class 0', 'class 1',
+                                                       'class 2']
+        assert (self.categorical_blimey.feature_names == 
+                ['feature 0','feature 1', 'feature 2'])
+    
     def test_explain_instance(self):
         """
         Tests :func:`fatf.transparency.models.blimey.Blimey.explain_instance`.
@@ -250,3 +457,7 @@ class TestBlimey():
 
         exp = self.numerical_blimey_cat.explain_instance(NUMERICAL_NP_ARRAY[0])
         assert _is_explanation_equal(exp, NUMERICAL_NP_BLIMEY_CAT)
+
+        exp = self.numerical_blimey_no_discretization.explain_instance(
+            NUMERICAL_NP_ARRAY[0])
+        assert _is_explanation_equal(exp, NUMERICAL_NP_BLIMEY_NO_DISC)

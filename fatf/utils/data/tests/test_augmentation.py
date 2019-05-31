@@ -1836,7 +1836,6 @@ class TestGrowingSpheres(object):
 
         # Test with mean of dataset as starting point
         samples = self.numerical_np_augmentor.sample(samples_number=4)
-        np.set_printoptions(formatter={'float': lambda x: "{0:0.3f}".format(x)})
         assert np.allclose(samples, numerical_samples_mean, atol=1e-2)
 
         samples = self.numerical_np_0_augmentor.sample(samples_number=4)

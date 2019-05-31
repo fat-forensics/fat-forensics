@@ -69,6 +69,11 @@ def _validate_input(dataset: np.ndarray,
             raise TypeError('The categorical_indices parameter must be a '
                             'Python list or None.')
 
+    if fuav.is_structured_array(dataset):
+        features_number = len(dataset.dtype.names)
+    else:
+        features_number = dataset.shape[1]
+
     if feature_names is not None:
         if not isinstance(feature_names, list):
             raise TypeError('The feature_names parameter must be a Python '
@@ -77,7 +82,7 @@ def _validate_input(dataset: np.ndarray,
             for name in feature_names:
                 if not isinstance(name, str):
                     raise TypeError('The feature_names must be strings.')
-            if len(feature_names) != dataset.shape[1]:
+            if len(feature_names) != features_number:
                 raise ValueError('The length of feature_names must be equal '
                                  'to the number of features in the dataset.')
 
@@ -265,7 +270,7 @@ class Discretization(abc.ABC):
         is_valid = False
 
         are_similar = fuav.are_similar_dtype_arrays(
-                    self.dataset, np.array(data), strict_comparison=True)
+                    self.dataset, np.array(data), strict_comparison=False)
         if not are_similar:
             raise TypeError('The dtype of the data is different to '
                             'the dtype of the data array used to '

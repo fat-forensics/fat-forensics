@@ -52,7 +52,7 @@ def _validate_input(dataset: np.ndarray,
                                   'structured rows.')
 
     are_similar = fuav.are_similar_dtype_arrays(
-                dataset, np.array([data_row]), strict_comparison=True)
+                dataset, np.array([data_row]), strict_comparison=False)
     if not are_similar:
         raise TypeError('The dtype of the data_row is different to '
                         'the dtype of the dataset provided.')

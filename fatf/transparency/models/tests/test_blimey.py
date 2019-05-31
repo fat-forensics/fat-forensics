@@ -81,15 +81,15 @@ NUMERICAL_NP_BLIMEY = {
                 '0.58 < D <= 0.79': -0.0894}}
 
 NUMERICAL_NP_BLIMEY_CAT = {
-    'Class A': {'A': -0.1824,
+    'Class A': {'A = 0': -0.1824,
                 'B <= 0.00': 0.1318,
                 '0.07 < C <= 0.22': 0.0526,
                 '0.58 < D <= 0.79': 0.0276},
-    'Class B': {'A': -0.0425,
+    'Class B': {'A = 0': -0.0425,
                 'B <= 0.00': -0.0670,
                 '0.07 < C <= 0.22': -0.0730,
                 '0.58 < D <= 0.79': -0.0237},
-    'Class C': {'A': 0.2249,
+    'Class C': {'A = 0': 0.2249,
                 'B <= 0.00': -0.0648,
                 '0.07 < C <= 0.22': 0.0204,
                 '0.58 < D <= 0.79': -0.0039}}
@@ -107,6 +107,24 @@ NUMERICAL_NP_BLIMEY_NO_DISC = {
                 'B': 0.087,
                 'C': -0.032,
                 'D': 0.000}}
+
+NUMERICAL_STRUCT_BLIMEY = {
+    'Class A': {'A = 0': -0.308,
+                'B = 0': 0.168,
+                '0.07 < C <= 0.22': 0.0390,
+                '0.58 < D <= 0.79': -0.006},
+    'Class B': {'A = 0': -0.030,
+                'B = 0': -0.087,
+                '0.07 < C <= 0.22': 0.055,
+                '0.58 < D <= 0.79': 0.018},
+    'Class C': {'A = 0': 0.338,
+                'B = 0': -0.080,
+                '0.07 < C <= 0.22': -0.094,
+                '0.58 < D <= 0.79': -0.012}}
+
+CATEGORICAL_NP_BLIMEY = {}
+CATEGORICAL_STRUCT_BLIMEY = {}
+MIXED_BLIMEY = {}
 
 class InvalidModel(object):
     """
@@ -316,9 +334,20 @@ class TestBlimey():
     """
     knn_numerical = fum.KNN(k=3)
     knn_numerical.fit(NUMERICAL_NP_ARRAY, NUMERICAL_NP_ARRAY_TARGET)
-    
+
+    knn_numerical_structured = fum.KNN(k=3)
+    knn_numerical_structured.fit(NUMERICAL_STRUCT_ARRAY,
+                                 NUMERICAL_NP_ARRAY_TARGET)
+
     knn_categorical = fum.KNN(k=3)
     knn_categorical.fit(CATEGORICAL_NP_ARRAY, NUMERICAL_NP_ARRAY_TARGET)
+
+    knn_categorical_structured = fum.KNN(k=3)
+    knn_categorical_structured.fit(CATEGORICAL_STRUCT_ARRAY,
+                                   NUMERICAL_NP_ARRAY_TARGET)
+    
+    knn_mixed = fum.KNN(k=3)
+    knn_mixed.fit(MIXED_ARRAY, NUMERICAL_NP_ARRAY_TARGET)
 
     class_names = ['Class A', 'Class B', 'Class C']
     feature_names = ['A', 'B', 'C', 'D']
@@ -333,16 +362,6 @@ class TestBlimey():
         feature_names=feature_names,
         discretizer=fudd.QuartileDiscretizer)
 
-    numerical_blimey_no_discretization = ftmb.Blimey(
-        dataset=NUMERICAL_NP_ARRAY,
-        augmentor=fuda.NormalSampling,
-        explainer=ftslm.SKLearnLinearModelExplainer,
-        global_model=knn_numerical,
-        local_model=Ridge,
-        class_names=class_names,
-        feature_names=feature_names,
-        discretize_first=False)
-
     numerical_blimey_cat = ftmb.Blimey(
         dataset=NUMERICAL_NP_ARRAY,
         augmentor=fuda.NormalSampling,
@@ -354,12 +373,51 @@ class TestBlimey():
         categorical_indices=[0],
         discretizer=fudd.QuartileDiscretizer)
 
+    numerical_blimey_no_discretization = ftmb.Blimey(
+        dataset=NUMERICAL_NP_ARRAY,
+        augmentor=fuda.NormalSampling,
+        explainer=ftslm.SKLearnLinearModelExplainer,
+        global_model=knn_numerical,
+        local_model=Ridge,
+        class_names=class_names,
+        feature_names=feature_names,
+        discretize_first=False)
+
+    numerical_blimey_structured = ftmb.Blimey(
+        dataset=NUMERICAL_STRUCT_ARRAY,
+        augmentor=fuda.NormalSampling,
+        explainer=ftslm.SKLearnLinearModelExplainer,
+        global_model=knn_numerical_structured,
+        local_model=Ridge,
+        class_names=class_names,
+        feature_names=feature_names,
+        discretizer=fudd.QuartileDiscretizer,
+        categorical_indices=['a', 'b'])
+
     categorical_blimey = ftmb.Blimey(
         dataset=CATEGORICAL_NP_ARRAY,
         augmentor=fuda.NormalSampling,
         explainer=ftslm.SKLearnLinearModelExplainer,
         global_model=knn_categorical,
         local_model=Ridge,
+        discretizer=fudd.QuartileDiscretizer)
+
+    categorical_blimey_structured = ftmb.Blimey(
+        dataset=CATEGORICAL_STRUCT_ARRAY,
+        augmentor=fuda.NormalSampling,
+        explainer=ftslm.SKLearnLinearModelExplainer,
+        global_model=knn_categorical_structured,
+        local_model=Ridge,
+        discretizer=fudd.QuartileDiscretizer)
+
+    mixed_blimey = ftmb.Blimey(
+        dataset=MIXED_ARRAY,
+        augmentor=fuda.NormalSampling,
+        explainer=ftslm.SKLearnLinearModelExplainer,
+        global_model=knn_mixed,
+        local_model=Ridge,
+        class_names=class_names,
+        feature_names=feature_names,
         discretizer=fudd.QuartileDiscretizer)
 
     def test_init(self):
@@ -428,25 +486,77 @@ class TestBlimey():
         assert blimey_infer_discretize.discretize_first == False
 
         # numerical_blimey
+        assert self.numerical_blimey.discretize_first == True
         assert self.numerical_blimey.is_structured == False
         assert self.numerical_blimey.categorical_indices == []
+        assert self.numerical_blimey.numerical_indices == [0, 1, 2, 3]
         assert self.numerical_blimey.class_names == self.class_names
         assert self.numerical_blimey.feature_names == self.feature_names
 
         # numerical_blimey_cat
+        assert self.numerical_blimey_cat.discretize_first == True
         assert self.numerical_blimey_cat.is_structured == False
         assert self.numerical_blimey_cat.categorical_indices == [0]
+        assert self.numerical_blimey_cat.numerical_indices == [1, 2, 3]
         assert self.numerical_blimey_cat.class_names == self.class_names
         assert self.numerical_blimey_cat.feature_names == self.feature_names
 
+        # numerical_blimey_no_discretization
+        assert self.numerical_blimey_no_discretization.discretize_first == False
+        assert self.numerical_blimey_no_discretization.is_structured == False
+        assert self.numerical_blimey_no_discretization.categorical_indices == []
+        assert (self.numerical_blimey_no_discretization.numerical_indices ==
+                [0, 1, 2, 3])
+        assert self.numerical_blimey_cat.class_names == self.class_names
+        assert (self.numerical_blimey_no_discretization.feature_names == 
+                self.feature_names)
+
+        # numerical_blimey_structured
+        assert self.numerical_blimey_structured.discretize_first == True
+        assert self.numerical_blimey_structured.is_structured == True
+        assert self.numerical_blimey_structured.categorical_indices == ['a', 'b']
+        assert (self.numerical_blimey_structured.numerical_indices ==
+                ['c', 'd'])
+        assert self.numerical_blimey_structured.class_names == self.class_names
+        assert (self.numerical_blimey_structured.feature_names ==
+                self.feature_names)
+    
         # categorical_blimey
+        assert self.categorical_blimey.discretize_first == True
         assert self.categorical_blimey.is_structured == False
         assert self.categorical_blimey.categorical_indices == [0, 1, 2]
+        assert self.categorical_blimey.numerical_indices == []       
         assert self.categorical_blimey.class_names == ['class 0', 'class 1',
                                                        'class 2']
         assert (self.categorical_blimey.feature_names == 
                 ['feature 0','feature 1', 'feature 2'])
+
+        # categorical_blimey_structured
+        assert self.categorical_blimey_structured.discretize_first == True
+        assert self.categorical_blimey_structured.is_structured == True
+        assert (self.categorical_blimey_structured.categorical_indices ==
+                ['a', 'b', 'c'])
+        assert self.categorical_blimey_structured.numerical_indices == []
+        assert self.categorical_blimey_structured.class_names == ['class 0', 'class 1',
+                                                       'class 2']
+        assert (self.categorical_blimey.feature_names == 
+                ['feature 0','feature 1', 'feature 2'])
+
+        # mixed_blimey
+        assert self.mixed_blimey.discretize_first == True
+        assert self.mixed_blimey.is_structured == True
+        assert self.mixed_blimey.categorical_indices == ['b', 'd']
+        assert self.mixed_blimey.numerical_indices == ['a', 'c']
+        assert self.mixed_blimey.class_names == self.class_names
+        assert self.mixed_blimey.feature_names == self.feature_names
     
+    def test_explain_instance_is_input_valid(self):
+        """
+        Tests :func:`fatf.transparency.models.blimey.Blimey._explain_instance
+        _is_input_valid`.
+        """
+        assert True
+
     def test_explain_instance(self):
         """
         Tests :func:`fatf.transparency.models.blimey.Blimey.explain_instance`.
@@ -461,3 +571,7 @@ class TestBlimey():
         exp = self.numerical_blimey_no_discretization.explain_instance(
             NUMERICAL_NP_ARRAY[0])
         assert _is_explanation_equal(exp, NUMERICAL_NP_BLIMEY_NO_DISC)
+
+        exp = self.numerical_blimey_structured.explain_instance(
+            NUMERICAL_STRUCT_ARRAY[0])
+        assert _is_explanation_equal(exp ,NUMERICAL_STRUCT_BLIMEY)

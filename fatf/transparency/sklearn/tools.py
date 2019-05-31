@@ -37,7 +37,10 @@ def is_sklearn_model(clf: object) -> bool:
         ``True`` if the object inherits from ``sklearn.base.BaseEstimator``,
         ``False`` otherwise.
     """
-    is_valid_model = isinstance(clf, sklearn.base.BaseEstimator)
+    if isinstance(clf, type):
+        is_valid_model = issubclass(clf, sklearn.base.BaseEstimator)
+    else:
+        is_valid_model = isinstance(clf, sklearn.base.BaseEstimator)
     return is_valid_model
 
 

@@ -10,6 +10,7 @@ import warnings
 import numpy as np
 
 import fatf.transparency.sklearn.linear_model as ftslm
+import fatf.transparency.sklearn.tools as ftst
 
 import fatf.utils.data.augmentation as fuda
 import fatf.utils.data.discretization as fudd
@@ -249,6 +250,8 @@ class Blimey(object):
         Must be compatible with the chosen explainer.
     categorical_indices : List[column indices]
         A list of column indices that should be treat as categorical features.
+    numerical_indices : List[column indices]
+        A list of column indices that should be treat as numerical features.
     class_names : List[string]
         A list of strings defining the names of classes.
     feature_names : List[string]
@@ -286,9 +289,13 @@ class Blimey(object):
         # Sort out column indices
         indices = fuat.indices_by_type(dataset)
         cat_indices = set(indices[1])
+        num_indices = set(indices[0])
+        cat_indices = set(indices[1])
+        all_indices = num_indices.union(cat_indices)
 
         if categorical_indices is None:
-            self.categorical_indices = list(cat_indices)
+            categorical_indices = cat_indices
+            numerical_indices = num_indices
         else:
             if cat_indices.difference(categorical_indices):
                 msg = ('Some of the string-based columns in the input dataset '
@@ -299,8 +306,11 @@ class Blimey(object):
                        '(in addition to the ones selected with the '
                        'categorical_indices parameter).')
                 warnings.warn(msg, UserWarning)
-            self.categorical_indices = list(cat_indices.union(
-                categorical_indices))
+                categorical_indices = cat_indices.union(categorical_indices)
+            numerical_indices = all_indices.difference(categorical_indices)
+
+        self.categorical_indices = sorted(list(categorical_indices))
+        self.numerical_indices = sorted(list(numerical_indices))
 
         # Infer whether to discretize data or not
         if discretize_first is None:
@@ -326,7 +336,8 @@ class Blimey(object):
         # Initialise objects
         self.global_model = global_model
         self.augmentor = augmentor(
-            dataset, categorical_indices=self.categorical_indices, **kwargs)
+            dataset, categorical_indices=self.categorical_indices,
+            int_to_float=False, **kwargs)
         
         if self.discretize_first:
             self.discretizer = discretizer(
@@ -338,8 +349,12 @@ class Blimey(object):
             self.discretized_dataset = None
     
         self.explainer_class = explainer
-        self.n_classes = self.global_model.predict_proba(
-            dataset).shape[1]
+
+        if self.is_structured:
+            row = np.array([dataset[0]], dtype=self.dataset.dtype)
+        else:
+            row = dataset[0].reshape(1, -1)
+        self.n_classes = self.global_model.predict_proba(row).shape[1]
         self.local_model = local_model
 
         if fuav.is_structured_array(self.dataset):
@@ -349,7 +364,7 @@ class Blimey(object):
 
         # pre-process class_names and feature_names
         if feature_names is None:
-            feature_names = [None] * self.dataset.shape[1]
+            feature_names = [None] * len(self.indices)
         self.feature_names = []
         for i, feature_name in enumerate(feature_names):
             if feature_name is None:
@@ -385,7 +400,7 @@ class Blimey(object):
         """
         input_is_ok = False
 
-        if not fuav.is_1d_array(data_row):
+        if not fuav.is_1d_like(data_row):
             raise IncorrectShapeError('data_row must be a 1-dimensional array')
         are_similar = fuav.are_similar_dtype_arrays(
             self.dataset, np.array(data_row), strict_comparison=True)
@@ -450,6 +465,10 @@ class Blimey(object):
             data_row, samples_number=samples_number, **self.kwargs)
         prediction_probabilities = self.global_model.predict_proba(
             sampled_data)
+
+        # TODO: lasso / greedy optimisation to pick the best features
+        #       to include in local model.
+
         if self.discretize_first:
             discretized_data_row = self.discretizer.discretize(data_row)
             discretized_sampled_data = self.discretizer.discretize(sampled_data)
@@ -459,16 +478,31 @@ class Blimey(object):
 
             discretized_value_names = self.discretizer.feature_value_names
             discretized_feature_names = []
+            # TODO: categorical data
             for i, index in enumerate(self.indices):
                 data_row_value = int(discretized_data_row[index])
                 if index in discretized_value_names.keys():
                     discretized_feature_names.append(
                         discretized_value_names[index][data_row_value])
+                elif index in self.categorical_indices:
+                    discretized_feature_names.append(
+                        '{} = {}'.format(self.feature_names[i],
+                                         data_row_value))
                 else:
                     discretized_feature_names.append(self.feature_names[i])
             
             feature_names = discretized_feature_names
             sampled_data = binary_data
+
+        if ftst.is_sklearn_model(self.local_model):
+            if fuav.is_numerical_array(sampled_data):
+                sampled_data = fuat.as_unstructured(sampled_data)
+            else:
+                raise IncompatibleModelError(
+                    'The local_model is a sklearn model but the data has '
+                    'non-numerical values. Sklearn models are incompatible '
+                    'with non-numerical values, please either use a different '
+                    'local_model or one hot encode the non-numerical values.')
 
         blimey_explanation = {}
         for i in range(self.n_classes):

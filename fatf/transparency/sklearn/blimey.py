@@ -277,10 +277,10 @@ class Blimey(object):
         """
         Constructs a ``Blimey`` class.
         """
-        assert _input_is_valid(dataset, augmentor, explainer,
-                               global_model, local_model, categorical_indices,
-                               class_names, feature_names, discretize_first,
-                               discretizer), 'Input is not valid.'
+        assert _input_is_valid(
+            dataset, augmentor, explainer, global_model, local_model,
+            categorical_indices, class_names, feature_names, discretize_first,
+            discretizer), 'Input is not valid.'
 
         self.kwargs = kwargs
         self.dataset = dataset

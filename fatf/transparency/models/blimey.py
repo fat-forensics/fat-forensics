@@ -134,7 +134,7 @@ def _input_is_valid(dataset: np.ndarray,
                          'None. In order to discretize the sampled data prior '
                          'to training a local model, please specify a '
                          'discretizer object.')
-    
+
     if discretize_first is False and discretizer is not None:
         msg = ('discretize_first is False but discretizer has been specified. '
                'The discretizer will be ignored and the data will not be '
@@ -176,7 +176,7 @@ class Blimey(object):
         Whether to discretize the data before training the local model. If
         None, this will be inferred based on the parent class of the explainer
         object.
-    discretizer : fatf.utils.data.discretization.Discretization, 
+    discretizer : fatf.utils.data.discretization.Discretization,
             optional (default=None)
         An object reference which is a subclass of :class:`fatf.utils.data.
         discretization.Discretization` which will discretize the data for use
@@ -338,7 +338,7 @@ class Blimey(object):
         self.augmentor = augmentor(
             dataset, categorical_indices=self.categorical_indices,
             int_to_float=False, **kwargs)
-        
+
         if self.discretize_first:
             self.discretizer = discretizer(
                 dataset, categorical_indices=self.categorical_indices,
@@ -347,7 +347,7 @@ class Blimey(object):
                 self.dataset)
         else:
             self.discretized_dataset = None
-    
+
         self.explainer_class = explainer
 
         if self.is_structured:
@@ -467,18 +467,18 @@ class Blimey(object):
             sampled_data)
 
         # TODO: lasso / greedy optimisation to pick the best features
-        #       to include in local model.
+        #       to include in local model and possibly categorical features.
 
         if self.discretize_first:
             discretized_data_row = self.discretizer.discretize(data_row)
-            discretized_sampled_data = self.discretizer.discretize(sampled_data)
-    
+            discretized_sampled_data = self.discretizer.discretize(
+                sampled_data)
+
             binary_data = fuds.similarity_binary_mask(
                 discretized_sampled_data, discretized_data_row)
 
             discretized_value_names = self.discretizer.feature_value_names
             discretized_feature_names = []
-            # TODO: categorical data
             for i, index in enumerate(self.indices):
                 data_row_value = int(discretized_data_row[index])
                 if index in discretized_value_names.keys():
@@ -490,7 +490,7 @@ class Blimey(object):
                                          data_row_value))
                 else:
                     discretized_feature_names.append(self.feature_names[i])
-            
+
             feature_names = discretized_feature_names
             sampled_data = binary_data
 
@@ -513,7 +513,8 @@ class Blimey(object):
                 feature_names=feature_names,
                 **self.kwargs)
             explanation = dict(
-                zip(feature_names, explainer.feature_importance(**self.kwargs)))
+                zip(feature_names,
+                    explainer.feature_importance(**self.kwargs)))
 
             blimey_explanation[self.class_names[i]] = explanation
 

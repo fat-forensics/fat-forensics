@@ -5,7 +5,6 @@ Holds functions responsible for models validation across FAT-Forensics.
 #         Alex Hepburn <ah13558@bristol.ac.uk>
 # License: new BSD
 
-from typing import Dict, Tuple
 import inspect
 import warnings
 

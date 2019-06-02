@@ -38,7 +38,7 @@ def _check_object_functionality(given_object: object,
             is_functional = False
             message_strings.append(
                 'The {} class is missing \'{}\' method.'.format(
-                object_name, method))
+                    object_name, method))
         else:
             method_object = getattr(given_object, method)
             required_param_n = 0
@@ -56,7 +56,7 @@ def _check_object_functionality(given_object: object,
                      '({}) of the required parameters. It needs to have '
                      'exactly {} required parameters. Try using optional '
                      'parameters if you require more functionality.').format(
-                     method, required_param_n, methods[method]))
+                         method, required_param_n, methods[method]))
 
     message = '\n'.join(message_strings)
 
@@ -94,7 +94,7 @@ def check_explainer_functionality(explainer_object: object,
     is_functional = True
 
     methods = {'explain_instance': 1}
-    
+
     is_functional, message = _check_object_functionality(
         explainer_object, 'explainer', methods)
 

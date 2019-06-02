@@ -57,7 +57,7 @@ def _validate_input(dataset: np.ndarray,
                                   '2-dimensional numpy array.')
     if not fuav.is_base_array(dataset):
         raise TypeError('The input dataset must be of a base type.')
-    
+
     if categorical_indices is not None:
         if isinstance(categorical_indices, list):
             invalid_indices = fuat.get_invalid_indices(
@@ -94,21 +94,21 @@ class Discretization(abc.ABC):
     """
     Abstract class for all discretisers
 
-     An abstract class that all discretizer classes should inherit from. It 
+     An abstract class that all discretizer classes should inherit from. It
     contains abstract ``__init__`` and ``discretize`` methods and an input
     validator -- ``_validate_discretize_input`` -- for the ``discretize``
     method. The validation of the input parameter to the initialisation
     method is done via the :func:`fatf.utils.data.discretize._validate_input`
     function.
-    
+
     .. warning::
        Attribute ``feature_value_names`` must be overwritten . This attribute
        is of type Dictionary[Index, Dictionary[Any, string]] where the
-       outer dictionary is mapping a index of a feature that has been 
-       discretized to a dictionary. The second dictionary maps values in that 
-       discretized feature vector to the string description of what those 
+       outer dictionary is mapping a index of a feature that has been
+       discretized to a dictionary. The second dictionary maps values in that
+       discretized feature vector to the string description of what those
        values mean, e.g. if we discretized a feature vector into quartiles
-       the inner dictionary would be {0: 'feature < q1', 1: 'q1 < feature < 
+       the inner dictionary would be {0: 'feature < q1', 1: 'q1 < feature <
        q2', 2: 'q2 < feature < q3', 3: 'feature > q3'}.
 
     Parameters
@@ -171,7 +171,7 @@ class Discretization(abc.ABC):
         Constructs an ``Discretization`` abstract class.
         """
         assert _validate_input(
-            dataset, 
+            dataset,
             categorical_indices=categorical_indices,
             feature_names=feature_names), 'Invalid Input'
 
@@ -244,8 +244,7 @@ class Discretization(abc.ABC):
         raise NotImplementedError(  # pragma: nocover
             'discretize method needs to be overwritten.')
 
-    def _validate_discretize_input(self,
-                                   data:np.ndarray) -> bool:
+    def _validate_discretize_input(self, data: np.ndarray) -> bool:
         """
         Validates input parameters of the ``discretize`` method.
 
@@ -259,7 +258,7 @@ class Discretization(abc.ABC):
             to the number of features in the data array used to initialise this
             object.
         TypeError
-            The dtype of the ``data`` is different than the dtype of the data 
+            The dtype of the ``data`` is different than the dtype of the data
             array used to initialise this object.
 
         Returns
@@ -270,7 +269,7 @@ class Discretization(abc.ABC):
         is_valid = False
 
         are_similar = fuav.are_similar_dtype_arrays(
-                    self.dataset, np.array(data), strict_comparison=False)
+            self.dataset, np.array(data), strict_comparison=False)
         if not are_similar:
             raise TypeError('The dtype of the data is different to '
                             'the dtype of the data array used to '
@@ -296,7 +295,7 @@ class QuartileDiscretizer(Discretization):
     Discretization that discretizes data into quartiles.
 
     This class discretizes numerical data by mapping the values in dataset to
-    which quartile the value is in for a given feature. 
+    which quartile the value is in for a given feature.
 
     For additional parameters, attributes, warnings and exceptions raised by
     this class please see the  documentation of its parent class:
@@ -305,7 +304,7 @@ class QuartileDiscretizer(Discretization):
     Attributes
     ----------
     bins : Dictionary[Index, numpy.array]
-        A dictionary mapping indices to numpy array specifying the 
+        A dictionary mapping indices to numpy array specifying the
         quartile ranges.
     """
     def __init__(self,
@@ -331,10 +330,13 @@ class QuartileDiscretizer(Discretization):
                                              [25, 50, 75]))
             self.bins[feature] = qts
             feature_name = self.feature_names[feature]
-            interval_format = [(feature_name, qts[0]), (qts[0], feature_name,
-                qts[1]), (qts[1], feature_name, qts[2]), (feature_name, qts[2])]
-            self.feature_value_names[feature] = [interval%x for
-                (interval, x) in zip(feature_interval_names, interval_format)]
+            interval_format = [(feature_name, qts[0]),
+                               (qts[0], feature_name, qts[1]),
+                               (qts[1], feature_name, qts[2]),
+                               (feature_name, qts[2])]
+            self.feature_value_names[feature] = [
+                interval%x for(interval, x) in
+                zip(feature_interval_names, interval_format)]
 
     def discretize(self, data: np.ndarray) -> np.ndarray:
         """

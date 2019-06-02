@@ -16,13 +16,13 @@ from typing import List, Optional, Tuple, Union
 
 import numpy as np
 
+import scipy.stats
+
 from fatf.exceptions import IncorrectShapeError, IncompatibleModelError
 
 import fatf.utils.array.tools as fuat
 import fatf.utils.array.validation as fuav
 import fatf.utils.models.validation as fumv
-
-import scipy.stats
 
 __all__ = ['NormalSampling', 'Mixup', 'TruncatedNormal', 'GrowingSpheres']
 
@@ -534,7 +534,7 @@ class TruncatedNormal(Augmentation):
 
     Attributes
     ----------
-    numerical_sampling_values : Dictionary[column index, 
+    numerical_sampling_values : Dictionary[column index,
             Tuple[number, number, number, number]]
         Dictionary mapping numerical column feature indices to tuples of two
         numbers: column's *mean*, *standard deviation*, *minimum* and
@@ -544,13 +544,13 @@ class TruncatedNormal(Augmentation):
         Dictionary mapping categorical column feature indices to tuples two
         1-dimensional numpy arrays: one with unique values for that column
         and the other one with their normalised (sum up to 1) frequencies.
-    """ 
+    """
 
     def __init__(self,
-                dataset: np.ndarray,
-                categorical_indices: Optional[List[Index]] = None,
-                int_to_float: bool = True,
-                **kwargs) -> None:
+                 dataset: np.ndarray,
+                 categorical_indices: Optional[List[Index]] = None,
+                 int_to_float: bool = True,
+                 **kwargs) -> None:
         """
         Constructs an ``TruncatedNormal`` data augmentation class.
         """
@@ -566,7 +566,7 @@ class TruncatedNormal(Augmentation):
                     self.dataset[self.numerical_indices])
             else:
                 num_features_array = self.dataset[:, self.numerical_indices]
-            
+
             num_features_mean = num_features_array.mean(axis=0)
             num_features_min = num_features_array.min(axis=0)
             num_features_max = num_features_array.max(axis=0)
@@ -595,8 +595,8 @@ class TruncatedNormal(Augmentation):
         self.categorical_sampling_values = categorical_sampling_values
 
     def sample(self,
-            data_row: Optional[Union[np.ndarray, np.void]] = None,
-            samples_number: int = 50) -> np.ndarray:
+               data_row: Optional[Union[np.ndarray, np.void]] = None,
+               samples_number: int = 50) -> np.ndarray:
         """
         Samples new data from a truncated normal distribution.
 
@@ -1234,20 +1234,20 @@ def _validate_input_growingspheres(global_model: object,
 
     if not isinstance(starting_std, float):
         raise TypeError('starting_std is not a float.')
-    
+
     if not isinstance(increment_std, float):
         raise TypeError('increment_std is not a float.')
-    
+
     if not isinstance(minimum_per_class, float):
         raise TypeError('minimum_per_class is not a float.')
 
     if minimum_per_class >= 1.0 or minimum_per_class <= 0:
         raise ValueError('minimum_per_class must be a float between 0 and 1.')
-    
+
     if starting_std <= 0:
         raise ValueError('starting_std must be a positive float greater than '
                          '0.')
-    
+
     if increment_std <= 0:
         raise ValueError('increment_std must be a positive float greater than '
                          '0.')
@@ -1261,14 +1261,14 @@ class GrowingSpheres(Augmentation):
     Sampling data with the Growing Spheres method.
 
     This object implements a adapted version of the Growing Spheres method
-    introduced by [LAUGEL2018SPHERES]_. For a specific data point, it samples with
-    a normal distribution centered on the data point, incrementing the standard
-    deviation until a percentage of the samples are not classified as being in
-    the original class by the global model. After this is achieved, one of the
-    data points found to be in another class is used as the center of the
-    normal distribution. The process is repeated until all of the classes
-    are in the sampled dataset. All of the normal distributions are sampled
-    equally.
+    introduced by [LAUGEL2018SPHERES]_. For a specific data point, it samples
+    with a normal distribution centered on the data point, incrementing the
+    standard deviation until a percentage of the samples are not classified as
+    being in the original class by the global model. After this is achieved,
+    one of the data points found to be in another class is used as the center
+    of the normal distribution. The process is repeated until all of the
+    classes are in the sampled dataset. All of the normal distributions are
+    sampled equally.
 
     For additional parameters, attributes, warnings and exceptions raised by
     this class please see the documentation of its parent class:
@@ -1402,15 +1402,15 @@ class GrowingSpheres(Augmentation):
                     self.categorical_sampling_values[index][0][maximum]
             for index in self.numerical_indices:
                 data_row[index] = self.dataset[index].mean(axis=0)
-        
+
         # Reshape row to be used in global_model.predict
         if self.is_structured:
             row = np.array([data_row], dtype=self.dataset.dtype)
         else:
             row = data_row.reshape(1, -1)
         label = self.global_model.predict(row)
-        samples_per_sphere = [int(float(samples_number) /
-                              (self.n_classes))]*self.n_classes
+        samples_per_sphere = [
+            int(float(samples_number) / (self.n_classes))] * self.n_classes
         if np.sum(samples_per_sphere) != samples_number:
             samples_per_sphere[0] = (samples_number -
                                      np.sum(samples_per_sphere[1:]))
@@ -1448,7 +1448,7 @@ class GrowingSpheres(Augmentation):
                     samples_iter[index] = sample_values
                 else:
                     samples_iter[:, index] = sample_values
-            
+
             # Get predictions for sampled data
             predictions = self.global_model.predict(samples_iter)
             # Get the predictions that aren't in the classes we already have
@@ -1466,7 +1466,7 @@ class GrowingSpheres(Augmentation):
                 break
         else:
             raise RuntimeError('Maximum iterations reached. Try increasing '
-                                'max_iter or decreasing minimum_per_class.')
+                               'max_iter or decreasing minimum_per_class.')
 
         if len(samples_list) == 1:
             samples = samples_list[0]

@@ -4,15 +4,10 @@ Convert dataset into binary dataset.
 # Author: Alex Hepburn <ah13558@bristol.ac.uk>
 # License: new BSD
 
-import warnings
-
-from typing import List, Optional, Union
-
 import numpy as np
 
 from fatf.exceptions import IncorrectShapeError
 
-import fatf.utils.array.tools as fuat
 import fatf.utils.array.validation as fuav
 
 __all__ = ['similarity_binary_mask']
@@ -47,9 +42,9 @@ def _validate_input(dataset: np.ndarray,
         raise TypeError('The input dataset must be of a base type.')
 
     if not fuav.is_1d_like(data_row):
-        raise IncorrectShapeError('The data_row must either be a 1-dimensional '
-                                  'numpy array or numpy void object for '
-                                  'structured rows.')
+        raise IncorrectShapeError('The data_row must either be a '
+                                  '1-dimensional numpy array or numpy void '
+                                  'object for structured rows.')
 
     are_similar = fuav.are_similar_dtype_arrays(
                 dataset, np.array([data_row]), strict_comparison=False)
@@ -58,10 +53,10 @@ def _validate_input(dataset: np.ndarray,
                         'the dtype of the dataset provided.')
 
     if not fuav.is_structured_array(dataset):
-                if data_row.shape[0] != dataset.shape[1]:
-                    raise IncorrectShapeError('The data_row must contain the '
-                                              'same number of features as the '
-                                              'dataset provided.')
+        if data_row.shape[0] != dataset.shape[1]:
+            raise IncorrectShapeError('The data_row must contain the same '
+                                      'number of features as the dataset '
+                                      'provided.')
 
     is_valid = True
     return is_valid
@@ -71,30 +66,29 @@ def similarity_binary_mask(dataset: np.ndarray,
                            data_row: np.ndarray,):
     """
     Converts dataset values to `1` if the same as a row and `0` if not.
-    
+
     Coverts dataset into a binary dataset where values are `1` if the
     ``dataset`` value is equal to ``data_row`` value and `0` if not. Also will
     output feature names for the binary features. Also converts data types to
     integers.
 
-    
     Parameters
     ----------
     dataset : numpy.ndarray
         A 2-dimensional numpy array with a dataset to be turned into binary
         dataset.
     data_row : numpy.ndarray
-        A 1-dimensional array containing feature values that will be compared 
+        A 1-dimensional array containing feature values that will be compared
         against ``dataset`` parameter.
 
     Raises
     ------
     IncorrectShapeError
-        dataset is not a 2-dimensional array or data_row is not a 
-        1-dimensional array or data_row and dataset do not have the same 
+        dataset is not a 2-dimensional array or data_row is not a
+        1-dimensional array or data_row and dataset do not have the same
         number of features in them.
     TypeError
-        If dataset is not a base dtype or data_row is not a base dtype or 
+        If dataset is not a base dtype or data_row is not a base dtype or
         dataset and data_row have different dtypes.
 
     Returns

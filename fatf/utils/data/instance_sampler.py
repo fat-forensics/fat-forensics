@@ -38,8 +38,8 @@ def _validate_input(data_row: np.ndarray,
     if data_row is not None:
         if not fuav.is_1d_like(data_row):
             raise IncorrectShapeError('The data_row must either be a '
-                                        '1-dimensional numpy array or numpy '
-                                        'void object for structured rows.')
+                                      '1-dimensional numpy array or numpy '
+                                      'void object for structured rows.')
 
     if isinstance(samples_number, int):
         if samples_number < 1:

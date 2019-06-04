@@ -265,7 +265,7 @@ def test_input_is_valid():
             NUMERICAL_NP_ARRAY, fuda.NormalSampling,
             ftslm.SKLearnLinearModelExplainer, model, fum.KNN, feature_names='a')
     assert str(exin.value) == msg
-    
+
     msg = ('The length of feature_names must be equal to the number of '
            'features in the dataset.')
     with pytest.raises(ValueError) as exin:
@@ -400,15 +400,26 @@ class TestBlimey():
         explainer=ftslm.SKLearnLinearModelExplainer,
         global_model=knn_categorical,
         local_model=Ridge,
-        discretizer=fudd.QuartileDiscretizer)
+        discretize_first=False)
 
-    categorical_blimey_structured = ftsmb.Blimey(
-        dataset=CATEGORICAL_STRUCT_ARRAY,
-        augmentor=fuda.NormalSampling,
-        explainer=ftslm.SKLearnLinearModelExplainer,
-        global_model=knn_categorical_structured,
-        local_model=Ridge,
-        discretizer=fudd.QuartileDiscretizer)
+    msg = ('Some of the string-based columns in the input dataset '
+           'were not selected as categorical features via the '
+           'categorical_indices parameter. String-based columns '
+           'cannot be treated as numerical features, therefore '
+           'they will be also treated as categorical features '
+           '(in addition to the ones selected with the '
+           'categorical_indices parameter).')
+    with pytest.warns(UserWarning) as warning:
+        categorical_blimey_structured = ftsmb.Blimey(
+            dataset=CATEGORICAL_STRUCT_ARRAY,
+            augmentor=fuda.NormalSampling,
+            explainer=ftslm.SKLearnLinearModelExplainer,
+            global_model=knn_categorical_structured,
+            local_model=Ridge,
+            discretize_first=False,
+            categorical_indices=['a'])
+    assert len(warning) == 1
+    assert str(warning[0].message) == msg
 
     mixed_blimey = ftsmb.Blimey(
         dataset=MIXED_ARRAY,
@@ -522,7 +533,7 @@ class TestBlimey():
                 self.feature_names)
 
         # categorical_blimey
-        assert self.categorical_blimey.discretize_first == True
+        assert self.categorical_blimey.discretize_first == False
         assert self.categorical_blimey.is_structured == False
         assert self.categorical_blimey.categorical_indices == [0, 1, 2]
         assert self.categorical_blimey.numerical_indices == []
@@ -532,7 +543,7 @@ class TestBlimey():
                 ['feature 0','feature 1', 'feature 2'])
 
         # categorical_blimey_structured
-        assert self.categorical_blimey_structured.discretize_first == True
+        assert self.categorical_blimey_structured.discretize_first == False
         assert self.categorical_blimey_structured.is_structured == True
         assert (self.categorical_blimey_structured.categorical_indices ==
                 ['a', 'b', 'c'])
@@ -555,12 +566,77 @@ class TestBlimey():
         Tests :func:`fatf.transparency.sklearn.blimey.Blimey._explain_instance
         _is_input_valid`.
         """
-        assert True
+        shape_err_msg = ('data_row must be a 1-dimensional array')
+        dtype_err = ('The dtype of the data is different to '
+                     'the dtype of the data array used to '
+                     'initialise this class.')
+        features_shape_msg = ('The data must contain the same number of '
+                              'features as the dataset used to initialise '
+                              'this class.')
+        samples_number_value_msg = ('The samples_number parameter must be a '
+                                   'positive integer.')
+        samples_number_type_msg =  ('The samples_number parameter must be an '
+                                     'integer.')
+
+        with pytest.raises(IncorrectShapeError) as exin:
+            self.numerical_blimey._explain_instance_is_input_valid(
+                NUMERICAL_NP_ARRAY, 1)
+        assert str(exin.value) == shape_err_msg
+
+        with pytest.raises(IncorrectShapeError) as exin:
+            self.categorical_blimey._explain_instance_is_input_valid(
+                CATEGORICAL_NP_ARRAY, 1)
+        assert str(exin.value) == shape_err_msg
+
+        with pytest.raises(TypeError) as exin:
+            self.numerical_blimey._explain_instance_is_input_valid(
+                CATEGORICAL_NP_ARRAY[0], 1)
+        assert str(exin.value) == dtype_err
+
+        with pytest.raises(TypeError) as exin:
+            self.numerical_blimey_structured._explain_instance_is_input_valid(
+                CATEGORICAL_STRUCT_ARRAY[0], 1)
+        assert str(exin.value) == dtype_err
+
+        with pytest.raises(IncorrectShapeError) as exin:
+            self.numerical_blimey._explain_instance_is_input_valid(
+                NUMERICAL_NP_ARRAY[0][0:3], 1)
+        assert str(exin.value) == features_shape_msg
+
+        with pytest.raises(ValueError) as exin:
+            self.numerical_blimey._explain_instance_is_input_valid(
+                NUMERICAL_NP_ARRAY[0], -1)
+        assert str(exin.value) == samples_number_value_msg
+
+        with pytest.raises(TypeError) as exin:
+            self.numerical_blimey._explain_instance_is_input_valid(
+                NUMERICAL_NP_ARRAY[0], 'a')
+        assert str(exin.value) == samples_number_type_msg
+
+        # All good
+        assert self.numerical_blimey._explain_instance_is_input_valid(
+            NUMERICAL_NP_ARRAY[0], 10)
+        assert self.categorical_blimey._explain_instance_is_input_valid(
+            CATEGORICAL_NP_ARRAY[0], 10)
+        assert self.numerical_blimey_structured._explain_instance_is_input_valid(
+            NUMERICAL_STRUCT_ARRAY[0], 10)
+        assert self.mixed_blimey._explain_instance_is_input_valid(
+            MIXED_ARRAY[0], 10)
 
     def test_explain_instance(self):
         """
         Tests :func:`fatf.transparency.sklearn.blimey.Blimey.explain_instance`.
         """
+
+        msg = ('The local_model is a sklearn model but the data has '
+               'non-numerical values. Sklearn models are incompatible '
+               'with non-numerical values, please either use a different '
+               'local_model or one hot encode the non-numerical values.')
+        with pytest.raises(IncompatibleModelError) as exin:
+            exp = self.categorical_blimey.explain_instance(
+                CATEGORICAL_NP_ARRAY[0])
+        assert str(exin.value) == msg
+
         fatf.setup_random_seed()
         exp = self.numerical_blimey.explain_instance(NUMERICAL_NP_ARRAY[0])
         assert _is_explanation_equal(exp, NUMERICAL_NP_BLIMEY)

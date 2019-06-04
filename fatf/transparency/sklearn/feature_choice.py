@@ -43,7 +43,7 @@ def _is_input_valid(dataset: np.ndarray,
 
     if not fuav.is_numerical_array(dataset):
         raise TypeError('The input dataset must only contain numerical '
-                         'dtypes')
+                        'dtypes')
 
     if not fuav.is_1d_array(target):
         raise IncorrectShapeError('The input target array must a '
@@ -101,8 +101,8 @@ def lasso_path(dataset: np.ndarray,
     features : List[Index]
         List of indices of the features selecte by lasso path.
     """
-    assert _is_input_valid(
-        dataset, target, weights, num_features), 'Input is invalid.'
+    assert _is_input_valid(dataset, target, weights,
+                           num_features), 'Input is invalid.'
 
     if fuav.is_structured_array(dataset):
         indices = np.array(dataset.dtype.names)

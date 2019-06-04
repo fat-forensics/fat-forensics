@@ -554,9 +554,10 @@ class TruncatedNormal(Augmentation):
         """
         Constructs an ``TruncatedNormal`` data augmentation class.
         """
-        super().__init__(dataset=dataset,
-                         categorical_indices=categorical_indices,
-                         int_to_float=int_to_float)
+        super().__init__(
+            dataset=dataset,
+            categorical_indices=categorical_indices,
+            int_to_float=int_to_float)
 
         # Get sampling parameters for numerical features.
         numerical_sampling_values = dict()
@@ -573,9 +574,10 @@ class TruncatedNormal(Augmentation):
             num_features_std = num_features_array.std(axis=0)
 
             for i, index in enumerate(self.numerical_indices):
-                numerical_sampling_values[index] = (
-                    num_features_mean[i], num_features_std[i],
-                    num_features_min[i], num_features_max[i])
+                numerical_sampling_values[index] = (num_features_mean[i],
+                                                    num_features_std[i],
+                                                    num_features_min[i],
+                                                    num_features_max[i])
 
         self.numerical_sampling_values = numerical_sampling_values
         # Get sampling parameters for categorical features.
@@ -647,13 +649,16 @@ class TruncatedNormal(Augmentation):
                 mean = data_row[index]
             sample_values = scipy.stats.truncnorm.rvs(
                 (minimum - mean) / std, (maximum - mean) / std,
-                loc=mean, scale=std, size=samples_number)
+                loc=mean,
+                scale=std,
+                size=samples_number)
             if self.is_structured:
                 samples[index] = sample_values
             else:
                 samples[:, index] = sample_values
 
         return samples
+
 
 def _validate_input_mixup(
         beta_parameters: Union[None, Tuple[Number, Number]]) -> bool:
@@ -1316,7 +1321,7 @@ class GrowingSpheres(Augmentation):
         1-dimensional numpy arrays: one with unique values for that column
         and the other one with their normalised (sum up to 1) frequencies.
     """
-    # pylint: disable=too-few-public-methods,too-many-instance-attributes
+
     def __init__(self,
                  dataset: np.ndarray,
                  global_model: object,
@@ -1332,8 +1337,8 @@ class GrowingSpheres(Augmentation):
             dataset,
             categorical_indices=categorical_indices,
             int_to_float=int_to_float)
-        assert _validate_input_growingspheres(
-            global_model, starting_std, increment_std, minimum_per_class)
+        assert _validate_input_growingspheres(global_model, starting_std,
+                                              increment_std, minimum_per_class)
         self.dataset = dataset
         self.global_model = global_model
         self.n_classes = self.global_model.predict_proba(dataset).shape[1]
@@ -1409,11 +1414,11 @@ class GrowingSpheres(Augmentation):
         else:
             row = data_row.reshape(1, -1)
         label = self.global_model.predict(row)
-        samples_per_sphere = [
-            int(float(samples_number) / (self.n_classes))] * self.n_classes
+        samples_per_sphere = [int(float(samples_number) / (self.n_classes))
+                              ] * self.n_classes
         if np.sum(samples_per_sphere) != samples_number:
-            samples_per_sphere[0] = (samples_number -
-                                     np.sum(samples_per_sphere[1:]))
+            samples_per_sphere[0] = (
+                samples_number - np.sum(samples_per_sphere[1:]))
         # Create an array to hold the samples.
         if self.is_structured:
             shape = (samples_number, )  # type: Tuple[int, ...]
@@ -1453,7 +1458,7 @@ class GrowingSpheres(Augmentation):
             predictions = self.global_model.predict(samples_iter)
             # Get the predictions that aren't in the classes we already have
             new = [p for p in predictions if p not in labels]
-            if len(new) >= self.minimum_per_class*samples_number:
+            if len(new) >= self.minimum_per_class * samples_number:
                 for i in range(samples_per_sphere[class_counter]):
                     pred = predictions[i]
                     if pred not in labels:

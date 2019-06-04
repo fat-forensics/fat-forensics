@@ -66,7 +66,9 @@ def _input_is_valid(dataset: np.ndarray,
             'outputting probabilities via predict_proba method.')
 
     if not fumv.check_model_functionality(
-            local_model, require_probabilities=False, suppress_warning=True,
+            local_model,
+            require_probabilities=False,
+            suppress_warning=True,
             is_instance=False):
         raise IncompatibleModelError(
             'This functionality requires the local model to be capable of '
@@ -91,8 +93,8 @@ def _input_is_valid(dataset: np.ndarray,
         raise TypeError('The augmentor object must inherit from abstract '
                         'class fatf.utils.augmentation.Augmentation.')
 
-    if (discretizer is not None and
-            not issubclass(discretizer, fudd.Discretization)):
+    if (discretizer is not None
+            and not issubclass(discretizer, fudd.Discretization)):
         raise TypeError('The discretizer object must be None or inherit from '
                         'abstract class fatf.utils.discretization.'
                         'Discretization.')
@@ -103,8 +105,8 @@ def _input_is_valid(dataset: np.ndarray,
                             'list.')
         else:
             for class_name in class_names:
-                if (class_name is not None and not
-                        isinstance(class_name, str)):
+                if (class_name is not None
+                        and not isinstance(class_name, str)):
                     raise TypeError('The class_name has to be either None or '
                                     'a string or a list of strings.')
 
@@ -262,6 +264,7 @@ class Blimey(object):
     indices : List[column indices]
         A list of all indices in ``dataset``.
     """
+
     def __init__(self,
                  dataset: np.ndarray,
                  augmentor: fuda.Augmentation,
@@ -277,10 +280,10 @@ class Blimey(object):
         """
         Constructs a ``Blimey`` class.
         """
-        assert _input_is_valid(
-            dataset, augmentor, explainer, global_model, local_model,
-            categorical_indices, class_names, feature_names, discretize_first,
-            discretizer), 'Input is not valid.'
+        assert _input_is_valid(dataset, augmentor, explainer, global_model,
+                               local_model, categorical_indices, class_names,
+                               feature_names, discretize_first,
+                               discretizer), 'Input is not valid.'
 
         self.kwargs = kwargs
         self.dataset = dataset
@@ -336,13 +339,17 @@ class Blimey(object):
         # Initialise objects
         self.global_model = global_model
         self.augmentor = augmentor(
-            dataset, categorical_indices=self.categorical_indices,
-            int_to_float=False, **kwargs)
+            dataset,
+            categorical_indices=self.categorical_indices,
+            int_to_float=False,
+            **kwargs)
 
         if self.discretize_first:
             self.discretizer = discretizer(
-                dataset, categorical_indices=self.categorical_indices,
-                feature_names=feature_names, **kwargs)
+                dataset,
+                categorical_indices=self.categorical_indices,
+                feature_names=feature_names,
+                **kwargs)
             self.discretized_dataset = self.discretizer.discretize(
                 self.dataset)
         else:
@@ -474,8 +481,8 @@ class Blimey(object):
             discretized_sampled_data = self.discretizer.discretize(
                 sampled_data)
 
-            binary_data = fuds.similarity_binary_mask(
-                discretized_sampled_data, discretized_data_row)
+            binary_data = fuds.similarity_binary_mask(discretized_sampled_data,
+                                                      discretized_data_row)
 
             discretized_value_names = self.discretizer.feature_value_names
             discretized_feature_names = []
@@ -485,9 +492,8 @@ class Blimey(object):
                     discretized_feature_names.append(
                         discretized_value_names[index][data_row_value])
                 elif index in self.categorical_indices:
-                    discretized_feature_names.append(
-                        '{} = {}'.format(self.feature_names[i],
-                                         data_row_value))
+                    discretized_feature_names.append('{} = {}'.format(
+                        self.feature_names[i], data_row_value))
                 else:
                     discretized_feature_names.append(self.feature_names[i])
 
@@ -509,9 +515,7 @@ class Blimey(object):
             local_model = self.local_model(**self.kwargs)
             local_model.fit(sampled_data, prediction_probabilities[:, i])
             explainer = self.explainer_class(
-                local_model,
-                feature_names=feature_names,
-                **self.kwargs)
+                local_model, feature_names=feature_names, **self.kwargs)
             explanation = dict(
                 zip(feature_names,
                     explainer.feature_importance(**self.kwargs)))

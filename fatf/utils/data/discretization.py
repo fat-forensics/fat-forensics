@@ -163,6 +163,7 @@ class Discretization(abc.ABC):
         A dictionary mapping indices to list of values specifying the
         bounds used to discretize the data.
     """
+
     def __init__(self,
                  dataset: np.ndarray,
                  categorical_indices: Optional[List[Index]] = None,
@@ -307,6 +308,7 @@ class QuartileDiscretizer(Discretization):
         A dictionary mapping indices to numpy array specifying the
         quartile ranges.
     """
+
     def __init__(self,
                  dataset: np.ndarray,
                  categorical_indices: Optional[List[Index]] = None,
@@ -315,8 +317,10 @@ class QuartileDiscretizer(Discretization):
         """
         Constructs an ``QuartileDiscretization`` abstract class.
         """
-        super().__init__(dataset, categorical_indices=categorical_indices,
-                         feature_names=feature_names)
+        super().__init__(
+            dataset,
+            categorical_indices=categorical_indices,
+            feature_names=feature_names)
 
         self.bins = {}
         self.feature_value_names = {}
@@ -326,8 +330,8 @@ class QuartileDiscretizer(Discretization):
             if self.is_structured:
                 qts = np.array(np.percentile(dataset[feature], [25, 50, 75]))
             else:
-                qts = np.array(np.percentile(dataset[:, feature],
-                                             [25, 50, 75]))
+                qts = np.array(
+                    np.percentile(dataset[:, feature], [25, 50, 75]))
             self.bins[feature] = qts
             feature_name = self.feature_names[feature]
             interval_format = [(feature_name, qts[0]),
@@ -335,8 +339,10 @@ class QuartileDiscretizer(Discretization):
                                (qts[1], feature_name, qts[2]),
                                (feature_name, qts[2])]
             self.feature_value_names[feature] = [
-                interval%x for(interval, x) in
-                zip(feature_interval_names, interval_format)]
+                interval % x
+                for (interval,
+                     x) in zip(feature_interval_names, interval_format)
+            ]
 
     def discretize(self, data: np.ndarray) -> np.ndarray:
         """

@@ -79,7 +79,7 @@ class Lime(object):
 
     Parameters
     ----------
-    data: numpy.ndarray
+    data : numpy.ndarray
         A 2-dimensional numerical numpy array with a dataset to be used.
     local_explanation : boolean, optional (default=True)
         If ``True`` the LIME explainer will sample data from the neighbourhood
@@ -139,7 +139,7 @@ class Lime(object):
     _EXPLAIN_INSTANCE_PARAMS : Set[string]
         A list of names of the ``LimeTabularExplainer.explain_instance``
         function named parameter.
-    tabular_explainer: lime.lime_tabular.LimeTabularExplainer
+    tabular_explainer : lime.lime_tabular.LimeTabularExplainer
         An initialised ``LimeTabularExplainer`` object.
     mode : string
         LIME mode of operation; ``'classification'`` or ``'regression'``.

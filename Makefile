@@ -131,19 +131,19 @@ test-notebooks:
 		examples/
 
 test:
-	PYTHONPATH=./ PYTEST_IN_PROGRESS='true' pytest \
+	FATF_SEED=42 PYTHONPATH=./ PYTEST_IN_PROGRESS='true' pytest \
 		--junit-xml=temp/pytest_$(PYTHON_VERSION).xml \
 		fatf/
 
 code-coverage:
-	PYTHONPATH=./ PYTEST_IN_PROGRESS='true' pytest \
+	FATF_SEED=42 PYTHONPATH=./ PYTEST_IN_PROGRESS='true' pytest \
 		--cov-report=term-missing \
 		--cov-report=xml:temp/coverage_$(PYTHON_VERSION).xml \
 		--cov=fatf \
 		fatf/
 
 test-with-code-coverage:
-	PYTHONPATH=./ PYTEST_IN_PROGRESS='true' pytest \
+	FATF_SEED=42 PYTHONPATH=./ PYTEST_IN_PROGRESS='true' pytest \
 		--junit-xml=temp/pytest_$(PYTHON_VERSION).xml \
 		--cov-report=term-missing \
 		--cov-report=xml:temp/coverage_$(PYTHON_VERSION).xml \

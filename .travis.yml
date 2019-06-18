@@ -58,9 +58,11 @@ matrix:
     - env: FATF_TEST_SCIPY=latest  FATF_TEST_NUMPY=latest
 
 install:
-  - make dependencies-dev  # Install python development dependencies
   - pip install lime
-  - pip install 'matplotlib>=3.0.0'
+  # The matplotlib version is fixed to 3.0.0 because since version 3.1 it
+  # requires at least 1.11 numpy and we support numpy 1.10
+  - pip install 'matplotlib==3.0.0'
+  - make dependencies-dev  # Install python development dependencies
 #  - pip install scikit-learn
 #  - make install-sans-dep
 

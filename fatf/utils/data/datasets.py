@@ -196,7 +196,7 @@ optional (default=None)
     ValueError
         The number of feature names is inconsistent with the data header, the
         feature names are provided both in the ``feature_names`` and ``dtype``
-        parameters, a tuple in the list of complex ``dtype``\ s is
+        parameters, a tuple in the list of complex ``dtype``\\ s is
         malformatted, or the number of type definitions in the ``dtype``
         parameter is inconsistent with the number of features in the dataset.
 

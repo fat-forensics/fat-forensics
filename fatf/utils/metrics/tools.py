@@ -278,10 +278,7 @@ and treat_as_categorical
     """
     # pylint: disable=too-many-arguments
     indices_per_bin, bin_names = fudt.group_by_column(
-        dataset,
-        column_index,
-        groupings,
-        numerical_bins_number,
+        dataset, column_index, groupings, numerical_bins_number,
         treat_as_categorical)
 
     assert fudt.validate_indices_per_bin(indices_per_bin), \

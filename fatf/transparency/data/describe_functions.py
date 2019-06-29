@@ -226,7 +226,7 @@ def describe_numerical_array(array: Union[np.ndarray, np.void],
     array : Union[numpy.ndarray, numpy.void]
         An array for which a description is desired.
     skip_nans : boolean, optional (default=True)
-        If set to ``True``, ``numpy.nan``\ s present in the input array will
+        If set to ``True``, ``numpy.nan``\\ s present in the input array will
         be excluded while computing the statistics.
 
     Raises

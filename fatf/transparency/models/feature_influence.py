@@ -592,9 +592,9 @@ individual_conditional_expectation` function.
 
     .. note:: If you wish to have access to both ICE and PDP results consider
        using :func:`fatf.transparency.models.feature_influence.\
-individual_conditional_expectation` and
-       :func:`fatf.transparency.models.feature_influence.partial_dependence_ice`
-       functions to minimise the computational cost.
+individual_conditional_expectation` and :func:`fatf.transparency.models.\
+feature_influence.partial_dependence_ice` functions to minimise the
+       computational cost.
 
     .. [FRIEDMAN2001GREEDY] J. H. Friedman. Greedy function approximation: A
        gradient boosting machine. The Annals of Statistics, 29:1189–1232, 2001.

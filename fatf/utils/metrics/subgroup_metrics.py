@@ -197,6 +197,7 @@ def performance_per_subgroup(
         #
         groupings: Optional[List[Union[Number, Tuple[str]]]] = None,
         numerical_bins_number: int = 5,
+        treat_as_categorical: Optional[bool] = None,
         #
         labels: Optional[List[Union[str, Number]]] = None,
         #
@@ -232,7 +233,7 @@ def performance_per_subgroup(
     """
     population_cmxs, bin_names = fumt.confusion_matrix_per_subgroup(
         dataset, ground_truth, predictions, column_index, groupings,
-        numerical_bins_number, labels)
+        numerical_bins_number, treat_as_categorical, labels)
 
     if metric_function is not None:
         population_metrics = apply_metric_function(

@@ -36,6 +36,7 @@ def disparate_impact(  # type: ignore
         #
         groupings: Optional[List[Union[Number, Tuple[str]]]] = None,
         numerical_bins_number: int = 5,
+        treat_as_categorical: Optional[bool] = None,
         #
         labels: Optional[List[Union[str, Number]]] = None,
         #
@@ -52,8 +53,8 @@ def disparate_impact(  # type: ignore
 
     Parameters
     ----------
-    dataset, ground_truth, predictions, column_index, groupings,
-    numerical_bins_number, and labels
+    dataset, ground_truth, predictions, column_index, groupings, \
+numerical_bins_number, labels, and treat_as_categorical
         See the documentation of
         :func:`fatf.utils.metrics.tools.confusion_matrix_per_subgroup`
         function.
@@ -86,7 +87,7 @@ def disparate_impact(  # type: ignore
     # pylint: disable=too-many-arguments
     population_cmxs, bin_names = fumt.confusion_matrix_per_subgroup(
         dataset, ground_truth, predictions, column_index, groupings,
-        numerical_bins_number, labels)
+        numerical_bins_number, treat_as_categorical, labels)
 
     disparity_grid = _disparate_impact_grid(population_cmxs, criterion,
                                             tolerance, label_index)

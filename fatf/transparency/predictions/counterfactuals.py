@@ -1,5 +1,6 @@
 """
-Implements a counterfactual prediction explainer of a black-box classifier.
+The :mod:`fatf.transparency.predictions.counterfactuals` module implements
+counterfactual explainers for predictions.
 """
 # Author: Kacper Sokol <k.sokol@bristol.ac.uk>
 #         Rafael Poyiadzi <rp13102@bristol.ac.uk>
@@ -26,7 +27,7 @@ from fatf.exceptions import IncorrectShapeError
 FeatureRange = Union[Tuple[Number, Number], List[Union[Number, str]]]
 Index = Union[int, str]
 
-__all__ = ['textualise_counterfactuals', 'CounterfactualExplainer']
+__all__ = ['CounterfactualExplainer', 'textualise_counterfactuals']
 
 _NUMPY_VERSION = [int(i) for i in np.version.version.split('.')]
 _NUMPY_1_13 = fut.at_least_verion([1, 13], _NUMPY_VERSION)
@@ -66,7 +67,7 @@ class CounterfactualExplainer(object):
     given that a ``dataset`` is provided. If some of the feature ranges are not
     defined and a ``dataset`` is not given an exception will be raised.
     **Counterfactuals will only be search for within these feature ranges.**
-    **Ranges are only required for features specified by the
+    Ranges are only required for features specified by the
     ``counterfactual_feature_indices`` parameter or all features if this
     parameter is not given.
 
@@ -78,9 +79,8 @@ class CounterfactualExplainer(object):
     functions are desired, the user may specify these via the
     ``distance_functions`` parameter. Each distance function has to be a
     ``Callable`` with two input parameters. Finally, the distance can be
-    normalised, please see the documentation of the :func:`fatf.transparency.
-    predictions.counterfactuals.CounterfactualExplainer._get_distance` for
-    details.
+    normalised, please see the documentation of the :func:`fatf.transparency.\
+predictions.counterfactuals.CounterfactualExplainer._get_distance` for details.
 
     Last but not least, when doing grid search through the features to discover
     counterfactual data points the user may define the step size between the
@@ -105,8 +105,8 @@ class CounterfactualExplainer(object):
         A list of column indices indicating which columns are categorical.
     numerical_indices : List[column indices], optional (default=None)
         A list of column indices indicating which columns are numerical.
-    counterfactual_feature_indices : List[column indices],
-                                     optional (default=None)
+    counterfactual_feature_indices : List[column indices], \
+optional (default=None)
         A list of column indices indicating which features should be used to
         compose counterfactual examples. If `None`` all of the features will be
         used to generate counterfactuals.
@@ -114,8 +114,8 @@ class CounterfactualExplainer(object):
         The maximum length of counterfactuals -- the number of features altered
         to compose a counterfactual instance. By default it is set to 2. If set
         to 0, all available features will be used.
-    feature_ranges : Dictionary[column indices, ranges],
-                     optional (default=None)
+    feature_ranges : Dictionary[column indices, ranges], \
+optional (default=None)
         A dictionary with keys representing the column (feature) indices and
         the values representing feature ranges. Numerical feature ranges are
         represented as a **pair** of numbers ``(min, max)`` where the first
@@ -124,14 +124,14 @@ class CounterfactualExplainer(object):
         **list** of all the values that to be tested for this feature. If set
         to ``None``, a ``dataset`` has to be provided to calculate these
         ranges.
-    distance_functions : Dictionary[column indices, Callable],
-                         optional (default=None)
+    distance_functions : Dictionary[column indices, Callable], \
+optional (default=None)
         A dictionary with keys representing the column (feature) indices and
         the values representing Python functions -- a Callable that takes two
         arguments -- that will be used to calculate the distance for this
         particular feature.
-    step_sizes : Dictionary[column indices, Number],
-                 optional (default=None)
+    step_sizes : Dictionary[column indices, Number], \
+optional (default=None)
         A dictionary with keys representing the column (feature) indices and
         the values representing step size for the grid search of this feature.
         **It is only required for the numerical features.**

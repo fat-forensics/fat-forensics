@@ -1,5 +1,5 @@
 """
-Data augmentation classes.
+The :mod:`fatf.utils.data.augmentation` module implements data set augmenters.
 """
 # Author: Alex Hepburn <ah13558@bristol.ac.uk>
 #         Kacper Sokol <k.sokol@bristol.ac.uk>
@@ -21,7 +21,7 @@ from fatf.exceptions import IncorrectShapeError
 import fatf.utils.array.tools as fuat
 import fatf.utils.array.validation as fuav
 
-__all__ = ['NormalSampling']
+__all__ = ['NormalSampling', 'Mixup']
 
 Index = Union[int, str]
 
@@ -114,7 +114,7 @@ class Augmentation(abc.ABC):
     An abstract class that all augmentation classes should inherit from. It
     contains abstract ``__init__`` and ``sample`` methods and an input
     validator -- ``_validate_sample_input`` -- for the ``sample`` method. The
-    validation of the input parameter to the initialisation method is done via
+    validation of the input parameters to the initialisation method is done via
     the :func:`fatf.utils.data.augmentation._validate_input` function.
 
     .. note::
@@ -385,8 +385,8 @@ class NormalSampling(Augmentation):
     numerical_sampling_values : Dictionary[column index, Tuple[number, number]]
         Dictionary mapping numerical column feature indices to tuples of two
         numbers: column's *mean* and its *standard deviation*.
-    categorical_sampling_values :
-    Dictionary[column index, Tuple[numpy.ndarray, numpy.ndarray]]
+    categorical_sampling_values : Dictionary[column index, \
+Tuple[numpy.ndarray, numpy.ndarray]]
         Dictionary mapping categorical column feature indices to tuples two
         1-dimensional numpy arrays: one with unique values for that column
         and the other one with their normalised (sum up to 1) frequencies.
@@ -576,7 +576,7 @@ class Mixup(Augmentation):
     For additional parameters, attributes, warnings and exceptions raised by
     this class please see the documentation of its parent class:
     :class:`fatf.utils.data.augmentation.Augmentation` and the function that
-    validates the input parameter
+    validates the input parameters
     :func:`fatf.utils.data.augmentation._validate_input_mixup`.
 
     .. [ZHANG2018MIXUP] Zhang, H., Cisse, M., Dauphin, Y. N. and Lopez-Paz, D.,
@@ -973,8 +973,8 @@ class Mixup(Augmentation):
         samples : numpy.ndarray
             A numpy array of shape [``samples_number``, number of features]
             that holds the sampled data.
-        samples_target : numpy.ndarray, optional (returned when
-        the ``data_row_target`` parameter is not ``None``)
+        samples_target : numpy.ndarray, optional (returned when the \
+``data_row_target`` parameter is not ``None``)
             Either a numpy array of shape [samples_number, number of unique
             labels (classes)] holding the class probabilities for the sampled
             data or a 1-dimensional numpy array with labels for the sampled

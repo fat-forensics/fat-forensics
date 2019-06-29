@@ -1,5 +1,5 @@
 """
-Holds numpy array tools.
+The :mod:`fatf.utils.array.tools` module implements tools for numpy array.
 """
 # Author: Kacper Sokol <k.sokol@bristol.ac.uk>
 # License: new BSD
@@ -144,15 +144,15 @@ def get_invalid_indices(array: np.ndarray, indices: np.ndarray) -> np.ndarray:
     return np.sort(list(invalid_indices))
 
 
-def are_indices_valid(array: np.array, indices: np.array) -> bool:
+def are_indices_valid(array: np.ndarray, indices: np.ndarray) -> bool:
     """
     Checks whether all the input ``indices`` are valid for the input ``array``.
 
     Parameters
     ----------
-    array : numpy.array
+    array : numpy.ndarray
         The 2-dimensional array to be checked.
-    indices : numpy.array
+    indices : numpy.ndarray
         1-dimensional array of column indices.
 
     Raises
@@ -308,7 +308,7 @@ def structured_to_unstructured_row(
         structured_row: np.void, **kwargs: Optional[np.dtype]
 ) -> Union[np.dtype, np.ndarray]:  # pragma: no cover
     """
-    Calls either local or numpy's structured_to_unstructured(_row) function.
+    Calls either local or numpy's ``structured_to_unstructured`` function.
 
     Converts a structured row into an unstructured one using either local
     implementation
@@ -406,7 +406,7 @@ def structured_to_unstructured(
         structured_array: np.ndarray,
         **kwargs: Optional[np.dtype]) -> np.ndarray:  # pragma: no cover
     """
-    Calls either local or numpy's structured_to_unstructured function.
+    Calls either local or numpy's ``structured_to_unstructured`` function.
 
     numpy 1.16.0 has introduced
     :func:`numpy.lib.recfunctions.structured_to_unstructured` function. To

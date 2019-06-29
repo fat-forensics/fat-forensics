@@ -1,5 +1,5 @@
 """
-This module holds data density estimation functionality.
+The :mod:`fatf.utils.data.density` module implements data density estimators.
 """
 # Author: Kacper Sokol <k.sokol@bristol.ac.uk>
 #         Rafael Poyiadzi <rp13102@bristol.ac.uk>
@@ -165,8 +165,8 @@ class DensityCheck(object):
     neighbours : integer, optional (default=7)
         The number of closest neighbours to be considered when calculating the
         density score.
-    distance_function : Callable[[data row, data row], number], optional
-    (default=None)
+    distance_function : Callable[[data row, data row], number], \
+optional (default=None)
         If ``None`` the sum of Euclidean distance for numerical features and
         binary distance (0 when the values are the same and 1 otherwise) for
         categorical features will be used as a distance function.

@@ -1,5 +1,7 @@
 """
-This package is responsible for a visualisation of various FAT methods.
+The :mod:`fatf.vis` module implements visualisations of various FAT methods.
+
+**This module requires the matplotlib package to be installed.**
 """
 # Author: Kacper Sokol <k.sokol@bristol.ac.uk>
 # License: new BSD

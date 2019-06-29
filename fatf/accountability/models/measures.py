@@ -1,5 +1,6 @@
 """
-Implements data accountability measures.
+The :mod:`fatf.accountability.models.measures` module implements accountability
+measures for models.
 """
 # Author: Kacper Sokol <k.sokol@bristol.ac.uk>
 #         Rafael Poyiadzi <rp13102@bristol.ac.uk>
@@ -18,8 +19,8 @@ def systematic_performance_bias(  # type: ignore
     """
     Checks for a systematic bias in provided predictive performance values.
 
-    Please see the documentation of :func:`fatf.accountability.models.measures.
-    systematic_performance_bias_grid` function for a description of input
+    Please see the documentation of :func:`fatf.accountability.models.\
+measures.systematic_performance_bias_grid` function for a description of input
     parameters, errors and exceptions.
 
     .. note::

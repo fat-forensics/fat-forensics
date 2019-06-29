@@ -1,5 +1,9 @@
 """
-Helper functions for testing visualisations with matplotlib.
+The :mod:`fatf.utils.testing.vis` module holds visualisation testing functions.
+
+This module holds functions that are of great help when testing visualisations
+implemented in :mod:`fatf.vis` module. **This module requires the
+``matplotlib`` package to be installed.**
 """
 # Author: Kacper Sokol <k.sokol@bristol.ac.uk>
 #         Alex Hepburn <ah13558@bristol.ac.uk>
@@ -70,8 +74,8 @@ def get_line_data(
 
     Parameters
     ----------
-    line_plot : Union[matplotlib.lines.Line2D,
-                      matplotlib.collections.LineCollection]
+    line_plot : Union[matplotlib.lines.Line2D, \
+matplotlib.collections.LineCollection]
         A matplotlib line object extracted from a plot's axis.
     is_collection : boolean, optional (default=False)
         If ``True``, the ``line_plot`` will be treated as a ``LineCollection``.

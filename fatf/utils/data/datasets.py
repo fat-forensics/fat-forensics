@@ -1,5 +1,8 @@
 """
-Holds functions responsible for loading (builtin) example datasets.
+The :mod:`fatf.utils.data.datasets` module holds examples of data sets.
+
+The iris data set is returned as a classic numpy array, whereas the health
+records data set is a structured numpy array.
 """
 # Author: Alex Hepburn <ah13558@bristol.ac.uk>
 #         Kacper Sokol <k.sokol@bristol.ac.uk>
@@ -26,7 +29,7 @@ _DATA_PATH = os.path.join(os.path.dirname(__file__), 'datasets')
 def _validate_data_header(X: np.ndarray, y: np.ndarray, n_samples: int,
                           n_features: int, y_names: np.ndarray) -> bool:
     """
-    Checks if reading in data is consistent by ... the csv header.
+    Checks if read-in data are consistent with their csv header.
 
     For details on valid header formatting see the
     :func:`fatf.utils.datasets.load_data` documentation.
@@ -164,12 +167,9 @@ def load_data(file_path: str,
     ----------
     file_path : string
         Path to the csv data file.
-    dtype : Union[type,
-                  numpy.dtype,
-                  string,
-                  List[Tuple[string, string]],
-                  List[Tuple[string, type]],
-                  List[Tuple[string, numpy.dtype]]], optional (default=None)
+    dtype : Union[type, numpy.dtype, string, List[Tuple[string, string]], \
+List[Tuple[string, type]], List[Tuple[string, numpy.dtype]]], \
+optional (default=None)
         dtypes used to read the csv data. Defaults to None in which case the
         types will be inferred. The user can provide either a single type for
         the whole array (as a built-in Python type, numpy's dtype or a string
@@ -196,9 +196,9 @@ def load_data(file_path: str,
     ValueError
         The number of feature names is inconsistent with the data header, the
         feature names are provided both in the ``feature_names`` and ``dtype``
-        parameters, a tuple in the list of complex ``dtype``s is malformatted,
-        or the number of type definitions in the ``dtype`` parameter is
-        inconsistent with the number of features in the dataset.
+        parameters, a tuple in the list of complex ``dtype``\ s is
+        malformatted, or the number of type definitions in the ``dtype``
+        parameter is inconsistent with the number of features in the dataset.
 
     Returns
     -------
@@ -326,7 +326,7 @@ def load_iris() -> Dict[str, np.ndarray]:
     -------
     data : Dict[string, numpy.ndarray]
         A dictionary with the dataset and its metadata. See
-        :func:`fatf.utils.datasets.load_data` for the data format.
+        :func:`fatf.utils.data.datasets.load_data` for the data format.
     """
     file_path = os.path.join(_DATA_PATH, 'iris.csv')
     data_dtype = np.float32
@@ -343,12 +343,13 @@ def load_health_records() -> Dict[str, np.ndarray]:
     Loads in a fake health records dataset.
 
     The dataset contains a mixture of categorical and numerical columns
-    generated with *faker_*. The data array is a structured numpy array with
-    the following columns and types: 'name' (string), 'email' (string), 'age'
-    (integer), 'weight' (integer), 'gender' (string), 'zipcode' (string),
-    'diagnosis' (string) and 'dob' (string) -- date of birth. The target
-    variable is binary (numerical) and encodes a medical treatment has
-    succeeded: 1 is 'success' and 0 is 'fail'.
+    generated with faker_. The data array is a structured numpy array with
+    the following columns and types: ``'name'`` (string), ``'email'`` (string),
+    ``'age'`` (integer), ``'weight'`` (integer), ``'gender'`` (string),
+    ``'zipcode'`` (string), ``'diagnosis'`` (string) and ``'dob'`` (string) --
+    date of birth. The target variable is binary (numerical) and encodes a
+    medical treatment has succeeded: ``1`` is ``'success'`` and ``0`` is
+    ``'fail'``.
 
     .. _faker: https://github.com/joke2k/faker
 
@@ -356,7 +357,7 @@ def load_health_records() -> Dict[str, np.ndarray]:
     -------
     data : Dict[string, numpy.ndarray]
         A dictionary with the dataset and its metadata. See
-        :func:`fatf.utils.datasets.load_data` for the data format.
+        :func:`fatf.utils.data.datasets.load_data` for the data format.
     """
     file_path = os.path.join(_DATA_PATH, 'health_records.csv')
     feature_names = [

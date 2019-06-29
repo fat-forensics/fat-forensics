@@ -1,5 +1,5 @@
 """
-This module implements tools for datasets handling.
+The :mod:`fatf.utils.data.tools` module implements tools for data set handling.
 """
 # Author: Kacper Sokol <k.sokol@bristol.ac.uk>
 #         Matt Clifford <mc15445@bristol.ac.uk>

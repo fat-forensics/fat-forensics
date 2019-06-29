@@ -1,5 +1,6 @@
 """
-Implements data accountability measures.
+The :mod:`fatf.accountability.data.measures` module holds data accountability
+measures.
 """
 # Author: Kacper Sokol <k.sokol@bristol.ac.uk>
 #         Rafael Poyiadzi <rp13102@bristol.ac.uk>
@@ -23,7 +24,8 @@ Index = Union[int, str]  # A column index type
 def sampling_bias(dataset: np.ndarray,
                   column_index: Index,
                   groupings: Optional[List[Union[Number, Tuple[str]]]] = None,
-                  numerical_bins_number: int = 5
+                  numerical_bins_number: int = 5,
+                  treat_as_categorical: Optional[bool] = None
                   ) -> Tuple[List[int], np.ndarray, List[str]]:
     """
     Computes information needed for evaluating and remedying sampling bias.
@@ -45,7 +47,8 @@ def sampling_bias(dataset: np.ndarray,
 
     Parameters
     ----------
-    dataset, column_index, groupings, and numerical_bins_number
+    dataset, column_index, groupings, numerical_bins_number, and \
+treat_as_categorical
         These parameters are described in the documentation of
         :func:`fatf.utils.data.tools.group_by_column` function and are used to
         define a grouping (i.e. sub-populations). If you have your own
@@ -71,7 +74,11 @@ def sampling_bias(dataset: np.ndarray,
         categorical feature.
     """
     indices_per_bin, bin_names = fudt.group_by_column(
-        dataset, column_index, groupings, numerical_bins_number)
+        dataset,
+        column_index,
+        groupings,
+        numerical_bins_number,
+        treat_as_categorical)
 
     assert fudt.validate_indices_per_bin(indices_per_bin), \
         'Binned indices list is invalid.'

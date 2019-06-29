@@ -1,5 +1,10 @@
 """
-Wraps the fatf.transparency.lime.Lime explainer for a prediction.
+The :mod:`fatf.transparency.predictions.lime` module prepares the LIME
+explainer for explaining predictions.
+
+This module instantiates :class:`fatf.transparency.lime.Lime` class with
+selected arguments to create a :class:`.Lime` class explainer for a single
+prediction.
 """
 # Author: Kacper Sokol <k.sokol@bristol.ac.uk>
 # License: new BSD

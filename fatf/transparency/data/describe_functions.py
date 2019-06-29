@@ -1,5 +1,6 @@
 """
-Implements functions to describe numpy arrays.
+The :mod:`fatf.transparency.data.describe_functions` module implements
+functions to describe data sets.
 """
 # Author: Rafael Poyiadzi <rp13102@bristol.ac.uk>
 #         Kacper Sokol <k.sokol@bristol.ac.uk>
@@ -44,9 +45,8 @@ def describe_array(
 
     The details of numerical and categorical descriptions can be found in
     :func:`fatf.transparency.data.describe_functions.describe_numerical_array`
-    and :func:
-    `fatf.transparency.data.describe_functions.describe_categorical_array`
-    functions documentation respectively.
+    and :func:`fatf.transparency.data.describe_functions.\
+describe_categorical_array` functions documentation respectively.
 
     To filter out the columns that will be described you can use ``include``
     and ``exclude`` parameters. Either of these can be a list with columns
@@ -74,9 +74,9 @@ def describe_array(
         ``'numerical'`` or ``'categorical'`` to exclude wither all numerical or
         all categorical columns respectively.
     **kwargs : bool
-        Keyword arguments that are passed to the :func:
-        `fatf.transparency.data.describe_functions.describe_numerical_array`
-        function responsible for describing numerical arrays.
+        Keyword arguments that are passed to the :func:`fatf.transparency.\
+data.describe_functions.describe_numerical_array` function responsible for
+        describing numerical arrays.
 
     Warns
     -----
@@ -96,8 +96,8 @@ def describe_array(
 
     Returns
     -------
-    description : Dict[Union[str, int],
-                       Dict[str, Union[str, int, float bool, np.ndarray]]]
+    description : Dict[Union[str, int], Dict[str, \
+Union[str, int, float bool, np.ndarray]]]
         For 2-dimensional arrays a dictionary describing every column under a
         key corresponding to its index in the input array. For a 1-dimensional
         input array a dictionary describing that array.
@@ -226,8 +226,8 @@ def describe_numerical_array(array: Union[np.ndarray, np.void],
     array : Union[numpy.ndarray, numpy.void]
         An array for which a description is desired.
     skip_nans : boolean, optional (default=True)
-        If set to ``True``, ``numpy.nan``s present in the input array will be
-        excluded while computing the statistics.
+        If set to ``True``, ``numpy.nan``\ s present in the input array will
+        be excluded while computing the statistics.
 
     Raises
     ------
@@ -321,8 +321,8 @@ def describe_categorical_array(
 
     Returns
     -------
-    categorical_description : Dict[string, Union[string, integer, boolean,
-                                                 numpy.ndarray]]
+    categorical_description : Dict[string, Union[string, integer, \
+boolean, numpy.ndarray]]
         A dictionary describing the categorical input array.
     """
     if not fuav.is_1d_like(array):

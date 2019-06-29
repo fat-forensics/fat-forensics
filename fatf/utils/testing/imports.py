@@ -1,5 +1,8 @@
 """
-Defines functions to help test the code that imports modules.
+The :mod:`fatf.utils.testing.imports` module holds import testing functions.
+
+This module implements functions that help to test the FAT-Forensics code that
+imports other modules.
 """
 # Author: Kacper Sokol <k.sokol@bristol.ac.uk>
 # License: new BSD
@@ -8,6 +11,8 @@ import contextlib
 import sys
 
 from typing import Iterator
+
+__all__ = ['module_import_tester']
 
 
 @contextlib.contextmanager

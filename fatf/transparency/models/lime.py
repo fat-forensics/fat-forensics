@@ -1,5 +1,10 @@
 """
-Wraps the fatf.transparency.lime.Lime explainer for a whole model.
+The :mod:`fatf.transparency.models.lime` module prepares the LIME explainer for
+explaining models.
+
+This module instantiates :class:`fatf.transparency.lime.Lime` class with
+selected arguments to create a :class:`.Lime` class explainer for a whole
+model.
 """
 # Author: Kacper Sokol <k.sokol@bristol.ac.uk>
 # License: new BSD

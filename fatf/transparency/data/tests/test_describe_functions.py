@@ -623,8 +623,7 @@ def test_describe_array():
     assert set(description) == set(['a', 'b', 'd'])
     for col_id, column_description in description.items():
         assert set(ftddf.NUMERICAL_KEYS) == set(column_description.keys())
-        assert set(ftddf.NUMERICAL_KEYS) == set(
-            description_num[col_id].keys())
+        assert set(ftddf.NUMERICAL_KEYS) == set(description_num[col_id].keys())
         for i in ftddf.NUMERICAL_KEYS:
             col_d = column_description[i]
             gt_d = description_num[col_id][i]
@@ -638,8 +637,7 @@ def test_describe_array():
     assert set(description) == set(['a', 'b', 'd'])
     for col_id, column_description in description.items():
         assert set(ftddf.NUMERICAL_KEYS) == set(column_description.keys())
-        assert set(ftddf.NUMERICAL_KEYS) == set(
-            description_num[col_id].keys())
+        assert set(ftddf.NUMERICAL_KEYS) == set(description_num[col_id].keys())
         for i in ftddf.NUMERICAL_KEYS:
             col_d = column_description[i]
             gt_d = description_num[col_id][i]
@@ -675,8 +673,7 @@ def test_describe_array():
     assert set(description) == set([0, 2])
     for col_id, column_description in description.items():
         assert set(ftddf.NUMERICAL_KEYS) == set(column_description.keys())
-        assert set(ftddf.NUMERICAL_KEYS) == set(
-            description_num[col_id].keys())
+        assert set(ftddf.NUMERICAL_KEYS) == set(description_num[col_id].keys())
         for i in ftddf.NUMERICAL_KEYS:
             col_d = column_description[i]
             gt_d = description_num[col_id][i]
@@ -690,8 +687,7 @@ def test_describe_array():
     assert set(description) == set([0, 2])
     for col_id, column_description in description.items():
         assert set(ftddf.NUMERICAL_KEYS) == set(column_description.keys())
-        assert set(ftddf.NUMERICAL_KEYS) == set(
-            description_num[col_id].keys())
+        assert set(ftddf.NUMERICAL_KEYS) == set(description_num[col_id].keys())
         for i in ftddf.NUMERICAL_KEYS:
             col_d = column_description[i]
             gt_d = description_num[col_id][i]

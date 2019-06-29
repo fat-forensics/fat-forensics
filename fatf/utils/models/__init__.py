@@ -1,5 +1,5 @@
 """
-Prepares ``fatf.utils.models`` module.
+The :mod:`fatf.utils.models` module holds models tools and utilities.
 """
 # Author: Kacper Sokol <k.sokol@bristol.ac.uk>
 # License: BSD 3 clause

@@ -1,8 +1,11 @@
 """
-Includes custom predictive models used for FAT-Forensics testing and examples.
+The :mod:`fatf.utils.models.models` module holds custom models.
+
+The models implemented in this module are mainly used for used for
+FAT-Forensics package testing and the examples in the documentation.
 """
 # Author: Kacper Sokol <k.sokol@bristol.ac.uk>
-# License: BSD 3 clause
+# License: new BSD
 
 import abc
 

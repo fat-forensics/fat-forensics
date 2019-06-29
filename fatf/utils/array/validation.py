@@ -1,5 +1,5 @@
 """
-Holds functions responsible for objects validation across FAT-Forensics.
+The :mod:`fatf.utils.array.validation` module holds numpy array validators.
 """
 # Author: Kacper Sokol <k.sokol@bristol.ac.uk>
 # License: new BSD

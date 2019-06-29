@@ -1,5 +1,5 @@
 """
-Holds methods for predictive model fairness assesment.
+The :mod:`fatf.fairness.models.measures` module holds models fairness measures.
 """
 # Author: Kacper Sokol <k.sokol@bristol.ac.uk>
 #         Rafael Poyiadzi <rp13102@bristol.ac.uk>
@@ -59,7 +59,8 @@ def disparate_impact(  # type: ignore
         function.
     label_index : integer
         The index of the "positive" class in the confusion matrix. (Not
-        required for binary problems.) See the description of :func:``
+        required for binary problems.) See the description of
+        :func:`fatf.utils.data.tools.group_by_column` function.
     criterion : Union[None, string]
         A string representing group fairness criterion. One of:
         ``'demographic parity'``, ``'equal opportunity'``, ``'equal accuracy'``
@@ -122,7 +123,8 @@ def disparate_impact_indexed(  # type: ignore
         function.
     label_index : integer
         The index of the "positive" class in the confusion matrix. (Not
-        required for binary problems.) See the description of :func:``
+        required for binary problems.) See the description of
+        :func:`fatf.utils.data.tools.group_by_column` function.
     criterion : Union[None, string]
         A string representing group fairness criterion. One of:
         ``'demographic parity'``, ``'equal opportunity'``, ``'equal accuracy'``
@@ -281,7 +283,7 @@ def demographic_parity(  # type: ignore
     ----------
     confusion_matrix_list : List[numpy.ndarray]
         A list of confusion matrices, one for each sub-population.
-    tolerance: number, optional (default=0.2)
+    tolerance : number, optional (default=0.2)
         A number between 0 and 1 that indicates how much any two predictive
         positive rates can differ to be considered "equal".
     label_index : integer, optional (default=0)
@@ -345,7 +347,7 @@ def equal_opportunity(  # type: ignore
     ----------
     confusion_matrix_list : List[numpy.ndarray]
         A list of confusion matrices, one for each sub-population.
-    tolerance: number, optional (default=0.2)
+    tolerance : number, optional (default=0.2)
         A number between 0 and 1 that indicates how much any two true positive
         rates can differ to be considered "equal".
     label_index : integer, optional (default=0)
@@ -405,7 +407,7 @@ def equal_accuracy(  # type: ignore
     ----------
     confusion_matrix_list : List[numpy.ndarray]
         A list of confusion matrices, one for each sub-population.
-    tolerance: number, optional (default=0.2)
+    tolerance : number, optional (default=0.2)
         A number between 0 and 1 that indicates how much any two accuracies can
         differ to be considered "equal".
     label_index : integer, optional (default=0)

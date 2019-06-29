@@ -1,5 +1,6 @@
 """
-Implements data fairness measures.
+The :mod:`fatf.fairness.predictions.measures` module measures predictions
+fairness.
 """
 # Author: Kacper Sokol <k.sokol@bristol.ac.uk>
 #         Rafael Poyiadzi <rp13102@bristol.ac.uk>
@@ -49,25 +50,23 @@ def counterfactual_fairness(  # type: ignore
     i.e. get a different prediction.
 
     The counterfactual fairness function is based on the  object.
-    It is based on the :obj:`fatf.transparency.predictions.counterfactuals.
-    CounterfactualExplainer` object. For all the errors, warnings and
-    exceptions please see the documentation of :obj:`fatf.transparency.
-    predictions.counterfactuals.CounterfactualExplainer` object and its
-    methods.
+    It is based on the :obj:`fatf.transparency.predictions.counterfactuals.\
+CounterfactualExplainer` object. For all the errors, warnings and
+    exceptions please see the documentation of :obj:`fatf.transparency.\
+predictions.counterfactuals.CounterfactualExplainer` object and its methods.
 
     Parameters
     ----------
     instance, counterfactual_class, and normalise_distance
         For the description of these parameters please see the documentation of
-        :func:`fatf.transparency.predictions.counterfactuals.
-        CounterfactualExplainer.explain_instance` method.
-    protected_feature_indices, model, predictive_function, dataset,
-    categorical_indices, numerical_indices, max_counterfactual_length,
-    feature_ranges, distance_functions, step_sizes, and
-    default_numerical_step_size
+        :func:`fatf.transparency.predictions.counterfactuals.\
+CounterfactualExplainer.explain_instance` method.
+    protected_feature_indices, model, predictive_function, dataset, \
+categorical_indices, numerical_indices, max_counterfactual_length, \
+feature_ranges, distance_functions, step_sizes, and default_numerical_step_size
         For the desctiption of these parameters please see the documentation of
-        :obj:`fatf.transparency.predictions.counterfactuals.
-        CounterfactualExplainer` object. The only difference is that the
+        :obj:`fatf.transparency.predictions.counterfactuals.\
+CounterfactualExplainer` object. The only difference is that the
         `counterfactual_feature_indices` parameter is renamed to
         `protected_feature_indices` and is required by this function.
 
@@ -111,7 +110,7 @@ def counterfactual_fairness_check(
 
     There are two different approaches to evaluate counterfactual fairness. The
     first one is to take the ``distances`` to the counterfactual examples and
-    see whether there are any that exceed a certain ``threshold` in which case
+    see whether there are any that exceed a certain ``threshold`` in which case
     a given instance is considered to be treated unfairly. Alternatively by
     using the ``unfair_counterfactuals`` array this function checks whether
     there are any unfair counterfactual instances. In case all the input

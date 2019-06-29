@@ -1,5 +1,5 @@
 """
-Tests implementations of model metric tools.
+Tests implementations of sub-population model metrics and tools.
 """
 # Author: Kacper Sokol <k.sokol@bristol.ac.uk>
 # License: new BSD
@@ -8,9 +8,7 @@ import pytest
 
 import numpy as np
 
-from fatf.exceptions import IncorrectShapeError
-
-import fatf.utils.models.metric_tools as fumm
+import fatf.utils.metrics.subgroup_metrics as fums
 
 MISSING_LABEL_WARNING = ('Some of the given labels are not present in either '
                          'of the input arrays: {2}.')
@@ -31,81 +29,9 @@ PREDICTIONS[_INDICES_PER_BIN[1]] = [0, 2, 2, 2, 0]
 PREDICTIONS[_INDICES_PER_BIN[2]] = [0, 1, 2, 2, 1, 0, 0]
 
 
-def test_confusion_matrix_per_subgroup():
-    """
-    Tests calculating confusion matrix per sub-population.
-
-    Tests
-    :func:`fatf.utils.models.metric_tools.confusion_matrix_per_subgroup`
-    function.
-    """
-
-    mx1 = np.array([[2, 1, 0], [0, 0, 0], [0, 0, 0]])
-    mx2 = np.array([[2, 0, 0], [0, 0, 0], [0, 2, 1]])
-    mx3 = np.array([[2, 0, 1], [0, 2, 0], [1, 0, 1]])
-
-    with pytest.warns(UserWarning) as w:
-        pcmxs, bin_names = fumm.confusion_matrix_per_subgroup(
-            DATASET, GROUND_TRUTH, PREDICTIONS, 1)
-    assert len(w) == 1
-    assert str(w[0].message) == MISSING_LABEL_WARNING
-
-    assert len(pcmxs) == 3
-    assert np.array_equal(pcmxs[0], mx1)
-    assert np.array_equal(pcmxs[1], mx2)
-    assert np.array_equal(pcmxs[2], mx3)
-    assert bin_names == ["('3',)", "('5',)", "('7',)"]
-
-
-def test_confusion_matrix_per_subgroup_indexed():
-    """
-    Tests calculating confusion matrix per index-based sub-population.
-
-    Tests :func:`fatf.utils.models.metric_tools.
-    confusion_matrix_per_subgroup_indexed` function.
-    """
-    incorrect_shape_error_gt = ('The ground_truth parameter should be a '
-                                '1-dimensional numpy array.')
-    incorrect_shape_error_p = ('The predictions parameter should be a '
-                               '1-dimensional numpy array.')
-
-    flat = np.array([1, 2])
-    square = np.array([[1, 2], [3, 4]])
-    with pytest.raises(IncorrectShapeError) as exin:
-        fumm.confusion_matrix_per_subgroup_indexed([[0]], square, square)
-    assert str(exin.value) == incorrect_shape_error_gt
-
-    with pytest.raises(IncorrectShapeError) as exin:
-        fumm.confusion_matrix_per_subgroup_indexed([[0]], flat, square)
-    assert str(exin.value) == incorrect_shape_error_p
-
-    mx1 = np.array([[2, 1, 0], [0, 0, 0], [0, 0, 0]])
-    mx2 = np.array([[2, 0, 0], [0, 0, 0], [0, 2, 1]])
-    mx3 = np.array([[2, 0, 1], [0, 2, 0], [1, 0, 1]])
-
-    with pytest.warns(UserWarning) as w:
-        pcmxs_1 = fumm.confusion_matrix_per_subgroup_indexed(
-            _INDICES_PER_BIN, GROUND_TRUTH, PREDICTIONS, labels=[0, 1, 2])
-        pcmxs_2 = fumm.confusion_matrix_per_subgroup_indexed(
-            _INDICES_PER_BIN, GROUND_TRUTH, PREDICTIONS)
-    assert len(w) == 2
-    wmsg = ('Some of the given labels are not present in either of the input '
-            'arrays: {2}.')
-    assert str(w[0].message) == wmsg
-    assert str(w[1].message) == wmsg
-    assert len(pcmxs_1) == 3
-    assert len(pcmxs_2) == 3
-    assert np.array_equal(pcmxs_1[0], mx1)
-    assert np.array_equal(pcmxs_2[0], mx1)
-    assert np.array_equal(pcmxs_1[1], mx2)
-    assert np.array_equal(pcmxs_2[1], mx2)
-    assert np.array_equal(pcmxs_1[2], mx3)
-    assert np.array_equal(pcmxs_2[2], mx3)
-
-
 def test_apply_metric_function():
     """
-    Tests :func:`fatf.utils.models.metric_tools.apply_metric_function`.
+    Tests :func:`fatf.utils.metrics.subgroup_metrics.apply_metric_function`.
     """
     type_error_cmxs = ('The population_confusion_matrix parameter has to be a '
                        'list.')
@@ -136,35 +62,35 @@ def test_apply_metric_function():
     cfmx = np.array([[1, 2], [2, 1]])
 
     with pytest.raises(TypeError) as exin:
-        fumm.apply_metric_function('a', None)
+        fums.apply_metric_function('a', None)
     assert str(exin.value) == type_error_cmxs
 
     with pytest.raises(ValueError) as exin:
-        fumm.apply_metric_function([], None)
+        fums.apply_metric_function([], None)
     assert str(exin.value) == value_error_cmxs
 
     with pytest.raises(TypeError) as exin:
-        fumm.apply_metric_function([cfmx], None)
+        fums.apply_metric_function([cfmx], None)
     assert str(exin.value) == type_error_fn
 
     with pytest.raises(AttributeError) as exin:
-        fumm.apply_metric_function([cfmx], zero)
+        fums.apply_metric_function([cfmx], zero)
     assert str(exin.value) == attribute_error_fn
 
     with pytest.raises(TypeError) as exin:
-        fumm.apply_metric_function([cfmx], two, 'second_arg')
+        fums.apply_metric_function([cfmx], two, 'second_arg')
     assert str(exin.value) == type_error_metric.format('one+two : second_arg')
 
-    measures = fumm.apply_metric_function([cfmx], one)
+    measures = fums.apply_metric_function([cfmx], one)
     assert measures == [0.5]
 
-    measures = fumm.apply_metric_function([cfmx], one_array)
+    measures = fums.apply_metric_function([cfmx], one_array)
     assert measures == [6]
 
 
 def test_apply_metric():
     """
-    Tests :func:`fatf.utils.models.metric_tools.apply_metric` function.
+    Tests :func:`fatf.utils.metrics.subgroup_metrics.apply_metric` function.
     """
     type_error = 'The metric parameter has to be a string.'
     value_error = ('The selected metric (*{}*) is not recognised. The '
@@ -179,36 +105,36 @@ def test_apply_metric():
     cfmx = np.array([[1, 2], [3, 4]])
 
     with pytest.raises(TypeError) as exin:
-        fumm.apply_metric([cfmx], 5)
+        fums.apply_metric([cfmx], 5)
     assert str(exin.value) == type_error
 
     with pytest.raises(ValueError) as exin:
-        fumm.apply_metric([cfmx], 'unknown_metric')
+        fums.apply_metric([cfmx], 'unknown_metric')
     assert str(exin.value) == value_error.format('unknown_metric',
                                                  sorted(available_metrics))
 
-    measures = fumm.apply_metric([cfmx])
+    measures = fums.apply_metric([cfmx])
     assert len(measures) == 1
     assert measures[0] == 0.5
 
-    measures = fumm.apply_metric([cfmx], 'true positive rate')
+    measures = fums.apply_metric([cfmx], 'true positive rate')
     assert len(measures) == 1
     assert measures[0] == 0.25
 
-    measures = fumm.apply_metric([cfmx], 'true positive rate', label_index=1)
+    measures = fums.apply_metric([cfmx], 'true positive rate', label_index=1)
     assert len(measures) == 1
     assert measures[0] == pytest.approx(0.667, abs=1e-3)
 
 
 def test_performance_per_subgroup():
     """
-    Tests :func:`fatf.utils.models.metric_tools.performance_per_subgroup`.
+    Tests :func:`fatf.utils.metrics.subgroup_metrics.performance_per_subgroup`.
     """
     true_bin_names = ["('3',)", "('5',)", "('7',)"]
 
     # Default metric
     with pytest.warns(UserWarning) as w:
-        bin_metrics, bin_names = fumm.performance_per_subgroup(
+        bin_metrics, bin_names = fums.performance_per_subgroup(
             DATASET, GROUND_TRUTH, PREDICTIONS, 1)
     assert len(w) == 1
     assert str(w[0].message) == MISSING_LABEL_WARNING
@@ -218,7 +144,7 @@ def test_performance_per_subgroup():
 
     # Named metric
     with pytest.warns(UserWarning) as w:
-        bin_metrics, bin_names = fumm.performance_per_subgroup(
+        bin_metrics, bin_names = fums.performance_per_subgroup(
             DATASET, GROUND_TRUTH, PREDICTIONS, 1, metric='true positive rate')
     assert len(w) == 1
     assert str(w[0].message) == MISSING_LABEL_WARNING
@@ -228,7 +154,7 @@ def test_performance_per_subgroup():
 
     # Named metric with **kwargs
     with pytest.warns(UserWarning) as w:
-        bin_metrics, bin_names = fumm.performance_per_subgroup(
+        bin_metrics, bin_names = fums.performance_per_subgroup(
             DATASET,
             GROUND_TRUTH,
             PREDICTIONS,
@@ -249,7 +175,7 @@ def test_performance_per_subgroup():
 
     # Function metric -- takes the precedence
     with pytest.warns(UserWarning) as w:
-        bin_metrics, bin_names = fumm.performance_per_subgroup(
+        bin_metrics, bin_names = fums.performance_per_subgroup(
             DATASET,
             GROUND_TRUTH,
             PREDICTIONS,
@@ -264,7 +190,7 @@ def test_performance_per_subgroup():
 
     # Function metric with *args
     with pytest.warns(UserWarning) as w:
-        bin_metrics, bin_names = fumm.performance_per_subgroup(
+        bin_metrics, bin_names = fums.performance_per_subgroup(
             DATASET,
             GROUND_TRUTH,
             PREDICTIONS,
@@ -280,7 +206,7 @@ def test_performance_per_subgroup():
 
     # Function metric with *args and **kwargs
     with pytest.warns(UserWarning) as w:
-        bin_metrics, bin_names = fumm.performance_per_subgroup(
+        bin_metrics, bin_names = fums.performance_per_subgroup(
             DATASET,
             GROUND_TRUTH,
             PREDICTIONS,
@@ -300,13 +226,12 @@ def test_performance_per_subgroup_indexed():
     """
     Tests calculating performance per indexed sub-group.
 
-    Tests
-    :func:`fatf.utils.models.metric_tools.performance_per_subgroup_indexed`
-    function.
+    Tests :func:`fatf.utils.metrics.subgroup_metrics.
+    performance_per_subgroup_indexed` function.
     """
     # Default metric
     with pytest.warns(UserWarning) as w:
-        bin_metrics = fumm.performance_per_subgroup_indexed(
+        bin_metrics = fums.performance_per_subgroup_indexed(
             _INDICES_PER_BIN, GROUND_TRUTH, PREDICTIONS, labels=[0, 1, 2])
     assert len(w) == 1
     assert str(w[0].message) == MISSING_LABEL_WARNING
@@ -315,7 +240,7 @@ def test_performance_per_subgroup_indexed():
 
     # Named metric
     with pytest.warns(UserWarning) as w:
-        bin_metrics = fumm.performance_per_subgroup_indexed(
+        bin_metrics = fums.performance_per_subgroup_indexed(
             _INDICES_PER_BIN,
             GROUND_TRUTH,
             PREDICTIONS,
@@ -328,7 +253,7 @@ def test_performance_per_subgroup_indexed():
 
     # Named metric with **kwargs
     with pytest.warns(UserWarning) as w:
-        bin_metrics = fumm.performance_per_subgroup_indexed(
+        bin_metrics = fums.performance_per_subgroup_indexed(
             _INDICES_PER_BIN,
             GROUND_TRUTH,
             PREDICTIONS,
@@ -348,7 +273,7 @@ def test_performance_per_subgroup_indexed():
 
     # Function metric -- takes the precedence
     with pytest.warns(UserWarning) as w:
-        bin_metrics = fumm.performance_per_subgroup_indexed(
+        bin_metrics = fums.performance_per_subgroup_indexed(
             _INDICES_PER_BIN,
             GROUND_TRUTH,
             PREDICTIONS,
@@ -362,7 +287,7 @@ def test_performance_per_subgroup_indexed():
 
     # Function metric with *args
     with pytest.warns(UserWarning) as w:
-        bin_metrics = fumm.performance_per_subgroup_indexed(
+        bin_metrics = fums.performance_per_subgroup_indexed(
             _INDICES_PER_BIN,
             GROUND_TRUTH,
             PREDICTIONS,
@@ -377,7 +302,7 @@ def test_performance_per_subgroup_indexed():
 
     # Function metric with *args and **kwargs
     with pytest.warns(UserWarning) as w:
-        bin_metrics = fumm.performance_per_subgroup_indexed(
+        bin_metrics = fums.performance_per_subgroup_indexed(
             _INDICES_PER_BIN,
             GROUND_TRUTH,
             PREDICTIONS,

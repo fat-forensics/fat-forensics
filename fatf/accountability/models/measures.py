@@ -26,14 +26,14 @@ def systematic_performance_bias(  # type: ignore
        This function expects a list of predictive performance per sub-group for
        tested data. To get this list please use either of the following
        functions:
-       :func:`fatf.utils.models.metric_tools.performance_per_subgroup`/
-       :func:`fatf.utils.models.metric_tools.performance_per_subgroup_indexed`
-       or
-       :func:`fatf.utils.models.metric_tools.confusion_matrix_per_subgroup`/
-       :func:`fatf.utils.models.metric_tools.
-       confusion_matrix_per_subgroup_indexed` in conjunction with
-       :func:`fatf.utils.models.metric_tools.apply_metric_function`/
-       :func:`fatf.utils.models.metric_tools.apply_metric`.
+       :func:`fatf.utils.metrics.subgroup_metrics.performance_per_subgroup`/
+       :func:`fatf.utils.metrics.subgroup_metrics.\
+performance_per_subgroup_indexed` or
+       :func:`fatf.utils.metrics.tools.confusion_matrix_per_subgroup`/
+       :func:`fatf.utils.metrics.tools.confusion_matrix_per_subgroup_indexed`
+       in conjunction with
+       :func:`fatf.utils.metrics.subgroup_metrics.apply_metric_function`/
+       :func:`fatf.utils.metrics.subgroup_metrics.apply_metric`.
 
     Returns
     -------
@@ -60,14 +60,14 @@ def systematic_performance_bias_grid(  # type: ignore
        This function expects a list of predictive performance per sub-group for
        tested data. To get this list please use either of the following
        functions:
-       :func:`fatf.utils.models.metric_tools.performance_per_subgroup`/
-       :func:`fatf.utils.models.metric_tools.performance_per_subgroup_indexed`
-       or
-       :func:`fatf.utils.models.metric_tools.confusion_matrix_per_subgroup`/
-       :func:`fatf.utils.models.metric_tools.
-       confusion_matrix_per_subgroup_indexed` in conjunction with
-       :func:`fatf.utils.models.metric_tools.apply_metric_function`/
-       :func:`fatf.utils.models.metric_tools.apply_metric`.
+       :func:`fatf.utils.metrics.subgroup_metrics.performance_per_subgroup`/
+       :func:`fatf.utils.metrics.subgroup_metrics.\
+performance_per_subgroup_indexed` or
+       :func:`fatf.utils.metrics.tools.confusion_matrix_per_subgroup`/
+       :func:`fatf.utils.metrics.tools.confusion_matrix_per_subgroup_indexed`
+       in conjunction with
+       :func:`fatf.utils.metrics.subgroup_metrics.apply_metric_function`/
+       :func:`fatf.utils.metrics.subgroup_metrics.apply_metric`.
 
     Parameters
     ----------

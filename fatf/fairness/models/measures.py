@@ -11,7 +11,8 @@ from typing import List, Optional, Tuple, Union
 import numpy as np
 
 import fatf.utils.data.tools as fudt
-import fatf.utils.models.metric_tools as fumm
+import fatf.utils.metrics.tools as fumt
+import fatf.utils.metrics.subgroup_metrics as fums
 
 __all__ = ['disparate_impact',
            'disparate_impact_indexed',
@@ -44,18 +45,17 @@ def disparate_impact(  # type: ignore
     Calculates selected disparate impact grid for a data set.
 
     This function combines
-    :func:`fatf.utils.models.metric_tools.confusion_matrix_per_subgroup`
-    function together with
-    :func:`fatf.utils.models.metric_tools.apply_metric` function. For the
-    description of parameters, errors and exceptions please see the
-    documentation of these functions.
+    :func:`fatf.utils.metrics.tools.confusion_matrix_per_subgroup` function
+    together with :func:`fatf.utils.metrics.subgroup_metrics.apply_metric`
+    function. For the description of parameters, errors and exceptions please
+    see the documentation of these functions.
 
     Parameters
     ----------
     dataset, ground_truth, predictions, column_index, groupings,
     numerical_bins_number, and labels
         See the documentation of
-        :func:`fatf.utils.models.metric_tools.confusion_matrix_per_subgroup`
+        :func:`fatf.utils.metrics.tools.confusion_matrix_per_subgroup`
         function.
     label_index : integer
         The index of the "positive" class in the confusion matrix. (Not
@@ -83,7 +83,7 @@ def disparate_impact(  # type: ignore
         of sub-populations a disparity happens.
     """
     # pylint: disable=too-many-arguments
-    population_cmxs, bin_names = fumm.confusion_matrix_per_subgroup(
+    population_cmxs, bin_names = fumt.confusion_matrix_per_subgroup(
         dataset, ground_truth, predictions, column_index, groupings,
         numerical_bins_number, labels)
 
@@ -107,17 +107,19 @@ def disparate_impact_indexed(  # type: ignore
     """
     Calculates selected disparate impact grid for indexed data.
 
-    This function combines :func:`fatf.utils.models.metric_tools.
-    confusion_matrix_per_subgroup_indexed` function together with
-    :func:`fatf.utils.models.metric_tools.apply_metric` function. For the
+    This function combines
+    :func:`fatf.utils.metrics.tools.confusion_matrix_per_subgroup_indexed`
+    function together with
+    :func:`fatf.utils.metrics.subgroup_metrics.apply_metric` function. For the
     description of parameters, errors and exceptions please see the
     documentation of these functions.
 
     Parameters
     ----------
     indices_per_bin, ground_truth, predictions, and labels
-        See the documentation of :func:`fatf.utils.models.metric_tools.
-        confusion_matrix_per_subgroup_indexed` function.
+        See the documentation of
+        :func:`fatf.utils.metrics.tools.confusion_matrix_per_subgroup_indexed`
+        function.
     label_index : integer
         The index of the "positive" class in the confusion matrix. (Not
         required for binary problems.) See the description of :func:``
@@ -144,7 +146,7 @@ def disparate_impact_indexed(  # type: ignore
         of sub-populations a disparity happens.
     """
     # pylint: disable=too-many-arguments
-    population_cmxs = fumm.confusion_matrix_per_subgroup_indexed(
+    population_cmxs = fumt.confusion_matrix_per_subgroup_indexed(
         indices_per_bin, ground_truth, predictions, labels)
 
     disparity_grid = _disparate_impact_grid(population_cmxs, criterion,
@@ -265,9 +267,9 @@ def demographic_parity(  # type: ignore
     .. note::
        This function expects a list of confusion matrices per sub-group for
        tested data. To get this list please use either
-       :func:`fatf.utils.models.metric_tools.confusion_matrix_per_subgroup` or
-       :func:`fatf.utils.models.metric_tools.
-       confusion_matrix_per_subgroup_indexed` function.
+       :func:`fatf.utils.metrics.tools.confusion_matrix_per_subgroup` or
+       :func:`fatf.utils.metrics.tools.confusion_matrix_per_subgroup_indexed`
+       function.
 
        Alternatively you can call either
        :func:`fatf.fairness.models.measures.disparate_impact` or
@@ -304,7 +306,7 @@ def demographic_parity(  # type: ignore
     assert _validate_tolerance(tolerance), 'Invalid tolerance parameter.'
 
     ppr = np.asarray(
-        fumm.apply_metric(
+        fums.apply_metric(
             confusion_matrix_list,
             'positive predictive value',
             label_index=label_index))
@@ -329,9 +331,9 @@ def equal_opportunity(  # type: ignore
     .. note::
        This function expects a list of confusion matrices per sub-group for
        tested data. To get this list please use either
-       :func:`fatf.utils.models.metric_tools.confusion_matrix_per_subgroup` or
-       :func:`fatf.utils.models.metric_tools.
-       confusion_matrix_per_subgroup_indexed` function.
+       :func:`fatf.utils.metrics.tools.confusion_matrix_per_subgroup` or
+       :func:`fatf.utils.metrics.tools.confusion_matrix_per_subgroup_indexed`
+       function.
 
        Alternatively you can call either
        :func:`fatf.fairness.models.measures.disparate_impact` or
@@ -367,7 +369,7 @@ def equal_opportunity(  # type: ignore
     assert _validate_tolerance(tolerance), 'Invalid tolerance parameter.'
 
     ppr = np.asarray(
-        fumm.apply_metric(
+        fums.apply_metric(
             confusion_matrix_list,
             'true positive rate',
             label_index=label_index))
@@ -389,9 +391,9 @@ def equal_accuracy(  # type: ignore
     .. note::
        This function expects a list of confusion matrices per sub-group for
        tested data. To get this list please use either
-       :func:`fatf.utils.models.metric_tools.confusion_matrix_per_subgroup` or
-       :func:`fatf.utils.models.metric_tools.
-       confusion_matrix_per_subgroup_indexed` function.
+       :func:`fatf.utils.metrics.tools.confusion_matrix_per_subgroup` or
+       :func:`fatf.utils.metrics.tools.confusion_matrix_per_subgroup_indexed`
+       function.
 
        Alternatively you can call either
        :func:`fatf.fairness.models.measures.disparate_impact` or
@@ -427,7 +429,7 @@ def equal_accuracy(  # type: ignore
     assert _validate_tolerance(tolerance), 'Invalid tolerance parameter.'
 
     ppr = np.asarray(
-        fumm.apply_metric(
+        fums.apply_metric(
             confusion_matrix_list, 'accuracy', label_index=label_index))
     disparity = np.abs(ppr[:, np.newaxis] - ppr[np.newaxis, :])
     disparity = disparity > tolerance

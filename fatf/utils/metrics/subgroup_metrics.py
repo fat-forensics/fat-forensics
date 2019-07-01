@@ -231,6 +231,7 @@ def performance_per_subgroup(
         feature ranges for a numerical feature and feature value sets for a
         categorical feature.
     """
+    # pylint: disable=too-many-locals
     population_cmxs, bin_names = fumt.confusion_matrix_per_subgroup(
         dataset, ground_truth, predictions, column_index, groupings,
         numerical_bins_number, treat_as_categorical, labels)

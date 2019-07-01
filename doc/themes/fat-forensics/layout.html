@@ -1,0 +1,143 @@
+{#
+    fat-forensics/layout.html
+    ~~~~~~~~~~~~~~~~~
+
+    Layout for FAT-Forensics
+
+    :copyright: Kacper Sokol
+    :license: new BSD
+#}
+{% extends "basic/layout.html" %}
+
+{% block htmltitle %}
+  {{ super() }}
+  <!-- html title is before nature.css - we use this hack to load bootstrap first -->
+  <!-- Required meta tags -->
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+  <!-- Bootstrap CSS -->
+  <link rel="stylesheet" href="{{ pathto('_static/css/bootstrap.min.css', 1) }}">
+{% endblock %}
+
+{% block extrahead %}
+  <!-- jQuery first, then Bootstrap JS -->
+  <!-- jQuery is distributed with Sphinx already -->
+  <!-- <script src="{{ pathto('_static/jquery.min.js', 1)}}"></script> -->
+  <script src="{{ pathto('_static/js/bootstrap.min.js', 1)}}"></script>
+{% endblock %}
+
+{% block header %}
+<div class="container">
+  <nav class="navbar navbar-expand-md navbar-light bg-light">
+    <a class="navbar-brand align-text-middle" href="{{ pathto(master_doc) }}">
+      {%- if logo %}
+      <img src="{{ pathto('_static/' + logo, 1) }}"
+       alt="Logo"
+       width="35" height="35"
+       class="d-inline-block align-middle">
+      {%- endif %}
+      FAT-Forensics
+    </a>
+
+    <button class="navbar-toggler"
+            type="button"
+            data-toggle="collapse"
+            data-target="#navbarCollapsedContent">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+
+    <div class="collapse navbar-collapse"
+         id="navbarCollapsedContent">
+      <ul class="navbar-nav mr-auto">
+        <li class="nav-item">
+          <a class="nav-link" href="{{ pathto(master_doc) }}">Home</a>
+        </li>
+
+        <li class="nav-item dropdown">
+          <a class="nav-link dropdown-toggle" href="#" role="button" data-toggle="dropdown">
+            FAT
+          </a>
+          <div class="dropdown-menu">
+            <a class="dropdown-item" href="{{ pathto('fat_user_guide') }}">FAT User Guide</a>
+            <a class="dropdown-item" href="{{ pathto('sphinx_gallery_auto/index') }}">FAT Examples</a>
+            <div class="dropdown-divider"></div>
+            <a class="dropdown-item" href="{{ pathto('fairness/index') }}"><b>F</b>airness</a>
+            <a class="dropdown-item" href="{{ pathto('accountability/index') }}"><b>A</b>ccountability</a>
+            <a class="dropdown-item" href="{{ pathto('transparency/index') }}"><b>T</b>ansparency</a>
+          </div>
+        </li>
+
+        <li class="nav-item dropdown">
+          <a class="nav-link dropdown-toggle" href="#" role="button" data-toggle="dropdown">
+            Documentation
+          </a>
+          <div class="dropdown-menu">
+            <div class="dropdown-header">FAT-Forensics</div>
+            <div class="dropdown-divider"></div>
+            <a class="dropdown-item" href="{{ pathto('api') }}">API</a>
+            <a class="dropdown-item" href="{{ pathto('development') }}">Development</a>
+            <a class="dropdown-item" href="{{ pathto('roadmap') }}">Roadmap</a>
+          </div>
+        </li>
+      </ul>
+
+      <div class="search_form form-inline">
+          <div class="gcse-search" id="cse" style="width: 100%;"></div>
+      </div>
+    </div>
+  </nav>
+</div>
+{% endblock %}
+
+{% block content %}
+<!-- GitHub "fork me" ribbon -->
+<!--
+<a href="https://github.com/fat-forensics/fat-forensics">
+  <img class="fork-me"
+       style="position: absolute; top: 0; right: 0; border: 0;"
+       src="{{ pathto('_static/img/forkme.png', 1) }}"
+       alt="Fork me on GitHub" />
+</a>
+-->
+<span id="forkongithub">
+  <a href="https://github.com/fat-forensics/fat-forensics">
+    Fork me on GitHub
+  </a>
+</span>
+
+{%- block document %}
+<div class="container">
+  {{ super() }}
+</div>
+{%- endblock %}
+{% endblock %}
+
+{% block relbar1 %}{% endblock %}
+{% block relbar2 %}{% endblock %}
+
+{%- block footer %}
+  {% if theme_google_analytics|tobool %}
+  <script>
+    window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)};ga.l=+new Date;
+    ga('create', 'UA-142154492-1', 'auto');
+    ga('set', 'anonymizeIp', true);
+    ga('send', 'pageview');
+  </script>
+  <script async src='https://www.google-analytics.com/analytics.js'></script>
+  {% endif %}
+
+  {% if theme_google_custom_search|tobool %}
+  <script>
+    (function() {
+      var cx = '014039732624725851926:mpducezglrq';
+      var gcse = document.createElement('script');
+      gcse.type = 'text/javascript';
+      gcse.async = true;
+      gcse.src = 'https://cse.google.com/cse.js?cx=' + cx;
+      var s = document.getElementsByTagName('script')[0];
+      s.parentNode.insertBefore(gcse, s);
+    })();
+  </script>
+  {% endif %}
+{%- endblock %}

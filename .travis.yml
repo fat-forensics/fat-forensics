@@ -71,7 +71,7 @@ script:
   - make linting-flake8
   - make linting-yapf
   - make check-types
-  - make test-with-code-coverage 
+  - make test-with-code-coverage
 #  - make test-notebooks
   - make test-docs
   - make docs-linkcheck

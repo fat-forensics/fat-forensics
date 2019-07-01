@@ -168,12 +168,15 @@ endif
 linting-pylint:
 # pylint may misbehave when the package under testing is installed as editable!
 	pylint --rcfile=.pylintrc fatf/
+	pylint --rcfile=.pylintrc --disable=invalid-name examples/
 
 linting-flake8:
 	flake8 --config=.flake8 fatf/
+	flake8 --config=.flake8 examples/
 
 linting-yapf:
 	yapf --style .style.yapf -p -r -d -vv fatf/
+	yapf --style .style.yapf -p -r -d -vv examples/
 
 # TODO(kacper): Consider `pytype` when it allows to ignore with glob patterns
 check-types:

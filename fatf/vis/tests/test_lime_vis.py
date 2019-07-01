@@ -7,6 +7,17 @@ Tests LIME plotting functions.
 
 import pytest
 
+try:
+    import lime
+    import matplotlib
+except ImportError:  # pragma: no cover
+    pytest.skip(
+        'Skipping visualisation tests -- matplotlib or lime missing.',
+        allow_module_level=True)
+else:
+    del lime
+    del matplotlib
+
 import fatf.utils.testing.vis as futv
 import fatf.vis.lime as fvl
 

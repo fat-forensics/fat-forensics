@@ -10,6 +10,7 @@ import warnings
 
 try:
     import matplotlib
+    import matplotlib.pyplot as plt
 except ImportError:
     _warning_msg = (  # pylint: disable=invalid-name
         'matplotlib Python module is not installed on your system. '
@@ -19,10 +20,9 @@ except ImportError:
     warnings.warn(_warning_msg, ImportWarning)
 else:
     # Setup matplotlib style
-    import matplotlib.pyplot as plt
     plt.style.use('seaborn')
+    # Cleanup
     del plt
-
     del matplotlib
 finally:
     del warnings

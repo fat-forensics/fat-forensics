@@ -4,12 +4,19 @@ Tests visualisation helper functions for tests.
 # Author: Kacper Sokol <k.sokol@bristol.ac.uk>
 # License: new BSD
 
-import importlib
-import matplotlib.collections
 import pytest
+
+try:
+    import matplotlib.collections
+    import matplotlib.pyplot as plt
+except ImportError:  # pragma: no cover
+    pytest.skip(
+        'Skipping visualisation testing tests -- missing matplotlib.',
+        allow_module_level=True)
+
+import importlib
 import sys
 
-import matplotlib.pyplot as plt
 import numpy as np
 
 import fatf.utils.testing.imports as futi

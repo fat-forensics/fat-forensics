@@ -5,10 +5,16 @@ Tests feature influence (ICE and PD) plotting functions.
 #         Kacper Sokol <k.sokol@bristol.ac.uk>
 # License: new BSD
 
-import matplotlib.legend
 import pytest
 
-import matplotlib.pyplot as plt
+try:
+    import matplotlib.legend
+    import matplotlib.pyplot as plt
+except ImportError:  # pragma: no cover
+    pytest.skip(
+        'Skipping visualisation tests -- matplotlib missing.',
+        allow_module_level=True)
+
 import numpy as np
 
 import fatf.utils.testing.vis as futv

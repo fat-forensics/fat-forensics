@@ -59,7 +59,7 @@ matrix:
       env: FATF_TEST_SCIPY=0.18.1 FATF_TEST_NUMPY=1.10.1 FATF_TEST_MATPLOTLIB=3.0.0
   allow_failures:
     - python: '3.8-dev'
-    - env: FATF_TEST_SCIPY=latest  FATF_TEST_NUMPY=latest
+    - env: FATF_TEST_SCIPY=latest FATF_TEST_NUMPY=latest
 
 install:
   # lime has to be installed before anything else since we overwrite its deps

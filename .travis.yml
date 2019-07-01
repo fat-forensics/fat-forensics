@@ -1,4 +1,5 @@
-# Use container on EC2, other options available (venvs)[https://docs.travis-ci.com/user/reference/overview/]
+# Use container on EC2, other options available
+# (venvs)[https://docs.travis-ci.com/user/reference/overview/]
 dist: xenial
 
 notifications:
@@ -28,41 +29,42 @@ env:
   global:
     - MAKEFLAGS='-j 2'  # This allows to parallelise make, e.g. make t1 t2
   matrix:
-    - FATF_TEST_SCIPY=1.1.0   FATF_TEST_NUMPY=1.15.4
-    - FATF_TEST_SCIPY=1.0.1   FATF_TEST_NUMPY=1.14.6
-    - FATF_TEST_SCIPY=0.19.1  FATF_TEST_NUMPY=1.13.3
-    - FATF_TEST_SCIPY=0.18.1  FATF_TEST_NUMPY=1.12.1
-    - FATF_TEST_SCIPY=0.18.1  FATF_TEST_NUMPY=1.10.1
-    - FATF_TEST_SCIPY=latest  FATF_TEST_NUMPY=latest
+    - FATF_TEST_SCIPY=1.1.0  FATF_TEST_NUMPY=1.15.4
+    - FATF_TEST_SCIPY=1.0.1  FATF_TEST_NUMPY=1.14.6
+    - FATF_TEST_SCIPY=0.19.1 FATF_TEST_NUMPY=1.13.3
+    - FATF_TEST_SCIPY=0.18.1 FATF_TEST_NUMPY=1.12.1
+    # The matplotlib version is fixed to 3.0.0 because since version 3.1 it
+    # requires at least 1.11 numpy and we support numpy 1.10
+    - FATF_TEST_SCIPY=0.18.1 FATF_TEST_NUMPY=1.10.1 FATF_TEST_MATPLOTLIB=3.0.0
+    - FATF_TEST_SCIPY=latest FATF_TEST_NUMPY=latest
 
 matrix:
   fast_finish: true
   exclude:
     - python: '3.7'
-      env: FATF_TEST_SCIPY=1.0.1   FATF_TEST_NUMPY=1.14.6
+      env: FATF_TEST_SCIPY=1.0.1  FATF_TEST_NUMPY=1.14.6
     - python: '3.7'
-      env: FATF_TEST_SCIPY=0.19.1  FATF_TEST_NUMPY=1.13.3
+      env: FATF_TEST_SCIPY=0.19.1 FATF_TEST_NUMPY=1.13.3
     - python: '3.7'
-      env: FATF_TEST_SCIPY=0.18.1  FATF_TEST_NUMPY=1.12.1
+      env: FATF_TEST_SCIPY=0.18.1 FATF_TEST_NUMPY=1.12.1
     - python: '3.7'
-      env: FATF_TEST_SCIPY=0.18.1  FATF_TEST_NUMPY=1.10.1
+      env: FATF_TEST_SCIPY=0.18.1 FATF_TEST_NUMPY=1.10.1 FATF_TEST_MATPLOTLIB=3.0.0
     - python: '3.8-dev'
-      env: FATF_TEST_SCIPY=1.0.1   FATF_TEST_NUMPY=1.14.6
+      env: FATF_TEST_SCIPY=1.0.1  FATF_TEST_NUMPY=1.14.6
     - python: '3.8-dev'
-      env: FATF_TEST_SCIPY=0.19.1  FATF_TEST_NUMPY=1.13.3
+      env: FATF_TEST_SCIPY=0.19.1 FATF_TEST_NUMPY=1.13.3
     - python: '3.8-dev'
-      env: FATF_TEST_SCIPY=0.18.1  FATF_TEST_NUMPY=1.12.1
+      env: FATF_TEST_SCIPY=0.18.1 FATF_TEST_NUMPY=1.12.1
     - python: '3.8-dev'
-      env: FATF_TEST_SCIPY=0.18.1  FATF_TEST_NUMPY=1.10.1
+      env: FATF_TEST_SCIPY=0.18.1 FATF_TEST_NUMPY=1.10.1 FATF_TEST_MATPLOTLIB=3.0.0
   allow_failures:
     - python: '3.8-dev'
     - env: FATF_TEST_SCIPY=latest  FATF_TEST_NUMPY=latest
 
 install:
-  - pip install lime
-  # The matplotlib version is fixed to 3.0.0 because since version 3.1 it
-  # requires at least 1.11 numpy and we support numpy 1.10
-  - pip install 'matplotlib==3.0.0'
+  # lime has to be installed before anything else since we overwrite its deps
+  - make install-lime
+  - make install-matplotlib
   - make dependencies-dev  # Install python development dependencies
 #  - pip install scikit-learn
 #  - make install-sans-dep

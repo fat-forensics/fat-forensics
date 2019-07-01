@@ -12,7 +12,8 @@ language: python
 
 cache:
   - pip
-#  - directories:
+  - directories:
+    - doc/sphinx_gallery_auto
 #    - $HOME/.cache/pip
 before_cache:
   - rm -f $HOME/.cache/pip/log/debug.log
@@ -73,7 +74,7 @@ script:
   - make check-types
   - make test-with-code-coverage
 #  - make test-notebooks
-  - make test-docs
-  - make docs-linkcheck
-  - make docs-coverage
-  - make docs-html
+  - make test-doc
+  - make doc-linkcheck
+  - make doc-coverage
+  - make doc-html

@@ -121,6 +121,7 @@ test-doc:
 		--doctest-glob='*.rst' \
 		--doctest-modules \
 		--ignore=doc/_build/ \
+		--ignore=doc/sphinx_gallery_auto/ \
 		-k 'not test_ and not Test' \
 		doc/ \
 		fatf/

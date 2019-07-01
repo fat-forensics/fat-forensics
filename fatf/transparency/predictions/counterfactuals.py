@@ -79,8 +79,8 @@ class CounterfactualExplainer(object):
     functions are desired, the user may specify these via the
     ``distance_functions`` parameter. Each distance function has to be a
     ``Callable`` with two input parameters. Finally, the distance can be
-    normalised, please see the documentation of the :func:`fatf.transparency.\
-predictions.counterfactuals.CounterfactualExplainer._get_distance` for details.
+    normalised, please see the documentation of the ``_get_distance`` method
+    for details.
 
     Last but not least, when doing grid search through the features to discover
     counterfactual data points the user may define the step size between the
@@ -736,8 +736,7 @@ optional (default=None)
             all classes other than the predicted class of the input
             ``instance`` will be returned.
         normalise_distance : boolean, optional (default=False)
-            Whether to normalise the distance, cf. :func:`fatf.transparency.
-            predictions.counterfactuals.CounterfactualExplainer._get_distance`
+            Whether to normalise the distance, cf. the ``_get_distance`` method
             for more details.
 
         Raises

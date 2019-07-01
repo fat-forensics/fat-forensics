@@ -115,7 +115,7 @@ class Augmentation(abc.ABC):
     contains abstract ``__init__`` and ``sample`` methods and an input
     validator -- ``_validate_sample_input`` -- for the ``sample`` method. The
     validation of the input parameters to the initialisation method is done via
-    the :func:`fatf.utils.data.augmentation._validate_input` function.
+    the ``fatf.utils.data.augmentation._validate_input`` function.
 
     .. note::
        The ``_validate_sample_input`` method should be called in all
@@ -577,7 +577,7 @@ class Mixup(Augmentation):
     this class please see the documentation of its parent class:
     :class:`fatf.utils.data.augmentation.Augmentation` and the function that
     validates the input parameters
-    :func:`fatf.utils.data.augmentation._validate_input_mixup`.
+    ``fatf.utils.data.augmentation._validate_input_mixup``.
 
     .. [ZHANG2018MIXUP] Zhang, H., Cisse, M., Dauphin, Y. N. and Lopez-Paz, D.,
        2018. mixup: Beyond Empirical Risk Minimization. International

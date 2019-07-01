@@ -6,8 +6,8 @@ Measuring Fairness of a Data Set
 This example illustrates how to find unfair rows in a data set using the
 :func:`fatf.fairness.data.measures.systemic_bias` function and how to check
 whether each class is distributed equally between values of a selected feature,
-i.e. measuring the Sample Size Disparity (with :func:`fatf.fairness.data.\
-measures.`).
+i.e. measuring the Sample Size Disparity (with :func:`fatf.utils.data.tools.\
+group_by_column` function).
 
 .. note::
    Please note that this example uses a data set that is represented as a

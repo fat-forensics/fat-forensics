@@ -230,10 +230,9 @@ def _choose_structured_to_unstructured() -> bool:
     -------
     use_local_implementation : boolean
         ``True`` if local implementation
-        (:func:`fatf.utils.tools.fatf_structured_to_unstructured) is to be
+        (``fatf.utils.tools.fatf_structured_to_unstructured``) is to be
         used. ``False`` if numpy's implementation
-        (:func:`numpy.lib.recfunctions.structured_to_unstructured`) is to be
-        used.
+        (``numpy.lib.recfunctions.structured_to_unstructured``) is to be used.
     """
     use_local_implementation = True
     np_ver = [int(i) for i in np.version.version.split('.')]
@@ -312,8 +311,8 @@ def structured_to_unstructured_row(
 
     Converts a structured row into an unstructured one using either local
     implementation
-    (:func:`fatf.utils.array.tools.fatf_structured_to_unstructured_row`) or
-    numpy's own :func:`numpy.lib.recfunctions.structured_to_unstructured`.
+    (``fatf.utils.array.tools.fatf_structured_to_unstructured_row``) or
+    numpy's own ``numpy.lib.recfunctions.structured_to_unstructured``.
     Please see the description of
     :func:`fatf.utils.array.tools.structured_to_unstructured` function for the
     detailed description of when a particular implementation is chosen.
@@ -335,7 +334,7 @@ def structured_to_unstructured_row(
         Named parameters that are passed to the appropriate structured to
         unstructured array converter. These parameters are ignored when calling
         the local implementation
-        (:func:`fatf.utils.array.tools.fatf_structured_to_unstructured_row`).
+        (``fatf.utils.array.tools.fatf_structured_to_unstructured_row``).
 
     Returns
     -------
@@ -409,18 +408,18 @@ def structured_to_unstructured(
     Calls either local or numpy's ``structured_to_unstructured`` function.
 
     numpy 1.16.0 has introduced
-    :func:`numpy.lib.recfunctions.structured_to_unstructured` function. To
+    ``numpy.lib.recfunctions.structured_to_unstructured`` function. To
     ensure backwards compatibility up to numpy 1.9.0 this package implements
     its own version of this function
-    (:func:`fatf.utils.array.tools.fatf_structured_to_unstructured`).
+    (``fatf.utils.array.tools.fatf_structured_to_unstructured``).
     This function calls the latter if numpy version below 1.16.0 is installed.
     However, if numpy 1.16.0 or above is detected, numpy's implementation is
     used instead.
 
     For the description of ``structured_to_unstructured`` functionality either
     refer to the corresponding numpy
-    (:func:`numpy.lib.recfunctions.structured_to_unstructured`) or local
-    (:func:`fatf.utils.array.tools.fatf_structured_to_unstructured`)
+    (``numpy.lib.recfunctions.structured_to_unstructured``) or local
+    (``fatf.utils.array.tools.fatf_structured_to_unstructured``)
     documentation.
 
     .. warning:: Since this function either calls a local implementation or a
@@ -439,7 +438,7 @@ def structured_to_unstructured(
         Named parameters that are passed to the appropriate structured to
         unstructured array converter. These parameters are ignored when calling
         the local implementation
-        (:func:`fatf.utils.array.tools.fatf_structured_to_unstructured`).
+        (``fatf.utils.array.tools.fatf_structured_to_unstructured``).
 
     Returns
     -------

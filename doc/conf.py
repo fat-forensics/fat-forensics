@@ -63,7 +63,7 @@ extensions = [
     # 'sphinx.ext.viewcode',  # Show source as a web page generated from rST
     'sphinx.ext.intersphinx',  # Link documentation of other projects
     # 'sphinx.ext.doctest',
-    # 'sphinx.ext.coverage',
+    'sphinx.ext.coverage',
     'sphinx.ext.githubpages',
     # 'sphinx.ext.mathjax',  # Appended later based on OS variables
     # 'sphinx.ext.imgconverter',
@@ -232,6 +232,12 @@ texinfo_documents = [
 ]
 
 # -- Extension configuration -------------------------------------------------
+
+# -- Options for coverage extension ------------------------------------------
+coverage_ignore_functions = [
+    'fatf_structured_to_unstructured',
+    'fatf_structured_to_unstructured_row'
+]
 
 # Remove <BLANKLINE> and # doctest: options for all code blocks (including
 # the ones imported from doc strings.)

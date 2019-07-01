@@ -509,7 +509,7 @@ Tuple[numpy.ndarray, numpy.ndarray]]
 
 
 def _validate_input_mixup(
-        beta_parameters: Union[None, Tuple[Number, Number]]) -> bool:
+        beta_parameters: Union[None, Tuple[float, float]]) -> bool:
     """
     Validates :class:``.Mixup`` class-specific input parameters.
 
@@ -544,7 +544,7 @@ def _validate_input_mixup(
                              '2-tuple (a pair) of numbers.')
         for index, name in enumerate(['first', 'second']):
             if isinstance(beta_parameters[index], Number):
-                if beta_parameters[index] <= 0:  # type: ignore
+                if beta_parameters[index] <= 0:
                     raise ValueError('The {} beta parameter cannot be a '
                                      'negative number.'.format(name))
             else:
@@ -627,7 +627,7 @@ class Mixup(Augmentation):
                  dataset: np.ndarray,
                  ground_truth: Optional[np.ndarray] = None,
                  categorical_indices: Optional[np.ndarray] = None,
-                 beta_parameters: Optional[Tuple[Number, Number]] = None,
+                 beta_parameters: Optional[Tuple[float, float]] = None,
                  int_to_float: bool = True) -> None:
         """
         Constructs a ``Mixup`` data augmentation class.
@@ -671,11 +671,11 @@ class Mixup(Augmentation):
 
         # Check beta parameters
         if beta_parameters is None:
-            beta_parameters = (2, 5)  # type: ignore
+            beta_parameters = (2, 5)
         self.beta_parameters = beta_parameters
 
     def _validate_sample_input_mixup(
-            self, data_row_target: Union[Number, str, None],
+            self, data_row_target: Union[float, str, None],
             with_replacement: bool, return_probabilities: bool) -> bool:
         """
         Validates ``sample`` method input parameters for the ``Mixup`` class.
@@ -832,7 +832,7 @@ class Mixup(Augmentation):
 
         return random_indices
 
-    def _get_sample_targets(self, data_row_target: Union[Number, str],
+    def _get_sample_targets(self, data_row_target: Union[float, str],
                             return_probabilities: bool,
                             random_draws_lambda: np.ndarray,
                             random_draws_lambda_1: np.ndarray,
@@ -907,7 +907,7 @@ class Mixup(Augmentation):
     def sample(  # type: ignore
             self,
             data_row: Optional[Union[np.ndarray, np.void]] = None,
-            data_row_target: Optional[Union[Number, str]] = None,
+            data_row_target: Optional[Union[float, str]] = None,
             samples_number: int = 50,
             with_replacement: bool = True,
             return_probabilities: bool = False) -> Tuple[np.ndarray, ...]:

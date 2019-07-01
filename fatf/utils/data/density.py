@@ -26,7 +26,7 @@ _NUMPY_VERSION = [int(i) for i in np.version.version.split('.')]
 _NUMPY_1_14 = fut.at_least_verion([1, 14], _NUMPY_VERSION)
 
 DataRow = Union[np.ndarray, np.void]
-DistanceFunction = Callable[[DataRow, DataRow], Number]
+DistanceFunction = Callable[[DataRow, DataRow], float]
 Index = Union[int, str]
 
 
@@ -320,7 +320,7 @@ optional (default=None)
                 self.scores -= self.scores_min
                 self.scores /= self.scores_max - self.scores_min
 
-    def _mixed_distance_n(self, array_x: DataRow, array_y: DataRow) -> Number:
+    def _mixed_distance_n(self, array_x: DataRow, array_y: DataRow) -> float:
         """
         Calculates a distance between two data points.
 
@@ -359,9 +359,9 @@ optional (default=None)
             cat_dist = 0
 
         distance = num_dist + cat_dist
-        return distance  # type: ignore
+        return distance
 
-    def _mixed_distance_o(self, array_x: DataRow, array_y: DataRow) -> Number:
+    def _mixed_distance_o(self, array_x: DataRow, array_y: DataRow) -> float:
         """
         Calculates a distance between two data points.
 
@@ -405,7 +405,7 @@ optional (default=None)
             cat_dist = 0
 
         distance = num_dist + cat_dist
-        return distance  # type: ignore
+        return distance
 
     def _compute_scores(self) -> np.ndarray:
         """
@@ -428,8 +428,7 @@ optional (default=None)
 
         return scores
 
-    def filter_data_set(  # type: ignore
-            self, alpha: Number = 0.8) -> np.ndarray:
+    def filter_data_set(self, alpha: float = 0.8) -> np.ndarray:
         """
         Returns the data points that are in alpha-dense areas.
 
@@ -465,11 +464,11 @@ optional (default=None)
         """
         if isinstance(alpha, Number):
             if self.normalise_scores:
-                if alpha < 0 or alpha > 1:  # type: ignore
+                if alpha < 0 or alpha > 1:
                     raise ValueError('The alpha parameter has to be between '
                                      '0 and 1 for normalised scores.')
             else:
-                if alpha < 0:  # type: ignore
+                if alpha < 0:
                     raise ValueError('The alpha parameter has to be equal to '
                                      'or larger than 0.')
         else:
@@ -544,7 +543,7 @@ optional (default=None)
         return is_valid
 
     def score_data_point(self, data_point: DataRow,
-                         clip: bool = True) -> Number:
+                         clip: bool = True) -> float:
         """
         Calculates a density score for the ``data_point``.
 

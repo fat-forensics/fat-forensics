@@ -27,8 +27,8 @@ Index = Union[int, str]  # A column index type
 
 
 def apply_metric_function(population_confusion_matrix: List[np.ndarray],
-                          metric_function: Callable[[np.ndarray], Number],
-                          *args, **kwargs) -> List[Number]:
+                          metric_function: Callable[[np.ndarray], float],
+                          *args, **kwargs) -> List[float]:
     """
     Applies the provided performance metric to every confusion matrix.
 
@@ -113,7 +113,7 @@ def apply_metric_function(population_confusion_matrix: List[np.ndarray],
 def apply_metric(population_confusion_matrix: List[np.ndarray],
                  metric: Optional[str] = None,
                  label_index: int = 0,
-                 **kwargs) -> List[Number]:
+                 **kwargs) -> List[float]:
     """
     Applies one of the predefined performance metric to all confusion matrices.
 
@@ -195,16 +195,16 @@ def performance_per_subgroup(
         *args,
         label_index: int = 0,
         #
-        groupings: Optional[List[Union[Number, Tuple[str]]]] = None,
+        groupings: Optional[List[Union[float, Tuple[str]]]] = None,
         numerical_bins_number: int = 5,
         treat_as_categorical: Optional[bool] = None,
         #
-        labels: Optional[List[Union[str, Number]]] = None,
+        labels: Optional[List[Union[str, float]]] = None,
         #
         metric: Optional[str] = None,
-        metric_function: Optional[Callable[[np.ndarray], Number]] = None,
+        metric_function: Optional[Callable[[np.ndarray], float]] = None,
         #
-        **kwargs) -> Tuple[List[Number], List[str]]:
+        **kwargs) -> Tuple[List[float], List[str]]:
     """
     Computes a chosen metric per sub-population for a data set.
 
@@ -254,12 +254,12 @@ def performance_per_subgroup_indexed(
         *args,
         label_index: int = 0,
         #
-        labels: Optional[List[Union[str, Number]]] = None,
+        labels: Optional[List[Union[str, float]]] = None,
         #
         metric: Optional[str] = None,
-        metric_function: Optional[Callable[[np.ndarray], Number]] = None,
+        metric_function: Optional[Callable[[np.ndarray], float]] = None,
         #
-        **kwargs) -> List[Number]:
+        **kwargs) -> List[float]:
     """
     Computes a chosen metric per sub-population for index-based grouping.
 

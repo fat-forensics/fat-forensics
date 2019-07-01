@@ -139,7 +139,7 @@ def _prepare_a_canvas(
         class_index: int,
         class_name: Union[None, str],
         feature_name: Union[None, str],
-        x_range: List[Number]
+        x_range: List[float]
 ) -> Tuple[Union[plt.Figure, None], plt.Axes]:  # yapf: disable
     """
     Prepares a matplotlib axis (canvas) for ICE and PDP plotting.
@@ -207,8 +207,8 @@ def _prepare_a_canvas(
     assert len(x_range) == 2, 'x_range should only contain 2 numbers.'
     assert isinstance(x_range[0], Number) and isinstance(x_range[1], Number), \
         'Both elements of x_range should be numbers.'
-    assert x_range[0] < x_range[1], (  # type: ignore
-        'The first element of x_range should be smaller than the second one.')
+    assert x_range[0] < x_range[1], \
+        'The first element of x_range should be smaller than the second one.'
 
     if plot_axis is None:
         if class_name is None:

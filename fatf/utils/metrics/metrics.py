@@ -4,8 +4,6 @@ The :mod:`fatf.utils.metrics.metrics` module holds common performance metrics.
 # Author: Kacper Sokol <k.sokol@bristol.ac.uk>
 # License: new BSD
 
-from numbers import Number
-
 import numpy as np
 
 import fatf.utils.metrics.tools as fumt
@@ -28,7 +26,7 @@ __all__ = ['multiclass_true_positive_rate',
 
 
 def multiclass_true_positive_rate(confusion_matrix: np.ndarray,
-                                  label_index: int) -> Number:
+                                  label_index: int) -> float:
     """
     Calculates the "true positive rate" for a multi-class confusion matrix.
 
@@ -120,7 +118,7 @@ def multiclass_true_negative_rate(confusion_matrix: np.ndarray,
 
 
 def multiclass_false_positive_rate(confusion_matrix: np.ndarray,
-                                   label_index: int) -> Number:
+                                   label_index: int) -> float:
     """
     Calculates the "false positive rate" for a multi-class confusion matrix.
 
@@ -154,7 +152,7 @@ def multiclass_false_positive_rate(confusion_matrix: np.ndarray,
 
 
 def multiclass_false_negative_rate(confusion_matrix: np.ndarray,
-                                   label_index: int) -> Number:
+                                   label_index: int) -> float:
     """
     Calculates the "false negative rate" for a multi-class confusion matrix.
 
@@ -186,7 +184,7 @@ def multiclass_false_negative_rate(confusion_matrix: np.ndarray,
     return metric
 
 
-def true_positive_rate(confusion_matrix: np.ndarray) -> Number:
+def true_positive_rate(confusion_matrix: np.ndarray) -> float:
     """
     Calculates the true positive rate for a binary confusion matrix.
 
@@ -212,7 +210,7 @@ def true_positive_rate(confusion_matrix: np.ndarray) -> Number:
     return metric
 
 
-def true_negative_rate(confusion_matrix: np.ndarray) -> Number:
+def true_negative_rate(confusion_matrix: np.ndarray) -> float:
     """
     Calculates the true negative rate for a binary confusion matrix.
 
@@ -238,7 +236,7 @@ def true_negative_rate(confusion_matrix: np.ndarray) -> Number:
     return metric
 
 
-def false_positive_rate(confusion_matrix: np.ndarray) -> Number:
+def false_positive_rate(confusion_matrix: np.ndarray) -> float:
     """
     Calculates the false positive rate for a binary confusion matrix.
 
@@ -264,7 +262,7 @@ def false_positive_rate(confusion_matrix: np.ndarray) -> Number:
     return metric
 
 
-def false_negative_rate(confusion_matrix: np.ndarray) -> Number:
+def false_negative_rate(confusion_matrix: np.ndarray) -> float:
     """
     Calculates the false negative rate for a binary confusion matrix.
 
@@ -291,7 +289,7 @@ def false_negative_rate(confusion_matrix: np.ndarray) -> Number:
 
 
 def multiclass_positive_predictive_value(confusion_matrix: np.ndarray,
-                                         label_index: int) -> Number:
+                                         label_index: int) -> float:
     """
     Gets the "positive predictive value" for a multi-class confusion matrix.
 
@@ -327,7 +325,7 @@ def multiclass_positive_predictive_value(confusion_matrix: np.ndarray,
 
 def multiclass_negative_predictive_value(confusion_matrix: np.ndarray,
                                          label_index: int,
-                                         strict: bool = False) -> Number:
+                                         strict: bool = False) -> float:
     """
     Gets the "negative predictive value" for a multi-class confusion matrix.
 
@@ -388,7 +386,7 @@ def multiclass_negative_predictive_value(confusion_matrix: np.ndarray,
     return metric
 
 
-def positive_predictive_value(confusion_matrix: np.ndarray) -> Number:
+def positive_predictive_value(confusion_matrix: np.ndarray) -> float:
     """
     Calculates the positive predictive value for a binary confusion matrix.
 
@@ -414,7 +412,7 @@ def positive_predictive_value(confusion_matrix: np.ndarray) -> Number:
     return metric
 
 
-def negative_predictive_value(confusion_matrix: np.ndarray) -> Number:
+def negative_predictive_value(confusion_matrix: np.ndarray) -> float:
     """
     Calculates the negative predictive value for a binary confusion matrix.
 
@@ -440,7 +438,7 @@ def negative_predictive_value(confusion_matrix: np.ndarray) -> Number:
     return metric
 
 
-def accuracy(confusion_matrix: np.ndarray) -> Number:
+def accuracy(confusion_matrix: np.ndarray) -> float:
     """
     Computes the accuracy for an arbitrary confusion matrix.
 
@@ -468,7 +466,7 @@ def accuracy(confusion_matrix: np.ndarray) -> Number:
 
 
 def multiclass_treatment(confusion_matrix: np.ndarray,
-                         label_index: int) -> Number:
+                         label_index: int) -> float:
     """
     Computes the "treatment" metric for a multi-class confusion matrix.
 
@@ -504,7 +502,7 @@ def multiclass_treatment(confusion_matrix: np.ndarray,
     return metric
 
 
-def treatment(confusion_matrix: np.ndarray) -> Number:
+def treatment(confusion_matrix: np.ndarray) -> float:
     """
     Computes the "treatment" metric for a binary confusion matrix.
 

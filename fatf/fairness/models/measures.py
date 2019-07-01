@@ -24,7 +24,7 @@ __all__ = ['disparate_impact',
 Index = Union[int, str]  # A column index type
 
 
-def disparate_impact(  # type: ignore
+def disparate_impact(
         dataset: np.ndarray,
         #
         ground_truth: np.ndarray,
@@ -34,13 +34,13 @@ def disparate_impact(  # type: ignore
         #
         label_index: int = 0,
         #
-        groupings: Optional[List[Union[Number, Tuple[str]]]] = None,
+        groupings: Optional[List[Union[float, Tuple[str]]]] = None,
         numerical_bins_number: int = 5,
         treat_as_categorical: Optional[bool] = None,
         #
-        labels: Optional[List[Union[str, Number]]] = None,
+        labels: Optional[List[Union[str, float]]] = None,
         #
-        tolerance: Number = 0.2,
+        tolerance: float = 0.2,
         criterion: Optional[str] = None) -> Tuple[np.ndarray, List[str]]:
     """
     Calculates selected disparate impact grid for a data set.
@@ -95,16 +95,16 @@ numerical_bins_number, labels, and treat_as_categorical
     return disparity_grid, bin_names
 
 
-def disparate_impact_indexed(  # type: ignore
+def disparate_impact_indexed(
         indices_per_bin: List[np.ndarray],
         ground_truth: np.ndarray,
         predictions: np.ndarray,
         #
         label_index: int = 0,
         #
-        labels: Optional[List[Union[str, Number]]] = None,
+        labels: Optional[List[Union[str, float]]] = None,
         #
-        tolerance: Number = 0.2,
+        tolerance: float = 0.2,
         criterion: Optional[str] = None) -> np.ndarray:
     """
     Calculates selected disparate impact grid for indexed data.
@@ -159,7 +159,7 @@ def disparate_impact_indexed(  # type: ignore
 
 
 def _disparate_impact_grid(confusion_matrix_list: List[np.ndarray],
-                           criterion: Union[None, str], tolerance: Number,
+                           criterion: Union[None, str], tolerance: float,
                            label_index: int) -> np.ndarray:
     """
     Applies selected group fairness criterion to get a disparate impact grid.
@@ -257,10 +257,9 @@ def disparate_impact_check(disparity_grid: np.ndarray) -> bool:
     return is_disparate
 
 
-def demographic_parity(  # type: ignore
-        confusion_matrix_list: List[np.ndarray],
-        tolerance: Number = 0.2,
-        label_index: int = 0) -> np.ndarray:
+def demographic_parity(confusion_matrix_list: List[np.ndarray],
+                       tolerance: float = 0.2,
+                       label_index: int = 0) -> np.ndarray:
     """
     Checks for demographic parity between all of the sub-populations.
 
@@ -321,10 +320,9 @@ def demographic_parity(  # type: ignore
     return disparity
 
 
-def equal_opportunity(  # type: ignore
-        confusion_matrix_list: List[np.ndarray],
-        tolerance: Number = 0.2,
-        label_index: int = 0) -> np.ndarray:
+def equal_opportunity(confusion_matrix_list: List[np.ndarray],
+                      tolerance: float = 0.2,
+                      label_index: int = 0) -> np.ndarray:
     """
     Checks for equal opportunity between all of the sub-populations.
 
@@ -384,10 +382,9 @@ def equal_opportunity(  # type: ignore
     return disparity
 
 
-def equal_accuracy(  # type: ignore
-        confusion_matrix_list: List[np.ndarray],
-        tolerance: Number = 0.2,
-        label_index: int = 0) -> np.ndarray:
+def equal_accuracy(confusion_matrix_list: List[np.ndarray],
+                   tolerance: float = 0.2,
+                   label_index: int = 0) -> np.ndarray:
     """
     Checks if accuracy difference of all grouping pairs is within tolerance.
 
@@ -442,7 +439,7 @@ def equal_accuracy(  # type: ignore
     return disparity
 
 
-def _validate_tolerance(tolerance: Number) -> bool:
+def _validate_tolerance(tolerance: float) -> bool:
     """
     Validate a tolerance parameter.
 
@@ -466,7 +463,7 @@ def _validate_tolerance(tolerance: Number) -> bool:
     is_valid = False
 
     if isinstance(tolerance, Number):
-        if tolerance < 0 or tolerance > 1:  # type: ignore
+        if tolerance < 0 or tolerance > 1:
             raise ValueError('The tolerance parameter should be within [0, 1] '
                              'range.')
     else:

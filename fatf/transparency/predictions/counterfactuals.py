@@ -24,7 +24,7 @@ import fatf.utils.tools as fut
 
 from fatf.exceptions import IncorrectShapeError
 
-FeatureRange = Union[Tuple[Number, Number], List[Union[Number, str]]]
+FeatureRange = Union[Tuple[float, float], List[Union[float, str]]]
 Index = Union[int, str]
 
 __all__ = ['CounterfactualExplainer', 'textualise_counterfactuals']
@@ -256,19 +256,18 @@ optional (default=None)
     # Used to avoid duplicated feature warnings.
     _feature_warned = dict()  # type: Dict[Index, bool]
 
-    def __init__(  # type: ignore
-            self,
-            model: Optional[object] = None,
-            predictive_function: Optional[Callable] = None,
-            dataset: Optional[np.ndarray] = None,
-            categorical_indices: Optional[List[Index]] = None,
-            numerical_indices: Optional[List[Index]] = None,
-            counterfactual_feature_indices: Optional[List[Index]] = None,
-            max_counterfactual_length: int = 2,
-            feature_ranges: Optional[Dict[Index, FeatureRange]] = None,
-            distance_functions: Optional[Dict[Index, Callable]] = None,
-            step_sizes: Optional[Dict[Index, Number]] = None,
-            default_numerical_step_size: Number = 1.0) -> None:
+    def __init__(self,
+                 model: Optional[object] = None,
+                 predictive_function: Optional[Callable] = None,
+                 dataset: Optional[np.ndarray] = None,
+                 categorical_indices: Optional[List[Index]] = None,
+                 numerical_indices: Optional[List[Index]] = None,
+                 counterfactual_feature_indices: Optional[List[Index]] = None,
+                 max_counterfactual_length: int = 2,
+                 feature_ranges: Optional[Dict[Index, FeatureRange]] = None,
+                 distance_functions: Optional[Dict[Index, Callable]] = None,
+                 step_sizes: Optional[Dict[Index, float]] = None,
+                 default_numerical_step_size: float = 1.0) -> None:
         """
         Initialises a counterfactual explainer.
         """
@@ -572,7 +571,7 @@ optional (default=None)
     def _get_distance(self,
                       instance_one: Union[np.ndarray, np.void],
                       instance_two: Union[np.ndarray, np.void],
-                      normalise: bool = False) -> Number:
+                      normalise: bool = False) -> float:
         """
         Calculates a distance between two 1-dimensional data points.
 
@@ -902,8 +901,8 @@ optional (default=None)
                 counterfactuals_predictions)
 
 
-def _categorical_distance(first_value: Union[Number, str],
-                          second_value: Union[Number, str]) -> int:
+def _categorical_distance(first_value: Union[float, str],
+                          second_value: Union[float, str]) -> int:
     """
     Defines the default categorical distance.
 
@@ -929,7 +928,7 @@ def _categorical_distance(first_value: Union[Number, str],
     return distance
 
 
-def _numerical_distance(first_value: Number, second_value: Number) -> Number:
+def _numerical_distance(first_value: float, second_value: float) -> float:
     """
     Defines the default numerical distance.
 
@@ -951,7 +950,7 @@ def _numerical_distance(first_value: Number, second_value: Number) -> Number:
     assert isinstance(first_value, Number), 'Must be a number.'
     assert isinstance(second_value, Number), 'Must be a number.'
 
-    distance = abs(first_value - second_value)  # type: ignore
+    distance = abs(first_value - second_value)
     return distance
 
 
@@ -1064,8 +1063,8 @@ def _validate_input_two(
         max_counterfactual_length: int,
         feature_ranges: Union[Dict[Index, FeatureRange], None],
         distance_functions: Union[Dict[Index, Callable], None],
-        step_sizes: Union[Dict[Index, Number], None],
-        default_numerical_step_size: Number) -> bool:  # yapf: disable
+        step_sizes: Union[Dict[Index, float], None],
+        default_numerical_step_size: float) -> bool:  # yapf: disable
     """
     Validates the second part of input given to initialise the cf class.
 
@@ -1159,7 +1158,7 @@ def _validate_input_two(
                         or not isinstance(column_range[1], Number)):
                     raise TypeError('Both the lower and the upper bound '
                                     "defining column's range should numbers.")
-                if column_range[1] <= column_range[0]:  # type: ignore
+                if column_range[1] <= column_range[0]:
                     raise ValueError('The second element of a tuple '
                                      'defining a numerical range should '
                                      'be strictly larger than the first '
@@ -1211,7 +1210,7 @@ def _validate_input_two(
             if not isinstance(i, Number):
                 raise TypeError('All of the step values contained in the '
                                 'step_sizes must be numbers.')
-            if i <= 0:  # type: ignore
+            if i <= 0:
                 raise ValueError('All of the step values contained in the '
                                  'step_sizes must be positive numbers.')
 
@@ -1219,7 +1218,7 @@ def _validate_input_two(
     if not isinstance(default_numerical_step_size, Number):
         raise TypeError('The default_numerical_step_size parameter has to be '
                         'a number.')
-    if default_numerical_step_size <= 0:  # type: ignore
+    if default_numerical_step_size <= 0:
         raise ValueError('The default_numerical_step_size parameter has to be '
                          'a positive number.')
 

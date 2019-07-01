@@ -18,11 +18,11 @@ import fatf.utils.array.validation as fuav
 
 __all__ = ['counterfactual_fairness', 'counterfactual_fairness_check']
 
-FeatureRange = Union[Tuple[Number, Number], List[Union[Number, str]]]
+FeatureRange = Union[Tuple[float, float], List[Union[float, str]]]
 Index = Union[int, str]  # Possible types of column indices
 
 
-def counterfactual_fairness(  # type: ignore
+def counterfactual_fairness(
         instance: Union[np.ndarray, np.void],
         protected_feature_indices: List[Index],
         #
@@ -36,8 +36,8 @@ def counterfactual_fairness(  # type: ignore
         max_counterfactual_length: int = 2,
         feature_ranges: Optional[Dict[Index, FeatureRange]] = None,
         distance_functions: Optional[Dict[Index, Callable]] = None,
-        step_sizes: Optional[Dict[Index, Number]] = None,
-        default_numerical_step_size: Number = 1.0,
+        step_sizes: Optional[Dict[Index, float]] = None,
+        default_numerical_step_size: float = 1.0,
         #
         normalise_distance: bool = False
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
@@ -104,7 +104,7 @@ CounterfactualExplainer` object. The only difference is that the
 def counterfactual_fairness_check(
         unfair_counterfactuals: Optional[np.ndarray] = None,
         distances: Optional[np.ndarray] = None,
-        threshold: Optional[Number] = None) -> bool:
+        threshold: Optional[float] = None) -> bool:
     """
     Checks for counterfactual fairness using a counterfactual fairness arrays.
 

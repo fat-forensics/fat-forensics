@@ -11,7 +11,6 @@ module.
 
 import warnings
 
-from numbers import Number
 from typing import List, Optional, Tuple, Union
 
 import numpy as np
@@ -140,7 +139,7 @@ def validate_confusion_matrix_size(confusion_matrix: np.ndarray,
 def get_confusion_matrix(
         ground_truth: np.ndarray,
         predictions: np.ndarray,
-        labels: Optional[List[Union[str, Number]]] = None) -> np.ndarray:
+        labels: Optional[List[Union[str, float]]] = None) -> np.ndarray:
     """
     Computes a confusion matrix based on predictions and ground truth vectors.
 
@@ -236,11 +235,11 @@ def confusion_matrix_per_subgroup(
         predictions: np.ndarray,
         #
         column_index: Index,
-        groupings: Optional[List[Union[Number, Tuple[str]]]] = None,
+        groupings: Optional[List[Union[float, Tuple[str]]]] = None,
         numerical_bins_number: int = 5,
         treat_as_categorical: Optional[bool] = None,
         #
-        labels: Optional[List[Union[str, Number]]] = None
+        labels: Optional[List[Union[str, float]]] = None
 ) -> Tuple[List[np.ndarray], List[str]]:
     """
     Computes confusion matrices for every defined sub-population.
@@ -293,7 +292,7 @@ def confusion_matrix_per_subgroup_indexed(
         indices_per_bin: List[np.ndarray],
         ground_truth: np.ndarray,
         predictions: np.ndarray,
-        labels: Optional[List[Union[str, Number]]] = None) -> List[np.ndarray]:
+        labels: Optional[List[Union[str, float]]] = None) -> List[np.ndarray]:
     """
     Computes confusion matrices for every defined sub-population.
 

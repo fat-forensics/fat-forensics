@@ -11,7 +11,6 @@ implemented in :mod:`fatf.vis` module. **This module requires the
 
 import warnings
 
-from numbers import Number
 from typing import List, Tuple, Union
 
 import numpy as np
@@ -29,8 +28,8 @@ finally:
 __all__ = ['get_plot_data', 'get_line_data', 'get_bar_data']
 
 
-def get_plot_data(plot_axis: plt.Axes
-                  ) -> Tuple[str, str, List[Number], str, List[Number]]:
+def get_plot_data(
+        plot_axis: plt.Axes) -> Tuple[str, str, List[float], str, List[float]]:
     """
     Extracts plot's title, x-axis name and range and y-axis name and range.
 
@@ -115,7 +114,7 @@ matplotlib.collections.LineCollection]
 
 def get_bar_data(
         plot_axis: plt.Axes
-) -> Tuple[str, List[str], List[Number], List[str], List[Number], List[Number],
+) -> Tuple[str, List[str], List[float], List[str], List[float], List[float],
            List[Tuple[float, float, float, float]]]:
     """
     Extracts plot's title, x-axis name and range and y-axis name and range.

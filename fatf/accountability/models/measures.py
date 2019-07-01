@@ -14,8 +14,8 @@ import numpy as np
 __all__ = ['systematic_performance_bias', 'systematic_performance_bias_grid']
 
 
-def systematic_performance_bias(  # type: ignore
-        metrics_list: List[Number], threshold: Number = 0.8) -> bool:
+def systematic_performance_bias(metrics_list: List[float],
+                                threshold: float = 0.8) -> bool:
     """
     Checks for a systematic bias in provided predictive performance values.
 
@@ -48,8 +48,8 @@ performance_per_subgroup_indexed` or
     return is_biased
 
 
-def systematic_performance_bias_grid(  # type: ignore
-        metrics_list: List[Number], threshold: Number = 0.8) -> np.ndarray:
+def systematic_performance_bias_grid(metrics_list: List[float],
+                                     threshold: float = 0.8) -> np.ndarray:
     """
     Checks for pairwise systematic bias in group-wise predictive performance.
 
@@ -105,14 +105,14 @@ performance_per_subgroup_indexed` or
         raise TypeError('The metrics_list parameter has to be a list.')
     # Validate threshold
     if isinstance(threshold, Number):
-        if threshold < 0 or threshold > 1:  # type: ignore
+        if threshold < 0 or threshold > 1:
             raise ValueError('The threshold should be between 0 and 1 '
                              'inclusive.')
     else:
         raise TypeError('The threshold parameter has to be a number.')
 
     metrics_array = np.asarray(metrics_list)
-    inv_threshold = 1 - threshold  # type: ignore
+    inv_threshold = 1 - threshold
     # Get pairwise proportions
     proportions = metrics_array[np.newaxis, :] / metrics_array[:, np.newaxis]
     proportions = np.abs(proportions - 1)

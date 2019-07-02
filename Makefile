@@ -15,13 +15,13 @@ ifndef FATF_TEST_MATPLOTLIB
 	MATPLOTLIB_VERSION := $(shell sed -n 's/matplotlib\(.*\)/\1/p' \
 		requirements-aux.txt)
 else
-	MATPLOTLIB_VERSION := '==$(FATF_TEST_MATPLOTLIB)'
+	MATPLOTLIB_VERSION := ==$(FATF_TEST_MATPLOTLIB)
 endif
 
 ifndef FATF_TEST_LIME
 	LIME_VERSION := $(shell sed -n 's/lime\(.*\)/\1/p' requirements-aux.txt)
 else
-	LIME_VERSION := '==$(FATF_TEST_LIME)'
+	LIME_VERSION := ==$(FATF_TEST_LIME)
 endif
 
 # Get environment variables if _envar.sh exists

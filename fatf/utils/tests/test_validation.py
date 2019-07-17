@@ -80,6 +80,7 @@ def test_check_kernel_functionality():
     def function3(x, y): pass
     def function4(x, y=3): pass
     def function5(x=3, y=3): pass
+    def function6(x, **kwargs): pass
 
     with pytest.warns(UserWarning) as warning:
         assert fuv.check_kernel_functionality(function1) is False
@@ -98,6 +99,7 @@ def test_check_kernel_functionality():
 
     assert fuv.check_kernel_functionality(function2) is True
     assert fuv.check_kernel_functionality(function4) is True
+    assert fuv.check_kernel_functionality(function6) is True
 
 
 def test_check_distance_functionality():
@@ -114,6 +116,7 @@ def test_check_distance_functionality():
     def function3(x, y): pass
     def function4(x, y, z=3): pass
     def function5(x=3, y=3): pass
+    def function6(x, y, **kwargs): pass
 
     with pytest.warns(UserWarning) as warning:
         assert fuv.check_distance_functionality(function1) is False
@@ -132,3 +135,4 @@ def test_check_distance_functionality():
 
     assert fuv.check_distance_functionality(function3) is True
     assert fuv.check_distance_functionality(function4) is True
+    assert fuv.check_distance_functionality(function6) is True

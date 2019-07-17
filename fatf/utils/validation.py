@@ -40,8 +40,9 @@ def _check_function_functionality(function: Callable[..., Any],
     required_param_n = 0
     params = inspect.signature(function).parameters
     for param in params:
-        if params[param].default is params[param].empty:
-            required_param_n += 1
+        if param is not 'kwargs':
+            if params[param].default is params[param].empty:
+                required_param_n += 1
     if required_param_n != required_param:
         is_functional = False
 

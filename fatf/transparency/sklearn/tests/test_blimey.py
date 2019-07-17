@@ -91,18 +91,18 @@ NUMERICAL_NP_BLIMEY_2 = {
                 'B <= 0.00': -0.0329}}
 
 NUMERICAL_NP_BLIMEY_CAT = {
-    'Class A': {'A = 0': -0.2119,
-                'B <= 0.00': 0.1658,
-                '0.07 < C <= 0.22': 0.0062,
-                '0.58 < D <= 0.79': -0.0144},
-    'Class B': {'A = 0': -0.0445,
-                'B <= 0.00': -0.0203,
-                '0.07 < C <= 0.22': -0.0596,
-                '0.58 < D <= 0.79': 0.0301},
-    'Class C': {'A = 0': 0.2564,
-                'B <= 0.00': -0.1455,
-                '0.07 < C <= 0.22': 0.0534,
-                '0.58 < D <= 0.79': -0.0157}}
+    'Class A': {'A = 0': -0.2400,
+                'B <= 0.00': 0.1408,
+                '0.07 < C <= 0.22': 0.0012,
+                '0.58 < D <= 0.79': -0.0193},
+    'Class B': {'A = 0': -0.0367,
+                'B <= 0.00': -0.0050,
+                '0.07 < C <= 0.22': -0.0592,
+                '0.58 < D <= 0.79': 0.0385},
+    'Class C': {'A = 0': 0.2763,
+                'B <= 0.00': -0.1357,
+                '0.07 < C <= 0.22': 0.0581,
+                '0.58 < D <= 0.79': -0.0191}}
 
 NUMERICAL_NP_BLIMEY_NO_DISC = {
     'Class A': {'A': 0.2277,
@@ -710,10 +710,11 @@ class TestBlimey():
                 data_row=NUMERICAL_NP_ARRAY[0],
                 samples_number=50,
                 kernel_function=None,
-                distance_function=fud.euclidean_array_distance,
+                distance_function=fud.binary_array_distance,
                 features_number=1000)
         assert len(warning) == 1
         assert str(warning[0].message) == features_number_warning
+        print(exp)
         assert _is_explanation_equal(exp, NUMERICAL_NP_BLIMEY_CAT)
 
         exp = self.numerical_blimey_no_discretization.explain_instance(

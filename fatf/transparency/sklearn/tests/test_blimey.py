@@ -17,6 +17,8 @@ import fatf.utils.models as fum
 import fatf.utils.data.augmentation as fuda
 import fatf.utils.data.discretization as fudd
 import fatf.utils.explainers as fue
+import fatf.utils.distances as fud
+import fatf.utils.kernels as fuk
 import fatf.transparency.sklearn.linear_model as ftslm
 
 from fatf.exceptions import IncompatibleModelError, IncorrectShapeError
@@ -67,60 +69,59 @@ MIXED_ARRAY = np.array(
     dtype=[('a', 'i'), ('b', 'U1'), ('c', 'f'), ('d', 'U2')])
 
 NUMERICAL_NP_BLIMEY = {
-    'Class A': {'A <= 0.00': -0.3665,
-                'B <= 0.00': 0.1791,
-                '0.07 < C <= 0.22': -0.0152,
-                '0.58 < D <= 0.79': 0.0821},
-    'Class B': {'A <= 0.00': 0.1489,
-                'B <= 0.00': -0.0791,
-                '0.07 < C <= 0.22': 0.0546,
-                '0.58 < D <= 0.79': 0.0073},
-    'Class C': {'A <= 0.00': 0.2177,
-                'B <= 0.00': -0.1000,
-                '0.07 < C <= 0.22': -0.0393,
-                '0.58 < D <= 0.79': -0.0894}}
+    'Class A': {'A <= 0.00': -0.3689,
+                'B <= 0.00': 0.1889,
+                '0.07 < C <= 0.22': 0.0492,
+                '0.58 < D <= 0.79': 0.1078},
+    'Class B': {'A <= 0.00': 0.1540,
+                'B <= 0.00': -0.07700,
+                '0.07 < C <= 0.22': 0.0463,
+                '0.58 < D <= 0.79': 0.0024},
+    'Class C': {'A <= 0.00': 0.2149,
+                'B <= 0.00': -0.1120,
+                '0.07 < C <= 0.22': -0.0954,
+                '0.58 < D <= 0.79': -0.1101}}
+
+NUMERICAL_NP_BLIMEY_2 = {
+    'Class A': {'A <= 0.00': -0.2503,
+                'B <= 0.00': 0.1418},
+    'Class B': {'A <= 0.00': 0.0724,
+                'B <= 0.00': -0.1089},
+    'Class C': {'A <= 0.00': 0.1778,
+                'B <= 0.00': -0.0329}}
 
 NUMERICAL_NP_BLIMEY_CAT = {
-    'Class A': {'A = 0': -0.1824,
-                'B <= 0.00': 0.1318,
-                '0.07 < C <= 0.22': 0.0526,
-                '0.58 < D <= 0.79': 0.0276},
-    'Class B': {'A = 0': -0.0425,
-                'B <= 0.00': -0.0670,
-                '0.07 < C <= 0.22': -0.0730,
-                '0.58 < D <= 0.79': -0.0237},
-    'Class C': {'A = 0': 0.2249,
-                'B <= 0.00': -0.0648,
-                '0.07 < C <= 0.22': 0.0204,
-                '0.58 < D <= 0.79': -0.0039}}
+    'Class A': {'A = 0': -0.2119,
+                'B <= 0.00': 0.1658,
+                '0.07 < C <= 0.22': 0.0062,
+                '0.58 < D <= 0.79': -0.0144},
+    'Class B': {'A = 0': -0.0445,
+                'B <= 0.00': -0.0203,
+                '0.07 < C <= 0.22': -0.0596,
+                '0.58 < D <= 0.79': 0.0301},
+    'Class C': {'A = 0': 0.2564,
+                'B <= 0.00': -0.1455,
+                '0.07 < C <= 0.22': 0.0534,
+                '0.58 < D <= 0.79': -0.0157}}
 
 NUMERICAL_NP_BLIMEY_NO_DISC = {
-    'Class A': {'A': 0.246,
-                'B': -0.228,
-                'C': -0.038,
-                'D': 0.050},
-    'Class B': {'A': -0.096,
-                'B': 0.141,
-                'C': 0.071,
-                'D': -0.050},
-    'Class C': {'A': -0.149,
-                'B': 0.087,
-                'C': -0.032,
-                'D': 0.000}}
+    'Class A': {'A': 0.2277,
+                'B': -0.1952,
+                'D': 0.0974},
+    'Class B': {'A': -0.0807,
+                'B': 0.0660,
+                'C': 0.0830},
+    'Class C': {'A': -0.1461,
+                'B': 0.1342,
+                'D': -0.1008}}
 
 NUMERICAL_STRUCT_BLIMEY = {
-    'Class A': {'A = 0': -0.308,
-                'B = 0': 0.168,
-                '0.07 < C <= 0.22': 0.0390,
-                '0.58 < D <= 0.79': -0.006},
-    'Class B': {'A = 0': -0.030,
-                'B = 0': -0.087,
-                '0.07 < C <= 0.22': 0.055,
-                '0.58 < D <= 0.79': 0.018},
-    'Class C': {'A = 0': 0.338,
-                'B = 0': -0.080,
-                '0.07 < C <= 0.22': -0.094,
-                '0.58 < D <= 0.79': -0.012}}
+    'Class A': {'A = 0': -0.4628,
+                'B = 0': 0.1359},
+    'Class B': {'B = 0': -0.1473,
+                '0.58 < D <= 0.79': -0.1112},
+    'Class C': {'A = 0': 0.4743,
+                '0.58 < D <= 0.79': 0.0851}}
 
 CATEGORICAL_NP_BLIMEY = {}
 CATEGORICAL_STRUCT_BLIMEY = {}
@@ -577,51 +578,96 @@ class TestBlimey():
                                    'positive integer.')
         samples_number_type_msg =  ('The samples_number parameter must be an '
                                      'integer.')
+        kernel_function_msg = ('The kernel function must have only 1 required '
+                               'parameter. Any additional parameters can be '
+                               'passed via **kwargs.')
+        distance_function_msg = ('The distance function must have only 2 '
+                                 'required parameters. Any additional '
+                                 'parameters can be passed via **kwargs.')
+        features_number_value_msg = ('The features_number parameter must be a '
+                                     'positive integer.')
+        features_number_type_msg = ('The features_number parameter must be an '
+                                    'integer.')
+        features_number_warning = ('features_number is larger than the number '
+                                   'of features in the dataset, therefore all '
+                                   'features will be used.')
+
+        def valid_kernel(x): pass
+        def invalid_kernel(x=3, y=3): pass
+
+        def valid_distance(x, y): pass
+        def invalid_distance(x): pass
 
         with pytest.raises(IncorrectShapeError) as exin:
             self.numerical_blimey._explain_instance_is_input_valid(
-                NUMERICAL_NP_ARRAY, 1)
+                NUMERICAL_NP_ARRAY, 1, None, None, None)
         assert str(exin.value) == shape_err_msg
 
         with pytest.raises(IncorrectShapeError) as exin:
             self.categorical_blimey._explain_instance_is_input_valid(
-                CATEGORICAL_NP_ARRAY, 1)
+                CATEGORICAL_NP_ARRAY, 1, None, None, None)
         assert str(exin.value) == shape_err_msg
 
         with pytest.raises(TypeError) as exin:
             self.numerical_blimey._explain_instance_is_input_valid(
-                CATEGORICAL_NP_ARRAY[0], 1)
+                CATEGORICAL_NP_ARRAY[0], 1, None, None, None)
         assert str(exin.value) == dtype_err
 
         with pytest.raises(TypeError) as exin:
             self.numerical_blimey_structured._explain_instance_is_input_valid(
-                CATEGORICAL_STRUCT_ARRAY[0], 1)
+                CATEGORICAL_STRUCT_ARRAY[0], 1, None, None, None)
         assert str(exin.value) == dtype_err
 
         with pytest.raises(IncorrectShapeError) as exin:
             self.numerical_blimey._explain_instance_is_input_valid(
-                NUMERICAL_NP_ARRAY[0][0:3], 1)
+                NUMERICAL_NP_ARRAY[0][0:3], 1, None, None, None)
         assert str(exin.value) == features_shape_msg
 
         with pytest.raises(ValueError) as exin:
             self.numerical_blimey._explain_instance_is_input_valid(
-                NUMERICAL_NP_ARRAY[0], -1)
+                NUMERICAL_NP_ARRAY[0], -1, None, None, None)
         assert str(exin.value) == samples_number_value_msg
 
         with pytest.raises(TypeError) as exin:
             self.numerical_blimey._explain_instance_is_input_valid(
-                NUMERICAL_NP_ARRAY[0], 'a')
+                NUMERICAL_NP_ARRAY[0], 'a', None, None, None)
         assert str(exin.value) == samples_number_type_msg
+
+        with pytest.raises(TypeError) as exin:
+            self.numerical_blimey._explain_instance_is_input_valid(
+                NUMERICAL_NP_ARRAY[0], 1, invalid_kernel, None, None)
+        assert str(exin.value) == kernel_function_msg
+
+        with pytest.raises(TypeError) as exin:
+            self.numerical_blimey._explain_instance_is_input_valid(
+                NUMERICAL_NP_ARRAY[0], 1, valid_kernel, invalid_distance, None)
+        assert str(exin.value) == distance_function_msg
+
+        with pytest.raises(ValueError) as exin:
+            self.numerical_blimey._explain_instance_is_input_valid(
+                NUMERICAL_NP_ARRAY[0], 1, valid_kernel, valid_distance, -1)
+        assert str(exin.value) == features_number_value_msg
+
+        with pytest.raises(TypeError) as exin:
+            self.numerical_blimey._explain_instance_is_input_valid(
+                NUMERICAL_NP_ARRAY[0], 1, valid_kernel, valid_distance, 'a')
+        assert str(exin.value) == features_number_type_msg
+
+        with pytest.warns(UserWarning) as warning:
+            self.numerical_blimey._explain_instance_is_input_valid(
+                NUMERICAL_NP_ARRAY[0], 1, valid_kernel, valid_distance, 1000)
+        assert len(warning) == 1
+        assert str(warning[0].message) == features_number_warning
 
         # All good
         assert self.numerical_blimey._explain_instance_is_input_valid(
-            NUMERICAL_NP_ARRAY[0], 10)
+            NUMERICAL_NP_ARRAY[0], 10, valid_kernel, valid_distance, 2)
         assert self.categorical_blimey._explain_instance_is_input_valid(
-            CATEGORICAL_NP_ARRAY[0], 10)
+            CATEGORICAL_NP_ARRAY[0], 10, valid_kernel, valid_distance, 2)
         assert self.numerical_blimey_structured._explain_instance_is_input_valid(
-            NUMERICAL_STRUCT_ARRAY[0], 10)
+            NUMERICAL_STRUCT_ARRAY[0], 10, valid_kernel, valid_distance, 2)
         assert self.mixed_blimey._explain_instance_is_input_valid(
-            MIXED_ARRAY[0], 10)
+            MIXED_ARRAY[0], 10, valid_kernel, valid_distance, 2)
 
     def test_explain_instance(self):
         """
@@ -632,22 +678,57 @@ class TestBlimey():
                'non-numerical values. Sklearn models are incompatible '
                'with non-numerical values, please either use a different '
                'local_model or one hot encode the non-numerical values.')
+        features_number_warning = ('features_number is larger than the number '
+                                   'of features in the dataset, therefore all '
+                                   'features will be used.')
+
         with pytest.raises(IncompatibleModelError) as exin:
             exp = self.categorical_blimey.explain_instance(
                 CATEGORICAL_NP_ARRAY[0])
         assert str(exin.value) == msg
 
         fatf.setup_random_seed()
-        exp = self.numerical_blimey.explain_instance(NUMERICAL_NP_ARRAY[0])
+        exp = self.numerical_blimey.explain_instance(
+            data_row=NUMERICAL_NP_ARRAY[0],
+            samples_number=50,
+            kernel_function=None,
+            distance_function=fud.euclidean_array_distance,
+            features_number=None)
         assert _is_explanation_equal(exp, NUMERICAL_NP_BLIMEY)
 
-        exp = self.numerical_blimey_cat.explain_instance(NUMERICAL_NP_ARRAY[0])
+        exp = self.numerical_blimey.explain_instance(
+            data_row=NUMERICAL_NP_ARRAY[0],
+            samples_number=50,
+            kernel_function=fuk.exponential_kernel,
+            width=0.9,
+            distance_function=fud.euclidean_array_distance,
+            features_number=2)
+        assert _is_explanation_equal(exp, NUMERICAL_NP_BLIMEY_2)
+
+        with pytest.warns(UserWarning) as warning:
+            exp = self.numerical_blimey_cat.explain_instance(
+                data_row=NUMERICAL_NP_ARRAY[0],
+                samples_number=50,
+                kernel_function=None,
+                distance_function=fud.euclidean_array_distance,
+                features_number=1000)
+        assert len(warning) == 1
+        assert str(warning[0].message) == features_number_warning
         assert _is_explanation_equal(exp, NUMERICAL_NP_BLIMEY_CAT)
 
         exp = self.numerical_blimey_no_discretization.explain_instance(
-            NUMERICAL_NP_ARRAY[0])
+            data_row=NUMERICAL_NP_ARRAY[0],
+            samples_number=50,
+            kernel_function=fuk.exponential_kernel,
+            width=0.5,
+            distance_function=fud.euclidean_array_distance,
+            features_number=3)
         assert _is_explanation_equal(exp, NUMERICAL_NP_BLIMEY_NO_DISC)
 
         exp = self.numerical_blimey_structured.explain_instance(
-            NUMERICAL_STRUCT_ARRAY[0])
+            data_row=NUMERICAL_STRUCT_ARRAY[0],
+            samples_number=50,
+            kernel_function=None,
+            distance_function=fud.euclidean_array_distance,
+            features_number=2)
         assert _is_explanation_equal(exp ,NUMERICAL_STRUCT_BLIMEY)

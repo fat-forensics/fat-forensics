@@ -4,17 +4,20 @@ Blimey implementation.
 # Author: Alex Hepburn <ah13558@bristol.ac.uk>
 # License: new BSD
 
-from typing import Dict, Union, Optional, List
+from typing import Dict, Union, Optional, List, Callable
 import warnings
 
 import numpy as np
 
+import fatf.transparency.sklearn.feature_choice as ftsfc
 import fatf.transparency.sklearn.linear_model as ftslm
 import fatf.transparency.sklearn.tools as ftst
 
 import fatf.utils.data.augmentation as fuda
 import fatf.utils.data.discretization as fudd
+import fatf.utils.distances as fud
 import fatf.utils.explainers as fue
+import fatf.utils.validation as fuv
 import fatf.utils.array.validation as fuav
 import fatf.utils.models.validation as fumv
 import fatf.utils.array.tools as fuat
@@ -388,10 +391,14 @@ class Blimey(object):
             else:
                 self.class_names.append(class_name)
 
-    def _explain_instance_is_input_valid(self,
-                                         data_row: np.ndarray,
-                                         samples_number: Optional[int] = 100
-                                         ) -> bool:
+    def _explain_instance_is_input_valid(
+            self,
+            data_row: np.ndarray,
+            samples_number: Optional[int],
+            kernel_function: Optional[Callable[..., np.ndarray]],
+            distance_function: Optional[Callable[..., np.ndarray]],
+            features_number: Optional[int]
+    ) -> bool:
         """
         Validates input parameters for ``explain_insatnce``.
 
@@ -428,13 +435,44 @@ class Blimey(object):
         else:
             raise TypeError('The samples_number parameter must be an integer.')
 
+        if kernel_function is not None:
+            if not fuv.check_kernel_functionality(kernel_function, True):
+                raise TypeError('The kernel function must have only 1 required '
+                                'parameter. Any additional parameters can be '
+                                'passed via **kwargs.')
+
+        if not fuv.check_distance_functionality(distance_function, True):
+            raise TypeError('The distance function must have only 2 required '
+                            'parameters. Any additional parameters can be '
+                            'passed via **kwargs.')
+
+        if features_number is not None:
+            if isinstance(features_number, int):
+                if features_number < 1:
+                    raise ValueError('The features_number parameter must be a '
+                                    'positive integer.')
+                elif features_number > len(self.feature_names):
+                    msg = ('features_number is larger than the number of '
+                           'features in the dataset, therefore all features '
+                           'will be used.')
+                    warnings.warn(msg, UserWarning)
+            else:
+                raise TypeError('The features_number parameter must be an '
+                                'integer.')
+
         input_is_ok = True
         return input_is_ok
 
-    def explain_instance(self,
-                         data_row: np.ndarray = None,
-                         samples_number: Optional[int] = 50
-                         ) -> Dict[str, Dict[Index, np.float64]]:
+    def explain_instance(
+            self,
+            data_row: np.ndarray = None,
+            samples_number: Optional[int] = 50,
+            kernel_function: Optional[Callable[..., np.ndarray]] = None,
+            distance_function: Optional[Callable[..., np.ndarray]] = \
+                fud.euclidean_array_distance,
+            features_number: Optional[int] = None,
+            **kwargs
+    ) -> Dict[str, Dict[Index, np.float64]]:
         """
         Generates explanations for data_row.
 
@@ -445,6 +483,18 @@ class Blimey(object):
             point.
         samples_number : integer, optional (default=50)
             The number of samples to be generated.
+        kernel_function : Callable[..., np.ndarray], optional (default=None)
+            Kernel to use when computing weightings for computing lasso path
+            and weighting the local model. If ``None`` then no kernel is used.
+        distance_function : Callable[..., np.ndarray], optional (default=fatf.
+                            utils.distances.euclidean_array_distance)
+            Function to use when computing distances between sampled points and
+            ``data_row``. Must take two 2-dimensional arrays and return the
+            distances between rows in the first array and rows in the second
+            array.
+        features_number : integer, optional (default=None)
+            Maximum number of features to use in explanations. If ``None`` then
+            all features are used.
 
         Raises
         ------
@@ -454,9 +504,11 @@ class Blimey(object):
             as the dataset used to initialise the class.
         TypeError
             The ``data_row`` array has a different dtype to the dataset used to
-            initialise the class. The ``samples_number`` is not an integer.
+            initialise the class. The ``samples_number`` is not an integer. The
+            ``features_number`` is not an integer.
         ValueError:
-            The ``samples_number`` parameter is a negative integer.
+            The ``samples_number`` parameter is a negative integer. The
+            ``features_number`` is not a positive integer.
 
         Returns
         -------
@@ -465,7 +517,13 @@ class Blimey(object):
             dictionary that maps feature index to a feature importance.
         """
         assert self._explain_instance_is_input_valid(
-            data_row, samples_number), 'Input is not valid.'
+            data_row, samples_number, kernel_function, distance_function,
+            features_number), 'Input is not valid.'
+
+        if features_number is not None:
+            if features_number > len(self.feature_names):
+                features_number = None # Use all features in dataset
+
         feature_names = self.feature_names
 
         sampled_data = self.augmentor.sample(
@@ -473,9 +531,7 @@ class Blimey(object):
         prediction_probabilities = self.global_model.predict_proba(
             sampled_data)
 
-        # TODO: lasso / greedy optimisation to pick the best features
-        #       to include in local model and possibly categorical features.
-
+        # Discretize data before training local model
         if self.discretize_first:
             discretized_data_row = self.discretizer.discretize(data_row)
             discretized_sampled_data = self.discretizer.discretize(
@@ -499,6 +555,7 @@ class Blimey(object):
 
             feature_names = discretized_feature_names
             sampled_data = binary_data
+            data_row = np.ones_like(binary_data[0])
 
         if ftst.is_sklearn_model(self.local_model):
             if fuav.is_numerical_array(sampled_data):
@@ -511,13 +568,39 @@ class Blimey(object):
                     'local_model or one hot encode the non-numerical values.')
 
         blimey_explanation = {}
+
+        distances = distance_function(np.expand_dims(data_row, 0),
+                                          sampled_data).flatten()
+        #TODO: maybe add **kwargs to our distance functions
+        if kernel_function is not None:
+            distances = kernel_function(distances, **kwargs)
+
         for i in range(self.n_classes):
+            local_train_data = sampled_data
+            local_feature_names = feature_names
+            labels = prediction_probabilities[:, i]
+            # Feature
+            if features_number is not None:
+                features = ftsfc.lasso_path(
+                    local_train_data, labels, distances, features_number)
+                if fuav.is_structured_array(local_train_data):
+                    local_train_data = local_train_data[features]
+                    feature_indices = [local_train_data.dtype.names.index(name)
+                                       for name in features]
+                    local_feature_names = [feature_names[i] for i in features]
+                else:
+                    local_train_data = local_train_data[:, features]
+                    local_feature_names = [feature_names[i] for i in features]
+
             local_model = self.local_model(**self.kwargs)
-            local_model.fit(sampled_data, prediction_probabilities[:, i])
+            # TODO: LIME code uses all feature values to compute distances
+            # but the local model is only trained on chosen feature values
+            local_model.fit(
+                local_train_data, labels, sample_weight=distances)
             explainer = self.explainer_class(
-                local_model, feature_names=feature_names, **self.kwargs)
+                local_model, feature_names=local_feature_names, **self.kwargs)
             explanation = dict(
-                zip(feature_names,
+                zip(local_feature_names,
                     explainer.feature_importance(**self.kwargs)))
 
             blimey_explanation[self.class_names[i]] = explanation

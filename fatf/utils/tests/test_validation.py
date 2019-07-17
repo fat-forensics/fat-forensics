@@ -11,7 +11,7 @@ import fatf.utils.validation as fuv
 
 def test_check_explainer_functionality():
     """
-    Tests :func:`fatf.utils.models.validation.check_explainer_functionality`.
+    Tests :func:`fatf.utils.validation.check_explainer_functionality`.
     """
     class ClassPlain(object): pass
     class_plain = ClassPlain()
@@ -54,7 +54,7 @@ def test_check_explainer_functionality():
             class_explainer_1, False) is False
     assert msg.format(0) in str(warning[0].message)
     assert fuv.check_explainer_functionality(class_explainer_1, True) is False
-    
+
     with pytest.warns(UserWarning) as warning:
         assert fuv.check_explainer_functionality(
             class_explainer_2, False) is False
@@ -64,3 +64,71 @@ def test_check_explainer_functionality():
     assert fuv.check_explainer_functionality(class_explainer_3, False) is True
     assert fuv.check_explainer_functionality(class_explainer_4, False) is True
     assert fuv.check_explainer_functionality(class_explainer_5, False) is True
+
+
+def test_check_kernel_functionality():
+    """
+    Tests :func:`fatf.utils.validation.check_kernel_functionality`.
+    """
+    error_msg = ('The \'{}\' kernel function has incorrect number '
+                 '({}) of the required parameters. It needs to have '
+                 'exactly 1 required parameters. Try using optional '
+                 'parameters if you require more functionality.')
+
+    def function1(): pass
+    def function2(x): pass
+    def function3(x, y): pass
+    def function4(x, y=3): pass
+    def function5(x=3, y=3): pass
+
+    with pytest.warns(UserWarning) as warning:
+        assert fuv.check_kernel_functionality(function1) is False
+    assert str(warning[0].message) == error_msg.format('function1', 0)
+    assert fuv.check_kernel_functionality(function1, True) is False
+
+    with pytest.warns(UserWarning) as warning:
+        assert fuv.check_kernel_functionality(function5) is False
+    assert str(warning[0].message) == error_msg.format('function5', 0)
+    assert fuv.check_kernel_functionality(function5, True) is False
+
+    with pytest.warns(UserWarning) as warning:
+        assert fuv.check_kernel_functionality(function3) is False
+    assert str(warning[0].message) == error_msg.format('function3', 2)
+    assert fuv.check_kernel_functionality(function3, True) is False
+
+    assert fuv.check_kernel_functionality(function2) is True
+    assert fuv.check_kernel_functionality(function4) is True
+
+
+def test_check_distance_functionality():
+    """
+    Tests :func:`fatf.utils.validation.check_distance_functionality`.
+    """
+    error_msg = ('The \'{}\' distance function has incorrect number '
+                 '({}) of the required parameters. It needs to have '
+                 'exactly 2 required parameters. Try using optional '
+                 'parameters if you require more functionality.')
+
+    def function1(): pass
+    def function2(x): pass
+    def function3(x, y): pass
+    def function4(x, y, z=3): pass
+    def function5(x=3, y=3): pass
+
+    with pytest.warns(UserWarning) as warning:
+        assert fuv.check_distance_functionality(function1) is False
+    assert str(warning[0].message) == error_msg.format('function1', 0)
+    assert fuv.check_distance_functionality(function1, True) is False
+
+    with pytest.warns(UserWarning) as warning:
+        assert fuv.check_distance_functionality(function5) is False
+    assert str(warning[0].message) == error_msg.format('function5', 0)
+    assert fuv.check_distance_functionality(function5, True) is False
+
+    with pytest.warns(UserWarning) as warning:
+        assert fuv.check_distance_functionality(function2) is False
+    assert str(warning[0].message) == error_msg.format('function2', 1)
+    assert fuv.check_distance_functionality(function2, True) is False
+
+    assert fuv.check_distance_functionality(function3) is True
+    assert fuv.check_distance_functionality(function4) is True

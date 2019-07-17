@@ -8,7 +8,7 @@ from typing import List, Union
 
 import numpy as np
 
-from sklearn.linear_model import lars_path
+import sklearn.linear_model
 
 import fatf.utils.array.validation as fuav
 import fatf.utils.array.tools as fuat
@@ -24,10 +24,10 @@ def _is_input_valid(dataset: np.ndarray,
                     weights: np.ndarray,
                     num_features: int) -> bool:
     """
-    Validates the input parameters of lasso path function..
+    Validates the input parameters of lasso path function.
 
     For the input parameter description, warnings and exceptions please see
-    the documentation of the :func`fatf.transparency.models.blimey.lasso_path`
+    the documentation of the :func:`fatf.transparency.models.blimey.lasso_path`
     function.
 
     Returns
@@ -95,7 +95,17 @@ def lasso_path(dataset: np.ndarray,
     Raises
     ------
     IncorrectShapeError
-        `dataset
+        ``dataset`` is not a 2-dimensional array. ``target`` is not a
+        1-dimensional array. The number of labels in ``target`` is different
+        to the number of samples in ``dataset``. ``weights`` is not a
+        1-dimensional array. The number of distances in ``weights`` is
+        different to the number of samples in ``dataset``.
+    TypeError
+        ``num_features`` is not an integer.
+    ValueError
+        ``num_features`` must be greater than zero. The coefficients returned
+        by :func:`sklearn.linear_model.lars_path` do not have enough nonzero
+        elements.
     Returns
     -------
     features : List[Index]
@@ -115,12 +125,18 @@ def lasso_path(dataset: np.ndarray,
     weighted_target = target - np.average(target, weights=weights)
     weighted_target = weighted_target * np.sqrt(weights)
 
-    alphas, _, coefs = lars_path(
+    alphas, _, coefs = sklearn.linear_model.lars_path(
         weighted_data, weighted_target, method='lasso', verbose=False)
+
+    nonzero = None
     for i in range(coefs.shape[1] - 1, 0, -1):
         nonzero = coefs[:, i].nonzero()[0]
         if len(nonzero) <= num_features:
             break
+    if nonzero is None:
+        raise ValueError('Not enough nonzero coefficients were found by '
+                         '\'sklearn.linear_model.lars_path\' function. This '
+                         'could be due to the weights being too small.')
 
     features = indices[nonzero]
 

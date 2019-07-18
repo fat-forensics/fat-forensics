@@ -322,8 +322,8 @@ class Blimey(object):
         if discretize_first is None:
             if issubclass(explainer, ftslm.SKLearnLinearModelExplainer):
                 discretize_first = True
-            #elif issubclass(explainer, ftsdt.SkLearnDecisionTree):
-            #   discrtize_first = False
+            # elif issubclass(explainer, ftsdt.SkLearnDecisionTree):
+            # discrtize_first = False
             else:
                 raise ValueError('Unable to infer value of discretize_first '
                                  'as the explainer used is not one of the '
@@ -437,9 +437,9 @@ class Blimey(object):
 
         if kernel_function is not None:
             if not fuv.check_kernel_functionality(kernel_function, True):
-                raise TypeError('The kernel function must have only 1 required '
-                                'parameter. Any additional parameters can be '
-                                'passed via **kwargs.')
+                raise TypeError('The kernel function must have only 1 '
+                                'required parameter. Any additional '
+                                'parameters can be passed via **kwargs.')
 
         if not fuv.check_distance_functionality(distance_function, True):
             raise TypeError('The distance function must have only 2 required '
@@ -450,7 +450,7 @@ class Blimey(object):
             if isinstance(features_number, int):
                 if features_number < 1:
                     raise ValueError('The features_number parameter must be a '
-                                    'positive integer.')
+                                     'positive integer.')
                 elif features_number > len(self.feature_names):
                     msg = ('features_number is larger than the number of '
                            'features in the dataset, therefore all features '
@@ -468,11 +468,10 @@ class Blimey(object):
             data_row: np.ndarray = None,
             samples_number: Optional[int] = 50,
             kernel_function: Optional[Callable[..., np.ndarray]] = None,
-            distance_function: Optional[Callable[..., np.ndarray]] = \
-                fud.euclidean_array_distance,
+            distance_function: Optional[
+                Callable[..., np.ndarray]] = fud.euclidean_array_distance,
             features_number: Optional[int] = None,
-            **kwargs
-    ) -> Dict[str, Dict[Index, np.float64]]:
+            **kwargs) -> Dict[str, Dict[Index, np.float64]]:
         """
         Generates explanations for data_row.
 
@@ -522,7 +521,7 @@ class Blimey(object):
 
         if features_number is not None:
             if features_number > len(self.feature_names):
-                features_number = None # Use all features in dataset
+                features_number = None  # Use all features in dataset
 
         feature_names = self.feature_names
 
@@ -569,9 +568,9 @@ class Blimey(object):
 
         blimey_explanation = {}
 
-        distances = distance_function(np.expand_dims(data_row, 0),
-                                          sampled_data).flatten()
-        #TODO: maybe add **kwargs to our distance functions
+        distances = distance_function(
+            np.expand_dims(data_row, 0), sampled_data).flatten()
+        # TODO: maybe add **kwargs to our distance functions
         if kernel_function is not None:
             distances = kernel_function(distances, **kwargs)
 
@@ -581,13 +580,15 @@ class Blimey(object):
             labels = prediction_probabilities[:, i]
             # Feature
             if features_number is not None:
-                features = ftsfc.lasso_path(
-                    local_train_data, labels, distances, features_number)
+                features = ftsfc.lasso_path(local_train_data, labels,
+                                            distances, features_number)
                 if fuav.is_structured_array(local_train_data):
                     local_train_data = local_train_data[features]
-                    feature_indices = [local_train_data.dtype.names.index(name)
-                                       for name in features]
-                    local_feature_names = [feature_names[i] for i in features]
+                    feature_indices = [
+                        local_train_data.dtype.names.index(name)
+                        for name in features]
+                    local_feature_names = [
+                        feature_names[i] for i in feature_indices]
                 else:
                     local_train_data = local_train_data[:, features]
                     local_feature_names = [feature_names[i] for i in features]
@@ -595,8 +596,7 @@ class Blimey(object):
             local_model = self.local_model(**self.kwargs)
             # TODO: LIME code uses all feature values to compute distances
             # but the local model is only trained on chosen feature values
-            local_model.fit(
-                local_train_data, labels, sample_weight=distances)
+            local_model.fit(local_train_data, labels, sample_weight=distances)
             explainer = self.explainer_class(
                 local_model, feature_names=local_feature_names, **self.kwargs)
             explanation = dict(

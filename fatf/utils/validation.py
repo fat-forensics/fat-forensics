@@ -9,8 +9,7 @@ from typing import Dict, Tuple, Callable, Any
 import inspect
 import warnings
 
-__all__ = ['check_explainer_functionality',
-           'check_kernel_functionality']
+__all__ = ['check_explainer_functionality', 'check_kernel_functionality']
 
 
 def _check_function_functionality(function: Callable[..., Any],
@@ -40,7 +39,7 @@ def _check_function_functionality(function: Callable[..., Any],
     required_param_n = 0
     params = inspect.signature(function).parameters
     for param in params:
-        if param is not 'kwargs':
+        if param == 'kwargs':
             if params[param].default is params[param].empty:
                 required_param_n += 1
     if required_param_n != required_param:
@@ -91,7 +90,7 @@ def _check_object_functionality(given_object: object,
             if not functional:
                 is_functional = False
                 if not is_instance:
-                    required_params -= 1 # Remove ``self``` if not instance.
+                    required_params -= 1  # Remove ``self``` if not instance.
                     methods[method] -= 1
                 message_strings.append(
                     ('The \'{}\' method of the class has incorrect number '
@@ -183,7 +182,7 @@ def check_kernel_functionality(kernel_function: Callable[..., Any],
                    '({}) of the required parameters. It needs to have '
                    'exactly 1 required parameters. Try using optional '
                    'parameters if you require more functionality.').format(
-                         kernel_function.__name__, required_param)
+                       kernel_function.__name__, required_param)
         warnings.warn(message, category=UserWarning)
 
     return is_functional
@@ -208,7 +207,8 @@ def check_distance_functionality(distance_function: Callable[..., Any],
     Warns
     -----
     UserWarning
-        Warns about the required functionality that the distance function lacks.
+        Warns about the required functionality that the distance function
+        lacks.
 
     Returns
     -------
@@ -226,7 +226,7 @@ def check_distance_functionality(distance_function: Callable[..., Any],
                    '({}) of the required parameters. It needs to have '
                    'exactly 2 required parameters. Try using optional '
                    'parameters if you require more functionality.').format(
-                         distance_function.__name__, required_param)
+                       distance_function.__name__, required_param)
         warnings.warn(message, category=UserWarning)
 
     return is_functional

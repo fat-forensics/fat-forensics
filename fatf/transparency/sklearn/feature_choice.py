@@ -69,7 +69,6 @@ def _is_input_valid(dataset: np.ndarray,
         raise ValueError('num_features must be an integer greater than zero.')
 
     is_input_ok = True
-
     return is_input_ok
 
 
@@ -125,7 +124,7 @@ def lasso_path(dataset: np.ndarray,
     weighted_target = target - np.average(target, weights=weights)
     weighted_target = weighted_target * np.sqrt(weights)
 
-    alphas, _, coefs = sklearn.linear_model.lars_path(
+    _, _, coefs = sklearn.linear_model.lars_path(
         weighted_data, weighted_target, method='lasso', verbose=False)
 
     nonzero = None

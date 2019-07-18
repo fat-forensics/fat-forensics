@@ -65,17 +65,17 @@ def test_is_input_valid():
     assert str(exin.value) == dataset_type_msg
 
     with pytest.raises(TypeError) as exin:
-       ftsfc._is_input_valid(CATEGORICAL_NP_ARRAY, None, None, None)
+        ftsfc._is_input_valid(CATEGORICAL_NP_ARRAY, None, None, None)
     assert str(exin.value) == dataset_type_msg
 
     with pytest.raises(IncorrectShapeError) as exin:
         ftsfc._is_input_valid(NUMERICAL_NP_ARRAY, NUMERICAL_NP_ARRAY, None,
-                             None)
+                              None)
     assert str(exin.value) == target_shape_msg
 
     with pytest.raises(IncorrectShapeError) as exin:
-        ftsfc._is_input_valid(
-            NUMERICAL_NP_ARRAY, NUMERICAL_NP_ARRAY_TARGET[0:4], None, None)
+        ftsfc._is_input_valid(NUMERICAL_NP_ARRAY,
+                              NUMERICAL_NP_ARRAY_TARGET[0:4], None, None)
 
     assert str(exin.value) == target_shape_2_msg
 
@@ -85,8 +85,9 @@ def test_is_input_valid():
     assert str(exin.value) == weights_shape_msg
 
     with pytest.raises(IncorrectShapeError) as exin:
-        ftsfc._is_input_valid(NUMERICAL_STRUCT_ARRAY, NUMERICAL_NP_ARRAY_TARGET,
-                             NUMERICAL_NP_ARRAY_TARGET[0:4], None)
+        ftsfc._is_input_valid(NUMERICAL_STRUCT_ARRAY,
+                              NUMERICAL_NP_ARRAY_TARGET,
+                              NUMERICAL_NP_ARRAY_TARGET[0:4], None)
     assert str(exin.value) == weights_shape_2_msg
 
     with pytest.raises(TypeError) as exin:
@@ -116,19 +117,19 @@ def test_lasso_path():
     fatf.setup_random_seed()
 
     weights = np.ones((NUMERICAL_NP_ARRAY.shape[0], ))
-    features = ftsfc.lasso_path(
-        NUMERICAL_NP_ARRAY, NUMERICAL_NP_ARRAY_TARGET, weights, 2)
+    features = ftsfc.lasso_path(NUMERICAL_NP_ARRAY, NUMERICAL_NP_ARRAY_TARGET,
+                                weights, 2)
     assert np.array_equal(features, np.array([0, 1]))
-    features = ftsfc.lasso_path(
-        NUMERICAL_STRUCT_ARRAY, NUMERICAL_NP_ARRAY_TARGET, weights, 2)
+    features = ftsfc.lasso_path(NUMERICAL_STRUCT_ARRAY,
+                                NUMERICAL_NP_ARRAY_TARGET, weights, 2)
     assert np.array_equal(features, np.array(['a', 'b']))
 
     weights = np.array([1, 1, 100, 1, 1, 1])
-    features = ftsfc.lasso_path(
-        NUMERICAL_NP_ARRAY, NUMERICAL_NP_ARRAY_TARGET, weights, 2)
+    features = ftsfc.lasso_path(NUMERICAL_NP_ARRAY, NUMERICAL_NP_ARRAY_TARGET,
+                                weights, 2)
     assert np.array_equal(features, np.array([0, 2]))
-    features = ftsfc.lasso_path(
-        NUMERICAL_STRUCT_ARRAY, NUMERICAL_NP_ARRAY_TARGET, weights, 2)
+    features = ftsfc.lasso_path(NUMERICAL_STRUCT_ARRAY,
+                                NUMERICAL_NP_ARRAY_TARGET, weights, 2)
     assert np.array_equal(features, np.array(['a', 'c']))
 
     weights = np.array([1, 1, 100, 1, 1, 1]) * 1e-20

@@ -291,6 +291,7 @@ class Blimey(object):
         self.kwargs = kwargs
         self.dataset = dataset
         self.is_structured = fuav.is_structured_array(dataset)
+        self.local_models = None
 
         # Sort out column indices
         indices = fuat.indices_by_type(dataset)
@@ -574,6 +575,7 @@ class Blimey(object):
         if kernel_function is not None:
             distances = kernel_function(distances, **kwargs)
 
+        self.local_models = []
         for i in range(self.n_classes):
             local_train_data = sampled_data
             local_feature_names = feature_names
@@ -597,6 +599,7 @@ class Blimey(object):
             # TODO: LIME code uses all feature values to compute distances
             # but the local model is only trained on chosen feature values
             local_model.fit(local_train_data, labels, sample_weight=distances)
+            self.local_models.append(local_model)
             explainer = self.explainer_class(
                 local_model, feature_names=local_feature_names, **self.kwargs)
             explanation = dict(

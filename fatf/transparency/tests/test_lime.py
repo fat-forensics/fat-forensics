@@ -19,6 +19,15 @@ import fatf.utils.testing.imports as futi
 
 from fatf.exceptions import IncompatibleModelError, IncorrectShapeError
 
+try:
+    import lime
+except ImportError:  # pragma: no cover
+    pytest.skip(
+        'Skipping lime wrapper tests -- lime missing.',
+        allow_module_level=True)
+else:
+    del lime
+
 # yapf: disable
 NUMERICAL_NP_ARRAY = np.array([
     [0, 0, 0.08, 0.69],

@@ -266,6 +266,15 @@ class Blimey(object):
         probabilities for.
     indices : List[column indices]
         A list of all indices in ``dataset``.
+    local_models : List[object]
+        A list of trained local models used in the most recent call of
+        ``explain_instance``.
+    sampled_data : np.ndarray
+        A 2-dimensional numpy array with data that has been sampled in the
+        most recent call of ``explain_instance``.
+    distances : np.ndarray
+        A 1-dimensional numpy array with distances to the point being explained
+        in the most recent call of ``explain_instance``.
     """
 
     def __init__(self,
@@ -291,7 +300,10 @@ class Blimey(object):
         self.kwargs = kwargs
         self.dataset = dataset
         self.is_structured = fuav.is_structured_array(dataset)
+
         self.local_models = None
+        self.sampled_data = None
+        self.distances = None
 
         # Sort out column indices
         indices = fuat.indices_by_type(dataset)
@@ -528,6 +540,7 @@ class Blimey(object):
 
         sampled_data = self.augmentor.sample(
             data_row, samples_number=samples_number, **self.kwargs)
+        self.sampled_data = sampled_data
         prediction_probabilities = self.global_model.predict_proba(
             sampled_data)
 
@@ -569,12 +582,11 @@ class Blimey(object):
 
         blimey_explanation = {}
 
-        distances = distance_function(
-            np.expand_dims(data_row, 0), sampled_data).flatten()
-        # TODO: maybe add **kwargs to our distance functions
+        distances = None
         if kernel_function is not None:
+            distances = distance_function(
+                np.expand_dims(data_row, 0), sampled_data).flatten()
             distances = kernel_function(distances, **kwargs)
-
         self.local_models = []
         for i in range(self.n_classes):
             local_train_data = sampled_data
@@ -607,5 +619,7 @@ class Blimey(object):
                     explainer.feature_importance(**self.kwargs)))
 
             blimey_explanation[self.class_names[i]] = explanation
+
+        self.distances = distances
 
         return blimey_explanation

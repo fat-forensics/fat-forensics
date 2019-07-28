@@ -1,15 +1,24 @@
-:orphan:
+.. title:: API Reference
 
 .. _api_ref:
 
-=============
-API Reference
-=============
+API Reference (|version|)
++++++++++++++++++++++++++
 
 This is the class and function reference of fat-forensics. Please refer to
 the :ref:`full user guide <user_guide>` for further details, as the class and
 function raw specifications may not be enough to give full guidelines on their
 uses.
+
+.. note::
+
+   The package is designed to work with both **classic** and **structured**
+   numpy arrays. The latter is introduced to help manage numpy arrays holding
+   vanila categorical features. Please see the
+   :ref:`sphx_glr_sphinx_gallery_auto_fairness_xmpl_fairness_data_measure.py`
+   and
+   :ref:`sphx_glr_sphinx_gallery_auto_fairness_xmpl_fairness_models_measure.py`
+   examples to see how the package can be used with a structured numpy array.
 
 .. _fairness_ref:
 
@@ -322,7 +331,7 @@ uses.
     :no-members:
     :no-inherited-members:
 
-**Developer guide:** See the :ref:`development_guide` page for further details.
+**Developer guide:** See the :ref:`developers_guide` page for further details.
 
 Base classes
 ------------

@@ -35,7 +35,7 @@ github_docs_repo = 'fat-forensics-docs'
 
 project = 'FAT Forensics'
 copyright = (  # pylint: disable=redefined-builtin
-    '2018 - {}, Kacper Sokol et al.'.format(current_year))
+    '2018--{}, Kacper Sokol et al.'.format(current_year))
 author = 'Kacper Sokol et al.'
 
 title = 'FAT Forensics Documentation'
@@ -127,6 +127,12 @@ pygments_style = 'sphinx'
 # Generate auto-summary even if no references.
 # (https://www.sphinx-doc.org/en/master/usage/extensions/autosummary.html)
 autosummary_generate = True
+
+# If false, no module index is generated.
+html_domain_indices = False
+
+# If false, no index is generated.
+html_use_index = False
 
 sphinx_gallery_conf = {
     'filename_pattern': '/xmpl_',

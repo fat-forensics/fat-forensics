@@ -14,6 +14,13 @@
 /*-------------------------------------------------------------*/
 /* Sphinx theme */
 
+/* -- overwrite basic.css --------------------------------------------------- */
+
+div.body {
+    min-width: 450px;
+    max-width: none; /* 800px; */
+}
+
 /* -- page layout ----------------------------------------------------------- */
 
 body {
@@ -31,7 +38,7 @@ div.documentwrapper {
 }
 
 div.bodywrapper {
-    margin: 0 0 0 {{ theme_sidebarwidth|todim }};
+    margin: 0 0 0 0;
 }
 
 hr {
@@ -45,7 +52,8 @@ div.document {
 div.body {
     background-color: #ffffff;
     color: #3E4349;
-    padding: 0 30px 30px 30px;
+    /* -- overwrite nature.css -- */
+    /*padding: 0 30px 30px 30px;*/
     font-size: 0.9em;
 }
 
@@ -224,6 +232,7 @@ pre {
     line-height: 1.2em;
     border: 1px solid #C6C9CB;
     font-size: 1.1em;
+    /*font-size: 100%;*/
     margin: 1.5em 0 1.5em 0;
     -webkit-box-shadow: 1px 1px 1px #d8d8d8;
     -moz-box-shadow: 1px 1px 1px #d8d8d8;
@@ -394,4 +403,173 @@ a.gs-title, a.gs-title > b{
     border-color: white !important;
     background-color: #ff9c34 !important;
     color: white !important;
+}
+
+/* ------- sidebar page navigation ----------------------------------- */
+
+.btn-primary {
+    height:100%;
+}
+
+.sidebar {
+    position: sticky;
+    top: 10px;
+    height: calc(100vh - 10px - 1em - 8vh - 8px);
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+/* Overwrites basic.css */
+div.sidebar {
+    margin: 0;
+    width: 100%;
+}
+
+div.rel a.btn {
+  width: 100%;
+  font-size: 70%;
+}
+
+div.rel span.smallrellink {
+    font-size: 8px;
+    line-height: 10px;
+}
+
+div.rel span.hiddenrellink {
+    display: none;
+}
+
+div.rellink:hover span.hiddenrellink {
+    display: block;
+    position: absolute;
+    left: -20px; top: 40px;
+    /*width: 200px;*/
+    width: 130px;
+    word-break: break-word;
+    background-color: blue;
+    /* Since this is a child of sticky it cannot overflow. */
+    padding: 3px;
+    border: 2px solid #1D1F22;
+    color: white;
+    z-index: 999;
+    overflow: visible;
+}
+
+div.rellink:hover span.left-button {
+    left: 10px;
+}
+
+div.rellink:hover span.middle-button {
+    left: -20px;
+}
+
+div.rellink:hover span.right-button {
+    left: -60px;
+}
+
+.pad-r-1{
+    padding-right: 1px;
+}
+
+.pad-l-1{
+    padding-left: 1px;
+}
+
+.pad-b-1{
+    padding-bottom: 1px;
+}
+
+div.toc {
+  overflow-wrap: break-word;
+}
+
+div.toc {
+    float: left;
+    margin-left: 0;
+    margin-right: 0;
+    background-color: inherit;
+    border-top-left-radius: 15px;
+    -moz-border-radius:15px;
+    border-top-width: 0;
+    border-left-width: 0;
+    border-bottom-width: 0;
+    margin-top: 0;
+    position: absolute;
+    font-size: 80%;
+    line-height: 1.5em;
+}
+
+div.toc h3,
+div.toc h4 {
+    padding: 5px 10px;
+    background-color: #CDE8EF;
+    font-weight: normal;
+    color: white;
+    margin: 0;
+    margin-right: 10px;
+    border-radius: 4px;
+}
+
+div.toc h3 a,
+div.toc h4 a{
+    color: white;
+}
+
+div.toc h3 {
+    text-align: left;
+    font-size: 16px;
+}
+
+div.toc img {
+    margin: 5px;
+}
+
+div.toc p {
+    padding: 0px 20px;
+}
+
+div.toc p.topless {
+}
+
+div.toc ul {
+    margin: 10px 0px;
+    padding: 0;
+    color: #000;
+    font-weight: bold;
+    list-style: none;
+}
+
+div.toc ul ul {
+    margin-right: 0;
+    margin-left: 0;
+    list-style: none;
+    color: #355F7C;
+    font-weight: normal;
+}
+
+div.toc ul ul ul {
+    font-size: 90%;
+    list-style: square;
+    margin-left: 15px;
+}
+
+/* ------- footer ----------------------------------- */
+
+div.cusotm-footer {
+    text-align: center;
+    font-size: 12px;
+    font-color: gray;
+    padding-bottom: 8px;
+    padding-top: 8px;
+    height: 8vh;
+}
+
+a.footer-img-link:hover {
+    text-decoration: none;
+}
+
+/* ------- funders ---------------------------------- */
+
+div.img-break {
+    height: 25px;
 }

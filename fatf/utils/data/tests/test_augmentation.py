@@ -9,6 +9,7 @@ import pytest
 
 import numpy as np
 import scipy
+import scipy.stats
 
 import fatf
 
@@ -17,6 +18,7 @@ from fatf.exceptions import IncorrectShapeError, IncompatibleModelError
 import fatf.utils.models as fum
 import fatf.utils.data.augmentation as fuda
 import fatf.utils.array.tools as fuat
+import fatf.utils.distances as fud
 
 # yapf: disable
 NUMERICAL_NP_ARRAY = np.array([
@@ -1042,7 +1044,7 @@ def get_truncated_mean_std(minimum, maximum, original_mean, original_std):
 
         def norm(episilon):
             return (1/np.sqrt(2*np.pi) * np.exp(-1/2 * episilon**2))
-        
+
         alpha = (minimum-original_mean) / original_std
         beta = (maximum-original_mean) / original_std
         z_phi = cdf(beta) - cdf(alpha)
@@ -1195,7 +1197,7 @@ class TestTruncatedNormal(object):
         for i in samples_struct.dtype.names:
             assert np.allclose(
                 samples_struct[i], numerical_struct_truncated_results[i], atol=1e-3)
-        
+
         # ...numpy array results mean
         samples = self.numerical_np_augmentor.sample(
             NUMERICAL_NP_ARRAY[0, :], samples_number=1000)
@@ -1484,7 +1486,7 @@ def test_validate_input_growingspheres():
     with pytest.raises(IncompatibleModelError) as exin:
         fuda._validate_input_growingspheres(model, None, None, None)
     assert str(exin.value) == incompatible_model_msg
-    
+
     model = fum.KNN(k=3)
     with pytest.raises(TypeError) as exin:
         fuda._validate_input_growingspheres(model, 'a', None, None)
@@ -1513,7 +1515,7 @@ def test_validate_input_growingspheres():
     with pytest.raises(ValueError) as exin:
         fuda._validate_input_growingspheres(model, 0.1, -0.1, 0.1)
     assert str(exin.value) == increment_std_value_msg
-    
+
 
 class TestGrowingSpheres(object):
     """
@@ -1576,7 +1578,7 @@ class TestGrowingSpheres(object):
         #
         assert self.categorical_np_augmentor.categorical_indices == [0, 1, 2]
         assert self.categorical_np_augmentor.numerical_indices == []
-        
+
         # Test attributes unique to GrowingSpheres
         assert self.numerical_np_0_augmentor
 
@@ -1636,14 +1638,14 @@ class TestGrowingSpheres(object):
             ['a', 'c', 'c'],
             ['a', 'f', 'c'],
             ['a', 'b', 'c']])
-        
+
         categorical_struct_samples = np.array(
-            [('a', 'b', 'c'), 
+            [('a', 'b', 'c'),
              ('a', 'c', 'g'),
              ('a', 'f', 'c'),
              ('a', 'f', 'c')],
              dtype=CATEGORICAL_STRUCT_ARRAY.dtype)
-        
+
         mixed_samples = np.array(
             [(-0.002, 'f', 0.098, 'bb'),
              (-0.023, 'f', 0.077, 'bb'),
@@ -1671,36 +1673,36 @@ class TestGrowingSpheres(object):
             dtype=[('a', 'f'), ('b', 'f'), ('c', 'f'), ('d', 'f')])
 
         numerical_struct_0_samples_mean = np.array(
-            [(0, 0.015, 0.334, 0.581),
-             (2, 0.035, 0.380, 0.502),
-             (0, 0.024, 0.485, 0.510),
-             (0, 0.004, 0.396, 0.565)],
+            [(0, 0.085, 0.388, 0.583),
+             (0, -0.037, 0.434, 0.568),
+             (0, -0.024, 0.408, 0.495),
+             (0, 0.034, 0.350, 0.648)],
              dtype=[('a', 'i'), ('b', 'f'), ('c', 'f'), ('d', 'f')])
 
         categorical_samples_mean = np.array([
-            ['a', 'b', 'c'],
             ['b', 'f', 'g'],
-            ['b', 'c', 'c'],
-            ['b', 'c', 'g']])
+            ['a', 'b', 'c'],
+            ['a', 'f', 'g'],
+            ['a', 'b', 'c']])
 
         categorical_012_samples_mean = np.array([
-            ['a', 'c', 'g'],
+            ['a', 'f', 'c'],
+            ['a', 'b', 'g'],
             ['a', 'b', 'c'],
-            ['b', 'f', 'g'],
             ['a', 'b', 'c']])
-        
+
         categorical_struct_samples_mean = np.array(
-            [('b', 'f', 'c'), 
+            [('a', 'f', 'g'),
+             ('b', 'c', 'g'),
              ('a', 'b', 'c'),
-             ('a', 'f', 'c'),
-             ('a', 'b', 'g')],
+             ('a', 'c', 'g')],
              dtype=CATEGORICAL_STRUCT_ARRAY.dtype)
-        
+
         mixed_samples_mean = np.array(
-            [(-0.002, 'a', 0.387, 'aa'),
-             (-0.010, 'c', 0.373, 'b'),
-             (0.003, 'c', 0.362, 'b'),
-             (0.003, 'f', 0.374, 'aa')],
+            [(-0.006, 'c', 0.370, 'aa'),
+             (-0.008, 'a', 0.383, 'a'),
+             (0.007, 'f', 0.381, 'bb'),
+             (-0.023, 'c', 0.379, 'b')],
             dtype=[('a', '<f8'), ('b', 'U1'), ('c', '<f8'), ('d', 'U2')])
 
         samples = self.numerical_np_augmentor.sample(
@@ -1726,7 +1728,7 @@ class TestGrowingSpheres(object):
         samples = self.categorical_np_augmentor.sample(
             CATEGORICAL_NP_ARRAY[0], samples_number=4)
         assert np.array_equal(samples, categorical_samples)
-        
+
         samples = self.categorical_np_012_augmentor.sample(
             CATEGORICAL_NP_ARRAY[0], samples_number=4)
         assert np.array_equal(samples, categorical_012_samples)
@@ -1794,7 +1796,7 @@ class TestGrowingSpheres(object):
             freq = freq / freq.sum()
             assert np.array_equal(val, vals[i])
             assert np.allclose(freq, proportions[i], atol=1e-1)
-
+    
         samples = self.categorical_struct_abc_augmentor.sample(
             CATEGORICAL_STRUCT_ARRAY[0], samples_number=1000)
         predictions = self.categorical_struct_classifier.predict(samples)
@@ -1853,7 +1855,7 @@ class TestGrowingSpheres(object):
 
         samples = self.categorical_np_augmentor.sample(samples_number=4)
         assert np.array_equal(samples, categorical_samples_mean)
-        
+
         samples = self.categorical_np_012_augmentor.sample(samples_number=4)
         assert np.array_equal(samples, categorical_012_samples_mean)
 
@@ -1863,11 +1865,11 @@ class TestGrowingSpheres(object):
                 samples[i], categorical_struct_samples_mean[i])
 
         samples = self.mixed_augmentor.sample(samples_number=4)
-        assert np.array_equal(samples[['b', 'd']], 
+        assert np.array_equal(samples[['b', 'd']],
                               mixed_samples_mean[['b', 'd']])
         for i in ['a', 'c']:
             assert np.allclose(samples[i], mixed_samples_mean[i], atol=1e-2)
-        
+
         # Test if minimum_per_class works with mean of dataset
         samples = self.numerical_np_augmentor.sample(samples_number=1000)
         predictions = self.numerical_classifier.predict(samples)
@@ -1921,12 +1923,404 @@ class TestGrowingSpheres(object):
         unique, counts = np.unique(predictions, return_counts=True)
         assert np.all(counts > 0.05*1000)
         proportions = [
-            np.array([0.74, 0.26]),
-            np.array([0.38, 0.12, 0.50]),
-            np.array([0.63, 0.37])
+            np.array([0.66, 0.33]),
+            np.array([0.33, 0.16, 0.50]),
+            np.array([0.66, 0.33]),
         ]
         for i, index in enumerate(['a', 'b', 'c']):
             val, freq = np.unique(samples[index], return_counts=True)
             freq = freq / freq.sum()
             assert np.array_equal(val, vals[i])
             assert np.allclose(freq, proportions[i], atol=1e-1)
+
+
+def test_validate_input_local_surrogate():
+    """
+    Tests :func:`fatf.utils.data.augmentation._validate_input_local_surrogate`.
+    """
+    incompatible_model_msg = ('This functionality requires the model '
+                              'to be capable of outputting predicted '
+                              'class via predict method.')
+    starting_std_msg = ('starting_radius is not a float.')
+    increment_std_msg = ('increment_radius is not a float.')
+    starting_std_value_msg = ('starting_radius must be a positive float greater '
+                              'than 0.')
+    increment_std_value_msg = ('increment_radius must be a positive float '
+                               'greater than 0.')
+
+    class invalid_model():
+        def __init__(self): pass
+        def predict_proba(self, x, y): pass
+    model = invalid_model()
+    with pytest.raises(IncompatibleModelError) as exin:
+        fuda._validate_input_local_surrogate(model, None, None)
+    assert str(exin.value) == incompatible_model_msg
+
+    model = fum.KNN(k=3)
+    with pytest.raises(TypeError) as exin:
+        fuda._validate_input_local_surrogate(model, 'a', None)
+    assert str(exin.value) == starting_std_msg
+
+    with pytest.raises(TypeError) as exin:
+        fuda._validate_input_local_surrogate(model, 0.1, 'a')
+    assert str(exin.value) == increment_std_msg
+
+    with pytest.raises(ValueError) as exin:
+        fuda._validate_input_local_surrogate(model, -0.1, 0.1)
+    assert str(exin.value) == starting_std_value_msg
+
+    with pytest.raises(ValueError) as exin:
+        fuda._validate_input_local_surrogate(model, 0.1, -0.1)
+    assert str(exin.value) == increment_std_value_msg
+
+
+class TestLocalSurrogate():
+    """
+    Tests :class:`fatf.utils.data.augmentation.LocalSurrogate` class.
+    """
+    numerical_easy_labels = np.array([0, 0, 1, 1])
+    numerical_array_easy = np.array([[0., 0.], [0., 1.], [1., 0.], [1., 1.]])
+    numerical_easy_classifier = fum.KNN(k=1)
+    numerical_easy_classifier.fit(numerical_array_easy, numerical_easy_labels)
+    numerical_np_easy_augmentor = fuda.LocalSurrogate(
+        numerical_array_easy, numerical_easy_classifier)
+
+    numerical_labels = np.array([0, 1, 0, 1, 1, 0])
+    numerical_classifier = fum.KNN(k=3)
+    numerical_classifier.fit(NUMERICAL_NP_ARRAY, numerical_labels)
+    numerical_struct_classifier = fum.KNN(k=3)
+    numerical_struct_classifier.fit(NUMERICAL_STRUCT_ARRAY, numerical_labels)
+    numerical_np_augmentor = fuda.LocalSurrogate(NUMERICAL_NP_ARRAY,
+                                                 numerical_classifier)
+    numerical_np_augmentor_runtime = fuda.LocalSurrogate(
+        NUMERICAL_NP_ARRAY, numerical_classifier, starting_radius=0.0001)
+    numerical_struct_augmentor = fuda.LocalSurrogate(
+        NUMERICAL_STRUCT_ARRAY, numerical_struct_classifier)
+    numerical_struct_augmentor_f = fuda.LocalSurrogate(
+        NUMERICAL_STRUCT_ARRAY, numerical_struct_classifier,
+        int_to_float=False)
+    categorical_classifier = fum.KNN(k=3)
+    categorical_classifier.fit(CATEGORICAL_NP_ARRAY, numerical_labels)
+
+    def test_init(self):
+        """
+        Tests :class:`fatf.utils.data.augmentation.LocalSurrogate` class init
+        """
+        # Test class inheritance
+        assert (self.numerical_np_augmentor.__class__.__bases__[0].__name__
+                == 'Augmentation')
+
+        # Test calculating numerical and categorical indices
+        #
+        assert self.numerical_np_augmentor.categorical_indices == []
+        assert self.numerical_np_augmentor.numerical_indices == [0, 1, 2, 3]
+        #
+        assert (self.numerical_struct_augmentor.numerical_indices
+                == ['a', 'b', 'c', 'd'])  # yapf: disable
+
+        cat_err = 'categorical values are not supported in this augmentor.'
+        with pytest.raises(NotImplementedError) as exin:
+            categorical = fuda.LocalSurrogate(CATEGORICAL_NP_ARRAY,
+                                              self.categorical_classifier)
+        assert str(exin.value) == cat_err
+
+    def test_validate_sample_input(self):
+        """
+        Tests :func:`fatf.utils.data.augmentation.LocalSurrogate.
+        _validate_sample_input`.
+        """
+        # Most errors are caught by :func:`fatf.utils.data.augmentation.
+        # Augmentation._validate_sample_input` and have already been tested.
+        type_msg = ('r_sx must be float.')
+        value_msg = ('r_sx must be a positive float.')
+        samples_val = ('samples_get_decision_boundary must be an integer '
+                       'larger than 0.')
+        samples_type = ('samples_get_decision_boundary must be an integer.')
+        max_iter_type = ('max_iter must be an integer.')
+        max_iter_val = ('max_iter must be a positive integer.')
+
+        with pytest.raises(TypeError) as exin:
+            self.numerical_np_augmentor._validate_sample_input(
+                NUMERICAL_NP_ARRAY[0], 'a', 10, 10, 10)
+        assert str(exin.value) == type_msg
+
+        with pytest.raises(TypeError) as exin:
+            self.numerical_np_augmentor._validate_sample_input(
+                NUMERICAL_NP_ARRAY[0], 0, 10, 10, 10)
+        assert str(exin.value) == type_msg
+
+        with pytest.raises(ValueError) as exin:
+            self.numerical_np_augmentor._validate_sample_input(
+                NUMERICAL_NP_ARRAY[0], 0.0, 10, 10, 10)
+        assert str(exin.value) == value_msg
+
+        with pytest.raises(ValueError) as exin:
+            self.numerical_np_augmentor._validate_sample_input(
+                NUMERICAL_NP_ARRAY[0], -0.05, 10, 10, 10)
+        assert str(exin.value) == value_msg
+
+        with pytest.raises(TypeError) as exin:
+            self.numerical_np_augmentor._validate_sample_input(
+                NUMERICAL_NP_ARRAY[0], 0.05, 10, 'a', 10)
+        assert str(exin.value) == samples_type
+
+        with pytest.raises(ValueError) as exin:
+            self.numerical_np_augmentor._validate_sample_input(
+                NUMERICAL_NP_ARRAY[0], 0.05, 10, -1, 10)
+        assert str(exin.value) == samples_val
+
+        with pytest.raises(TypeError) as exin:
+            self.numerical_np_augmentor._validate_sample_input(
+                NUMERICAL_NP_ARRAY[0], 0.05, 10, 10, 'a')
+        assert str(exin.value) == max_iter_type
+
+        with pytest.raises(ValueError) as exin:
+            self.numerical_np_augmentor._validate_sample_input(
+                NUMERICAL_NP_ARRAY[0], 0.05, 10, 10, -1)
+        assert str(exin.value) == max_iter_val
+
+    def test_sample(self):
+        """
+        Tests :func:`fatf.utils.data.augmentation.LocalSurrogate.sample`.
+        """
+        runtime_msg = ('Maximum iterations reached without finding the '
+                       'decision boundary. Try increasing max_iter or '
+                       'increment_radius.')
+        mean_msg = ('Sampling around the mean is not implemeneted for '
+                    'LocalSurrogate.')
+
+        with pytest.raises(ValueError) as exin:
+            self.numerical_np_augmentor.sample(None)
+        assert str(exin.value) == mean_msg
+
+        with pytest.raises(RuntimeError) as exin:
+            self.numerical_np_augmentor_runtime.sample(
+                NUMERICAL_NP_ARRAY[0], max_iter=1)
+        assert str(exin.value) == runtime_msg
+
+        numerical_results = np.array([[0.120, 0.004, 0.166, 0.908],
+                                      [-0.141, 0.122, -0.222, 0.835],
+                                      [0.119, 0.081, 0.036, 0.825],
+                                      [0.036, 0.047, 0.057, 0.656]])
+        numerical_struct_results = np.array(
+            [(-0.027, -0.007, 0.113, 0.696), (-0.019, 0.148, 0.326, 0.967),
+            ( 0.106, 0.069, 0.143, 0.738), (-0.02225485, 0.127, 0.103, 0.586)],
+            dtype=[('a', 'f'), ('b', 'f'), ('c', 'f'), ('d', 'f')])
+        numerical_struct_results_f = np.array(
+            [(0, 0, 0.222, 0.743), (0, 0, 0.069, 0.581),
+             (0, 0, -0.114, 0.718), (0, 0, 0.085, 0.674)],
+            dtype=NUMERICAL_STRUCT_ARRAY.dtype)
+
+        r_sx = 0.4
+        fatf.setup_random_seed()
+        # Easy example of (0,0), (0,1), (1,0) and (1,1)
+        samples = self.numerical_np_easy_augmentor.sample(
+            self.numerical_array_easy[3], r_sx=r_sx, samples_number=100,
+            samples_get_decision_boundary=1000)
+        assert np.allclose(samples.mean(axis=0), np.array([0.5, 1]), atol=0.1)
+        max_dist = np.max(fud.euclidean_array_distance(samples,
+                                                       samples).flatten())
+        assert np.isclose(max_dist, 2*r_sx, atol=0.1)
+
+        samples = self.numerical_np_augmentor.sample(
+            NUMERICAL_NP_ARRAY[0], r_sx=r_sx, samples_number=4)
+        assert np.allclose(samples, numerical_results, atol=0.1)
+        
+        samples = self.numerical_np_augmentor.sample(
+            NUMERICAL_NP_ARRAY[0], r_sx=r_sx, samples_number=100,
+            samples_get_decision_boundary=1000)
+        decision_boundary = np.array([-0.01, 0.01, 0.07, 0.69])
+        assert np.allclose(samples.mean(axis=0), decision_boundary, atol=0.1)
+        max_dist = np.max(fud.euclidean_array_distance(samples,
+                                                       samples).flatten())
+        assert np.isclose(max_dist, 2*r_sx, atol=0.1)
+
+        samples = self.numerical_struct_augmentor.sample(
+            NUMERICAL_STRUCT_ARRAY[0], r_sx=r_sx, samples_number=4)
+        for i in samples.dtype.names:
+            assert np.allclose(
+                samples[i], numerical_struct_results[i], atol=0.1)
+        
+        samples = self.numerical_struct_augmentor.sample(
+            NUMERICAL_STRUCT_ARRAY[0], r_sx=r_sx, samples_number=100,
+            samples_get_decision_boundary=1000)
+        decision_boundary = [-0.01, 0.01, 0.07, 0.69]
+        for i, bound in zip(samples.dtype.names, decision_boundary):
+            assert np.isclose(samples[i].mean(), bound, atol=0.1)
+        max_dist = np.max(fud.euclidean_array_distance(samples,
+                                                       samples).flatten())
+        assert np.isclose(max_dist, 2*r_sx, atol=0.1)
+
+        samples = self.numerical_struct_augmentor_f.sample(
+            NUMERICAL_STRUCT_ARRAY[0], r_sx=r_sx, samples_number=4)
+        for i in samples.dtype.names:
+            assert np.allclose(
+                samples[i], numerical_struct_results_f[i], atol=0.1)
+
+        samples = self.numerical_struct_augmentor_f.sample(
+            NUMERICAL_STRUCT_ARRAY[0], r_sx=r_sx, samples_number=100,
+            samples_get_decision_boundary=1000)
+        decision_boundary = [0, 0, 0.05, 0.6]
+        for i, bound in zip(samples.dtype.names, decision_boundary):
+            assert np.isclose(samples[i].mean(), bound, atol=0.1)
+        max_dist = np.max(fud.euclidean_array_distance(samples,
+                                                       samples).flatten())
+        assert np.isclose(max_dist, 2*r_sx, atol=0.1)
+        
+
+
+class TestLocalFidelity(object):
+    """
+    Tests :class:`fatf.utils.data.augmentation.LocalFidelity` class.
+    """
+    numerical_np_augmentor = fuda.LocalFidelity(NUMERICAL_NP_ARRAY)
+    numerical_struct_augmentor = fuda.LocalFidelity(NUMERICAL_STRUCT_ARRAY,
+                                                    r_fid=0.10)
+    numerical_struct_augmentor_f = fuda.LocalFidelity(
+        NUMERICAL_STRUCT_ARRAY, int_to_float=False, r_fid=0.10)
+
+    def test_init(self):
+        """
+        Tests :class:`fatf.utils.data.augmentation.LocalFidelity` class init.
+        """
+        # Test class inheritance
+        assert (self.numerical_np_augmentor.__class__.__bases__[0].__name__
+                == 'Augmentation')
+
+        # Test calculating numerical and categorical indices
+        assert self.numerical_np_augmentor.categorical_indices == []
+        assert self.numerical_np_augmentor.numerical_indices == [0, 1, 2, 3]
+        #
+        assert (self.numerical_struct_augmentor.numerical_indices
+                == ['a', 'b', 'c', 'd'])  # yapf: disable
+        cat_err = 'categorical values are not supported in this augmentor.'
+        with pytest.raises(NotImplementedError) as exin:
+            categorical = fuda.LocalFidelity(CATEGORICAL_NP_ARRAY)
+        assert str(exin.value) == cat_err
+
+    def test_validate_sample_input(self):
+        """
+        Tests :func:`fatf.utils.data.augmentation.LocalFidelity.
+        _validate_sample_input`.
+        """
+        # Most errors are caught by :func:`fatf.utils.data.augmentation.
+        # Augmentation._validate_sample_input` and have already been tested.
+
+        type_msg = ('r_fid must be float.')
+        value_msg = ('r_fid must be a positive float.')
+
+        with pytest.raises(TypeError) as exin:
+            self.numerical_np_augmentor._validate_sample_input(
+                NUMERICAL_NP_ARRAY[0], r_fid='a')
+        assert str(exin.value) == type_msg
+
+        with pytest.raises(TypeError) as exin:
+            self.numerical_np_augmentor._validate_sample_input(
+                NUMERICAL_NP_ARRAY[0], r_fid=0)
+        assert str(exin.value) == type_msg
+
+        with pytest.raises(ValueError) as exin:
+            self.numerical_np_augmentor._validate_sample_input(
+                NUMERICAL_NP_ARRAY[0], r_fid=0.0)
+        assert str(exin.value) == value_msg
+
+        with pytest.raises(ValueError) as exin:
+            self.numerical_np_augmentor._validate_sample_input(
+                NUMERICAL_NP_ARRAY[0], r_fid=-0.05)
+        assert str(exin.value) == value_msg
+
+    def test_sample(self):
+        """
+        Tests :func:`fatf.utils.data.augmentation.LocalFidelity.sample`.
+        """
+        mean_msg = ('Sampling around the mean is not implemeneted for '
+                    'LocalFidelity.')
+        with pytest.raises(ValueError) as exin:
+            self.numerical_np_augmentor.sample(None)
+        assert str(exin.value) == mean_msg
+
+        numerical_results = np.array(
+            [[-0.057, -0.057, 0.467, 0.878], [-0.536, 0.620, -0.449, 0.158],
+             [0.078, -0.618, -0.477, 0.508], [-0.357, 0.111, -0.240, 0.192]])
+        numerical_struct_results = np.array(
+            [(-0.329, 0.119, 0.161, 0.681), (-0.025, -0.013, 0.075, 0.661),
+             (-0.156, 0.138, 0.382, 0.601), (0.209, -0.528, 0.262, 0.468)],
+            dtype=[('a', 'f'), ('b', 'f'), ('c', 'f'), ('d', 'f')])
+        numerical_struct_results_f = np.array(
+            [(0, 0, 0.122, 0.606), (0, 0, -0.024, 0.706),
+             (0, 0, 0.105, 0.816), (0, 0, -0.151, 0.898)],
+            dtype=NUMERICAL_STRUCT_ARRAY.dtype)
+        fatf.setup_random_seed()
+        max_distance_dataset = 2.34
+        max_distance_mean = 1.47
+        # NUMERICAL NON-STRUCTURED
+        # Numerical data with 5 samples
+        samples = self.numerical_np_augmentor.sample(
+            NUMERICAL_NP_ARRAY[0], r_fid=0.5, samples_number=4)
+        assert np.allclose(numerical_results, samples, atol=1e-2)
+
+        # Numerical data with 1000 samples
+        samples = self.numerical_np_augmentor.sample(
+            NUMERICAL_NP_ARRAY[0], r_fid=0.2, samples_number=1000)
+        max_dist = np.max(fud.euclidean_array_distance(
+            np.expand_dims(NUMERICAL_NP_ARRAY[0], 0), samples).flatten())
+        assert np.isclose(max_dist, 0.2*max_distance_dataset, atol=1e-1)
+        assert np.allclose(np.mean(samples, axis=0), NUMERICAL_NP_ARRAY[0],
+                           atol=1e-1)
+        # Assert uniformity with Kolmogorov-Smirnov test for goodness of fit
+        for i in range(samples.shape[1]):
+            feature = samples[:, i]
+            scale = 1 / (max(feature) - min(feature))
+            sc = scale * feature - min(feature) * scale
+            result = scipy.stats.kstest(sc, 'uniform')
+            assert result.statistic < 0.25
+
+        # NUMERICAL STRUCTURED
+        # Numerical data with 5 samples
+        samples = self.numerical_struct_augmentor.sample(
+            NUMERICAL_STRUCT_ARRAY[0], r_fid=0.5, samples_number=4)
+        for i in samples.dtype.names:
+            assert np.allclose(
+                samples[i], numerical_struct_results[i], atol=0.1)
+
+        # Numerical data with 1000 samples
+        samples = self.numerical_struct_augmentor.sample(
+            NUMERICAL_STRUCT_ARRAY[0], r_fid=0.2, samples_number=1000)
+        max_dist = np.max(fud.euclidean_array_distance(
+            np.expand_dims(NUMERICAL_STRUCT_ARRAY[0], 0), samples).flatten())
+        assert np.isclose(max_dist, 0.2*max_distance_dataset, atol=1e-1)
+        decision_boundary = [0, 0, 0.05, 0.6]
+        for i in samples.dtype.names:
+            assert np.isclose(samples[i].mean(),
+                              NUMERICAL_STRUCT_ARRAY[0][i], atol=0.1)
+        # Assert uniformity with Kolmogorov-Smirnov test for goodness of fit
+        for i in samples.dtype.names:
+            feature = samples[i]
+            scale = 1 / (max(feature) - min(feature))
+            sc = scale * feature - min(feature) * scale
+            result = scipy.stats.kstest(sc, 'uniform')
+            assert result.statistic < 0.25
+
+        # NUMERICAL STRUCT W/O CAST
+        samples = self.numerical_struct_augmentor_f.sample(
+            NUMERICAL_STRUCT_ARRAY[0], r_fid=0.5, samples_number=4)
+        for i in samples.dtype.names:
+            assert np.allclose(
+                samples[i], numerical_struct_results_f[i], atol=0.1)
+
+        # Numerical data with 1000 samples
+        samples = self.numerical_struct_augmentor_f.sample(
+            NUMERICAL_STRUCT_ARRAY[0], r_fid=0.2, samples_number=1000)
+        max_dist = np.max(fud.euclidean_array_distance(
+            np.expand_dims(NUMERICAL_STRUCT_ARRAY[0], 0), samples).flatten())
+        assert np.isclose(max_dist, 0.2*max_distance_dataset, atol=1e-1)
+        decision_boundary = [0, 0, 0.05, 0.6]
+        for i in samples.dtype.names:
+            assert np.isclose(samples[i].mean(),
+                              NUMERICAL_STRUCT_ARRAY[0][i], atol=0.1)
+        for i in ['c', 'd']:
+            feature = samples[i]
+            scale = 1 / (max(feature) - min(feature))
+            sc = scale * feature - min(feature) * scale
+            result = scipy.stats.kstest(sc, 'uniform')
+            assert result.statistic < 0.25

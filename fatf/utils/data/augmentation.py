@@ -12,7 +12,7 @@ import abc
 import warnings
 
 from numbers import Number
-from typing import List, Optional, Tuple, Union
+from typing import List, Optional, Tuple, Union, Callable
 
 import numpy as np
 
@@ -23,8 +23,11 @@ from fatf.exceptions import IncorrectShapeError, IncompatibleModelError
 import fatf.utils.array.tools as fuat
 import fatf.utils.array.validation as fuav
 import fatf.utils.models.validation as fumv
+import fatf.utils.distances as fud
+import fatf.utils.validation as fuv
 
-__all__ = ['NormalSampling', 'Mixup', 'TruncatedNormal', 'GrowingSpheres']
+__all__ = ['NormalSampling', 'Mixup', 'TruncatedNormal', 'GrowingSpheres',
+           'LocalFidelity']
 
 Index = Union[int, str]
 
@@ -118,7 +121,7 @@ class Augmentation(abc.ABC):
     contains abstract ``__init__`` and ``sample`` methods and an input
     validator -- ``_validate_sample_input`` -- for the ``sample`` method. The
     validation of the input parameter to the initialisation method is done via
-    the :func:`fatf.utils.data.augmentation._validate_input` function.
+    the :`fatf.utils.data.augmentation._validate_input` function.
 
     .. note::
        The ``_validate_sample_input`` method should be called in all
@@ -1279,7 +1282,7 @@ class GrowingSpheres(Augmentation):
     this class please see the documentation of its parent class:
     :class:`fatf.utils.data.augmentation.Augmentation` and the function that
     validates the input parameter
-    :func:`fatf.utils.data.augmentation._validate_input.
+    :func:`fatf.utils.data.augmentation._validate_input`.
 
     .. [LAUGEL2018SPHERES] Laugel, T., Lesot M., Marsala, C., Renard, X.,
        and De-tyniecki, M., 2017. Inverse classification for
@@ -1339,7 +1342,6 @@ class GrowingSpheres(Augmentation):
             int_to_float=int_to_float)
         assert _validate_input_growingspheres(global_model, starting_std,
                                               increment_std, minimum_per_class)
-        self.dataset = dataset
         self.global_model = global_model
         self.n_classes = self.global_model.predict_proba(dataset).shape[1]
         self.starting_std = starting_std
@@ -1400,7 +1402,7 @@ class GrowingSpheres(Augmentation):
 
         # Sample from mean of dataset
         if data_row is None:
-            data_row = self.dataset[0]
+            data_row = np.zeros_like(self.dataset[0])
             for index in self.categorical_indices:
                 maximum = self.categorical_sampling_values[index][1].argmax()
                 data_row[index] = \
@@ -1477,4 +1479,428 @@ class GrowingSpheres(Augmentation):
             samples = samples_list[0]
         else:
             samples = np.vstack(samples_list)
+        return samples
+
+
+def _validate_input_local_surrogate(global_model: object,
+                                    starting_radius: np.float32,
+                                    increment_radius: np.float32) -> bool:
+    """
+    Validates :class:``.LocalSurrogate`` class-specific input parameters.
+
+    Parameters
+    ----------
+    global_model : object
+        A trained global model that must be able to output predicted class
+        via ``predict`` method.
+    starting_radius : numpy.float32
+        The radius that sampling around each point will start at to find
+        decision boundary.
+    increment_radius : numpy.float32
+        The amount to increment the radius around a point with each iteration
+        of the algorithm for finding the decision boundary.
+
+    Raises
+    ------
+    IncompatibleModelError:
+        Global model does not have ``predict`` method.
+    TypeError:
+        ``starting_radius`` is not a float. ``increment_radius`` is not a float.
+    ValueError:
+        ``starting_radius`` is negative. ``increment_radius`` is negative.
+
+    Returns
+    -------
+    is_valid : boolean
+        ``True`` if input is valid, ``False`` otherwise.
+    """
+    is_valid = False
+
+    if not fumv.check_model_functionality(global_model, suppress_warning=True):
+        raise IncompatibleModelError('This functionality requires the model '
+                                     'to be capable of outputting predicted '
+                                     'class via predict method.')
+
+    if not isinstance(starting_radius, float):
+        raise TypeError('starting_radius is not a float.')
+
+    if not isinstance(increment_radius, float):
+        raise TypeError('increment_radius is not a float.')
+
+    if starting_radius <= 0:
+        raise ValueError('starting_radius must be a positive float greater '
+                         'than 0.')
+
+    if increment_radius <= 0:
+        raise ValueError('increment_radius must be a positive float greater '
+                         'than 0.')
+
+    is_valid = True
+    return is_valid
+
+
+class LocalSurrogate(Augmentation):
+    """
+    Sampling data with the local fidelity method.
+
+    This object implements a adapted version of the local surrogate sampling
+    defined in [LAUGEL2018SPHERES]_. A sphere is grown around a data point
+    until the decision boundary is found, then 
+
+    The distance used will be euclidean for numerical indices and binary
+    for categorical indices.
+
+    For additional parameters, attributes, warnings and exceptions raised by
+    this class please see the documentation of its parent class:
+    :class:`fatf.utils.data.augmentation.Augmentation` and the function that
+    validates the input parameter
+    :func:`fatf.utils.data.augmentation._validate_input` and
+    :func:`fatf.utils.data.augmentation._validate_input_local_fidelity`.
+    
+    .. [LAUGEL2018SPHERES] Laugel, T., Renard, X., Lesot, M. J., Marsala,
+       C., & Detyniecki, M. (2018). Defining locality for surrogates in
+       post-hoc interpretablity. Workshop on Human Interpretability for
+       Machine Learning (WHI)-International Conference on Machine Learning,
+       2018.
+
+    Parameters
+    ----------
+    global_model : object
+        A trained global model that must be able to output predicted class
+        via ``predict`` method.
+    starting_radius : numpy.float32
+        The radius that sampling around each point will start at to find
+        decision boundary.
+    increment_radius : numpy.float32
+        The amount to increment the radius around a point with each iteration
+        of the algorithm for finding the decision boundary.
+
+    Raises
+    ------
+    IncompatibleModelError:
+        Global model does not have ``predict`` method.
+    TypeError:
+        ``starting_radius`` is not a float. ``increment_radius`` is not a float.
+    ValueError:
+        ``starting_radius`` is negative. ``increment_radius`` is negative.
+
+    """
+    def __init__(self,
+                 dataset: np.ndarray,
+                 global_model: object,
+                 categorical_indices: Optional[List[Index]] = None,
+                 starting_radius: np.float32 = 0.01,
+                 increment_radius: np.float32 = 0.01,
+                 int_to_float: bool = True,
+                 **kwargs) -> None:
+        """
+        Constructs an ``LocalFidelity`` data augmentation class.
+        """
+        super().__init__(
+            dataset=dataset,
+            categorical_indices=categorical_indices,
+            int_to_float=int_to_float)
+
+        assert _validate_input_local_surrogate(global_model, starting_radius,
+                                               increment_radius)
+        self.global_model = global_model
+        self.starting_radius = starting_radius
+        self.increment_radius = increment_radius
+        # Get sampling parameters for categorical features.
+        if self.categorical_indices:
+            raise NotImplementedError('categorical values are not supported '
+                                      'in this augmentor.')
+
+    def _validate_sample_input(self,
+                               data_row: np.ndarray,
+                               r_sx: float,
+                               samples_number:int,
+                               samples_get_decision_boundary,
+                               max_iter) -> bool:
+        """
+        Validates sample input parameterse for the class.
+
+        For additional documentation of parameters, warnings and errors
+        please see the description of
+        :func:`~fatf.utils.data.augmentation.LocalFidelity.sample`.
+
+        Returns
+        -------
+        is_valid : boolean
+        ``True`` if input is valid, ``False`` otherwise.
+        """
+        is_valid = False
+        assert super()._validate_sample_input(data_row, samples_number)
+
+        if not isinstance(r_sx, float):
+            raise TypeError('r_sx must be float.')
+        else:
+            if r_sx <= 0.0:
+                raise ValueError('r_sx must be a positive float.')
+
+        if not isinstance(samples_get_decision_boundary, int):
+            raise TypeError('samples_get_decision_boundary must be an '
+                            'integer.')
+        elif samples_get_decision_boundary <= 0:
+                raise ValueError('samples_get_decision_boundary must be an '
+                                 'integer larger than 0.')
+
+        if not isinstance(max_iter, int):
+            raise TypeError('max_iter must be an integer.')
+        elif max_iter <=0:
+            raise ValueError('max_iter must be a positive integer.')
+
+        is_valid = True
+        return is_valid
+
+    def sample(self,
+               data_row: np.ndarray = None,
+               r_sx: float = 0.05,
+               samples_number: int = 50,
+               samples_get_decision_boundary = 100,
+               max_iter = 1000) -> np.ndarray:
+        """
+        Samples new data using growing spheres method.
+
+        For the additional documentation of parameters, warnings and errors
+        please see the description of the
+        :func:`~fatf.utils.data.augmentation.Augmentation.sample` method in the
+        parent :class:`fatf.utils.data.augmentation.Augmentation` class.
+
+        Parameters
+        ----------
+        r_sx : float, Optional (default=0.05)
+            Radius of hypersphere around closest decision boundary to
+            ``data_row`` that points will be sampled around.
+        samples_get_decision_boundary, Optional (default=100)
+            Number of samples generated at each step when the sphere is being
+            grown to find the closest decision boundary.
+
+        Raises
+        ------
+        TypeError:
+            ``r_sx`` is not a float. ``samples_get_decision_boundary`` is not
+            an integer.
+        ValueError:
+            ``r_sx`` must be a positive float.
+            ``samples_get_decision_boundary`` is zero. ``data_row`` is None.
+
+        Returns
+        -------
+        samples : numpy.ndarray
+            A numpy array of shape [``samples_number``, number of features]
+            that holds the sampled data.
+        """
+        assert self._validate_sample_input(
+            data_row, r_sx, samples_number, samples_get_decision_boundary,
+            max_iter)
+
+        if data_row is None:
+            raise ValueError('Sampling around the mean is not implemeneted '
+                             'for LocalSurrogate.')
+
+        if self.is_structured:
+            shape = (samples_get_decision_boundary, )  # type: Tuple[int, ...]
+            row = np.array([data_row], dtype=self.dataset.dtype)
+        else:
+            shape = (samples_get_decision_boundary, self.features_number)
+            row = data_row.reshape(1, -1)
+        radius = self.starting_radius
+        label = self.global_model.predict(row)
+
+        for iterations in range(max_iter):
+            samples_iter = np.zeros(shape, dtype=self.sample_dtype)
+            uniform = np.random.uniform(
+                0, radius, size=(samples_get_decision_boundary, 1))
+            random =  np.random.normal(
+                0, 1, (samples_get_decision_boundary, self.features_number))
+            norm = np.expand_dims(np.linalg.norm(random, ord=2, axis=1), 1)
+            x = random * uniform / norm
+            for i, index in enumerate(self.numerical_indices):
+                if self.is_structured:
+                    samples_iter[index] = x[:, i] + data_row[index]
+                else:
+                    samples_iter[:, index] = x[:, i] + data_row[i]
+            # Get predictions for sampled data
+            predictions = self.global_model.predict(samples_iter)
+            indx = np.where(predictions != label)[0]
+            if indx.size > 0:
+                samples_different = samples_iter[indx]
+                distance = fud.euclidean_array_distance(
+                    np.expand_dims(data_row, 0), samples_different).flatten()
+                max_distance = np.max(distance)
+                decision_boundary = samples_different[np.argmax(distance)]
+                break
+            else:
+                radius += self.increment_radius
+        else:
+            raise RuntimeError('Maximum iterations reached without finding '
+                               'the decision boundary. Try increasing '
+                               'max_iter or increment_radius.')
+
+        # Now uniformaly sample in l-2 hypersphere aroun data_row with radius
+        # max_distance * r_sx
+        if self.is_structured:
+            shape = (samples_number, )
+        else:
+            shape = (samples_number, self.features_number)
+        samples = np.zeros(shape, dtype=self.sample_dtype)
+        uniform = np.random.uniform(0, r_sx, size=(samples_number, 1))
+        random =  np.random.normal(0, 1, (samples_number,
+                                          self.features_number))
+        norm = np.expand_dims(np.linalg.norm(random, ord=2, axis=1), 1)
+        x = random * uniform / norm
+        for i, index in enumerate(self.numerical_indices):
+            if self.is_structured:
+                samples[index] = x[:, i] + decision_boundary[index]
+            else:
+                samples[:, index] = x[:, i] + decision_boundary[i]
+
+        return samples
+
+
+
+class LocalFidelity(Augmentation):
+    """
+    Sampling data with the local fidelity method.
+
+    This object implements a adapted version of the local fidelity sampling
+    method introduced by [LAUGEL2018SPHERES]_. For a specific data point,
+    it samples uniformally within a hypersphere with radius corresponding to a
+    percentage of the maximum l-2 distance between the instance to generate
+    around and all other instances in the dataset.
+
+    The distance used will be euclidean for numerical indices and binary
+    for categorical indices.
+
+    For additional parameters, attributes, warnings and exceptions raised by
+    this class please see the documentation of its parent class:
+    :class:`fatf.utils.data.augmentation.Augmentation` and the function that
+    validates the input parameter
+    :func:`fatf.utils.data.augmentation._validate_input'.
+
+    .. [LAUGEL2018SPHERES] Laugel, T., Renard, X., Lesot, M. J., Marsala,
+       C., & Detyniecki, M. (2018). Defining locality for surrogates in
+       post-hoc interpretablity. Workshop on Human Interpretability for
+       Machine Learning (WHI)-International Conference on Machine Learning,
+       2018.
+    """
+    def __init__(self,
+                 dataset: np.ndarray,
+                 categorical_indices: Optional[List[Index]] = None,
+                 int_to_float: bool = True,
+                 **kwargs) -> None:
+        """
+        Constructs an ``LocalFidelity`` data augmentation class.
+        """
+        super().__init__(
+            dataset=dataset,
+            categorical_indices=categorical_indices,
+            int_to_float=int_to_float)
+
+        # Get sampling parameters for categorical features.
+        if self.categorical_indices:
+            raise NotImplementedError('categorical values are not supported '
+                                      'in this augmentor.')
+
+    def _validate_sample_input(self,
+                               data_row: np.ndarray = None,
+                               r_fid: float = 0.05,
+                               samples_number: int = 50) -> bool:
+        """
+        Validates sample input parameterse for the class.
+
+        For additional documentation of parameters, warnings and errors
+        please see the description of
+        :func:`~fatf.utils.data.augmentation.LocalFidelity.sample`.
+
+        Returns
+        -------
+        is_valid : boolean
+        ``True`` if input is valid, ``False`` otherwise.
+        """
+        is_valid = False
+        assert super()._validate_sample_input(data_row, samples_number)
+
+        if not isinstance(r_fid, float):
+            raise TypeError('r_fid must be float.')
+        else:
+            if r_fid <= 0.0:
+                raise ValueError('r_fid must be a positive float.')
+
+        is_valid = True
+        return is_valid
+
+    def sample(self,
+               data_row: np.ndarray,
+               r_fid: float = 0.05,
+               samples_number: int = 50) -> np.ndarray:
+        """
+        Samples new data using growing spheres method.
+
+        For the additional documentation of parameters, warnings and errors
+        please see the description of the
+        :func:`~fatf.utils.data.augmentation.Augmentation.sample` method in the
+        parent :class:`fatf.utils.data.augmentation.Augmentation` class.
+
+        Parameters
+        ----------
+        r_fid : float, Optional (default=0.05)
+            Radius of fideility which is the percentage of the maximum distance
+            between any two dataponts in the dataset, which will be the radius
+            of the l-2 hypersphere that points will be sampled in.
+        max_iter : integer (default=1000)
+            Maximum number of iterations for growing spheres algorithm before
+            returning a RuntimeError.
+        Raises
+        ------
+        TypeError:
+            ``r_fid`` is not a float. ``max_iter`` must be a positive integer
+        ValueError:
+            ``r_fid`` must be a positive float. ``data_row`` is None.
+        RuntimeError
+            Maximum number of iterations reached without the algorithm
+            sampling from every class in the global model.
+
+        Returns
+        -------
+        samples : numpy.ndarray
+            A numpy array of shape [``samples_number``, number of features]
+            that holds the sampled data.
+        """
+        assert self._validate_sample_input(data_row, r_fid, samples_number)
+
+        if data_row is None:
+            raise ValueError('Sampling around the mean is not implemeneted '
+                             'for LocalFidelity.')
+
+        if self.is_structured:
+            shape = (samples_number, )  # type: Tuple[int, ...]
+        else:
+            shape = (samples_number, self.features_number)
+
+        distances = fud.euclidean_array_distance(
+            np.expand_dims(data_row, 0), self.dataset)
+        maximum_distance = np.max(np.abs(distances.flatten()))
+
+        radius = r_fid * maximum_distance
+
+        if self.is_structured:
+            samples = np.zeros((samples_number, ), dtype=self.sample_dtype)
+        else:
+            samples = np.zeros((samples_number, self.features_number),
+                               dtype=self.sample_dtype)
+
+        samples = np.zeros(shape, dtype=self.sample_dtype)
+        uniform = np.random.uniform(0, radius, size=(samples_number, 1))
+        random =  np.random.normal(0, 1, (samples_number,
+                                          self.features_number))
+        norm = np.expand_dims(np.linalg.norm(random, ord=2, axis=1), 1)
+        x = random * uniform / norm
+        for i, index in enumerate(self.numerical_indices):
+            if self.is_structured:
+                samples[index] = x[:, i] + data_row[index]
+            else:
+                samples[:, index] = x[:, i] + data_row[i]
+
         return samples

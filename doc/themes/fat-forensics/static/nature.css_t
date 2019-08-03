@@ -560,7 +560,7 @@ div.cusotm-footer {
     font-size: 12px;
     font-color: gray;
     padding-bottom: 8px;
-    padding-top: 8px;
+    padding-top: 16px;
     height: 8vh;
 }
 

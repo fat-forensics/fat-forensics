@@ -136,6 +136,7 @@ doc-clean:
 # starting with `test_` and classes starting with `Test` will be found.)
 test-doc:
 	PYTHONPATH=./ PYTEST_IN_PROGRESS='true' pytest \
+		-W default::UserWarning \
 		--doctest-glob='*.txt' \
 		--doctest-glob='*.rst' \
 		--doctest-modules \

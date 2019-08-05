@@ -110,7 +110,6 @@ correct for fairness for:
 To learn more about the *Fairness* aspects of the FAT Forensics package please
 consult the following parts of the documentation:
 
-* :ref:`fairness tutorials <tutorials_fairness>`,
 * :ref:`fairness examples <fairness_examples>`,
 * :ref:`fairness user guides <user_guide_fairness>`,
 * :ref:`fairness how to guides <how_to_fairness>` and
@@ -133,7 +132,6 @@ algorithms that can measure, evaluate and correct for these aspects for:
 To learn more about the *Accountability* aspects of the FAT Forensics package
 please consult the following parts of the documentation:
 
-* :ref:`accountability tutorials <tutorials_accountability>`,
 * :ref:`accountability examples <accountability_examples>`,
 * :ref:`accountability user guides <user_guide_accountability>`,
 * :ref:`accountability how to guides <how_to_accountability>` and
@@ -157,7 +155,6 @@ aspects of predictive systems:
 To learn more about the *Transparency* aspects of the FAT Forensics package
 please consult the following parts of the documentation:
 
-* :ref:`transparency tutorials <tutorials_transparency>`,
 * :ref:`transparency examples <transparency_examples>`,
 * :ref:`transparency user guides <user_guide_transparency>`,
 * :ref:`transparency how to guides <how_to_transparency>` and

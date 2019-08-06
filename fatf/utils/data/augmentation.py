@@ -1545,10 +1545,9 @@ class LocalSurrogate(Augmentation):
 
     This object implements a adapted version of the local surrogate sampling
     defined in [LAUGEL2018SPHERES]_. A sphere is grown around a data point
-    until the decision boundary is found, then 
-
-    The distance used will be euclidean for numerical indices and binary
-    for categorical indices.
+    until the decision boundary is found, then data points are sampled
+    uniformally in an l-2 hyersphere of radius ``r_sx`` around the closest
+    decision boundary.
 
     For additional parameters, attributes, warnings and exceptions raised by
     this class please see the documentation of its parent class:
@@ -1556,7 +1555,7 @@ class LocalSurrogate(Augmentation):
     validates the input parameter
     :func:`fatf.utils.data.augmentation._validate_input` and
     :func:`fatf.utils.data.augmentation._validate_input_local_fidelity`.
-    
+
     .. [LAUGEL2018SPHERES] Laugel, T., Renard, X., Lesot, M. J., Marsala,
        C., & Detyniecki, M. (2018). Defining locality for surrogates in
        post-hoc interpretablity. Workshop on Human Interpretability for
@@ -1769,9 +1768,6 @@ class LocalFidelity(Augmentation):
     it samples uniformally within a hypersphere with radius corresponding to a
     percentage of the maximum l-2 distance between the instance to generate
     around and all other instances in the dataset.
-
-    The distance used will be euclidean for numerical indices and binary
-    for categorical indices.
 
     For additional parameters, attributes, warnings and exceptions raised by
     this class please see the documentation of its parent class:

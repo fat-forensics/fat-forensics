@@ -4,7 +4,7 @@ Implementing different methods for choosing features.
 # Author: Alex Hepburn <ah13558@bristol.ac.uk>
 # License: new BSD
 
-from typing import List, Union
+from typing import List, Union, Optional
 
 import numpy as np
 
@@ -61,12 +61,13 @@ def _is_input_valid(dataset: np.ndarray,
         raise IncorrectShapeError('The number distances in weights must be '
                                   'the same as the number of samples in '
                                   'dataset.')
+    if num_features is not None:
+        if not isinstance(num_features, int):
+            raise TypeError('num_features must be an integer.')
 
-    if not isinstance(num_features, int):
-        raise TypeError('num_features must be an integer.')
-
-    if num_features < 1:
-        raise ValueError('num_features must be an integer greater than zero.')
+        if num_features < 1:
+            raise ValueError('num_features must be an integer greater than '
+                             'zero.')
 
     is_input_ok = True
     return is_input_ok
@@ -75,7 +76,7 @@ def _is_input_valid(dataset: np.ndarray,
 def lasso_path(dataset: np.ndarray,
                target: np.ndarray,
                weights: np.ndarray,
-               num_features: int) -> List[Index]:
+               num_features: Optional[int] = None) -> List[Index]:
     """
     Computes the features to be used in training a local model using LASSO.
 
@@ -119,24 +120,21 @@ def lasso_path(dataset: np.ndarray,
     else:
         indices = np.arange(0, dataset.shape[1], 1)
 
-    weighted_data = (dataset - np.average(dataset, axis=0, weights=weights))
-    weighted_data = weighted_data * np.sqrt(weights[:, np.newaxis])
-    weighted_target = target - np.average(target, weights=weights)
-    weighted_target = weighted_target * np.sqrt(weights)
+    if num_features is None:
+        features = indices
+    else:
+        weighted_data = ((dataset-np.average(dataset, axis=0, weights=weights))
+                                *np.sqrt(weights[:, np.newaxis]))
+        weighted_target = ((target-np.average(target, weights=weights))
+                            *np.sqrt(weights))
+        nonzero = range(weighted_data.shape[1])
+        _, _, coefs = sklearn.linear_model.lars_path(
+            weighted_data, weighted_target, method='lasso', verbose=False)
+        nonzero = range(weighted_data.shape[1])
+        for i in range(coefs.shape[1] - 1, 0, -1):
+            nonzero = coefs.T[i].nonzero()[0]
+            if len(nonzero) <= num_features:
+                break
 
-    _, _, coefs = sklearn.linear_model.lars_path(
-        weighted_data, weighted_target, method='lasso', verbose=False)
-
-    nonzero = None
-    for i in range(coefs.shape[1] - 1, 0, -1):
-        nonzero = coefs[:, i].nonzero()[0]
-        if len(nonzero) <= num_features:
-            break
-    if nonzero is None:
-        raise ValueError('Not enough nonzero coefficients were found by '
-                         '\'sklearn.linear_model.lars_path\' function. This '
-                         'could be due to the weights being too small.')
-
-    features = indices[nonzero]
-
+        features = indices[nonzero]
     return features

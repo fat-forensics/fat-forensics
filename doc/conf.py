@@ -62,7 +62,7 @@ extensions = [
     'sphinx.ext.linkcode',  # Show source as a URL to GitHub
     # 'sphinx.ext.viewcode',  # Show source as a web page generated from rST
     'sphinx.ext.intersphinx',  # Link documentation of other projects
-    # 'sphinx.ext.doctest',
+    'sphinx.ext.doctest',  # Used for documentation Python setup code blocks
     'sphinx.ext.coverage',
     'sphinx.ext.githubpages',
     # 'sphinx.ext.mathjax',  # Appended later based on OS variables

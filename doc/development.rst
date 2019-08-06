@@ -307,6 +307,11 @@ that supports the following documentation build command:
 
    $ make html
 
+Since some of the code snippets (in particular the ones placed in the
+tutorials) produce plots and figures that are later included in the
+documentation, these need to be executed first. To this end, the documentation
+tests (``make test-doc``) has to be executed before building the documentation.
+
 .. warning::
 
    Since the ``.rst`` files describing the API documentation are generated

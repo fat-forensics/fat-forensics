@@ -20,6 +20,7 @@ doc/_build
 doc/resources
 doc/generated
 doc/sphinx_gallery_auto
+doc/tutorials/img
 
 temp/*
 .coverage.*

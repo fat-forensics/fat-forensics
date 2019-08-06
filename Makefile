@@ -135,6 +135,7 @@ doc-clean:
 # (`-k 'not test_ and not Test'` is used as a hack -- no doctests in functions
 # starting with `test_` and classes starting with `Test` will be found.)
 test-doc:
+	mkdir -p doc/tutorials/img
 	PYTHONPATH=./ PYTEST_IN_PROGRESS='true' pytest \
 		-W default::UserWarning \
 		--doctest-glob='*.txt' \

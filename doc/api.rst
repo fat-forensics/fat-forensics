@@ -673,3 +673,19 @@ Functions
    warnings.handle_warnings_filter_pattern
    warnings.set_default_warning_filters
    warnings.is_warning_class_displayed
+
+``fatf``: FAT Forensics Initialisation Functions
+================================================
+
+This API documentation section describes *set-up* functionality of the FAT
+Forensics package.
+
+.. currentmodule:: fatf
+
+.. autosummary::
+   :toctree: generated/
+   :template: function.rst
+   :nosignatures:
+
+   setup_warning_filters
+   setup_random_seed

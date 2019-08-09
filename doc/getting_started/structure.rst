@@ -127,7 +127,7 @@ algorithms that can measure, evaluate and correct for these aspects for:
 * predictive models -- see the documentation of the
   :mod:`fatf.accountability.models` module -- and
 * predictions -- see the documentation of the
-  :mod:`fatf.accountability.predictions` module.
+  ``fatf.accountability.predictions`` module.
 
 To learn more about the *Accountability* aspects of the FAT Forensics package
 please consult the following parts of the documentation:

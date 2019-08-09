@@ -4,6 +4,8 @@ Implementation various measures for comparing local model to global model.
 # Author: Alex Hepburn <ah13558@bristol.ac.uk>
 # License: new BSD
 
+from typing import Union, List, Optional
+
 import numpy as np
 
 import fatf
@@ -11,15 +13,20 @@ import fatf.utils.data.augmentation as fuda
 import fatf.utils.models.metrics as fumm
 import fatf.utils.models.validation as fumv
 import fatf.utils.array.validation as fuav
+import fatf.utils.array.tools as fuat
+import fatf.utils.models.validation as fumv
 from fatf.exceptions import IncompatibleModelError, IncorrectShapeError
 
 __all__ = ['local_fidelity_score']
+
+Index = Union[int, str]
 
 
 def _input_is_valid(dataset: np.ndarray,
                     data_row: np.ndarray,
                     local_model: object,
                     global_model: object,
+                    local_features: List[Index],
                     r_fid: float,
                     samples_number: int):
     """
@@ -41,7 +48,7 @@ def _input_is_valid(dataset: np.ndarray,
     if not fuav.is_base_array(dataset):
         raise TypeError('The input dataset must be of a base type.')
 
-    is_structued = fuav.is_structured_array(dataset)
+    is_structured = fuav.is_structured_array(dataset)
 
     if not fuav.is_1d_like(data_row):
         raise IncorrectShapeError('The data_row must either be a '
@@ -55,6 +62,17 @@ def _input_is_valid(dataset: np.ndarray,
                         'the dtype of the data array used to '
                         'initialise this class.')
 
+    if local_features is not None:
+        if isinstance(local_features, list):
+            invalid_indices = fuat.get_invalid_indices(
+                dataset, np.asarray(local_features))
+            if invalid_indices.size:
+                raise IndexError('The following indices are invalid for the '
+                                 'input dataset: {}.'.format(invalid_indices))
+        else:
+            raise TypeError('The local_features parameter must be a '
+                            'Python list or None.')
+
     # If the dataset is structured and the data_row has a different
     # number of features this will be caught by the above dtype check.
     # For classic numpy arrays this has to be done separately.
@@ -65,11 +83,15 @@ def _input_is_valid(dataset: np.ndarray,
                                         'dataset used to initialise '
                                         'this class.')
 
-    if not check_model_functionality(global_model, suppress_warning=True):
-        raise IncompatibleModelError()
+    if not fumv.check_model_functionality(global_model, suppress_warning=True):
+        raise IncompatibleModelError('This functionality requires the global '
+                                     'model to be capable of outputting '
+                                     'predicted class via predict method.')
 
-    if not check_model_functionality(local_model, suppress_warning=True):
-        raise IncompatibleModelError()
+    if not fumv.check_model_functionality(local_model, suppress_warning=True):
+        raise IncompatibleModelError('This functionality requires the local '
+                                     'model to be capable of outputting '
+                                     'predicted class via predict method.')
 
     if not isinstance(r_fid, float):
             raise TypeError('r_fid must be float.')
@@ -93,8 +115,10 @@ def local_fidelity_score(dataset: np.ndarray,
                          local_model: object,
                          global_model: object,
                          global_class: int,
+                         local_features=Optional[List[Index]],
                          r_fid=0.05,
-                         samples_number=50) -> float:
+                         samples_number=50,
+                         roc=False) -> float:
     """
     Computes local fidelity score for an instance in a dataset.
 
@@ -128,7 +152,11 @@ def local_fidelity_score(dataset: np.ndarray,
     global_class : integer
         The class which the probabilities belong to that the local model was
         trained to predict.
-    r_fid : float, Optional (defualt=0.05)
+    local_features : List[Index], Optional (default=None)
+        List of indices which correspond to the features used to train the
+        local model. If ``None`` then it will use all features in
+        ``sampled_data``.
+    r_fid : float, Optional (default=0.05)
         Radius of fideility which is the percentage of the maximum distance
         between any two dataponts in the dataset, which will be the radius
         of the l-2 hypersphere that points will be sampled in.
@@ -147,24 +175,33 @@ def local_fidelity_score(dataset: np.ndarray,
     augmentor = fuda.LocalFidelity(dataset, int_to_float=True)
     sampled_data = augmentor.sample(data_row, r_fid, samples_number)
 
-    local_predictions = local_model.predict(sampled_data)
-    global_predictions = global_model.predict(sampled_data)
-
-    local_predictions[local_predictions>0.5] = 1
-    local_predictions[local_predictions<0.5] = 0
-
-    class_indx = global_predictions == global_class
-    global_predictions[class_indx] = 1
-    global_predictions[~class_indx] = 0
-
-    # TODO: maybe just write a function to compute accuracy
-    # not from confusion matrix
-
-    confusion_matrix = fumm.get_confusion_matrix(local_predictions,
-                                                 global_predictions)
-    if confusion_matrix.shape == (1, 1):
-        accuracy = 1.0
+    if local_features is None:
+        local_predictions = local_model.predict(sampled_data)
     else:
+        if fuav.is_structured_array(sampled_data):
+            local_data = sampled_data[local_features]
+        else:
+            local_data = sampled_data[:, local_features]
+        local_predictions = local_model.predict(local_data)
+
+    global_predictions = global_model.predict_proba(sampled_data)[:, global_class]
+    global_predictions[global_predictions>=0.5] = 1
+    global_predictions[global_predictions<0.5] = 0
+
+    if not roc:
+        local_predictions[local_predictions>=0.5] = 1
+        local_predictions[local_predictions<0.5] = 0
+
+        confusion_matrix = fumm.get_confusion_matrix(local_predictions,
+                                                    global_predictions,
+                                                    labels=[0, 1])
         accuracy = fumm.accuracy(confusion_matrix)
+    else:
+        import sklearn.metrics
+        global_predictions = global_predictions.astype(int)
+        try:
+            accuracy = sklearn.metrics.roc_auc_score(global_predictions, local_predictions)
+        except ValueError:
+            accuracy = None
 
     return accuracy

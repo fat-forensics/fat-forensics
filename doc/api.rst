@@ -20,6 +20,12 @@ uses.
    :ref:`sphx_glr_sphinx_gallery_auto_fairness_xmpl_fairness_models_measure.py`
    examples to see how the package can be used with a structured numpy array.
 
+.. automodule:: fatf
+    :no-members:
+    :no-inherited-members:
+
+----
+
 .. _fairness_ref:
 
 :mod:`fatf.fairness`: Fairness
@@ -674,8 +680,8 @@ Functions
    warnings.set_default_warning_filters
    warnings.is_warning_class_displayed
 
-``fatf``: FAT Forensics Initialisation Functions
-================================================
+:mod:`fatf`: FAT Forensics Initialisation Functions
+===================================================
 
 This API documentation section describes *set-up* functionality of the FAT
 Forensics package.

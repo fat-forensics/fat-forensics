@@ -77,6 +77,6 @@ script:
   - make test-with-code-coverage
 #  - make test-notebooks
   - make test-doc
-  - make doc-linkcheck
+#  - make doc-linkcheck
   - make doc-coverage
   - make doc-html

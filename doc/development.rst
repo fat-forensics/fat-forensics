@@ -22,7 +22,7 @@ We use a range of platforms for communication in the project:
 
 .. _`GitHub issue tracker`: https://github.com/fat-forensics/fat-forensics/issues
 .. _`gitter channel`: https://gitter.im/fat-forensics/fat-forensics
-.. _`slack channel`: http://fat-forensics.slack.com
+.. _`slack channel`: https://fat-forensics.slack.com
 .. _`mailing list`: https://groups.google.com/forum/#!forum/fat-forensics
 
 Contributing Code
@@ -165,7 +165,7 @@ directory of the package.
 .. _Flake8: http://flake8.pycqa.org/en/latest/
 .. _`.pylintrc`: https://github.com/So-Cool/fat-forensics/blob/dev/.pylintrc
 .. _`.flake8`: https://github.com/So-Cool/fat-forensics/blob/dev/.flake8
-.. _EditorConfig: http://EditorConfig.org
+.. _EditorConfig: https://EditorConfig.org
 .. _`.editorconfig`: https://github.com/So-Cool/fat-forensics/blob/dev/.editorconfig
 
 Type Hints

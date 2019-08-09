@@ -229,13 +229,13 @@ accountability functionality will be implemented as well.
 .. _`eli5 package`: https://eli5.readthedocs.io/en/latest/libraries/sklearn.html
 .. _ANCHOR: https://github.com/marcotcr/anchor
 .. _forestspy: https://github.com/jvns/forestspy
-.. _`Skater feature importance`: https://datascienceinc.github.io/Skater/reference/interpretation.html#feature-importance
+.. _`Skater feature importance`: https://oracle.github.io/Skater/reference/interpretation.html#feature-importance
 .. _`eli5 implementation`: https://eli5.readthedocs.io/en/latest/autodocs/sklearn.html#module-eli5.sklearn.permutation_importance
 .. _`PhD thesis`: http://ftp.cs.wisc.edu/machine-learning/shavlik-group/craven.thesis.pdf
 .. _`NIPS paper`: https://papers.nips.cc/paper/1152-extracting-tree-structured-representations-of-trained-networks.pdf
 .. _report: https://pdfs.semanticscholar.org/025b/8c109c38dc115024e97eb0ede5ea873fffdb.pdf
-.. _`TREPAN implementation`: https://datascienceinc.github.io/Skater/reference/interpretation.html#tree-surrogates-using-decision-trees
-.. _`LIME tutorials`: https://github.com/marcotcr/lime/blob/gh-pages/tutorials/
+.. _`TREPAN implementation`: https://oracle.github.io/Skater/reference/interpretation.html#tree-surrogates-using-decision-trees
+.. _`LIME tutorials`: https://github.com/marcotcr/lime/tree/gh-pages/tutorials
 .. _`this tutorial`: https://marcotcr.github.io/lime/tutorials/Lime%20-%20multiclass.html
 
 Milestone 3
@@ -322,11 +322,11 @@ fairness packages.
 .. _Lightning: https://github.com/scikit-learn-contrib/lightning
 .. _sklearn-crfsuite: https://github.com/TeamHG-Memex/sklearn-crfsuite
 .. _eli5: https://eli5.readthedocs.io/en/latest/libraries/index.html
-.. _`BRL reference implementation`: https://datascienceinc.github.io/Skater/reference/interpretation.html#bayesian-rule-lists-brl
+.. _`BRL reference implementation`: https://oracle.github.io/Skater/reference/interpretation.html#bayesian-rule-lists-brl
 .. _`BRL use case`: https://arxiv.org/abs/1511.01644
 .. _`SBRL paper`: https://arxiv.org/abs/1602.08610
 .. _BRLC: https://github.com/Hongyuy/sbrl-python-wrapper/blob/master/sbrl/C_sbrl.py
-.. _`BigDataBRLC implementation`: https://datascienceinc.github.io/Skater/reference/interpretation.html#skater.core.global_interpretation.interpretable_models.bigdatabrlc.BigDataBRLC
+.. _`BigDataBRLC implementation`: https://oracle.github.io/Skater/reference/interpretation.html#skater.core.global_interpretation.interpretable_models.bigdatabrlc.BigDataBRLC
 .. _`Dr. Tamas Madl's implementation`: https://github.com/tmadl/sklearn-expertsys/blob/master/BigDataRuleListClassifier.py
 
 Milestone 4

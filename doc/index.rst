@@ -54,7 +54,7 @@ or its documentation.
 .. _`fat-forensics`: https://github.com/fat-forensics/fat-forensics
 .. _`GitHub issue tracker`: https://github.com/fat-forensics/fat-forensics/issues
 .. _gitter: https://gitter.im/fat-forensics/fat-forensics
-.. _slack: http://fat-forensics.slack.com
+.. _slack: https://fat-forensics.slack.com
 .. _`mailing list`: https://groups.google.com/forum/#!forum/fat-forensics
 .. _`University of Bristol`: http://www.bristol.ac.uk
 .. _Thales: https://www.thalesgroup.com/en

@@ -15,6 +15,7 @@ import fatf.utils.tools as fut
 from fatf.exceptions import IncorrectShapeError
 
 _NUMPY_VERSION = [int(i) for i in np.version.version.split('.')]
+_NUMPY_1_17 = fut.at_least_verion([1, 17], _NUMPY_VERSION)
 _NUMPY_1_16 = fut.at_least_verion([1, 16], _NUMPY_VERSION)
 _NUMPY_1_14_4 = fut.at_least_verion([1, 14, 4], _NUMPY_VERSION)
 _NUMPY_1_11 = fut.at_least_verion([1, 11], _NUMPY_VERSION)
@@ -79,23 +80,30 @@ def test_describe_numerical_array():
                        'max': np.nan, 'min': np.nan, '25%': np.nan,
                        '50%': np.nan, '75%': np.nan, 'nan_count': 2
                        }  # yapf: disable
-        with pytest.warns(RuntimeWarning) as w:
+        if _NUMPY_1_17:
             array_description = ftddf.describe_numerical_array(
                 array, skip_nans=False)
-        if _NUMPY_1_16:
-            assert len(w) == 3
-            for i in range(len(w)):
-                assert str(w[i].message).startswith(runtime_warning_percentile)
-        elif _NUMPY_1_14_4:
-            assert len(w) == 5
-            assert str(w[0].message).startswith(runtime_warning_minmax)
-            for i in range(1, len(w) - 1):
-                assert str(w[i].message).startswith(runtime_warning_percentile)
-            assert str(w[-1].message).startswith(runtime_warning_minmax)
         else:
-            assert len(w) == 3
-            for i in range(len(w)):
-                assert str(w[i].message).startswith(runtime_warning_percentile)
+            with pytest.warns(RuntimeWarning) as w:
+                array_description = ftddf.describe_numerical_array(
+                    array, skip_nans=False)
+            if _NUMPY_1_16:
+                assert len(w) == 3
+                for i in range(len(w)):
+                    assert str(
+                        w[i].message).startswith(runtime_warning_percentile)
+            elif _NUMPY_1_14_4:
+                assert len(w) == 5
+                assert str(w[0].message).startswith(runtime_warning_minmax)
+                for i in range(1, len(w) - 1):
+                    assert str(
+                        w[i].message).startswith(runtime_warning_percentile)
+                assert str(w[-1].message).startswith(runtime_warning_minmax)
+            else:
+                assert len(w) == 3
+                for i in range(len(w)):
+                    assert str(
+                        w[i].message).startswith(runtime_warning_percentile)
     else:  # pragma: no cover
         description = {'count': 6, 'mean': np.nan, 'std': np.nan,
                        'max': np.nan, 'min': np.nan, '25%': 13.75,
@@ -325,7 +333,9 @@ def test_describe_array():
                 array[0], include='unimportant', skip_nans=False)
         assert issubclass(w[0].category, UserWarning)
         assert str(w[0].message) == user_warning
-        if _NUMPY_1_16:
+        if _NUMPY_1_17:
+            pass
+        elif _NUMPY_1_16:
             assert len(w) == 4
             for i in range(1, len(w)):
                 assert issubclass(w[i].category, RuntimeWarning)
@@ -444,22 +454,29 @@ def test_describe_array():
     # 2D structured mixture -- do not ignore nans -- no include/ exclude
     if _NUMPY_1_10:  # pragma: no cover
         description_num_test = description_num_nan
-        with pytest.warns(RuntimeWarning) as w:
+        if _NUMPY_1_17:
             description = ftddf.describe_array(array_struct, skip_nans=False)
-        if _NUMPY_1_16:
-            assert len(w) == 3
-            for i in range(len(w)):
-                assert str(w[i].message).startswith(runtime_warning_percentile)
-        elif _NUMPY_1_14_4:
-            assert len(w) == 5
-            assert str(w[0].message).startswith(runtime_warning_minmax)
-            for i in range(1, len(w) - 1):
-                assert str(w[i].message).startswith(runtime_warning_percentile)
-            assert str(w[-1].message).startswith(runtime_warning_minmax)
         else:
-            assert len(w) == 3
-            for i in range(len(w)):
-                assert str(w[i].message).startswith(runtime_warning_percentile)
+            with pytest.warns(RuntimeWarning) as w:
+                description = ftddf.describe_array(
+                    array_struct, skip_nans=False)
+            if _NUMPY_1_16:
+                assert len(w) == 3
+                for i in range(len(w)):
+                    assert str(
+                        w[i].message).startswith(runtime_warning_percentile)
+            elif _NUMPY_1_14_4:
+                assert len(w) == 5
+                assert str(w[0].message).startswith(runtime_warning_minmax)
+                for i in range(1, len(w) - 1):
+                    assert str(
+                        w[i].message).startswith(runtime_warning_percentile)
+                assert str(w[-1].message).startswith(runtime_warning_minmax)
+            else:
+                assert len(w) == 3
+                for i in range(len(w)):
+                    assert str(
+                        w[i].message).startswith(runtime_warning_percentile)
     else:  # pragma: no cover
         description_num_test = description_num_nann
         description = ftddf.describe_array(array_struct, skip_nans=False)

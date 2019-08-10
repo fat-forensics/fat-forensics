@@ -88,6 +88,6 @@ script:
   - make check-types
   - make test-with-code-coverage
 #  - make test-notebooks
-  - if [[ $TRAVIS_TEST_DOCUMENTATION == 1 ]]; then; make test-doc; fi
-#  - if [[ $TRAVIS_TEST_DOCUMENTATION == 1 ]]; then; make doc-linkcheck; fi
-  - if [[ $TRAVIS_TEST_DOCUMENTATION == 1 ]]; then; make doc-coverage; fi
+  - if [[ $TRAVIS_TEST_DOCUMENTATION == 1 ]]; then make test-doc; fi
+#  - if [[ $TRAVIS_TEST_DOCUMENTATION == 1 ]]; then make doc-linkcheck; fi
+  - if [[ $TRAVIS_TEST_DOCUMENTATION == 1 ]]; then make doc-coverage; fi

@@ -1,5 +1,9 @@
 """
-Helper functions for testing visualisations with matplotlib.
+The :mod:`fatf.utils.testing.vis` module holds visualisation testing functions.
+
+This module holds functions that are of great help when testing visualisations
+implemented in :mod:`fatf.vis` module. **This module requires the
+``matplotlib`` package to be installed.**
 """
 # Author: Kacper Sokol <k.sokol@bristol.ac.uk>
 #         Alex Hepburn <ah13558@bristol.ac.uk>
@@ -7,7 +11,6 @@ Helper functions for testing visualisations with matplotlib.
 
 import warnings
 
-from numbers import Number
 from typing import List, Tuple, Union
 
 import numpy as np
@@ -25,8 +28,8 @@ finally:
 __all__ = ['get_plot_data', 'get_line_data', 'get_bar_data']
 
 
-def get_plot_data(plot_axis: plt.Axes
-                  ) -> Tuple[str, str, List[Number], str, List[Number]]:
+def get_plot_data(
+        plot_axis: plt.Axes) -> Tuple[str, str, List[float], str, List[float]]:
     """
     Extracts plot's title, x-axis name and range and y-axis name and range.
 
@@ -70,8 +73,8 @@ def get_line_data(
 
     Parameters
     ----------
-    line_plot : Union[matplotlib.lines.Line2D,
-                      matplotlib.collections.LineCollection]
+    line_plot : Union[matplotlib.lines.Line2D, \
+matplotlib.collections.LineCollection]
         A matplotlib line object extracted from a plot's axis.
     is_collection : boolean, optional (default=False)
         If ``True``, the ``line_plot`` will be treated as a ``LineCollection``.
@@ -111,7 +114,7 @@ def get_line_data(
 
 def get_bar_data(
         plot_axis: plt.Axes
-) -> Tuple[str, List[str], List[Number], List[str], List[Number], List[Number],
+) -> Tuple[str, List[str], List[float], List[str], List[float], List[float],
            List[Tuple[float, float, float, float]]]:
     """
     Extracts plot's title, x-axis name and range and y-axis name and range.

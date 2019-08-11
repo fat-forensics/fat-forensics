@@ -1,5 +1,5 @@
 """
-Implements data fairness measures.
+The :mod:`fatf.fairness.data.measures` module holds data fairness measures.
 """
 # Author: Kacper Sokol <k.sokol@bristol.ac.uk>
 #         Rafael Poyiadzi <rp13102@bristol.ac.uk>
@@ -58,7 +58,7 @@ def systemic_bias(dataset: np.ndarray, ground_truth: np.ndarray,
 
     Returns
     -------
-    systemic_bias_matrix: numpy.ndarray
+    systemic_bias_matrix : numpy.ndarray
         A square, diagonally symmetrical and boolean numpy array that indicates
         which pair of data point share the same unprotected features but differ
         in protected features and the ground truth annotation.

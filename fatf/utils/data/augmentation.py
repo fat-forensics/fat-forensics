@@ -1,5 +1,5 @@
 """
-Data augmentation classes.
+The :mod:`fatf.utils.data.augmentation` module implements data set augmenters.
 """
 # Author: Alex Hepburn <ah13558@bristol.ac.uk>
 #         Kacper Sokol <k.sokol@bristol.ac.uk>
@@ -21,7 +21,7 @@ from fatf.exceptions import IncorrectShapeError
 import fatf.utils.array.tools as fuat
 import fatf.utils.array.validation as fuav
 
-__all__ = ['NormalSampling']
+__all__ = ['NormalSampling', 'Mixup']
 
 Index = Union[int, str]
 
@@ -114,8 +114,8 @@ class Augmentation(abc.ABC):
     An abstract class that all augmentation classes should inherit from. It
     contains abstract ``__init__`` and ``sample`` methods and an input
     validator -- ``_validate_sample_input`` -- for the ``sample`` method. The
-    validation of the input parameter to the initialisation method is done via
-    the :func:`fatf.utils.data.augmentation._validate_input` function.
+    validation of the input parameters to the initialisation method is done via
+    the ``fatf.utils.data.augmentation._validate_input`` function.
 
     .. note::
        The ``_validate_sample_input`` method should be called in all
@@ -385,8 +385,8 @@ class NormalSampling(Augmentation):
     numerical_sampling_values : Dictionary[column index, Tuple[number, number]]
         Dictionary mapping numerical column feature indices to tuples of two
         numbers: column's *mean* and its *standard deviation*.
-    categorical_sampling_values :
-    Dictionary[column index, Tuple[numpy.ndarray, numpy.ndarray]]
+    categorical_sampling_values : Dictionary[column index, \
+Tuple[numpy.ndarray, numpy.ndarray]]
         Dictionary mapping categorical column feature indices to tuples two
         1-dimensional numpy arrays: one with unique values for that column
         and the other one with their normalised (sum up to 1) frequencies.
@@ -509,7 +509,7 @@ class NormalSampling(Augmentation):
 
 
 def _validate_input_mixup(
-        beta_parameters: Union[None, Tuple[Number, Number]]) -> bool:
+        beta_parameters: Union[None, Tuple[float, float]]) -> bool:
     """
     Validates :class:``.Mixup`` class-specific input parameters.
 
@@ -544,7 +544,7 @@ def _validate_input_mixup(
                              '2-tuple (a pair) of numbers.')
         for index, name in enumerate(['first', 'second']):
             if isinstance(beta_parameters[index], Number):
-                if beta_parameters[index] <= 0:  # type: ignore
+                if beta_parameters[index] <= 0:
                     raise ValueError('The {} beta parameter cannot be a '
                                      'negative number.'.format(name))
             else:
@@ -576,8 +576,8 @@ class Mixup(Augmentation):
     For additional parameters, attributes, warnings and exceptions raised by
     this class please see the documentation of its parent class:
     :class:`fatf.utils.data.augmentation.Augmentation` and the function that
-    validates the input parameter
-    :func:`fatf.utils.data.augmentation._validate_input_mixup`.
+    validates the input parameters
+    ``fatf.utils.data.augmentation._validate_input_mixup``.
 
     .. [ZHANG2018MIXUP] Zhang, H., Cisse, M., Dauphin, Y. N. and Lopez-Paz, D.,
        2018. mixup: Beyond Empirical Risk Minimization. International
@@ -627,7 +627,7 @@ class Mixup(Augmentation):
                  dataset: np.ndarray,
                  ground_truth: Optional[np.ndarray] = None,
                  categorical_indices: Optional[np.ndarray] = None,
-                 beta_parameters: Optional[Tuple[Number, Number]] = None,
+                 beta_parameters: Optional[Tuple[float, float]] = None,
                  int_to_float: bool = True) -> None:
         """
         Constructs a ``Mixup`` data augmentation class.
@@ -671,11 +671,11 @@ class Mixup(Augmentation):
 
         # Check beta parameters
         if beta_parameters is None:
-            beta_parameters = (2, 5)  # type: ignore
+            beta_parameters = (2, 5)
         self.beta_parameters = beta_parameters
 
     def _validate_sample_input_mixup(
-            self, data_row_target: Union[Number, str, None],
+            self, data_row_target: Union[float, str, None],
             with_replacement: bool, return_probabilities: bool) -> bool:
         """
         Validates ``sample`` method input parameters for the ``Mixup`` class.
@@ -832,7 +832,7 @@ class Mixup(Augmentation):
 
         return random_indices
 
-    def _get_sample_targets(self, data_row_target: Union[Number, str],
+    def _get_sample_targets(self, data_row_target: Union[float, str],
                             return_probabilities: bool,
                             random_draws_lambda: np.ndarray,
                             random_draws_lambda_1: np.ndarray,
@@ -907,7 +907,7 @@ class Mixup(Augmentation):
     def sample(  # type: ignore
             self,
             data_row: Optional[Union[np.ndarray, np.void]] = None,
-            data_row_target: Optional[Union[Number, str]] = None,
+            data_row_target: Optional[Union[float, str]] = None,
             samples_number: int = 50,
             with_replacement: bool = True,
             return_probabilities: bool = False) -> Tuple[np.ndarray, ...]:
@@ -973,8 +973,8 @@ class Mixup(Augmentation):
         samples : numpy.ndarray
             A numpy array of shape [``samples_number``, number of features]
             that holds the sampled data.
-        samples_target : numpy.ndarray, optional (returned when
-        the ``data_row_target`` parameter is not ``None``)
+        samples_target : numpy.ndarray, optional (returned when the \
+``data_row_target`` parameter is not ``None``)
             Either a numpy array of shape [samples_number, number of unique
             labels (classes)] holding the class probabilities for the sampled
             data or a 1-dimensional numpy array with labels for the sampled

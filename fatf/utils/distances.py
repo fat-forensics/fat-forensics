@@ -1,5 +1,10 @@
 """
-Holds custom distance functions used for FAT-Forensics examples and testing.
+The :mod:`fatf.utils.distances` module holds a variety of distance metrics.
+
+The distance metrics and tools implemented in this module are mainly used for
+the :class:`fatf.utils.models.models.KNN` model implementation, to measure
+distance (and similarity) of data points for various functions in this package
+as well as for documentation examples and testing.
 """
 # Author: Kacper Sokol <k.sokol@bristol.ac.uk>
 # License: new BSD
@@ -7,7 +12,6 @@ Holds custom distance functions used for FAT-Forensics examples and testing.
 import inspect
 import logging
 
-from numbers import Number
 from typing import Callable, Union
 
 import numpy as np
@@ -35,7 +39,7 @@ logger = logging.getLogger(__name__)  # pylint: disable=invalid-name
 
 def _validate_get_distance(
         data_array: np.ndarray,
-        distance_function: Callable[[np.ndarray, np.ndarray], Number]) -> bool:
+        distance_function: Callable[[np.ndarray, np.ndarray], float]) -> bool:
     """
     Validates ``data_array`` and ``distance_function`` parameters.
 
@@ -92,7 +96,7 @@ def _validate_get_distance(
 
 def get_distance_matrix(
         data_array: np.ndarray,
-        distance_function: Callable[[np.ndarray, np.ndarray], Number]
+        distance_function: Callable[[np.ndarray, np.ndarray], float]
 ) -> np.ndarray:
     """
     Computes a distance matrix (2-D) between all rows of the ``data_array``.
@@ -147,7 +151,7 @@ def get_distance_matrix(
 
 def get_point_distance(
         data_array: np.ndarray, data_point: Union[np.ndarray, np.void],
-        distance_function: Callable[[np.ndarray, np.ndarray], Number]
+        distance_function: Callable[[np.ndarray, np.ndarray], float]
 ) -> np.ndarray:
     """
     Computes the distance between a data point and an array of data.
@@ -355,7 +359,7 @@ def euclidean_array_distance(X: np.ndarray, Y: np.ndarray) -> np.ndarray:
     Returns
     -------
     distance_matrix : numpy.ndarray
-        An matrix of Euclidean distances between rows in ``X` and ``Y``.
+        An matrix of Euclidean distances between rows in ``X`` and ``Y``.
     """
     # pylint: disable=invalid-name
     if not fuav.is_2d_array(X):
@@ -417,8 +421,8 @@ def hamming_distance_base(x: str,
 
     Returns
     -------
-    distance : Union[integer, float]
-        The Hamming distances between ``x` and ``y``.
+    distance : Number
+        The Hamming distances between ``x`` and ``y``.
     """
     # pylint: disable=invalid-name
     if not isinstance(x, str):
@@ -429,7 +433,7 @@ def hamming_distance_base(x: str,
     x_len = len(x)
     y_len = len(y)
 
-    distance = abs(x_len - y_len)
+    distance = abs(x_len - y_len)  # type: float
     if distance and equal_length:
         raise ValueError('Input strings differ in length and the equal_length '
                          'parameter forces them to be of equal length.')
@@ -444,7 +448,7 @@ def hamming_distance_base(x: str,
 
     if normalise:
         logger.debug('Hamming distance is being normalised.')
-        distance /= max(x_len, y_len)  # type: ignore
+        distance /= max(x_len, y_len)
 
     return distance
 
@@ -602,7 +606,7 @@ def hamming_array_distance(X: np.ndarray, Y: np.ndarray,
     Returns
     -------
     distance_matrix : numpy.ndarray
-        An matrix of Hamming distances between rows in ``X` and ``Y``.
+        An matrix of Hamming distances between rows in ``X`` and ``Y``.
     """
     # pylint: disable=invalid-name
     if not fuav.is_2d_array(X):
@@ -776,7 +780,7 @@ def binary_array_distance(X: np.ndarray, Y: np.ndarray,
     Returns
     -------
     distance_matrix : numpy.ndarray
-        An matrix of binary distances between rows in ``X` and ``Y``.
+        An matrix of binary distances between rows in ``X`` and ``Y``.
     """
     # pylint: disable=invalid-name
     if not fuav.is_2d_array(X):

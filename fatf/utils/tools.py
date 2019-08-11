@@ -1,5 +1,5 @@
 """
-Holds general package tools.
+The :mod:`fatf.utils.tools` module implements general tools for the package.
 """
 # Author: Kacper Sokol <k.sokol@bristol.ac.uk>
 # License: new BSD

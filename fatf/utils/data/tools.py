@@ -1,5 +1,5 @@
 """
-This module implements tools for datasets handling.
+The :mod:`fatf.utils.data.tools` module implements tools for data set handling.
 """
 # Author: Kacper Sokol <k.sokol@bristol.ac.uk>
 #         Matt Clifford <mc15445@bristol.ac.uk>
@@ -24,13 +24,12 @@ __all__ = ['group_by_column', 'apply_to_column_grouping']
 Index = Union[int, str]  # A column index type
 
 
-def group_by_column(
-        dataset: np.ndarray,
-        column_index: Index,
-        groupings: Optional[List[Union[Number, Tuple[str]]]] = None,
-        numerical_bins_number: int = 5,
-        treat_as_categorical: Optional[bool] = None
-) -> Tuple[List[List[int]], List[str]]:
+def group_by_column(dataset: np.ndarray,
+                    column_index: Index,
+                    groupings: Optional[List[Union[float, Tuple[str]]]] = None,
+                    numerical_bins_number: int = 5,
+                    treat_as_categorical: Optional[bool] = None
+                    ) -> Tuple[List[List[int]], List[str]]:
     """
     Groups row indices of an array based on value grouping of a chosen column.
 
@@ -207,7 +206,7 @@ def group_by_column(
                                     'grouping items must be numbers. *{}* '
                                     'is not a number.'.format(number))
                 if i != 0:
-                    if number <= groupings[i - 1]:  # type: ignore
+                    if number <= groupings[i - 1]:
                         raise ValueError('The numbers in the groupings list '
                                          'have to be monotonically '
                                          'increasing.')
@@ -324,7 +323,7 @@ def group_by_column(
 def apply_to_column_grouping(
         labels: np.ndarray, predictions: np.ndarray,
         row_grouping: List[List[int]],
-        fnc: Callable[[np.ndarray, np.ndarray], Number]) -> List[Number]:
+        fnc: Callable[[np.ndarray, np.ndarray], float]) -> List[float]:
     """
     Applies a function to the specified groups of labels and predictions.
 

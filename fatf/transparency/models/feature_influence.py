@@ -1,5 +1,6 @@
 """
-Functions for calculating feature influence for a predictive model.
+The :mod:`fatf.transparency.models.feature_influence` module holds functions
+for calculating feature influence for predictive models.
 
 This module implements Partial Dependence (PD) and Individual Conditional
 Expectation (ICE) -- model agnostic feature influence measurements.
@@ -35,8 +36,8 @@ def _input_is_valid(dataset: np.ndarray,
     Validates input parameters of Individual Conditional Expectation function.
 
     For the input parameter description, warnings and exceptions please see the
-    documentation of the :func`fatf.transparency.model.feature_influence.
-    individual_conditional_expectation` function.
+    documentation of the :func:`fatf.transparency.model.feature_influence.\
+individual_conditional_expectation` function.
 
     Returns
     -------
@@ -512,7 +513,7 @@ def partial_dependence_ice(
 
     .. note:: If you want to calculate Partial Dependence directly from a
        dataset and a classifier please see
-       :func:`transparency.models.feature_influence.partial_dependence`
+       :func:`fatf.transparency.models.feature_influence.partial_dependence`
        function.
 
     Parameters
@@ -576,24 +577,24 @@ def partial_dependence(dataset: np.ndarray,
                        steps_number: Optional[int] = None,
                        include_rows: Optional[Union[int, List[int]]] = None,
                        exclude_rows: Optional[Union[int, List[int]]] = None
-                       ) -> Tuple[np.ndarray, np.array]:
+                       ) -> Tuple[np.ndarray, np.ndarray]:
     """
     Calculates Partial Dependence for a selected feature.
 
     Partial Dependence [FRIEDMAN2001GREEDY]_ is computed as a mean value of
-    Individual Conditional Expectations (c.f. :func:`fatf.transparency.models.
-    feature_influence.individual_conditional_expectation`) over all the
+    Individual Conditional Expectations (c.f. :func:`fatf.transparency.models.\
+feature_influence.individual_conditional_expectation`) over all the
     selected rows in the input dataset.
 
     The input parameters, exceptions and warnings match those used in
-    :func:`fatf.transparency.models.feature_influence.
-    individual_conditional_expectation` function.
+    :func:`fatf.transparency.models.feature_influence.\
+individual_conditional_expectation` function.
 
     .. note:: If you wish to have access to both ICE and PDP results consider
-       using :func:`transparency.models.feature_influence.
-       individual_conditional_expectation` and
-       :func:`transparency.models.feature_influence.partial_dependence_ice`
-       functions to minimise the Computational cost.
+       using :func:`fatf.transparency.models.feature_influence.\
+individual_conditional_expectation` and :func:`fatf.transparency.models.\
+feature_influence.partial_dependence_ice` functions to minimise the
+       computational cost.
 
     .. [FRIEDMAN2001GREEDY] J. H. Friedman. Greedy function approximation: A
        gradient boosting machine. The Annals of Statistics, 29:1189–1232, 2001.

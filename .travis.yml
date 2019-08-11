@@ -73,7 +73,7 @@ install:
 
 before_script:
   - |
-    if [[ "$TRAVIS_PYTHON_VERSION" == "3.7" ]] && \
+    if [[ "$TRAVIS_PYTHON_VERSION" == "3.6" ]] && \
        [[ "$FATF_TEST_SCIPY" == "1.3.0" ]] && \
        [[ "$FATF_TEST_NUMPY" == "1.16.3" ]]; then
       TRAVIS_TEST_DOCUMENTATION=1
@@ -95,11 +95,13 @@ script:
 jobs:
   include:
     - stage: Documentation Deployment
-      if: env(FATF_TEST_SCIPY) = 1.3.0 AND \
-          env(FATF_TEST_NUMPY) = 1.16.3 AND \
-          fork = false AND \
-          branch = dev AND \
-          type = push
+      python: 3.6
+      if: |
+        env(FATF_TEST_SCIPY) = 1.3.0 AND \
+        env(FATF_TEST_NUMPY) = 1.16.3 AND \
+        fork = false AND \
+        branch = dev AND \
+        type = push
       before_deploy:
         - make doc-html
       deploy:

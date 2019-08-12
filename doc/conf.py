@@ -31,7 +31,7 @@ current_year = datetime.datetime.now().year
 
 github_org = 'fat-forensics'
 github_repo = 'fat-forensics'
-github_docs_repo = 'fat-forensics-docs'
+github_docs_repo = 'fat-forensics-doc'
 
 project = 'FAT Forensics'
 copyright = (  # pylint: disable=redefined-builtin
@@ -152,7 +152,7 @@ sphinx_gallery_conf = {
 
 # -- Options for HTML output -------------------------------------------------
 
-html_baseurl = 'fat-forensics.org'
+html_baseurl = 'https://fat-forensics.org'
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
@@ -172,6 +172,9 @@ html_theme_path = ['themes']
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = []
+
+# Copy extra files to the target build directory.
+html_extra_path = ['Readme.md']
 
 # Custom sidebar templates, must be a dictionary that maps document names
 # to template names.

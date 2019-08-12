@@ -16,7 +16,11 @@ DOC_SOURCE="doc/_build/html/*"
 DOC_TARGET="$HOME/fat-forensics-doc"
 
 DEPLOY_MD5=`git rev-parse --short HEAD`
-DEPLOY_BRANCH=`git branch --show-current`
+if [ -z "$1" ]; then
+  DEPLOY_BRANCH=`git rev-parse --abbrev-ref HEAD`  # git branch --show-current
+else
+  DEPLOY_BRANCH="$1"
+fi
 
 openssl aes-256-cbc \
   -K $encrypted_6e9d23dcb3fc_key \
@@ -36,6 +40,15 @@ git clone git@github.com:$DOC_REPO.git --depth 1 $DOC_TARGET
 echo "Pushing the Documentation to GitHub: $DOC_REPO"
 cp -r $DOC_SOURCE $DOC_TARGET
 cd $DOC_TARGET
-git add *
-git commit -am "Deploying documentation from $DEPLOY_BRANCH:$DEPLOY_MD5"
-git push origin master
+git add -f *
+if [ -f ".nojekyll" ]; then git add .nojekyll; fi
+
+# Check if anything has actually changed
+GIT_CHANGES=`git status --porcelain`
+
+if [ -z "$GIT_CHANGES" ]; then
+  echo "Nothing to commit. No documentation deployment necessary."
+else
+  git commit -am "Deploying documentation from $DEPLOY_BRANCH:$DEPLOY_MD5"
+  git push origin master
+fi

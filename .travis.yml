@@ -106,5 +106,7 @@ jobs:
         - make doc-html
       deploy:
         provider: script
-        script: bash build_tools/doc/deploy-doc.sh
+        script: bash build_tools/doc/deploy-doc.sh dev
         skip_cleanup: true
+        on:
+          branch: dev

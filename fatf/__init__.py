@@ -78,7 +78,7 @@ def setup_random_seed():
 
     Fixture for the tests to assure globally controllable seeding of random
     number generators in both Python (:func:`random.seed`) and ``numpy``
-    (:func:`numpy.random.seed`). The seed is taken either from ``FATF_SEED``
+    (``numpy.random.seed``). The seed is taken either from ``FATF_SEED``
     system variable; if not given it's sampled uniformly from range
     0--2147483647.
     """

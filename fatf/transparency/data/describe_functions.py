@@ -1,5 +1,6 @@
 """
-Implements functions to describe numpy arrays.
+The :mod:`fatf.transparency.data.describe_functions` module implements
+functions to describe data sets.
 """
 # Author: Rafael Poyiadzi <rp13102@bristol.ac.uk>
 #         Kacper Sokol <k.sokol@bristol.ac.uk>
@@ -22,6 +23,13 @@ __all__ = ['describe_array',
 
 IndicesType = Set[Union[str, int]]
 
+NUMERICAL_KEYS = [
+    'count', 'mean', 'std', 'max', 'min', '25%', '50%', '75%', 'nan_count'
+]
+CATEGORICAL_KEYS = [
+    'count', 'unique', 'unique_counts', 'top', 'freq', 'is_top_unique'
+]
+
 
 def describe_array(
         array: np.ndarray,
@@ -37,9 +45,8 @@ def describe_array(
 
     The details of numerical and categorical descriptions can be found in
     :func:`fatf.transparency.data.describe_functions.describe_numerical_array`
-    and :func:
-    `fatf.transparency.data.describe_functions.describe_categorical_array`
-    functions documentation respectively.
+    and :func:`fatf.transparency.data.describe_functions.\
+describe_categorical_array` functions documentation respectively.
 
     To filter out the columns that will be described you can use ``include``
     and ``exclude`` parameters. Either of these can be a list with columns
@@ -67,9 +74,9 @@ def describe_array(
         ``'numerical'`` or ``'categorical'`` to exclude wither all numerical or
         all categorical columns respectively.
     **kwargs : bool
-        Keyword arguments that are passed to the :func:
-        `fatf.transparency.data.describe_functions.describe_numerical_array`
-        function responsible for describing numerical arrays.
+        Keyword arguments that are passed to the :func:`fatf.transparency.\
+data.describe_functions.describe_numerical_array` function responsible for
+        describing numerical arrays.
 
     Warns
     -----
@@ -89,8 +96,8 @@ def describe_array(
 
     Returns
     -------
-    description : Dict[Union[str, int],
-                       Dict[str, Union[str, int, float bool, np.ndarray]]]
+    description : Dict[Union[str, int], Dict[str, \
+Union[str, int, float bool, np.ndarray]]]
         For 2-dimensional arrays a dictionary describing every column under a
         key corresponding to its index in the input array. For a 1-dimensional
         input array a dictionary describing that array.
@@ -219,8 +226,8 @@ def describe_numerical_array(array: Union[np.ndarray, np.void],
     array : Union[numpy.ndarray, numpy.void]
         An array for which a description is desired.
     skip_nans : boolean, optional (default=True)
-        If set to ``True``, ``numpy.nan``s present in the input array will be
-        excluded while computing the statistics.
+        If set to ``True``, ``numpy.nan``\\ s present in the input array will
+        be excluded while computing the statistics.
 
     Raises
     ------
@@ -304,13 +311,18 @@ def describe_categorical_array(
     IncorrectShapeError
         The input array is not 1-dimensinoal.
     ValueError
-        The input array is not categorical (at least one string-like component)
-        or it is empty.
+        The input array is empty.
+
+    Warns
+    -----
+    UserWarning
+        When the input array is not purely textual it needs to be converted to
+        a string type before it can be described.
 
     Returns
     -------
-    categorical_description : Dict[string, Union[string, integer, boolean,
-                                                 numpy.ndarray]]
+    categorical_description : Dict[string, Union[string, integer, \
+boolean, numpy.ndarray]]
         A dictionary describing the categorical input array.
     """
     if not fuav.is_1d_like(array):
@@ -322,7 +334,12 @@ def describe_categorical_array(
     if not classic_array.shape[0]:
         raise ValueError('The input array cannot be empty.')
     if not fuav.is_textual_array(classic_array):
-        raise ValueError('The input array should be purely categorical.')
+        warnings.warn(
+            'The input array is not purely categorical. Converting the input '
+            'array into a textual type to facilitate a categorical '
+            'description.',
+            category=UserWarning)
+        classic_array = classic_array.astype(str)
 
     unique, unique_counts = np.unique(classic_array, return_counts=True)
 

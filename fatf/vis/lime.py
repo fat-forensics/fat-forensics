@@ -1,5 +1,5 @@
 """
-Functions for visualising explanations computed by the tabular LIME.
+The :mod:`fatf.vis.lime` module visualises tabular LIME explanations.
 """
 # Author: Alex Hepburn <ah13558@bristol.ac.uk>
 #         Kacper Sokol <k.sokol@bristol.ac.uk>
@@ -26,8 +26,8 @@ def plot_lime(
 
     Parameters
     ----------
-    lime_explanation : Dictionary[string, List[Tuple[string, float]]] or
-                       List[Tuple[string, float]]
+    lime_explanation : Dictionary[string, List[Tuple[string, float]]] or \
+List[Tuple[string, float]]
         An explanation returned by the ``explain_instance`` method of the LIME
         explainer. For a classifier this will be a dictionary where the keys
         are class names and the values are lists of 2-tuples where the first

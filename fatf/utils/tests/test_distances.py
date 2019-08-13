@@ -201,6 +201,11 @@ def test_euclidean_distance():
                                       VECTOR_2D_NUMERICAL_STRUCT_A2[i])
         assert DISTANCES_2D_NUMERICAL_A[i, i] == pytest.approx(dist)
 
+    # Test euclidean distance for 1-element voids
+    dist = fud.euclidean_distance(VECTOR_2D_NUMERICAL_STRUCT_A1[['a']][0],
+                                  VECTOR_2D_NUMERICAL_STRUCT_A2[['a']][0])
+    assert dist == 4
+
 
 def test_euclidean_point_distance():
     """
@@ -311,6 +316,12 @@ def test_euclidean_point_distance():
                                             VECTOR_2D_NUMERICAL_STRUCT_A1)
         assert np.isclose(
             DISTANCES_2D_NUMERICAL_A[:, i], dist, rtol=1e-3).all()
+
+    # Test euclidean point distance for 1-element voids
+    dist = fud.euclidean_point_distance(
+        VECTOR_2D_NUMERICAL_STRUCT_A1[['a']][0],
+        VECTOR_2D_NUMERICAL_STRUCT_A2[['a']])
+    assert np.array_equal(dist, [4, 9, 6])
 
 
 def test_euclidean_array_distance():
@@ -632,6 +643,11 @@ def test_hamming_distance():
             normalise=True)
         assert DISTANCES_2D_CATEGORICAL_A_NORMALISED[i, i] == dist
 
+    # Test hamming distance for 1-element voids
+    dist = fud.hamming_distance(VECTOR_2D_CATEGORICAL_STRUCT_A2[['name']][1],
+                                VECTOR_2D_CATEGORICAL_STRUCT_A1[['name']][0])
+    assert dist == 3
+
 
 def test_hamming_point_distance():
     """
@@ -801,6 +817,12 @@ def test_hamming_point_distance():
             normalise=True)
         assert np.isclose(DISTANCES_2D_CATEGORICAL_A_NORMALISED[:, i],
                           dist).all()
+
+    # Test hamming point distance for 1-element voids
+    dist = fud.hamming_point_distance(
+        VECTOR_2D_CATEGORICAL_STRUCT_A2[['name']][1],
+        VECTOR_2D_CATEGORICAL_STRUCT_A1[['name']])
+    assert np.array_equal(dist, [3, 4, 8])
 
 
 def test_hamming_array_distance():
@@ -1163,6 +1185,14 @@ def test_binary_distance():
             normalise=True)
         assert DISTANCES_2D_NUMERICAL_A_BINARY_NORMALISED[i, i] == dist
 
+    # Test binary distance for 1-element voids
+    dist = fud.binary_distance(VECTOR_2D_NUMERICAL_STRUCT_A1[['b']][2],
+                               VECTOR_2D_NUMERICAL_STRUCT_A2[['b']][0])
+    assert dist == 1
+    dist = fud.binary_distance(VECTOR_2D_NUMERICAL_STRUCT_A1[['b']][2],
+                               VECTOR_2D_NUMERICAL_STRUCT_A2[['b']][2])
+    assert dist == 0
+
 
 def test_binary_point_distance():
     """
@@ -1435,6 +1465,12 @@ def test_binary_point_distance():
         assert np.isclose(DISTANCES_2D_NUMERICAL_A_BINARY_NORMALISED[:, i],
                           dist).all()
 
+    # Test binary point distance for 1-element voids
+    dist = fud.binary_point_distance(
+        VECTOR_2D_CATEGORICAL_STRUCT_A1[['name']][1],
+        VECTOR_2D_CATEGORICAL_STRUCT_A1[['name']])
+    assert np.array_equal(dist, [1, 0, 1])
+
 
 def test_binary_array_distance():
     """
@@ -1661,3 +1697,204 @@ def test_binary_array_distance():
     dist = fud.binary_array_distance(
         VECTOR_2D_NUMERICAL_A2, VECTOR_2D_NUMERICAL_STRUCT_A1, normalise=True)
     assert np.isclose(DISTANCES_2D_NUMERICAL_A_BINARY_NORMALISED.T, dist).all()
+
+
+def test_get_distance_matrix():
+    """
+    Tests :func:`fatf.utils.distances.get_distance_matrix` function.
+    """
+    shape_error_data = ('The data_array has to be a 2-dimensional (structured '
+                        'or unstructured) numpy array.')
+    type_error_data = ('The data_array has to be of a base type (strings '
+                       'and/or numbers).')
+    type_error_func = ('The distance function should be a Python callable '
+                       '(function).')
+    attribute_error_func = ('The distance function must require exactly 2 '
+                            'parameters. Given function requires {} '
+                            'parameters.')
+
+    with pytest.raises(IncorrectShapeError) as exin:
+        fud.get_distance_matrix(VECTOR_0D, None)
+    assert str(exin.value) == shape_error_data
+
+    with pytest.raises(TypeError) as exin:
+        fud.get_distance_matrix(np.array([[None]]), None)
+    assert str(exin.value) == type_error_data
+
+    with pytest.raises(TypeError) as exin:
+        fud.get_distance_matrix(VECTOR_2D_CATEGORICAL_A1, None)
+    assert str(exin.value) == type_error_func
+
+    def bad_distance(x):
+        return x + 5  # pragma: nocover
+
+    with pytest.raises(AttributeError) as exin:
+        fud.get_distance_matrix(VECTOR_2D_CATEGORICAL_A1, bad_distance)
+    assert str(exin.value) == attribute_error_func.format(1)
+
+    ###########################################################################
+
+    true_distances = fud.euclidean_array_distance(VECTOR_2D_NUMERICAL_A1,
+                                                  VECTOR_2D_NUMERICAL_A1)
+    # Numpy array numerical
+    distances = fud.get_distance_matrix(VECTOR_2D_NUMERICAL_A1,
+                                        fud.euclidean_distance)
+    assert np.allclose(distances, true_distances, atol=1e-3)
+
+    # Structured array numerical
+    def struct_dist(x, y):
+        return fud.euclidean_distance(
+            np.array([x['a'], x['b']]), np.array([y['a'], y['b']]))
+
+    distances = fud.get_distance_matrix(VECTOR_2D_NUMERICAL_STRUCT_A1,
+                                        struct_dist)
+    assert np.allclose(distances, true_distances, atol=1e-3)
+
+    ###########################################################################
+
+    true_distances = fud.binary_array_distance(VECTOR_2D_CATEGORICAL_A1,
+                                               VECTOR_2D_CATEGORICAL_A1)
+    # Numpy array string-based
+    distances = fud.get_distance_matrix(VECTOR_2D_CATEGORICAL_A1,
+                                        fud.binary_distance)
+    assert np.allclose(distances, true_distances, atol=1e-3)
+
+    # Structured array string-based
+    def struct_dist(x, y):
+        return fud.binary_distance(
+            np.array([x['a'], x['name']]), np.array([y['a'], y['name']]))
+
+    distances = fud.get_distance_matrix(VECTOR_2D_CATEGORICAL_STRUCT_A1,
+                                        struct_dist)
+    assert np.allclose(distances, true_distances, atol=1e-3)
+
+    ###########################################################################
+
+    # Mixed array
+    mixed_array = np.array(
+        [('a', 5, 'bb', 14),
+         ('b', 3, 'aa', 12),
+         ('a', 4, 'ab', 11)],
+        dtype=[('a1', 'U1'), ('b1', int),
+               ('a2', 'U2'), ('b2', int)])  # yapf: disable
+    true_distances = np.array([[0, 1 + 1 + np.sqrt(8), 0 + 1 + np.sqrt(10)],
+                               [1 + 1 + np.sqrt(8), 0, 1 + 1 + np.sqrt(2)],
+                               [0 + 1 + np.sqrt(10), 1 + 1 + np.sqrt(2), 0]])
+
+    def mix_dist(x, y):
+        num = fud.euclidean_distance(
+            np.array([x['b1'], x['b2']]), np.array([y['b1'], y['b2']]))
+        cat = fud.binary_distance(
+            np.array([x['a1'], x['a2']]), np.array([y['a1'], y['a2']]))
+        return num + cat
+
+    distances = fud.get_distance_matrix(mixed_array, mix_dist)
+    assert np.allclose(distances, true_distances, atol=1e-3)
+
+
+def test_get_point_distance():
+    """
+    Tests :func:`fatf.utils.distances.get_point_distance` function.
+    """
+    # test_get_distance_matrix already tests for data_array and data_point
+    # validity
+    shape_error_data_point = ('The data point has to be 1-dimensional numpy '
+                              'array or numpy void (for structured arrays).')
+    shape_error_columns = ('The data point has different number of columns '
+                           '(features) than the data set.')
+    type_error_base = ('The data point has to be of a base type (strings '
+                       'and/or numbers).')
+    type_error_dtype = ('The dtypes of the data set and the data point are '
+                        'too different.')
+
+    with pytest.raises(IncorrectShapeError) as exin:
+        fud.get_point_distance(VECTOR_2D_CATEGORICAL_A1,
+                               VECTOR_2D_CATEGORICAL_A1, fud.binary_distance)
+    assert str(exin.value) == shape_error_data_point
+
+    with pytest.raises(IncorrectShapeError) as exin:
+        fud.get_point_distance(VECTOR_2D_NUMERICAL_A1, np.array([1, 2, 3]),
+                               fud.binary_distance)
+    assert str(exin.value) == shape_error_columns
+
+    with pytest.raises(TypeError) as exin:
+        fud.get_point_distance(VECTOR_2D_NUMERICAL_A1, np.array([1, None, 3]),
+                               fud.binary_distance)
+    assert str(exin.value) == type_error_base
+
+    with pytest.raises(TypeError) as exin:
+        fud.get_point_distance(VECTOR_2D_NUMERICAL_A1, np.array([1, '2', 3]),
+                               fud.binary_distance)
+    assert str(exin.value) == type_error_dtype
+    with pytest.raises(TypeError) as exin:
+        fud.get_point_distance(VECTOR_2D_CATEGORICAL_STRUCT_A1,
+                               np.array([1, '2', 3]), fud.binary_distance)
+    assert str(exin.value) == type_error_dtype
+    with pytest.raises(TypeError) as exin:
+        fud.get_point_distance(VECTOR_2D_CATEGORICAL_STRUCT_A1,
+                               VECTOR_2D_NUMERICAL_STRUCT_A1[0],
+                               fud.binary_distance)
+    assert str(exin.value) == type_error_dtype
+
+    ###########################################################################
+
+    true_distances = fud.euclidean_array_distance(VECTOR_2D_NUMERICAL_A1,
+                                                  VECTOR_2D_NUMERICAL_A2)
+    # Numpy array numerical
+    distance = fud.get_point_distance(VECTOR_2D_NUMERICAL_A1,
+                                      VECTOR_2D_NUMERICAL_A2[0],
+                                      fud.euclidean_distance)
+    assert np.allclose(distance, true_distances[:, 0], atol=1e-3)
+
+    # Structured array numerical
+    def struct_dist(x, y):
+        return fud.euclidean_distance(
+            np.array([x['a'], x['b']]), np.array([y['a'], y['b']]))
+
+    distance = fud.get_point_distance(VECTOR_2D_NUMERICAL_STRUCT_A1,
+                                      VECTOR_2D_NUMERICAL_STRUCT_A2[0],
+                                      struct_dist)
+    assert np.allclose(distance, true_distances[:, 0], atol=1e-3)
+
+    ###########################################################################
+
+    true_distances = fud.binary_array_distance(VECTOR_2D_CATEGORICAL_A1,
+                                               VECTOR_2D_CATEGORICAL_A2)
+    # Numpy array string-based
+    distance = fud.get_point_distance(VECTOR_2D_CATEGORICAL_A1,
+                                      VECTOR_2D_CATEGORICAL_A2[0],
+                                      fud.binary_distance)
+    assert np.allclose(distance, true_distances[:, 0], atol=1e-3)
+
+    # Structured array string-based
+    def struct_dist(x, y):
+        return fud.binary_distance(
+            np.array([x['a'], x['name']]), np.array([y['a'], y['name']]))
+
+    distance = fud.get_point_distance(VECTOR_2D_CATEGORICAL_STRUCT_A1,
+                                      VECTOR_2D_CATEGORICAL_STRUCT_A2[0],
+                                      struct_dist)
+    assert np.allclose(distance, true_distances[:, 0], atol=1e-3)
+
+    ###########################################################################
+
+    # Mixed array
+    mixed_array = np.array(
+        [('a', 5, 'bb', 14),
+         ('b', 3, 'aa', 12),
+         ('a', 4, 'ab', 11)],
+        dtype=[('a1', 'U1'), ('b1', int),
+               ('a2', 'U2'), ('b2', int)])  # yapf: disable
+    true_distances = np.array([[0, 1 + 1 + np.sqrt(8), 0 + 1 + np.sqrt(10)],
+                               [1 + 1 + np.sqrt(8), 0, 1 + 1 + np.sqrt(2)],
+                               [0 + 1 + np.sqrt(10), 1 + 1 + np.sqrt(2), 0]])
+
+    def mix_dist(x, y):
+        num = fud.euclidean_distance(
+            np.array([x['b1'], x['b2']]), np.array([y['b1'], y['b2']]))
+        cat = fud.binary_distance(
+            np.array([x['a1'], x['a2']]), np.array([y['a1'], y['a2']]))
+        return num + cat
+
+    distance = fud.get_point_distance(mixed_array, mixed_array[0], mix_dist)
+    assert np.allclose(distance, true_distances[0], atol=1e-3)

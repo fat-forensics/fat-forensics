@@ -1,5 +1,8 @@
 """
-Holds functions responsible for models validation across FAT-Forensics.
+The :mod:`fatf.utils.models.validation` module validates models functionality.
+
+This module holds functions responsible for validating models functionality
+across the FAT-Forensics package.
 """
 # Author: Kacper Sokol <k.sokol@bristol.ac.uk>
 #         Alex Hepburn <ah13558@bristol.ac.uk>

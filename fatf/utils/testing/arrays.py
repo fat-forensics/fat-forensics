@@ -1,5 +1,8 @@
 """
-Numpy arrays used for testing.
+The :mod:`fatf.utils.testing.arrays` module holds a variety of numpy arrays.
+
+This module holds a collection of (classic and structured) numpy arrays of
+various types.
 """
 # Author: Kacper Sokol <k.sokol@bristol.ac.uk>
 # License: new BSD

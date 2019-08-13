@@ -1,5 +1,5 @@
 """
-Partial Dependence and Individual Conditional Expectation plotting functions.
+The :mod:`fatf.vis.feature_influence` module visualises feature influence.
 """
 # Author: Alex Hepburn <ah13558@bristol.ac.uk>
 #         Kacper Sokol <k.sokol@bristol.ac.uk>
@@ -139,7 +139,7 @@ def _prepare_a_canvas(
         class_index: int,
         class_name: Union[None, str],
         feature_name: Union[None, str],
-        x_range: List[Number]
+        x_range: List[float]
 ) -> Tuple[Union[plt.Figure, None], plt.Axes]:  # yapf: disable
     """
     Prepares a matplotlib axis (canvas) for ICE and PDP plotting.
@@ -207,8 +207,8 @@ def _prepare_a_canvas(
     assert len(x_range) == 2, 'x_range should only contain 2 numbers.'
     assert isinstance(x_range[0], Number) and isinstance(x_range[1], Number), \
         'Both elements of x_range should be numbers.'
-    assert x_range[0] < x_range[1], (  # type: ignore
-        'The first element of x_range should be smaller than the second one.')
+    assert x_range[0] < x_range[1], \
+        'The first element of x_range should be smaller than the second one.'
 
     if plot_axis is None:
         if class_name is None:
@@ -275,24 +275,20 @@ def plot_individual_conditional_expectation(
     """
     Plots Individual Conditional Expectation for a selected class.
 
-    For exceptions raised by this function please see the documentation of
-    :func:`fatf.vis.feature_influence._prepare_a_canvas` and
-    :func:`fatf.vis.feature_influence._validate_input` functions.
-
     Parameters
     ----------
     ice_array : numpy.ndarray
         An array of (n_samples, n_steps, n_classes) shape with Individual
         Conditional Expectation calculation results for every target class for
         the desired spectrum of the selected feature. This should be the output
-        of the :func:`fatf.transparency.models.feature_influence.
-        individual_conditional_expectation` function.
+        of the :func:`fatf.transparency.models.feature_influence.\
+individual_conditional_expectation` function.
     feature_linespace : numpy.ndarray
         A one-dimensional array -- (steps_number, ) -- with the values for
         which the selected feature was sampled when the dataset was evaluated
-        for a predictive model. This should be the output of the :func:`fatf.
-        transparency.models.feature_influence.
-        individual_conditional_expectation` function.
+        for a predictive model. This should be the output of the
+        :func:`fatf.transparency.models.feature_influence.\
+individual_conditional_expectation` function.
     class_index : integer
         The index of the class for which ICE will be plotted, taken from the
         original dataset.
@@ -305,6 +301,26 @@ def plot_individual_conditional_expectation(
         A matplotlib axes on which the ICE will be plotted. This is useful if
         one wants to overlay multiple ICE plot on top of each other. If
         ``None``, a new axes will be created.
+
+    Raises
+    ------
+    IncorrectShapeError
+        The ICE or the PD array has a wrong number of dimensions (3 and 2
+        respectively). The feature linespace array has a wrong number of
+        dimensions -- 1 is expected.
+    IndexError
+        The class index is invalid for the input array.
+    TypeError
+        The class index is not an integer; the feature name is not a string or
+        a ``None``; the class name is not a string or a ``None``; the plot axis
+        is not a matplotlib.pyplot.Axes type object or a ``None``.
+    ValueError
+        The input array is structured or is not numerical. The linespace array
+        is structured, not numerical or its length does not agree with the
+        number of steps in the input array. If the ``plot_axis`` attribute is
+        provided, and is not ``None`` this exception will be raised if the
+        range of either of the axes does not agree with the range of the axes
+        of the ``plot_axis`` plot.
 
     Returns
     -------
@@ -349,25 +365,26 @@ def plot_partial_dependence(pd_array: np.ndarray,
     """
     Plots Partial Dependence for a selected class.
 
-    For exceptions raised by this function please see the documentation of
-    :func:`fatf.vis.feature_influence._prepare_a_canvas` and
-    :func:`fatf.vis.feature_influence._validate_input` functions.
+    This function raises the same exceptions and errors as the
+    :func:`fatf.vis.feature_influence.plot_individual_conditional_expectation`
+    function. Please consult its documentation for the exact list or errors and
+    exceptions and their description.
 
     Parameters
     ----------
     pd_array : numpy.ndarray
         An array of (n_steps, n_classes) shape with Partial Dependence
         calculation results for every target class for the desired spectrum of
-        the selected feature. This should be the output of the :func:`fatf.
-        transparency.models.feature_influence.partial_dependence` or :func:`
-        fatf.transparency.models.feature_influence.partial_dependence_ice`
-        function.
+        the selected feature. This should be the output of the
+        :func:`fatf.transparency.models.feature_influence.partial_dependence`
+        or :func:`fatf.transparency.models.feature_influence.\
+partial_dependence_ice` function.
     feature_linespace : numpy.ndarray
         A one-dimensional array -- (steps_number, ) -- with the values for
         which the selected feature was sampled when the dataset was evaluated
-        for a predictive model. This should be the output of the :func:`fatf.
-        transparency.models.feature_influence.
-        individual_conditional_expectation` function.
+        for a predictive model. This should be the output of the
+        :func:`fatf.transparency.models.feature_influence.\
+individual_conditional_expectation` function.
     class_index : integer
         The index of the class for which PD will be plotted, taken from the
         original dataset.

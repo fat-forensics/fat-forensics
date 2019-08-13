@@ -1,5 +1,6 @@
 """
-Implements a counterfactual prediction explainer of a black-box classifier.
+The :mod:`fatf.transparency.predictions.counterfactuals` module implements
+counterfactual explainers for predictions.
 """
 # Author: Kacper Sokol <k.sokol@bristol.ac.uk>
 #         Rafael Poyiadzi <rp13102@bristol.ac.uk>
@@ -23,10 +24,10 @@ import fatf.utils.tools as fut
 
 from fatf.exceptions import IncorrectShapeError
 
-FeatureRange = Union[Tuple[Number, Number], List[Union[Number, str]]]
+FeatureRange = Union[Tuple[float, float], List[Union[float, str]]]
 Index = Union[int, str]
 
-__all__ = ['textualise_counterfactuals', 'CounterfactualExplainer']
+__all__ = ['CounterfactualExplainer', 'textualise_counterfactuals']
 
 _NUMPY_VERSION = [int(i) for i in np.version.version.split('.')]
 _NUMPY_1_13 = fut.at_least_verion([1, 13], _NUMPY_VERSION)
@@ -66,7 +67,7 @@ class CounterfactualExplainer(object):
     given that a ``dataset`` is provided. If some of the feature ranges are not
     defined and a ``dataset`` is not given an exception will be raised.
     **Counterfactuals will only be search for within these feature ranges.**
-    **Ranges are only required for features specified by the
+    Ranges are only required for features specified by the
     ``counterfactual_feature_indices`` parameter or all features if this
     parameter is not given.
 
@@ -78,9 +79,8 @@ class CounterfactualExplainer(object):
     functions are desired, the user may specify these via the
     ``distance_functions`` parameter. Each distance function has to be a
     ``Callable`` with two input parameters. Finally, the distance can be
-    normalised, please see the documentation of the :func:`fatf.transparency.
-    predictions.counterfactuals.CounterfactualExplainer._get_distance` for
-    details.
+    normalised, please see the documentation of the ``_get_distance`` method
+    for details.
 
     Last but not least, when doing grid search through the features to discover
     counterfactual data points the user may define the step size between the
@@ -105,8 +105,8 @@ class CounterfactualExplainer(object):
         A list of column indices indicating which columns are categorical.
     numerical_indices : List[column indices], optional (default=None)
         A list of column indices indicating which columns are numerical.
-    counterfactual_feature_indices : List[column indices],
-                                     optional (default=None)
+    counterfactual_feature_indices : List[column indices], \
+optional (default=None)
         A list of column indices indicating which features should be used to
         compose counterfactual examples. If `None`` all of the features will be
         used to generate counterfactuals.
@@ -114,8 +114,8 @@ class CounterfactualExplainer(object):
         The maximum length of counterfactuals -- the number of features altered
         to compose a counterfactual instance. By default it is set to 2. If set
         to 0, all available features will be used.
-    feature_ranges : Dictionary[column indices, ranges],
-                     optional (default=None)
+    feature_ranges : Dictionary[column indices, ranges], \
+optional (default=None)
         A dictionary with keys representing the column (feature) indices and
         the values representing feature ranges. Numerical feature ranges are
         represented as a **pair** of numbers ``(min, max)`` where the first
@@ -124,14 +124,14 @@ class CounterfactualExplainer(object):
         **list** of all the values that to be tested for this feature. If set
         to ``None``, a ``dataset`` has to be provided to calculate these
         ranges.
-    distance_functions : Dictionary[column indices, Callable],
-                         optional (default=None)
+    distance_functions : Dictionary[column indices, Callable], \
+optional (default=None)
         A dictionary with keys representing the column (feature) indices and
         the values representing Python functions -- a Callable that takes two
         arguments -- that will be used to calculate the distance for this
         particular feature.
-    step_sizes : Dictionary[column indices, Number],
-                 optional (default=None)
+    step_sizes : Dictionary[column indices, Number], \
+optional (default=None)
         A dictionary with keys representing the column (feature) indices and
         the values representing step size for the grid search of this feature.
         **It is only required for the numerical features.**
@@ -256,19 +256,18 @@ class CounterfactualExplainer(object):
     # Used to avoid duplicated feature warnings.
     _feature_warned = dict()  # type: Dict[Index, bool]
 
-    def __init__(  # type: ignore
-            self,
-            model: Optional[object] = None,
-            predictive_function: Optional[Callable] = None,
-            dataset: Optional[np.ndarray] = None,
-            categorical_indices: Optional[List[Index]] = None,
-            numerical_indices: Optional[List[Index]] = None,
-            counterfactual_feature_indices: Optional[List[Index]] = None,
-            max_counterfactual_length: int = 2,
-            feature_ranges: Optional[Dict[Index, FeatureRange]] = None,
-            distance_functions: Optional[Dict[Index, Callable]] = None,
-            step_sizes: Optional[Dict[Index, Number]] = None,
-            default_numerical_step_size: Number = 1.0) -> None:
+    def __init__(self,
+                 model: Optional[object] = None,
+                 predictive_function: Optional[Callable] = None,
+                 dataset: Optional[np.ndarray] = None,
+                 categorical_indices: Optional[List[Index]] = None,
+                 numerical_indices: Optional[List[Index]] = None,
+                 counterfactual_feature_indices: Optional[List[Index]] = None,
+                 max_counterfactual_length: int = 2,
+                 feature_ranges: Optional[Dict[Index, FeatureRange]] = None,
+                 distance_functions: Optional[Dict[Index, Callable]] = None,
+                 step_sizes: Optional[Dict[Index, float]] = None,
+                 default_numerical_step_size: float = 1.0) -> None:
         """
         Initialises a counterfactual explainer.
         """
@@ -572,7 +571,7 @@ class CounterfactualExplainer(object):
     def _get_distance(self,
                       instance_one: Union[np.ndarray, np.void],
                       instance_two: Union[np.ndarray, np.void],
-                      normalise: bool = False) -> Number:
+                      normalise: bool = False) -> float:
         """
         Calculates a distance between two 1-dimensional data points.
 
@@ -736,8 +735,7 @@ class CounterfactualExplainer(object):
             all classes other than the predicted class of the input
             ``instance`` will be returned.
         normalise_distance : boolean, optional (default=False)
-            Whether to normalise the distance, cf. :func:`fatf.transparency.
-            predictions.counterfactuals.CounterfactualExplainer._get_distance`
+            Whether to normalise the distance, cf. the ``_get_distance`` method
             for more details.
 
         Raises
@@ -903,8 +901,8 @@ class CounterfactualExplainer(object):
                 counterfactuals_predictions)
 
 
-def _categorical_distance(first_value: Union[Number, str],
-                          second_value: Union[Number, str]) -> int:
+def _categorical_distance(first_value: Union[float, str],
+                          second_value: Union[float, str]) -> int:
     """
     Defines the default categorical distance.
 
@@ -930,7 +928,7 @@ def _categorical_distance(first_value: Union[Number, str],
     return distance
 
 
-def _numerical_distance(first_value: Number, second_value: Number) -> Number:
+def _numerical_distance(first_value: float, second_value: float) -> float:
     """
     Defines the default numerical distance.
 
@@ -952,7 +950,7 @@ def _numerical_distance(first_value: Number, second_value: Number) -> Number:
     assert isinstance(first_value, Number), 'Must be a number.'
     assert isinstance(second_value, Number), 'Must be a number.'
 
-    distance = abs(first_value - second_value)  # type: ignore
+    distance = abs(first_value - second_value)
     return distance
 
 
@@ -1065,8 +1063,8 @@ def _validate_input_two(
         max_counterfactual_length: int,
         feature_ranges: Union[Dict[Index, FeatureRange], None],
         distance_functions: Union[Dict[Index, Callable], None],
-        step_sizes: Union[Dict[Index, Number], None],
-        default_numerical_step_size: Number) -> bool:  # yapf: disable
+        step_sizes: Union[Dict[Index, float], None],
+        default_numerical_step_size: float) -> bool:  # yapf: disable
     """
     Validates the second part of input given to initialise the cf class.
 
@@ -1160,7 +1158,7 @@ def _validate_input_two(
                         or not isinstance(column_range[1], Number)):
                     raise TypeError('Both the lower and the upper bound '
                                     "defining column's range should numbers.")
-                if column_range[1] <= column_range[0]:  # type: ignore
+                if column_range[1] <= column_range[0]:
                     raise ValueError('The second element of a tuple '
                                      'defining a numerical range should '
                                      'be strictly larger than the first '
@@ -1212,7 +1210,7 @@ def _validate_input_two(
             if not isinstance(i, Number):
                 raise TypeError('All of the step values contained in the '
                                 'step_sizes must be numbers.')
-            if i <= 0:  # type: ignore
+            if i <= 0:
                 raise ValueError('All of the step values contained in the '
                                  'step_sizes must be positive numbers.')
 
@@ -1220,7 +1218,7 @@ def _validate_input_two(
     if not isinstance(default_numerical_step_size, Number):
         raise TypeError('The default_numerical_step_size parameter has to be '
                         'a number.')
-    if default_numerical_step_size <= 0:  # type: ignore
+    if default_numerical_step_size <= 0:
         raise ValueError('The default_numerical_step_size parameter has to be '
                          'a positive number.')
 

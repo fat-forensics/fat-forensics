@@ -1,5 +1,5 @@
 """
-Holds custom warnings, errors and exceptions.
+The :mod:`fatf.exceptions` module holds custom exceptions, errors and warnings.
 """  # yapf: disable
 # Author: Kacper Sokol <k.sokol@bristol.ac.uk>
 # License: new BSD

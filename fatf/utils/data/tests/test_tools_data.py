@@ -57,6 +57,8 @@ def test_group_by_column_errors():
     value_error_grouping_cat_unique = ('Some values are duplicated across '
                                        'tuples.')
     #
+    type_error_tac = 'The treat_as_categorical parameter has to be a boolean.'
+    #
     user_warning_val = ('The following values in the selected column were '
                         'not accounted for in the grouping tuples:\n{}.')
     user_warning_ind = ('The following row indices could not be accounted for:'
@@ -119,6 +121,10 @@ def test_group_by_column_errors():
         fudt.group_by_column(cat_array, 0, groupings=[('3', 'a'), ('a', )])
     assert str(exin.value) == value_error_grouping_cat_unique
 
+    with pytest.raises(TypeError) as exin:
+        fudt.group_by_column(cat_array, 0, treat_as_categorical='None')
+    assert str(exin.value) == type_error_tac
+
     with pytest.warns(UserWarning) as warning:
         grp, grpn = fudt.group_by_column(cat_array, 0, groupings=[('3', )])
     assert len(warning) == 2
@@ -140,6 +146,11 @@ def test_group_by_column():
     """
     Tests :func:`fatf.utils.data.tools.group_by_column`.
     """
+    user_warning_tac = ('Selected feature is categorical, therefore cannot be '
+                        'treated as numerical. The feature will be treated as '
+                        'categorical despite the treat_as_categorical '
+                        'parameter set to False.')
+
     n_1_grp = [[0, 1, 2, 5], [4], [], [], [3]]
     n_1_grps = ['x <= 7.6', '7.6 < x <= 16.2',
                 '16.2 < x <= 24.799999999999997',
@@ -184,8 +195,14 @@ def test_group_by_column():
     grp, grpn = fudt.group_by_column(num_array, 1)
     assert grp == n_1_grp
     assert grpn == n_1_grps
+    grp, grpn = fudt.group_by_column(num_array, 1, treat_as_categorical=False)
+    assert grp == n_1_grp
+    assert grpn == n_1_grps
+    grp, grpn = fudt.group_by_column(num_array, 2, treat_as_categorical=True)
+    assert grp == [[3], [2], [1, 5], [0], [4]]
+    assert grpn == ['(-22.0,)', '(2.0,)', '(5.0,)', '(6.0,)', '(9.0,)']
 
-    # Structured array, numerical -- custom bins number
+    # Structured array, numerical -- custom bins number (treat_as_categorical)
     grp, grpn = fudt.group_by_column(
         struct_array, 'c', numerical_bins_number=2)
     assert grp == n_2_grp
@@ -196,8 +213,18 @@ def test_group_by_column():
     assert grp == n_0_grp
     assert grpn == n_0_grps
 
-    # Classic array, categorical -- default binning
+    # Classic array, categorical -- default binning (treat_as_categorical)
     grp, grpn = fudt.group_by_column(cat_array, 1)
+    assert grp == c_1_grp_d
+    assert grpn == c_1_grps_d
+    grp, grpn = fudt.group_by_column(cat_array, 1, treat_as_categorical=True)
+    assert grp == c_1_grp_d
+    assert grpn == c_1_grps_d
+    with pytest.warns(UserWarning) as warning:
+        grp, grpn = fudt.group_by_column(
+            cat_array, 1, treat_as_categorical=False)
+    assert len(warning) == 1
+    assert str(warning[0].message) == user_warning_tac
     assert grp == c_1_grp_d
     assert grpn == c_1_grps_d
     grp, grpn = fudt.group_by_column(

@@ -5,8 +5,18 @@ Tests the LIME wrapper.
 #         Kacper Sokol <k.sokol@bristol.ac.uk>
 # License: new BSD
 
-import importlib
 import pytest
+
+try:
+    import lime
+except ImportError:  # pragma: no cover
+    pytest.skip(
+        'Skipping lime wrapper tests -- lime missing.',
+        allow_module_level=True)
+else:
+    del lime
+
+import importlib
 import sys
 
 from typing import Dict, List, Tuple

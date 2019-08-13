@@ -47,7 +47,7 @@ Cite           |BibTeX|_ |DOI|_
 .. _Gitter: https://gitter.im/AnthropocentricAI/FAT-Forensics
 
 .. |BibTeX| image:: https://img.shields.io/badge/cite-BibTeX-blue.svg
-.. _BibTeX: https://github.com/So-Cool/fat-forensics/blob/dev/docs/_static/fatf.bibtex
+.. _BibTeX: https://github.com/So-Cool/fat-forensics/blob/dev/doc/_static/fatf.bibtex
 
 .. |DOI| image:: https://zenodo.org/badge/DOI/xx.xxxx/zenodo.xxxxxxx.svg
 .. _DOI: https://doi.org/xx.xxxx/zenodo.xxxxxxx

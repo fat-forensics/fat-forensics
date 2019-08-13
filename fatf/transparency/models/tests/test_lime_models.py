@@ -6,10 +6,18 @@ Tests fatf.transparency.models.lime explainer.
 
 import pytest
 
+try:
+    import lime
+except ImportError:  # pragma: no cover
+    pytest.skip(
+        'Skipping models lime wrapper tests -- lime missing.',
+        allow_module_level=True)
+else:
+    del lime
+
 import numpy as np
 
 import fatf.transparency.models.lime as ftml
-import fatf.transparency.models as ftm
 
 try:
     import lime
@@ -35,7 +43,7 @@ def test_lime():
     assert lime.tabular_explainer.sample_around_instance is False
 
     with pytest.warns(UserWarning) as w:
-        lime = ftm.Lime(DATA, sample_around_instance=True)
+        lime = ftml.Lime(DATA, sample_around_instance=True)
     assert len(w) == 1
     assert str(w[0].message) == wmsg
     assert lime.tabular_explainer.sample_around_instance is False
@@ -43,14 +51,14 @@ def test_lime():
     lime = ftml.Lime(DATA, sample_around_instance=False)
     assert lime.tabular_explainer.sample_around_instance is False
 
-    lime = ftm.Lime(DATA, sample_around_instance=0)
+    lime = ftml.Lime(DATA, sample_around_instance=0)
     assert lime.tabular_explainer.sample_around_instance is False
 
     lime = ftml.Lime(DATA, sample_around_instance='')
     assert lime.tabular_explainer.sample_around_instance is False
 
     with pytest.warns(UserWarning) as w:
-        lime = ftm.Lime(DATA, sample_around_instance='42')
+        lime = ftml.Lime(DATA, sample_around_instance='42')
     assert len(w) == 1
     assert str(w[0].message) == wmsg
     assert lime.tabular_explainer.sample_around_instance is False

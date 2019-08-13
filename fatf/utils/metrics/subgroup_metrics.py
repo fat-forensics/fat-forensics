@@ -1,5 +1,8 @@
 """
-Holds model metric tools.
+The :mod:`fatf.utils.metrics.subgroup_metrics` module holds sub-group metrics.
+
+These functions are mainly used to compute a given performance metric for every
+sub population in a data set defined by a grouping on a selected feature.
 """
 # Author: Kacper Sokol <k.sokol@bristol.ac.uk>
 # License: new BSD
@@ -12,15 +15,10 @@ from typing import Dict  # pylint: disable=unused-import
 
 import numpy as np
 
-from fatf.exceptions import IncorrectShapeError
+import fatf.utils.metrics.metrics as fumm
+import fatf.utils.metrics.tools as fumt
 
-import fatf.utils.array.validation as fuav
-import fatf.utils.data.tools as fudt
-import fatf.utils.models.metrics as fumm
-
-__all__ = ['confusion_matrix_per_subgroup',
-           'confusion_matrix_per_subgroup_indexed',
-           'apply_metric_function',
+__all__ = ['apply_metric_function',
            'apply_metric',
            'performance_per_subgroup',
            'performance_per_subgroup_indexed']  # yapf: disable
@@ -28,120 +26,9 @@ __all__ = ['confusion_matrix_per_subgroup',
 Index = Union[int, str]  # A column index type
 
 
-def confusion_matrix_per_subgroup(
-        dataset: np.ndarray,
-        #
-        ground_truth: np.ndarray,
-        predictions: np.ndarray,
-        #
-        column_index: Index,
-        groupings: Optional[List[Union[Number, Tuple[str]]]] = None,
-        numerical_bins_number: int = 5,
-        #
-        labels: Optional[List[Union[str, Number]]] = None
-) -> Tuple[List[np.ndarray], List[str]]:
-    """
-    Computes confusion matrices for every defined sub-population.
-
-    This is useful for computing a variety of performance metrics for each
-    sub-population.
-
-    For warnings raised by this method please see the documentation of
-    :func:`fatf.utils.data.tools.validate_indices_per_bin` function.
-
-    Parameters
-    ----------
-    dataset, column_index, groupings, and numerical_bins_number
-        These parameters are described in the documentation of
-        :func:`fatf.utils.data.tools.group_by_column` function and are used to
-        define a grouping (i.e. sub-populations). If you have your own
-        index-based grouping and would like to get sub-population-based
-        confusion matrices, please consider using :func:`fatf.utils.models.
-        metric_tools.confusion_matrix_per_subgroup_indexed` function.
-    ground_truth, predictions, and labels
-        These parameters are described in the documentation of
-        :func:`fatf.utils.models.metrics.get_confusion_matrix` function and are
-        used to calculate confusion matrices.
-
-    Returns
-    -------
-    population_confusion_matrix : List[numpy.ndarray]
-        A list of confusion matrices for each sub-population.
-    bin_names : List[strings]
-        The name of every sub-population (binning results) defined by the
-        feature ranges for a numerical feature and feature value sets for a
-        categorical feature.
-    """
-    # pylint: disable=too-many-arguments
-    indices_per_bin, bin_names = fudt.group_by_column(
-        dataset, column_index, groupings, numerical_bins_number)
-
-    assert fudt.validate_indices_per_bin(indices_per_bin), \
-        'Binned indices list is invalid.'
-
-    population_confusion_matrix = confusion_matrix_per_subgroup_indexed(
-        indices_per_bin, ground_truth, predictions, labels)
-    return population_confusion_matrix, bin_names
-
-
-def confusion_matrix_per_subgroup_indexed(
-        indices_per_bin: List[np.ndarray],
-        ground_truth: np.ndarray,
-        predictions: np.ndarray,
-        labels: Optional[List[Union[str, Number]]] = None) -> List[np.ndarray]:
-    """
-    Computes confusion matrices for every defined sub-population.
-
-    This is useful for computing a variety of performance metrics based on
-    predefined instance index binning for each sub-population.
-
-    This is an alternative to
-    :func:`fatf.utils.models.metric_tools.confusion_matrix_per_subgroup`
-    function, which can be used when one already has the desired instance
-    binning.
-
-    For warnings and errors raised by this method please see the documentation
-    of :func:`fatf.utils.data.tools.validate_indices_per_bin` function.
-
-    Parameters
-    ----------
-    indices_per_bin : List[List[integer]]
-        A list of lists with the latter one holding row indices of a particular
-        group (sub-population).
-    ground_truth, predictions, and labels
-        These parameters are described in the documentation of
-        :func:`fatf.utils.models.metrics.get_confusion_matrix` function and are
-        used to calculate confusion matrices.
-
-    Returns
-    -------
-    population_confusion_matrix : List[numpy.ndarray]
-        A list of confusion matrices for each sub-population.
-    """
-    assert fudt.validate_indices_per_bin(indices_per_bin), \
-        'Binned indices list is invalid.'
-
-    if labels is None:
-        if not fuav.is_1d_array(ground_truth):
-            raise IncorrectShapeError('The ground_truth parameter should be a '
-                                      '1-dimensional numpy array.')
-        if not fuav.is_1d_array(predictions):
-            raise IncorrectShapeError('The predictions parameter should be a '
-                                      '1-dimensional numpy array.')
-        labels = np.sort(
-            np.unique(np.concatenate([ground_truth, predictions]))).tolist()
-
-    population_confusion_matrix = []
-    for bin_indices in indices_per_bin:
-        confusion_matrix = fumm.get_confusion_matrix(
-            ground_truth[bin_indices], predictions[bin_indices], labels)
-        population_confusion_matrix.append(confusion_matrix)
-    return population_confusion_matrix
-
-
 def apply_metric_function(population_confusion_matrix: List[np.ndarray],
-                          metric_function: Callable[[np.ndarray], Number],
-                          *args, **kwargs) -> List[Number]:
+                          metric_function: Callable[[np.ndarray], float],
+                          *args, **kwargs) -> List[float]:
     """
     Applies the provided performance metric to every confusion matrix.
 
@@ -191,7 +78,7 @@ def apply_metric_function(population_confusion_matrix: List[np.ndarray],
             raise ValueError('The population_confusion_matrix parameter '
                              'cannot be an empty list.')
         for confusion_matrix in population_confusion_matrix:
-            assert fumm.validate_confusion_matrix(confusion_matrix), \
+            assert fumt.validate_confusion_matrix(confusion_matrix), \
                 'Invalid confusion matrix.'
     else:
         raise TypeError('The population_confusion_matrix parameter has to be '
@@ -226,7 +113,7 @@ def apply_metric_function(population_confusion_matrix: List[np.ndarray],
 def apply_metric(population_confusion_matrix: List[np.ndarray],
                  metric: Optional[str] = None,
                  label_index: int = 0,
-                 **kwargs) -> List[Number]:
+                 **kwargs) -> List[float]:
     """
     Applies one of the predefined performance metric to all confusion matrices.
 
@@ -308,24 +195,26 @@ def performance_per_subgroup(
         *args,
         label_index: int = 0,
         #
-        groupings: Optional[List[Union[Number, Tuple[str]]]] = None,
+        groupings: Optional[List[Union[float, Tuple[str]]]] = None,
         numerical_bins_number: int = 5,
+        treat_as_categorical: Optional[bool] = None,
         #
-        labels: Optional[List[Union[str, Number]]] = None,
+        labels: Optional[List[Union[str, float]]] = None,
         #
         metric: Optional[str] = None,
-        metric_function: Optional[Callable[[np.ndarray], Number]] = None,
+        metric_function: Optional[Callable[[np.ndarray], float]] = None,
         #
-        **kwargs) -> Tuple[List[Number], List[str]]:
+        **kwargs) -> Tuple[List[float], List[str]]:
     """
     Computes a chosen metric per sub-population for a data set.
 
     This function combines
-    :func:`fatf.utils.models.metric_tools.confusion_matrix_per_subgroup`
-    function together with :func:`fatf.utils.models.metric_tools.apply_metric`
-    (when using ``metric`` parameter) and
-    :func:`fatf.utils.models.metric_tools.apply_metric_function` (when using
-    ``metric_function`` parameter) functions. For the description of
+    :func:`fatf.utils.metrics.tools.confusion_matrix_per_subgroup`
+    function together with
+    :func:`fatf.utils.metrics.subgroup_metrics.apply_metric` (when using
+    ``metric`` parameter) and
+    :func:`fatf.utils.metrics.subgroup_metrics.apply_metric_function` (when
+    using ``metric_function`` parameter) functions. For the description of
     parameters, errors and exceptions please see the documentation of these
     functions.
 
@@ -342,9 +231,10 @@ def performance_per_subgroup(
         feature ranges for a numerical feature and feature value sets for a
         categorical feature.
     """
-    population_cmxs, bin_names = confusion_matrix_per_subgroup(
+    # pylint: disable=too-many-locals
+    population_cmxs, bin_names = fumt.confusion_matrix_per_subgroup(
         dataset, ground_truth, predictions, column_index, groupings,
-        numerical_bins_number, labels)
+        numerical_bins_number, treat_as_categorical, labels)
 
     if metric_function is not None:
         population_metrics = apply_metric_function(
@@ -364,19 +254,21 @@ def performance_per_subgroup_indexed(
         *args,
         label_index: int = 0,
         #
-        labels: Optional[List[Union[str, Number]]] = None,
+        labels: Optional[List[Union[str, float]]] = None,
         #
         metric: Optional[str] = None,
-        metric_function: Optional[Callable[[np.ndarray], Number]] = None,
+        metric_function: Optional[Callable[[np.ndarray], float]] = None,
         #
-        **kwargs) -> List[Number]:
+        **kwargs) -> List[float]:
     """
     Computes a chosen metric per sub-population for index-based grouping.
 
-    This function combines :func:`fatf.utils.models.metric_tools.
-    confusion_matrix_per_subgroup_indexed` function together with
-    :func:`fatf.utils.models.metric_tools.apply_metric` (when using ``metric``
-    parameter) and :func:`fatf.utils.models.metric_tools.apply_metric_function`
+    This function combines
+    :func:`fatf.utils.metrics.tools.confusion_matrix_per_subgroup_indexed`
+    function together with
+    :func:`fatf.utils.metrics.subgroup_metrics.apply_metric` (when using
+    ``metric`` parameter) and
+    :func:`fatf.utils.metrics.subgroup_metrics.apply_metric_function`
     (when using ``metric_function`` parameter) functions. For the description
     of parameters, errors and exceptions please see the documentation of these
     functions.
@@ -394,7 +286,7 @@ def performance_per_subgroup_indexed(
         feature ranges for a numerical feature and feature value sets for a
         categorical feature.
     """
-    population_cmxs = confusion_matrix_per_subgroup_indexed(
+    population_cmxs = fumt.confusion_matrix_per_subgroup_indexed(
         indices_per_bin, ground_truth, predictions, labels)
 
     if metric_function is not None:

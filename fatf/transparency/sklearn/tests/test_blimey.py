@@ -53,22 +53,22 @@ MIXED_ARRAY = np.array([(0, 'a', 0.08, 'a'), (0, 'f', 0.03, 'bb'),
 
 NUMERICAL_NP_BLIMEY = {
     'Class A': {
-        'A <= 0.00': -0.3689,
-        'B <= 0.00': 0.1889,
-        '0.07 < C <= 0.22': 0.0492,
-        '0.58 < D <= 0.79': 0.1078
+        '0.07 < C <= 0.22': -0.0152,
+        '0.58 < D <= 0.79': 0.0821,
+        'A <= 0.00': -0.3665,
+        'B <= 0.00': 0.1791,
     },
     'Class B': {
-        'A <= 0.00': 0.1540,
-        'B <= 0.00': -0.07700,
-        '0.07 < C <= 0.22': 0.0463,
-        '0.58 < D <= 0.79': 0.0024
+        '0.07 < C <= 0.22': 0.0546,
+        '0.58 < D <= 0.79': 0.0073,
+        'A <= 0.00': 0.1489,
+        'B <= 0.00': -0.0791
     },
     'Class C': {
-        'A <= 0.00': 0.2149,
-        'B <= 0.00': -0.1120,
-        '0.07 < C <= 0.22': -0.0954,
-        '0.58 < D <= 0.79': -0.1101
+        '0.07 < C <= 0.22': -0.0393,
+        '0.58 < D <= 0.79': -0.0894,
+        'A <= 0.00': 0.2176,
+        'B <= 0.00': -0.1000
     }
 }
 
@@ -89,22 +89,22 @@ NUMERICAL_NP_BLIMEY_2 = {
 
 NUMERICAL_NP_BLIMEY_CAT = {
     'Class A': {
-        'A = 0': -0.2396,
-        'B <= 0.00': 0.1407,
-        '0.07 < C <= 0.22': 0.00122,
-        '0.58 < D <= 0.79': -0.0193
+        '0.07 < C <= 0.22': 0.0099,
+        '0.58 < D <= 0.79': -0.0088,
+        'A = 0': -0.1830,
+        'B <= 0.00': 0.1897,
     },
     'Class B': {
-        'A = 0': -0.0366,
-        'B <= 0.00': -0.0050,
-        '0.07 < C <= 0.22': -0.0592,
-        '0.58 < D <= 0.79': 0.0384
+        '0.07 < C <= 0.22': -0.0590,
+            '0.58 < D <= 0.79': 0.0213,
+            'A = 0': -0.0512,
+            'B <= 0.00': -0.0354,
     },
     'Class C': {
-        'A = 0': 0.2763,
-        'B <= 0.00': -0.1357,
-        '0.07 < C <= 0.22': 0.0581,
-        '0.58 < D <= 0.79': -0.0191
+        '0.07 < C <= 0.22': 0.0492,
+        '0.58 < D <= 0.79': -0.0124,
+        'A = 0': 0.2342,
+        'B <= 0.00': -0.1543,
     }
 }
 
@@ -128,22 +128,18 @@ NUMERICAL_NP_BLIMEY_NO_DISC = {
 
 NUMERICAL_STRUCT_BLIMEY = {
     'Class A': {
-        'A = 0': -0.4628,
-        'B = 0': 0.1359
+        'A = 0': -0.4191,
+        'B = 0': 0.1507,
     },
     'Class B': {
-        'B = 0': -0.1473,
-        '0.58 < D <= 0.79': -0.1112
+        '0.58 < D <= 0.79': -0.1047,
+        'B = 0': -0.1476,
     },
     'Class C': {
-        'A = 0': 0.4743,
-        '0.58 < D <= 0.79': 0.0851
+        '0.58 < D <= 0.79': 0.0482,
+        'A = 0': 0.4240,
     }
 }
-
-CATEGORICAL_NP_BLIMEY = {}
-CATEGORICAL_STRUCT_BLIMEY = {}
-MIXED_BLIMEY = {}
 
 
 class InvalidModel(object):
@@ -819,7 +815,6 @@ class TestBlimey():
                 features_number=1000)
         assert len(warning) == 1
         assert str(warning[0].message) == features_number_warning
-        print(exp)
         assert _is_explanation_equal(exp, NUMERICAL_NP_BLIMEY_CAT)
 
         exp = self.numerical_blimey_no_discretization.explain_instance(
@@ -831,10 +826,10 @@ class TestBlimey():
             features_number=3)
         assert _is_explanation_equal(exp, NUMERICAL_NP_BLIMEY_NO_DISC)
 
+        # No distances from instance used to train local model
         exp = self.numerical_blimey_structured.explain_instance(
             data_row=NUMERICAL_STRUCT_ARRAY[0],
             samples_number=50,
             kernel_function=None,
-            distance_function=fud.euclidean_array_distance,
             features_number=2)
         assert _is_explanation_equal(exp, NUMERICAL_STRUCT_BLIMEY)

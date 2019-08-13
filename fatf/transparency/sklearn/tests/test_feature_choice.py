@@ -111,9 +111,6 @@ def test_lasso_path():
     """
     Tests :func:`fatf.transparency.sklearn.feature_choice.lasso_path`.
     """
-    lasso_path_msg = ('Not enough nonzero coefficients were found by '
-                      '\'sklearn.linear_model.lars_path\' function. This '
-                      'could be due to the weights being too small.')
     fatf.setup_random_seed()
 
     weights = np.ones((NUMERICAL_NP_ARRAY.shape[0], ))
@@ -132,8 +129,8 @@ def test_lasso_path():
                                 NUMERICAL_NP_ARRAY_TARGET, weights, 2)
     assert np.array_equal(features, np.array(['a', 'c']))
 
+    # Weights too small so no path is found and it just returns all features
     weights = np.array([1, 1, 100, 1, 1, 1]) * 1e-20
-    with pytest.raises(ValueError) as exin:
-        ftsfc.lasso_path(NUMERICAL_NP_ARRAY, NUMERICAL_NP_ARRAY_TARGET,
-                         weights, 2)
-    assert str(exin.value) == lasso_path_msg
+    features = ftsfc.lasso_path(NUMERICAL_NP_ARRAY, NUMERICAL_NP_ARRAY_TARGET,
+                        weights, 2)
+    assert np.array_equal(features, np.array([0, 1, 2, 3]))

@@ -52,15 +52,15 @@ def _is_input_valid(dataset: np.ndarray,
     if target.shape[0] != dataset.shape[0]:
         raise IncorrectShapeError('The number of labels in target must be the '
                                   'same as the number of samples in dataset.')
+    if weights is not None:
+        if not fuav.is_1d_array(weights):
+            raise IncorrectShapeError('The input weights array must a '
+                                    '1-dimensional array.')
 
-    if not fuav.is_1d_array(weights):
-        raise IncorrectShapeError('The input weights array must a '
-                                  '1-dimensional array.')
-
-    if weights.shape[0] != dataset.shape[0]:
-        raise IncorrectShapeError('The number distances in weights must be '
-                                  'the same as the number of samples in '
-                                  'dataset.')
+        if weights.shape[0] != dataset.shape[0]:
+            raise IncorrectShapeError('The number distances in weights must be '
+                                    'the same as the number of samples in '
+                                    'dataset.')
     if num_features is not None:
         if not isinstance(num_features, int):
             raise TypeError('num_features must be an integer.')
@@ -123,10 +123,16 @@ def lasso_path(dataset: np.ndarray,
     if num_features is None:
         features = indices
     else:
+        if weights is not None:
+            data_weights = np.sqrt(weights[:, np.newaxis])
+            target_weights = np.sqrt(weights)
+        else:
+            data_weights = np.ones((dataset.shape[0], 1))
+            target_weights = np.ones_like(target)
         weighted_data = ((dataset-np.average(dataset, axis=0, weights=weights))
-                                *np.sqrt(weights[:, np.newaxis]))
+                                *data_weights)
         weighted_target = ((target-np.average(target, weights=weights))
-                            *np.sqrt(weights))
+                            *target_weights)
         nonzero = range(weighted_data.shape[1])
         _, _, coefs = sklearn.linear_model.lars_path(
             weighted_data, weighted_target, method='lasso', verbose=False)

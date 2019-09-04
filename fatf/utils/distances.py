@@ -11,6 +11,7 @@ as well as for documentation examples and testing.
 
 import inspect
 import logging
+import warnings
 
 from typing import Callable, Union
 
@@ -18,6 +19,7 @@ import numpy as np
 
 import fatf.utils.array.tools as fuat
 import fatf.utils.array.validation as fuav
+import fatf.utils.validation as fuv
 
 from fatf.exceptions import IncorrectShapeError
 
@@ -32,7 +34,8 @@ __all__ = ['get_distance_matrix',
            'hamming_array_distance',
            'binary_distance',
            'binary_point_distance',
-           'binary_array_distance']  # yapf: disable
+           'binary_array_distance',
+           'check_distance_functionality']  # yapf: disable
 
 logger = logging.getLogger(__name__)  # pylint: disable=invalid-name
 
@@ -801,3 +804,60 @@ def binary_array_distance(X: np.ndarray, Y: np.ndarray,
     distance_matrix = np.apply_along_axis(binary_point_distance, 1, X_array,
                                           Y_array, **kwargs)
     return distance_matrix
+
+
+def check_distance_functionality(distance_function: Callable[..., np.ndarray],
+                                 suppress_warning: bool = False) -> bool:
+    """
+    Checks whether a distance function takes exactly 2 required parameters.
+
+    The distance function to be checked should calculate a distance matrix
+    (2-dimensional numpy array) between all of the rows of the two
+    2-dimensional numpy arrays passed as input to the ``distance_function``.
+
+    Parameters
+    ----------
+    distance_function : Callable[[numpy.ndarray, numpy.ndarray, ...], \
+numpy.ndarray]
+        A function that calculates a distance matrix between all pairs of rows
+        of the two input arrays.
+    suppress_warning : boolean, optional (default=False)
+        A boolean parameter that indicates whether the function should suppress
+        its warning message. Defaults to False.
+
+    Warns
+    -----
+    UserWarning
+        Warns about the details of the required functionality that the distance
+        function lacks.
+
+    Raises
+    ------
+    TypeError
+        The ``distance_function`` parameter is not a Python callable or the
+        ``suppress_warning`` parameter is not a boolean.
+
+    Returns
+    -------
+    is_functional : boolean
+        A boolean variable that indicates whether the distance function is
+        valid.
+    """
+    if not callable(distance_function):
+        raise TypeError('The distance_function parameter should be a Python '
+                        'callable.')
+    if not isinstance(suppress_warning, bool):
+        raise TypeError('The suppress_warning parameter should be a boolean.')
+
+    required_param_n = fuv.get_required_parameters_number(distance_function)
+    is_functional = required_param_n == 2
+
+    if not is_functional and not suppress_warning:
+        message = ("The '{}' distance function has incorrect number "
+                   '({}) of the required parameters. It needs to have '
+                   'exactly 2 required parameters. Try using optional '
+                   'parameters if you require more functionality.').format(
+                       distance_function.__name__, required_param_n)
+        warnings.warn(message, category=UserWarning)
+
+    return is_functional

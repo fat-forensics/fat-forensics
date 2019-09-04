@@ -1,5 +1,6 @@
 """
-This module implements a base scikit-learn explainer.
+The :mod:`fatf.transparency.sklearn.tools` module implements a base
+scikit-learn explainer.
 """
 # Author: Kacper Sokol <k.sokol@bristol.ac.uk>
 # License: new BSD
@@ -15,21 +16,51 @@ import sklearn
 import numpy as np
 
 import fatf.utils.array.validation as fuav
-import fatf.utils.explainers as fue
+import fatf.utils.transparency.explainers as fute
 
 __all__ = []  # type: List[str]
 
 logger = logging.getLogger(__name__)  # pylint: disable=invalid-name
 
 
-def is_sklearn_model(clf: object) -> bool:
+def is_sklearn_model(clf: Union[object, type]) -> bool:
     """
-    Checks whether an object is a scikit-learn classifier.
+    Checks whether a class instance or a class is a scikit-learn predictor.
+
+    This is achieved by checking inheritance from
+    ``sklearn.base.BaseEstimator``.
+
+    Parameters
+    ----------
+    clf : Union[object, type]
+        A Python object (class instance) or a class to be checked.
+
+    Returns
+    -------
+    is_valid_model : boolean
+        ``True`` if ``clf`` inherits from ``sklearn.base.BaseEstimator``,
+        ``False`` otherwise.
+    """
+    if isinstance(clf, type):  # Check and object
+        is_valid_model = issubclass(clf, sklearn.base.BaseEstimator)
+    else:  # Check an instance
+        is_valid_model = isinstance(clf, sklearn.base.BaseEstimator)
+    return is_valid_model
+
+
+def is_sklearn_model_instance(clf: object) -> bool:
+    """
+    Checks whether a class instance (object) is a scikit-learn predictor.
+
+    This function is similar to
+    :func:`fatf.transparency.sklearn.tools.is_sklearn_model` but it enforces
+    the ``clf`` to be an **instance** of an object in addition to checking
+    whether it inherits from ``sklearn.base.BaseEstimator``.
 
     Parameters
     ----------
     clf : object
-        A Python object to be checked.
+        A Python object (class instance) to be checked.
 
     Returns
     -------
@@ -37,18 +68,18 @@ def is_sklearn_model(clf: object) -> bool:
         ``True`` if the object inherits from ``sklearn.base.BaseEstimator``,
         ``False`` otherwise.
     """
-    if isinstance(clf, type):
-        is_valid_model = issubclass(clf, sklearn.base.BaseEstimator)
+    if not isinstance(clf, type) and is_sklearn_model(clf):
+        is_valid_model_instance = True
     else:
-        is_valid_model = isinstance(clf, sklearn.base.BaseEstimator)
-    return is_valid_model
+        is_valid_model_instance = False
+    return is_valid_model_instance
 
 
 def _validate_input(clf: sklearn.base.BaseEstimator,
                     feature_names: Union[None, List[str]],
                     class_names: Union[None, List[str]]) -> bool:
     """
-    Validates input of the :class:`.SKLearnExplainer` class initialiser.
+    Validates input of the ``SKLearnExplainer`` class initialiser.
 
     Parameters
     ----------
@@ -82,8 +113,8 @@ def _validate_input(clf: sklearn.base.BaseEstimator,
     # pylint: disable=too-many-branches
     is_valid = False
 
-    if not is_sklearn_model(clf):
-        raise TypeError('The model has to be a scikit-learn classifier, i.e. '
+    if not is_sklearn_model_instance(clf):
+        raise TypeError('The model has to be a scikit-learn classifier, i.e., '
                         'it has to inherit from sklearn.base.BaseEstimator.')
 
     if feature_names is not None:
@@ -114,30 +145,40 @@ def _validate_input(clf: sklearn.base.BaseEstimator,
     return is_valid
 
 
-class SKLearnExplainer(fue.Explainer):
+class SKLearnExplainer(fute.Explainer):
     """
     Implements a base scikit-learn model explainer class.
 
-    Every scikit-learn model explainer class should inherit from this class. It
-    should also overwrite the following three methods:
+    Every scikit-learn model explainer class should inherit from this class.
+    It should also overwrite the following four private methods:
 
-    - :func:`~.SKLearnExplainer._validate_kind_fitted`,
-    - :func:`~.SKLearnExplainer._is_classifier`,
-    - :func:`~.SKLearnExplainer._get_features_number`, and
-    - :func:`~.SKLearnExplainer._get_classes_array`.
+    .. currentmodule:: fatf.transparency.sklearn.tools
+
+    - :func:`~SKLearnExplainer._validate_kind_fitted`,
+    - :func:`~SKLearnExplainer._is_classifier`,
+    - :func:`~SKLearnExplainer._get_features_number`, and
+    - :func:`~SKLearnExplainer._get_classes_array`.
 
     For their expected functionality please see their respective documentation.
 
     The explainer should also implement one of the explanatory methods that are
     inherited from ``SKLearnExplainer``'s parent class
-    (:class:`fatf.utils.explainers.Explainer`):
+    (:class:`fatf.utils.transparency.explainers.Explainer`):
 
-    - :func:`~fatf.utils.explainers.Explainer.feature_importance`,
-    - :func:`~fatf.utils.explainers.Explainer.model_explanation`, and/or
-    - :func:`~fatf.utils.explainers.Explainer.prediction_explanation`.
+    .. currentmodule:: fatf.utils.transparency.explainers
 
-    Alternatively, a new methods that explains an aspect of the model or its
+    - :func:`~Explainer.feature_importance`,
+    - :func:`~Explainer.explain_model`, and/or
+    - :func:`~Explainer.explain_instance`.
+
+    Alternatively, a new method that explains an aspect of the model or its
     predictions can be introduced.
+
+    This class loggs an *information* if the feature names were not given and
+    are inferred from the provided number of features using "feature %d"
+    pattern. An *information* is also logged if the class names were not given
+    and are inferred from the provided class id's (using the ``classes_array``
+    attribute) using "class %s" pattern.
 
     Parameters
     ----------
@@ -145,22 +186,14 @@ class SKLearnExplainer(fue.Explainer):
         A scikit-learn model.
     feature_names : Optional[List[string]]
         A list of strings representing feature names in order they appear in
-        the numpy array used to train the ``clf`` classifier.
-    class_names : Optional[List[string]])
+        the numpy array used to train the ``clf`` predictive model.
+    class_names : Optional[List[string]]
         A list of strings representing class names. The order of this list has
         to correspond to the lexicographical ordering of the unique values in
         the target (ground truth) array used to train the ``clf`` predictor.
         For example, if your target array has the following values
         ``['aa', 'a', '0', 'b']``, your class names should be given for the
         following ordering of the class id's: ``['0', 'a', 'aa', 'b']``.
-
-    Logs
-    -----
-    Info
-        The feature names were not given and are inferred from the provided
-        number of features using "feature %d" pattern. The class names were not
-        given and are inferred from the provided class id's (using the
-        ``classes_array`` attribute) using "class %s" pattern.
 
     Warns
     -----
@@ -198,12 +231,12 @@ class SKLearnExplainer(fue.Explainer):
         array used to train the ``clf`` predictor (class id's).
     is_classifier : boolean
         If ``True``, the predictive model held under the ``clf`` attribute is a
-        classifier. If ``False``, it is a regressor. (set using the ``clf``
-        attribute via the ``_is_classifier`` method)
+        classifier. If ``False``, it is a regressor. (Set using the ``clf``
+        attribute via the ``_is_classifier`` method.)
     features_number : Union[None, integer]
-        Either ``None`` or the number of features in the ``clf`` model
-        (extracted from the ``clf`` attribute with the ``_get_features_number``
-        method).
+        Either ``None`` or the number of features in the ``clf`` model.
+        (Extracted from the ``clf`` attribute with the ``_get_features_number``
+        method.)
     classes_array : Union[None, numpy.ndarray]
         Either ``None`` or a 1-dimensional numpy array holding all the possible
         model predictions (only for classifiers). For regressors this should
@@ -215,7 +248,7 @@ class SKLearnExplainer(fue.Explainer):
                  feature_names: Optional[List[str]] = None,
                  class_names: Optional[List[str]] = None) -> None:
         """
-        Initialises the :class:`.SKLearnExplainer` class.
+        Initialises the ``SKLearnExplainer`` class.
         """
         # Validate the input
         assert _validate_input(clf, feature_names,
@@ -309,8 +342,8 @@ class SKLearnExplainer(fue.Explainer):
         ------
         RuntimeError
             The error is raised when trying to map a class for a regressor.
-            I is also raised if the class was not sufficiently initialised,
-            i.e. either ``classes_array`` or ``class_names`` attributes are
+            It is also raised if the class was not sufficiently initialised,
+            i.e., either ``classes_array`` or ``class_names`` attributes are
             missing.
         TypeError
             The ``clf_class`` parameter is neither integer nor string.
@@ -353,13 +386,13 @@ class SKLearnExplainer(fue.Explainer):
         Implements a kind check and a fit check of a predictive model.
 
         This method is called upon initialising the class and checks whether
-        the ``self.clf`` classifier is of the right kind. For example, when
+        the ``self.clf`` predictor is of the right kind. For example, when
         implementing an explainer for scikit-learn linear models this method
         should check whether the ``self.clf`` is a linear model and whether it
         has been fitted. If any of these conditions is not satisfied this
         method should raise an appropriate exception: for a wrong model type
         this should be a ``ValueError``; for an unfit model this should be
-        sklearn's ``sklearn.exceptions.NotFittedError`` (considered using
+        sklearn's ``sklearn.exceptions.NotFittedError`` (consider using
         scikit's ``sklearn.utils.validation.check_is_fitted`` function to raise
         this exception).
 
@@ -395,8 +428,8 @@ class SKLearnExplainer(fue.Explainer):
         Returns
         -------
         is_classifier : boolean
-            ``True`` if the ``self.clf`` model is a classifier or ``False`` if
-            it is a regressor.
+            ``True`` if the ``self.clf`` model is a classifier or ``False``
+            when it is a regressor.
         """
         raise NotImplementedError('This method has not been implemented.')
         # pylint: disable=unreachable
@@ -409,7 +442,7 @@ class SKLearnExplainer(fue.Explainer):
         Returns the number of features that the model accepts or ``None``.
 
         If it is possible to extract the number of features (columns) expected
-        by the ``self.clf`` classifier, this method should return this number.
+        by the ``self.clf`` predictor, this method should return this number.
         Otherwise, it must return ``None``.
 
         Raises

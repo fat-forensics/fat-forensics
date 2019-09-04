@@ -18,7 +18,7 @@ import fatf.transparency.sklearn.blimey as ftsmb
 import fatf.utils.models as fum
 import fatf.utils.data.augmentation as fuda
 import fatf.utils.data.discretization as fudd
-import fatf.utils.explainers as fue
+import fatf.utils.transparency.explainers as fute
 import fatf.utils.distances as fud
 import fatf.utils.kernels as fuk
 import fatf.transparency.sklearn.linear_model as ftslm
@@ -267,7 +267,7 @@ def test_input_is_valid():
     assert str(exin.value) == msg
 
     msg = ('The explainer object must inherit from abstract class fatf.utils.'
-           'explainers.Explainer.')
+           'transparency.explainers.Explainer.')
     with pytest.raises(TypeError) as exin:
         ftsmb._input_is_valid(
             NUMERICAL_NP_ARRAY,
@@ -512,7 +512,7 @@ class TestBlimey():
         """
 
         # Class inherits from explainer but is not tree or linear
-        class ExplainerUnknown(fue.Explainer):
+        class ExplainerUnknown(fute.Explainer):
             """
             Explainer that is not an sklearn explainer.
             """
@@ -520,10 +520,10 @@ class TestBlimey():
             def __init__(self):
                 pass
 
-            def model_explanation(self):
+            def explain_model(self):
                 pass
 
-            def prediction_explanation(self):
+            def explain_instance(self):
                 pass
 
         # Infer discretize_first

@@ -22,15 +22,31 @@ def test_is_sklearn_model():
     Tests :func:`fatf.transparency.sklearn.tools.is_sklearn_model` function.
     """
     assert not ftst.is_sklearn_model(IOBJ)
+    assert not ftst.is_sklearn_model(object)
     assert ftst.is_sklearn_model(BOBJ)
+    assert ftst.is_sklearn_model(sklearn.base.BaseEstimator)
     assert ftst.is_sklearn_model(TOBJ)
+    assert ftst.is_sklearn_model(sklearn.tree.DecisionTreeClassifier)
+
+
+def test_is_sklearn_model_instance():
+    """
+    Tests :func:`fatf.transparency.sklearn.tools.is_sklearn_model_instance`.
+    """
+    assert not ftst.is_sklearn_model_instance(IOBJ)
+    assert not ftst.is_sklearn_model_instance(object)
+    assert ftst.is_sklearn_model_instance(BOBJ)
+    assert not ftst.is_sklearn_model_instance(sklearn.base.BaseEstimator)
+    assert ftst.is_sklearn_model_instance(TOBJ)
+    assert not ftst.is_sklearn_model_instance(
+        sklearn.tree.DecisionTreeClassifier)
 
 
 def test_validate_input():
     """
     Tests :func:`fatf.transparency.sklearn.tools._validate_input` function.
     """
-    type_error_clf = ('The model has to be a scikit-learn classifier, i.e. '
+    type_error_clf = ('The model has to be a scikit-learn classifier, i.e., '
                       'it has to inherit from sklearn.base.BaseEstimator.')
     type_error_fno = ('The feature_names parameter has to be either None or a '
                       'Python list.')
@@ -44,6 +60,9 @@ def test_validate_input():
 
     with pytest.raises(TypeError) as exin:
         ftst._validate_input(IOBJ, None, None)
+    assert str(exin.value) == type_error_clf
+    with pytest.raises(TypeError) as exin:
+        ftst._validate_input(sklearn.tree.DecisionTreeClassifier, None, None)
     assert str(exin.value) == type_error_clf
 
     with pytest.raises(TypeError) as exin:
@@ -82,13 +101,16 @@ class TestSKLearnExplainer(object):
             return None
 
         def _is_classifier(self):
-            return True
+            # Will not be executed since this class is broken
+            return True  # pragma: no cover
 
         def _get_features_number(self):
-            return None
+            # Will not be executed since this class is broken
+            return None  # pragma: no cover
 
         def _get_classes_array(self):
-            return None
+            # Will not be executed since this class is broken
+            return None  # pragma: no cover
 
     class SKLearnExplainer_classifier_e(ftst.SKLearnExplainer):
         def _validate_kind_fitted(self):
@@ -98,10 +120,12 @@ class TestSKLearnExplainer(object):
             return None
 
         def _get_features_number(self):
-            return None
+            # Will not be executed since this class is broken
+            return None  # pragma: no cover
 
         def _get_classes_array(self):
-            return None
+            # Will not be executed since this class is broken
+            return None  # pragma: no cover
 
     class SKLearnExplainer_valid(ftst.SKLearnExplainer):
         def _validate_kind_fitted(self):
@@ -284,7 +308,7 @@ class TestSKLearnExplainer(object):
         Tests ``map_class`` method.
 
         Tests
-        :func:`~fatf.transparency.sklearn.tools.SKLearnExplainer.map_class`
+        :func:`fatf.transparency.sklearn.tools.SKLearnExplainer.map_class`
         method.
         """
         runtime_error_reg = ('This functionality is not available for '

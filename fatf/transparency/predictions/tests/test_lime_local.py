@@ -19,15 +19,6 @@ import numpy as np
 
 import fatf.transparency.predictions.lime as ftpl
 
-try:
-    import lime
-except ImportError:  # pragma: no cover
-    pytest.skip(
-        'Skipping lime wrapper tests -- lime missing.',
-        allow_module_level=True)
-else:
-    del lime
-
 DATA = np.ones((6, 4))
 
 

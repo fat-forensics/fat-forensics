@@ -259,7 +259,8 @@ class TestCounterfactualExplainer(object):
         """
         Tests some initialisation errors for the ``CounterfactualExplainer``.
         """
-        user_warning_model = "The model class is missing 'predict' method."
+        user_warning_model = ("The *Dummy* (model) class is missing 'predict' "
+                              'method.')
         user_warning_model_predictive_function = (
             'Both a model and a predictive_function parameters were supplied. '
             'A predictive functions takes the precedence during the '

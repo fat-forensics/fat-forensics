@@ -1,7 +1,8 @@
 """
-Tests functions responsible for objects validation across FAT-Forensics.
+Tests functions responsible for generic objects and functions validation.
 """
 # Author: Alex Hepburn <ah13558@bristol.ac.uk>
+#         Kacper Sokol <k.sokol@bristol.ac.uk>
 # License: new BSD
 
 import pytest
@@ -9,71 +10,16 @@ import pytest
 import fatf.utils.validation as fuv
 
 
-def test_check_explainer_functionality():
+def test_get_required_parameters_number():
     """
-    Tests :func:`fatf.utils.validation.check_explainer_functionality`.
+    Tests :func:`fatf.utils.validation.get_required_parameters_number`.
     """
-    class ClassPlain(object): pass
-    class_plain = ClassPlain()
-    class ClassInit(object):
-        def __init__(self): pass
-    class_init = ClassInit()
-    class ClassExplainer1(object):
-        def explain_instance(self): pass
-    class_explainer_1 = ClassExplainer1()
-    class ClassExplainer2(object):
-        def explain_instance(self, x, y): pass
-    class_explainer_2 = ClassExplainer2()
-    class ClassExplainer3(object):
-        def explain_instance(self, x): pass
-    class_explainer_3 = ClassExplainer3()
-    class ClassExplainer4(object):
-        def explain_instance(self, x, y=3): pass
-    class_explainer_4 = ClassExplainer4()
-    class ClassExplainer5(object):
-        def explain_instance(self, x, y=3, z=3): pass
-    class_explainer_5 = ClassExplainer5()
+    type_error = ('The callable_object should be Python callable, e.g., a '
+                  'function or a method.')
 
-    msg = ('The explainer class is missing \'explain_instance\' method.')
-    with pytest.warns(UserWarning) as warning:
-        assert fuv.check_explainer_functionality(class_plain, False) is False
-    assert msg in str(warning[0].message)
-    assert fuv.check_explainer_functionality(class_plain, True) is False
-
-    with pytest.warns(UserWarning) as warning:
-        assert fuv.check_explainer_functionality(class_init, False) is False
-    assert msg in str(warning[0].message)
-    assert fuv.check_explainer_functionality(class_init, True) is False
-
-    msg = ('The \'explain_instance\' method of the class has incorrect number '
-           '({}) of the required parameters. It needs to have exactly 1 '
-           'required parameters. Try using optional parameters if you require '
-           'more functionality.')
-    with pytest.warns(UserWarning) as warning:
-        assert fuv.check_explainer_functionality(
-            class_explainer_1, False) is False
-    assert msg.format(0) in str(warning[0].message)
-    assert fuv.check_explainer_functionality(class_explainer_1, True) is False
-
-    with pytest.warns(UserWarning) as warning:
-        assert fuv.check_explainer_functionality(
-            class_explainer_2, False) is False
-    assert msg.format(2) in str(warning[0].message)
-    assert fuv.check_explainer_functionality(class_explainer_2, True) is False
-
-    assert fuv.check_explainer_functionality(class_explainer_3, False) is True
-    assert fuv.check_explainer_functionality(class_explainer_4, False) is True
-    assert fuv.check_explainer_functionality(class_explainer_5, False) is True
-
-
-def test_check_kernel_functionality():
-    """
-    Tests :func:`fatf.utils.validation.check_kernel_functionality`.
-    """
-    error_msg = ('The \'{}\' kernel function has incorrect number '
-                 '({}) of the required parameters. It needs to have '
-                 'exactly 1 required parameters. Try using optional '
-                 'parameters if you require more functionality.')
+    with pytest.raises(TypeError) as error:
+        fuv.get_required_parameters_number('callable')
+    assert str(error.value) == type_error
 
     def function1(): pass
     def function2(x): pass
@@ -82,57 +28,91 @@ def test_check_kernel_functionality():
     def function5(x=3, y=3): pass
     def function6(x, **kwargs): pass
 
-    with pytest.warns(UserWarning) as warning:
-        assert fuv.check_kernel_functionality(function1) is False
-    assert str(warning[0].message) == error_msg.format('function1', 0)
-    assert fuv.check_kernel_functionality(function1, True) is False
-
-    with pytest.warns(UserWarning) as warning:
-        assert fuv.check_kernel_functionality(function5) is False
-    assert str(warning[0].message) == error_msg.format('function5', 0)
-    assert fuv.check_kernel_functionality(function5, True) is False
-
-    with pytest.warns(UserWarning) as warning:
-        assert fuv.check_kernel_functionality(function3) is False
-    assert str(warning[0].message) == error_msg.format('function3', 2)
-    assert fuv.check_kernel_functionality(function3, True) is False
-
-    assert fuv.check_kernel_functionality(function2) is True
-    assert fuv.check_kernel_functionality(function4) is True
-    assert fuv.check_kernel_functionality(function6) is True
+    assert fuv.get_required_parameters_number(function1) == 0
+    assert fuv.get_required_parameters_number(function2) == 1
+    assert fuv.get_required_parameters_number(function3) == 2
+    assert fuv.get_required_parameters_number(function4) == 1
+    assert fuv.get_required_parameters_number(function5) == 0
+    assert fuv.get_required_parameters_number(function6) == 1
 
 
-def test_check_distance_functionality():
+def test_check_object_functionality():
     """
-    Tests :func:`fatf.utils.validation.check_distance_functionality`.
+    Tests :func:`fatf.utils.validation.check_object_functionality` function.
     """
-    error_msg = ('The \'{}\' distance function has incorrect number '
-                 '({}) of the required parameters. It needs to have '
-                 'exactly 2 required parameters. Try using optional '
-                 'parameters if you require more functionality.')
+    methods_key_type_error = ('All of the keys in the methods dictionary must '
+                              "be strings. The '{}' key in not a string.")
+    methods_value_type_error = ('All of the values in the methods dictionary '
+                                "must be integers. The '{}' value for the '{}' "
+                                'key in not a string.')
+    methods_value_value_error = ('All of the values in the methods dictionary '
+                                 "must be non-negative integers. The '{}' "
+                                 "value for '{}' key does not comply.")
+    methods_empty_value_error = 'The methods dictionary cannot be empty.'
+    methods_type_error = 'The methods parameter must be a dictionary.'
+    #
+    reference_type_error = ('The object_reference_name parameter must be a '
+                            'string or None.')
 
-    def function1(): pass
-    def function2(x): pass
-    def function3(x, y): pass
-    def function4(x, y, z=3): pass
-    def function5(x=3, y=3): pass
-    def function6(x, y, **kwargs): pass
+    missing_callable = "The {} is missing '{}' method."
+    missing_param = ("The '{}' method of the {} has incorrect number "
+                     '({}) of the required parameters. It needs to have '
+                     'exactly {} required parameter(s). Try using optional '
+                     'parameters if you require more functionality.')
 
-    with pytest.warns(UserWarning) as warning:
-        assert fuv.check_distance_functionality(function1) is False
-    assert str(warning[0].message) == error_msg.format('function1', 0)
-    assert fuv.check_distance_functionality(function1, True) is False
+    with pytest.raises(TypeError) as exin:
+        fuv.check_object_functionality('object', 'dict', 574)
+    assert str(exin.value) == methods_type_error
+    #
+    with pytest.raises(ValueError) as exin:
+        fuv.check_object_functionality('object', {}, 574)
+    assert str(exin.value) == methods_empty_value_error
+    #
+    with pytest.raises(TypeError) as exin:
+        fuv.check_object_functionality('object', {'1':1, 2:'2', '3':3}, 574)
+    assert str(exin.value) == methods_key_type_error.format(2)
+    #
+    with pytest.raises(TypeError) as exin:
+        fuv.check_object_functionality('object', {'1':'1', 2:'2', '3':3}, 574)
+    assert str(exin.value) == methods_value_type_error.format(1, 1)
+    #
+    with pytest.raises(ValueError) as exin:
+        fuv.check_object_functionality('object', {'1':1, '2':-2, '3':3}, 574)
+    assert str(exin.value) == methods_value_value_error.format(-2, 2)
+    #
+    #
+    with pytest.raises(TypeError) as exin:
+        fuv.check_object_functionality('object', {'1':1, '2':2, '3':3}, 574)
+    assert str(exin.value) == reference_type_error
 
-    with pytest.warns(UserWarning) as warning:
-        assert fuv.check_distance_functionality(function5) is False
-    assert str(warning[0].message) == error_msg.format('function5', 0)
-    assert fuv.check_distance_functionality(function5, True) is False
+    class A(object): pass
+    class B(A):
+        def zero(self): pass
+        def one(self, a, b=0): pass
+    class C(B):
+        def zero(self, a=0, b=1): pass
+    #
+    a = A()
+    b = B()
+    c = C()
 
-    with pytest.warns(UserWarning) as warning:
-        assert fuv.check_distance_functionality(function2) is False
-    assert str(warning[0].message) == error_msg.format('function2', 1)
-    assert fuv.check_distance_functionality(function2, True) is False
+    is_functional, msg = fuv.check_object_functionality(
+        b, {'one':1})
+    assert is_functional
+    assert msg == ''
 
-    assert fuv.check_distance_functionality(function3) is True
-    assert fuv.check_distance_functionality(function4) is True
-    assert fuv.check_distance_functionality(function6) is True
+    is_functional, msg = fuv.check_object_functionality(
+        B, {'one':1, 'zero':0}, None)
+    assert is_functional
+    assert msg == ''
+
+    is_functional, msg = fuv.check_object_functionality(
+        c, {'one':1, 'zero':0, 'two':2}, 'test object')
+    assert not is_functional
+    assert msg == missing_callable.format('*C* (test object) class', 'two')
+
+    is_functional, msg = fuv.check_object_functionality(
+        C, {'one':1, 'zero':2, 'two':2}, None)
+    assert not is_functional
+    assert missing_callable.format('*C* class', 'two') in msg
+    assert missing_param.format('zero', '*C* class', 0, 2) in msg

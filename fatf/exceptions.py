@@ -23,6 +23,17 @@ class IncorrectShapeError(FATFException):
     """
 
 
+class IncompatibleExplainerError(FATFException):
+    """
+    Exception raised when an explainer lacks desired functionality.
+
+    For example, is can be raised when an explainer object does not have an
+    ``explain_instance`` method or if the ``explain_instance`` method does not
+    have at least one required parameter (an array with a data point to be
+    explained).
+    """
+
+
 class IncompatibleModelError(FATFException):
     """
     Exception raised when a model lacks desired functionality.
@@ -32,14 +43,6 @@ class IncompatibleModelError(FATFException):
     functionality.
     """
 
-class IncompatibleExplainerError(FATFException):
-    """
-    Exception raised when explainer lacks desired functionaility.
-
-    For example, is can be raised when explainer object does not have function
-    ``explain_instance`` or if ``explain_instance`` function does not have
-    exactly one required parameter.
-    """
 
 class UnfittedModelError(FATFException):
     """

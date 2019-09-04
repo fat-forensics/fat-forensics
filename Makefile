@@ -32,7 +32,7 @@ endif
 	test-doc test-notebooks test code-coverage test-with-code-coverage \
 	deploy-code-coverage linting-pylint linting-flake8 linting-yapf check-types \
 	build readme-gen readme-preview validate-travis validate-sphinx-conf \
-	find-flags
+	find-flags clean doc-clean
 
 all: \
 	test-with-code-coverage \
@@ -209,6 +209,9 @@ build:
 
 clean:
 	find ./fatf -name '*.pyc' -delete
+	rm -fr FAT_forensics.egg-info
+	rm -fr build
+	rm -fr dist
 
 readme-gen:
 	pandoc -t html README.rst -o temp/README.html

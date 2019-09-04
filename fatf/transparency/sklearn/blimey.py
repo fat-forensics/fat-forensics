@@ -16,8 +16,8 @@ import fatf.transparency.sklearn.tools as ftst
 import fatf.utils.data.augmentation as fuda
 import fatf.utils.data.discretization as fudd
 import fatf.utils.distances as fud
-import fatf.utils.explainers as fue
-import fatf.utils.validation as fuv
+import fatf.utils.kernels as fatf_kernels
+import fatf.utils.transparency.explainers as fute
 import fatf.utils.array.validation as fuav
 import fatf.utils.models.validation as fumv
 import fatf.utils.array.tools as fuat
@@ -32,7 +32,7 @@ Index = Union[int, str]
 
 def _input_is_valid(dataset: np.ndarray,
                     augmentor: fuda.Augmentation,
-                    explainer: fue.Explainer,
+                    explainer: fute.Explainer,
                     global_model: object,
                     local_model: object,
                     categorical_indices: Optional[List[Index]] = None,
@@ -71,15 +71,14 @@ def _input_is_valid(dataset: np.ndarray,
     if not fumv.check_model_functionality(
             local_model,
             require_probabilities=False,
-            suppress_warning=True,
-            is_instance=False):
+            suppress_warning=True):
         raise IncompatibleModelError(
             'This functionality requires the local model to be capable of '
             'outputting predictions via predict method.')
 
-    if not issubclass(explainer, fue.Explainer):
+    if not issubclass(explainer, fute.Explainer):
         raise TypeError('The explainer object must inherit from abstract '
-                        'class fatf.utils.explainers.Explainer.')
+                        'class fatf.utils.transparency.explainers.Explainer.')
 
     if categorical_indices is not None:
         if isinstance(categorical_indices, list):
@@ -161,7 +160,7 @@ class Blimey(object):
     augmentor : fatf.utils.data.augmentation.Augmentation,
         An object refence which is a subclass of :class:`fatf.utils.data.
         augmentation.Augmentation` which the data will be augmented using.
-    explainer : fatf.utils.explainers.Explainer
+    explainer : fatf.utils.transparency.explainers.Explainer
         An object reference which is a subclass of :class:`fatf.utils.
         explainers.Explainer` and will be used to explain the ``local_model``.
     global_model : object
@@ -243,7 +242,7 @@ class Blimey(object):
         An object reference which is a subclass of :class:`fatf.utils.data.
         discretization.Discretization` which will discretize the data for use
         in the local model.
-    explainer : fatf.utils.explainers.Explaienr
+    explainer : fatf.utils.transparency.explainers.Explaienr
         An object reference which will explain an instance by training a
         `local_model` on locally augmentated data.
     global_model : object
@@ -280,7 +279,7 @@ class Blimey(object):
     def __init__(self,
                  dataset: np.ndarray,
                  augmentor: fuda.Augmentation,
-                 explainer: fue.Explainer,
+                 explainer: fute.Explainer,
                  global_model: object,
                  local_model: object,
                  categorical_indices: Optional[List[Index]] = None,
@@ -449,12 +448,12 @@ class Blimey(object):
             raise TypeError('The samples_number parameter must be an integer.')
 
         if kernel_function is not None:
-            if not fuv.check_kernel_functionality(kernel_function, True):
+            if not fatf_kernels.check_kernel_functionality(kernel_function, True):
                 raise TypeError('The kernel function must have only 1 '
                                 'required parameter. Any additional '
                                 'parameters can be passed via **kwargs.')
 
-        if not fuv.check_distance_functionality(distance_function, True):
+        if not fud.check_distance_functionality(distance_function, True):
             raise TypeError('The distance function must have only 2 required '
                             'parameters. Any additional parameters can be '
                             'passed via **kwargs.')

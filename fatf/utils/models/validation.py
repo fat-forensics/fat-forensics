@@ -8,6 +8,8 @@ across the FAT-Forensics package.
 #         Alex Hepburn <ah13558@bristol.ac.uk>
 # License: new BSD
 
+from typing import Union
+
 import inspect
 import warnings
 
@@ -16,10 +18,9 @@ import fatf.utils.validation as fuv
 __all__ = ['check_model_functionality']
 
 
-def check_model_functionality(model_object: object,
+def check_model_functionality(model_object: Union[object, type],
                               require_probabilities: bool = False,
-                              suppress_warning: bool = False,
-                              is_instance: bool = True) -> bool:
+                              suppress_warning: bool = False) -> bool:
     """
     Checks whether a model object has all the required functionality.
 
@@ -32,16 +33,20 @@ def check_model_functionality(model_object: object,
     Parameters
     ----------
     model_object : object
-        A Python object that represents a predictive model.
+        A Python object (either instantiated or just an object reference) that
+        represents a predictive model.
     require_probabilities : boolean, optional (default=False)
         A boolean parameter that indicates whether the model object should
         contain a ``predict_proba`` method. Defaults to False.
     suppress_warning : boolean, optional (default=False)
         A boolean parameter that indicates whether the function should suppress
         its warning message. Defaults to False.
-    is_instance : boolean, optional (default=True)
-        A boolean parameter that indices whether the model is an instanatiated
-        object or just an object reference.
+
+    Raises
+    ------
+    TypeError
+        The ``require_probabilities`` or ``suppress_warning`` parameter is not
+        a boolean.
 
     Warns
     -----
@@ -51,18 +56,22 @@ def check_model_functionality(model_object: object,
     Returns
     -------
     is_functional : boolean
-        A Boolean variable that indicates whether the model object has all the
+        A boolean variable that indicates whether the model object has all the
         desired functionality.
     """
-    if is_instance:
-        methods = {'fit': 2, 'predict': 1}
-    else:
-        methods = {'fit': 3, 'predict': 2}
-    if require_probabilities:
-        methods['predict_proba'] = 1 if is_instance else 2
+    if not isinstance(require_probabilities, bool):
+        raise TypeError('The require_probabilities parameter must be boolean.')
+    if not isinstance(suppress_warning, bool):
+        raise TypeError('The suppress_warning parameter must be boolean.')
 
-    is_functional, message = fuv._check_object_functionality(
-        model_object, 'model', methods, is_instance=is_instance)
+    methods = {'fit': 2, 'predict': 1}
+    if require_probabilities:
+        methods['predict_proba'] = 1
+
+    is_functional, message = fuv.check_object_functionality(
+        model_object,
+        methods,
+        object_reference_name='model')
 
     if not is_functional and not suppress_warning:
         warnings.warn(message, category=UserWarning)

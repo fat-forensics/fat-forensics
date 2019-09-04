@@ -134,7 +134,7 @@ def get_kwargs(clf_name):
 
     Returns
     -------
-    kwargs : Dictionary[str, Union[string, number]]
+    kwargs : Dictionary[string, Union[string, number]]
         A dictionary with named arguments appropriate for the selected model.
     """
     assert isinstance(clf_name, str), 'Classifier name must be a string.'
@@ -164,6 +164,7 @@ def test_validate_classifier_list():
         clf_instance.fit(DATA, LABELS)
 
         assert hasattr(clf_instance, 'classes_')
+
     for clf in LINEAR_REGRESSORS:
         name = clf.__name__
         kwargs = get_kwargs(name)
@@ -171,6 +172,7 @@ def test_validate_classifier_list():
         clf_instance.fit(DATA, LABELS)
 
         assert not hasattr(clf_instance, 'classes_')
+
     for clf in LINEAR_MULTITASK_REGRESSORS:
         name = clf.__name__
         kwargs = get_kwargs(name)
@@ -184,13 +186,17 @@ def test_is_scikit_linear():
     """
     Tests :func:`fatf.transparency.sklearn.linear_model._is_scikit_linear`.
     """
-    assertion_error_clf = 'Must be a valid sklearn classifier.'
+    assertion_error_clf = 'Invalid sklearn predictor.'
 
     clf_instance = object()
     with pytest.raises(AssertionError) as excinfo:
         ftsl._is_scikit_linear(clf_instance)
     assert str(excinfo.value) == assertion_error_clf
     clf_instance = 'object'
+    with pytest.raises(AssertionError) as excinfo:
+        ftsl._is_scikit_linear(clf_instance)
+    assert str(excinfo.value) == assertion_error_clf
+    clf_instance = object
     with pytest.raises(AssertionError) as excinfo:
         ftsl._is_scikit_linear(clf_instance)
     assert str(excinfo.value) == assertion_error_clf
@@ -241,15 +247,35 @@ def test_is_fitted_linear():
 
 def test_linear_classifier_coefficients():
     """
-    Tests linear scikit-learn classifier coefficient extractions.
+    Tests linear scikit-learn classifier coefficient extraction.
 
-    Tests :func:`fatf.transparency.sklearn.linear_model.
-    linear_classifier_coefficients` function.
+    Tests :func:`fatf.transparency.sklearn.linear_model.\
+linear_classifier_coefficients` function.
     """
+    type_error = ('This functionality is designated for linear-like '
+                  'scikit-learn predictor instances only. Instead got: {}.')
+    unfit_error = ("This {} instance is not fitted yet. Call 'fit' with "
+                   'appropriate arguments before using this method.')
+
+    for clf in NON_LINEAR_MODELS:
+        clf_instance = clf()
+        clf_instance.fit(DATA, LABELS)
+
+        with pytest.raises(TypeError) as excinfo:
+            ftsl.linear_classifier_coefficients(clf_instance)
+        name = str(clf).strip("<>' ")[7:]
+        assert str(excinfo.value) == type_error.format(name)
+
     for i, clf in enumerate(LINEAR_REGRESSORS):
         name = clf.__name__
         kwargs = get_kwargs(name)
         clf_instance = clf(**kwargs)
+
+        with pytest.raises(sklearn.exceptions.NotFittedError) as excinfo:
+            ftsl.linear_classifier_coefficients(clf_instance)
+        msg = unfit_error.format(clf_instance.__class__.__name__)
+        assert str(excinfo.value) == msg
+
         clf_instance.fit(DATA, LABELS)
 
         coef = ftsl.linear_classifier_coefficients(clf_instance)
@@ -262,6 +288,12 @@ def test_linear_classifier_coefficients():
         name = clf.__name__
         kwargs = get_kwargs(name)
         clf_instance = clf(**kwargs)
+
+        with pytest.raises(sklearn.exceptions.NotFittedError) as excinfo:
+            ftsl.linear_classifier_coefficients(clf_instance)
+        msg = unfit_error.format(clf_instance.__class__.__name__)
+        assert str(excinfo.value) == msg
+
         clf_instance.fit(DATA, LABELS)
 
         coef = ftsl.linear_classifier_coefficients(clf_instance)
@@ -271,6 +303,12 @@ def test_linear_classifier_coefficients():
         name = clf.__name__
         kwargs = get_kwargs(name)
         clf_instance = clf(**kwargs)
+
+        with pytest.raises(sklearn.exceptions.NotFittedError) as excinfo:
+            ftsl.linear_classifier_coefficients(clf_instance)
+        msg = unfit_error.format(clf_instance.__class__.__name__)
+        assert str(excinfo.value) == msg
+
         clf_instance.fit(DATA, LABELS_MULTITASK)
 
         coef = ftsl.linear_classifier_coefficients(clf_instance)
@@ -281,8 +319,9 @@ class TestSKLearnLinearModelExplainer(object):
     """
     Tests the ``SKLearnLinearModelExplainer`` class.
 
-    Tests the :class:`fatf.transparency.sklearn.linear_model.
-    SKLearnLinearModelExplainer` class.
+    Tests the
+    :class:`fatf.transparency.sklearn.linear_model.SKLearnLinearModelExplainer`
+    class.
     """
 
     feature_names = ['feature {}'.format(i) for i in range(4)]
@@ -365,7 +404,8 @@ class TestSKLearnLinearModelExplainer(object):
         Tests ``SKLearnLinearModelExplainer`` with non-linear models.
         """
         type_error = ('This functionality is designated for linear-like '
-                      'scikit-learn classifiers only. Instead got: {}.')
+                      'scikit-learn predictor instances only. Instead got: '
+                      '{}.')
 
         for clf in NON_LINEAR_MODELS:
             clf_instance = clf()

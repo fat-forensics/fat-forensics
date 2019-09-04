@@ -1,5 +1,6 @@
 """
-This module is responsible for explaining scikit-learn linear models.
+The :mod:`fatf.transparency.sklearn.linear_model` module implements linear
+scikit-learn model explainers.
 """
 # Author: Kacper Sokol <k.sokol@bristol.ac.uk>
 # License: new BSD
@@ -53,16 +54,16 @@ def _is_scikit_linear(clf: sklearn.base.BaseEstimator) -> bool:
     Parameters
     ----------
     clf : sklearn.base.BaseEstimator
-        A scikit-learn classifier.
+        A scikit-learn predictor.
 
     Returns
     -------
     is_scikit_linear : boolean
-        ``True`` if the classifier is any of the scikit-learn linear models,
+        ``True`` if the predictor is any of the scikit-learn linear models,
         ``False`` otherwise.
     """
 
-    assert ftst.is_sklearn_model(clf), 'Must be a valid sklearn classifier.'
+    assert ftst.is_sklearn_model_instance(clf), 'Invalid sklearn predictor.'
     is_scikit_linear = isinstance(clf, (_LINEAR_REGRESSOR, _LINEAR_CLASSIFIER))
     return is_scikit_linear
 
@@ -87,7 +88,7 @@ def _is_fitted_linear(clf: sklearn.base.BaseEstimator) -> bool:
     Returns
     -------
     is_fitted_linear : boolean
-        ``True`` if the linear classifier is fitted, ``False`` otherwise.
+        ``True`` if the linear predictor is fitted, ``False`` otherwise.
     """
     assert _is_scikit_linear(clf), 'Has to be an linear scikit-learn model.'
 
@@ -115,14 +116,27 @@ def linear_classifier_coefficients(
     clf : sklearn.base.BaseEstimator
         A linear scikit-learn model.
 
+    Raises
+    ------
+    sklearn.exceptions.NotFittedError
+        The scikit-learn package (``sklearn.utils.validation.check_is_fitted``
+        function) will raise this exception if the model is not fitted.
+    TypeError
+        The ``clf`` classifier is not a scikit-learn linear model.
+
     Returns
     -------
     coefficients : numpy.ndarray
-        A numpy array that holds coefficients of the ``clf`` linear model (the
-        order of the coefficients corresponds to the order of the features in
-        the training data array).
+        A numpy array that holds coefficients of the ``clf`` linear model.
+        (The order of the coefficients corresponds to the order of the features
+        in the training data array).
     """
-    assert _is_scikit_linear(clf), 'Has to be a linear sklearn model.'
+    # Has to be a linear sklearn model
+    if not _is_scikit_linear(clf):
+        raise TypeError('This functionality is designated for linear-like '
+                        'scikit-learn predictor instances only. Instead got: '
+                        '{}.{}.'.format(clf.__module__,
+                                        clf.__class__.__name__))
     assert _is_fitted_linear(clf), 'Has to be a fitted sklearn linear model.'
 
     assert hasattr(clf, 'coef_'), 'coef_ attribute missing.'
@@ -160,9 +174,9 @@ class SKLearnLinearModelExplainer(ftst.SKLearnExplainer):
         Returns
         -------
         feature_importance_array : numpy.ndarray
-            A numpy array with coefficients of the ``clf`` linear model
-            (the order of the coefficients corresponds to the order of the
-            features in the training data array).
+            A numpy array with coefficients of the ``clf`` linear model.
+            (The order of the coefficients corresponds to the order of the
+            features in the training data array.)
         """
         feature_importance_array = linear_classifier_coefficients(self.clf)
         return feature_importance_array
@@ -202,16 +216,15 @@ class SKLearnLinearModelExplainer(ftst.SKLearnExplainer):
         -------
         is_linear_fitted : boolean
             ``True`` if the ``clf`` model is linear and fitted. ``False`` if
-            the model either not fitted or is not linear.
+            the model is either not fitted or is not linear.
         """
         is_linear_fitted = False
 
         if not _is_scikit_linear(self.clf):
-            _msg = ('This functionality is designated for linear-like '
-                    'scikit-learn classifiers only. Instead got: {}.{}.'
-                    ''.format(self.clf.__module__,
-                              self.clf.__class__.__name__))
-            raise TypeError(_msg)
+            raise TypeError('This functionality is designated for linear-like '
+                            'scikit-learn predictor instances only. Instead '
+                            'got: {}.{}.'.format(self.clf.__module__,
+                                                 self.clf.__class__.__name__))
 
         assert _is_fitted_linear(self.clf), 'Has to be a fitted linear model.'
 

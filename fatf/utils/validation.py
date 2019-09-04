@@ -1,232 +1,164 @@
 """
-Holds functions responsible for models validation across FAT-Forensics.
+The :mod:`fatf.utils.validation` module validates functions and objects.
+
+This module holds functions responsible for validating generic functions and
+objects implemented across the FAT-Forensics package.
 """
 # Author: Kacper Sokol <k.sokol@bristol.ac.uk>
 #         Alex Hepburn <ah13558@bristol.ac.uk>
 # License: new BSD
 
-from typing import Dict, Tuple, Callable, Any
+from typing import Any, Callable, Dict, Optional, Tuple, Union
+
 import inspect
 import warnings
 
-__all__ = ['check_explainer_functionality', 'check_kernel_functionality']
+__all__ = ['get_required_parameters_number', 'check_object_functionality']
 
 
-def _check_function_functionality(function: Callable[..., Any],
-                                  required_param: int) -> bool:
+def get_required_parameters_number(callable_object: Callable) -> int:
     """
-    Checks whether a method has the correct number of required parameters.
+    Checks if a callable object has the correct number of required parameters.
+
+    A callable object can be a function or a method.
 
     Parameters
     ----------
-    function : Callable[..., Any]
-        Function to test.
-    required_param : integer
-        Number of required parameters that ``method`` must have.
+    callable_object : callable
+        A callable object to be tested.
+
+    Raises
+    ------
+    TypeError
+        The ``callable_object`` is not a Python callable, i.e., a function or
+        a method.
 
     Returns
     -------
-    is_functional : boolean
-        A Boolean variable that indicates whether the object has all
-        the desired functionality.
     required_param_n : integer
-        Number of parameters that ``function`` requires.
-    message : string
-        Message detailing the functionality that the function is lacking.
+        The number of required parameters that ``callable_object`` takes.
     """
-    is_functional = True
+    if not callable(callable_object):
+        raise TypeError('The callable_object should be Python callable, e.g., '
+                        'a function or a method.')
 
     required_param_n = 0
-    params = inspect.signature(function).parameters
+    params = inspect.signature(callable_object).parameters
     for param in params:
         if param != 'kwargs':
             if params[param].default is params[param].empty:
                 required_param_n += 1
-    if required_param_n != required_param:
-        is_functional = False
 
-    return is_functional, required_param_n
+    return required_param_n
 
 
-def _check_object_functionality(given_object: object,
-                                object_name: str,
-                                methods: Dict[str, int],
-                                is_instance: bool = True) -> Tuple[bool, str]:
+def check_object_functionality(
+    an_object: Union[object, type],
+    methods: Dict[str, int],
+    object_reference_name: Optional[str] = None) -> Tuple[bool, str]:
     """
-    Checks whether an object has specified methods with number of parameters.
+    Checks if an object has specified methods with given number of parameters.
+
+    The object to be checked can either be an uninitialised object reference or
+    an initialised object instance.
 
     Parameters
     ----------
-    given_object : object
-        A Python object to check methods.
-    object_name : str
-        Name of type of object that `given_object` is to use in warning
-        messages
+    an_object : Union[object, type]
+        A Python object (either uninitialised object reference or an
+        initialised object) to be checked.
     methods : Dictionary[string, integer]
-        Dictionary where key is method name required in `given_object` and
-        value is number of required parameters in specified method.
+        A dictionary where keys are method names required to be in `an_object`
+        and values are the number of required parameters in for these methods.
+    object_reference_name : string, optional (default='')
+        A reference name of ``an_object`` used to provide more information
+        in the generated (warning) ``message``. If ``None``, this information
+        will not be included in the ``message``.
+
+    Raises
+    ------
+    TypeError
+        The ``methods`` parameter is not a dictionary, one of its keys is not a
+        string or one of its values is not an integer. The
+        ``object_reference_name`` parameter is neither a string nor ``None``.
+    ValueError
+        The ``methods`` dictionary is empty or one of its values is a negative
+        integer.
 
     Returns
     -------
     is_functional : boolean
-        A Boolean variable that indicates whether the object has all
+        A boolean variable that indicates whether the object has all
         the desired functionality.
     message : string
-        Message detailing the functionality that the object is lacking.
+        A message detailing the lacking functionality of ``an_object``.
     """
-    is_functional = True
-
-    message_strings = []
-    for method in methods:
-        if not hasattr(given_object, method):
-            is_functional = False
-            message_strings.append(
-                'The {} class is missing \'{}\' method.'.format(
-                    object_name, method))
+    if isinstance(methods, dict):
+        if methods:
+            for key, value in methods.items():
+                if not isinstance(key, str):
+                    raise TypeError('All of the keys in the methods '
+                                    "dictionary must be strings. The '{}' key "
+                                    'in not a string.'.format(key))
+                if not isinstance(value, int):
+                    raise TypeError('All of the values in the methods '
+                                    "dictionary must be integers. The '{}' "
+                                    "value for the '{}' key in not a "
+                                    'string.'.format(value, key))
+                if value < 0:
+                    raise ValueError('All of the values in the methods '
+                                     'dictionary must be non-negative '
+                                     "integers. The '{}' value for '{}' key "
+                                     'does not comply.'.format(value, key))
         else:
-            method_object = getattr(given_object, method)
-            functional, required_params, = _check_function_functionality(
-                method_object, methods[method])
-            if not functional:
+            raise ValueError('The methods dictionary cannot be empty.')
+    else:
+        raise TypeError('The methods parameter must be a dictionary.')
+
+    if object_reference_name is not None:
+        if not isinstance(object_reference_name, str):
+            raise TypeError('The object_reference_name parameter must be a '
+                            'string or None.')
+
+    is_instantiated = not isinstance(an_object, type)
+
+    if is_instantiated:
+        object_name = an_object.__class__.__name__
+        param_correction = 0
+    else:
+        object_name = an_object.__name__
+        # `self` is an extra parameter if the object is not instantiated
+        param_correction = 1
+
+    if object_reference_name is None:
+        object_reference = '*{}* class'.format(object_name)
+    else:
+        object_reference = '*{}* ({}) class'.format(object_name,
+                                                    object_reference_name)
+
+    is_functional = True
+    message_strings = []
+
+    for method in methods:
+        if not hasattr(an_object, method):
+            is_functional = False
+            message_strings.append("The {} is missing '{}' method.".format(
+                object_reference, method))
+        else:
+            method_object = getattr(an_object, method)
+            required_param_n = get_required_parameters_number(method_object)
+            required_param_n -= param_correction
+
+            if not required_param_n == methods[method]:
                 is_functional = False
-                if not is_instance:
-                    required_params -= 1  # Remove ``self``` if not instance.
-                    methods[method] -= 1
                 message_strings.append(
-                    ('The \'{}\' method of the class has incorrect number '
+                    ("The '{}' method of the {} has incorrect number "
                      '({}) of the required parameters. It needs to have '
-                     'exactly {} required parameters. Try using optional '
+                     'exactly {} required parameter(s). Try using optional '
                      'parameters if you require more functionality.').format(
-                         method, required_params, methods[method]))
+                         method, object_reference, required_param_n,
+                         methods[method]))
 
     message = '\n'.join(message_strings)
 
     return is_functional, message
-
-
-def check_explainer_functionality(explainer_object: object,
-                                  suppress_warning: bool = False) -> bool:
-    """
-    Checks whether a explainer object has all the required functionality.
-
-    Examines a ``explainer_object`` and ensures that it has all the required
-    methods with the correct number of parameters (excluding ``self``):
-    ``__init__`` (at least 0), ``explain_instance`` (at least 2).
-
-    Parameters
-    ----------
-    explainer_object : object
-        A Python object that represents a object that generates explanations.
-    suppress_warning : boolean, optional (default=False)
-        A boolean parameter that indicates whether the function should suppress
-        its warning message. Defaults to False.
-
-    Warns
-    -----
-    UserWarning
-        Warns about the required functionality that the explainer object lacks.
-
-    Returns
-    -------
-    is_functional : boolean
-        A Boolean variable that indicates whether the explainer object has all
-        the desired functionality.
-    """
-    is_functional = True
-
-    methods = {'explain_instance': 1}
-
-    is_functional, message = _check_object_functionality(
-        explainer_object, 'explainer', methods)
-
-    if not is_functional and not suppress_warning:
-        warnings.warn(message, category=UserWarning)
-
-    return is_functional
-
-
-def check_kernel_functionality(kernel_function: Callable[..., Any],
-                               suppress_warning: bool = False) -> bool:
-    """
-    Checks whether a kernel function has all the required functionality.
-
-    Examines a ``kernel_function`` and ensures that it has all the required
-    methods with the correct number of required parameters of 1.
-
-    Parameters
-    ----------
-    kernel_function : object
-        A function that represents a kernel.
-    suppress_warning : boolean, optional (default=False)
-        A boolean parameter that indicates whether the function should suppress
-        its warning message. Defaults to False.
-
-    Warns
-    -----
-    UserWarning
-        Warns about the required functionality that the kernel function lacks.
-
-    Returns
-    -------
-    is_functional : boolean
-        A Boolean variable that indicates whether the kernel function has all
-        the desired functionality.
-    """
-    is_functional = True
-
-    is_functional, required_param = _check_function_functionality(
-        kernel_function, 1)
-
-    if not is_functional and not suppress_warning:
-        message = ('The \'{}\' kernel function has incorrect number '
-                   '({}) of the required parameters. It needs to have '
-                   'exactly 1 required parameters. Try using optional '
-                   'parameters if you require more functionality.').format(
-                       kernel_function.__name__, required_param)
-        warnings.warn(message, category=UserWarning)
-
-    return is_functional
-
-
-def check_distance_functionality(distance_function: Callable[..., Any],
-                                 suppress_warning: bool = False) -> bool:
-    """
-    Checks whether a distance function has all the required functionality.
-
-    Examines a ``distance_function`` and ensures that it has all the required
-    methods with the correct number of required parameters of 2.
-
-    Parameters
-    ----------
-    distance_function : object
-        A function that represents a distance.
-    suppress_warning : boolean, optional (default=False)
-        A boolean parameter that indicates whether the function should suppress
-        its warning message. Defaults to False.
-
-    Warns
-    -----
-    UserWarning
-        Warns about the required functionality that the distance function
-        lacks.
-
-    Returns
-    -------
-    is_functional : boolean
-        A Boolean variable that indicates whether the distance function has all
-        the desired functionality.
-    """
-    is_functional = True
-
-    is_functional, required_param = _check_function_functionality(
-        distance_function, 2)
-
-    if not is_functional and not suppress_warning:
-        message = ('The \'{}\' distance function has incorrect number '
-                   '({}) of the required parameters. It needs to have '
-                   'exactly 2 required parameters. Try using optional '
-                   'parameters if you require more functionality.').format(
-                       distance_function.__name__, required_param)
-        warnings.warn(message, category=UserWarning)
-
-    return is_functional

@@ -4,13 +4,13 @@ Implementation various measures for comparing local model to global model.
 # Author: Alex Hepburn <ah13558@bristol.ac.uk>
 # License: new BSD
 
-from typing import Union, List, Optional
+from typing import Union, List, Optional, Callable
 
 import numpy as np
 
 import fatf
 import fatf.utils.data.augmentation as fuda
-import fatf.utils.models.metrics as fumm
+import fatf.utils.validation as fuv
 import fatf.utils.models.validation as fumv
 import fatf.utils.array.validation as fuav
 import fatf.utils.array.tools as fuat
@@ -28,7 +28,9 @@ def _input_is_valid(dataset: np.ndarray,
                     global_model: object,
                     local_features: List[Index],
                     r_fid: float,
-                    samples_number: int):
+                    samples_number: int,
+                    metric: Callable[[np.ndarray, np.ndarray], float],
+                    global_class: int) -> bool:
     """
     Validates the input parameters of model comparison functions.
 
@@ -52,15 +54,14 @@ def _input_is_valid(dataset: np.ndarray,
 
     if not fuav.is_1d_like(data_row):
         raise IncorrectShapeError('The data_row must either be a '
-                                    '1-dimensional numpy array or numpy '
-                                    'void object for structured rows.')
+                                  '1-dimensional numpy array or numpy '
+                                  'void object for structured rows.')
 
     are_similar = fuav.are_similar_dtype_arrays(
         dataset, np.array([data_row]), strict_comparison=True)
     if not are_similar:
         raise TypeError('The dtype of the data_row is different to '
-                        'the dtype of the data array used to '
-                        'initialise this class.')
+                        'the dtype of the dataset array.')
 
     if local_features is not None:
         if isinstance(local_features, list):
@@ -80,24 +81,24 @@ def _input_is_valid(dataset: np.ndarray,
         if data_row.shape[0] != dataset.shape[1]:
             raise IncorrectShapeError('The data_row must contain the '
                                         'same number of features as the '
-                                        'dataset used to initialise '
-                                        'this class.')
+                                        'dataset.')
 
-    if not fumv.check_model_functionality(global_model, suppress_warning=True):
+    if not fumv.check_model_functionality(global_model, True, True):
         raise IncompatibleModelError('This functionality requires the global '
                                      'model to be capable of outputting '
-                                     'predicted class via predict method.')
+                                     'predicted class probabilities via '
+                                     'predict proba method.')
 
-    if not fumv.check_model_functionality(local_model, suppress_warning=True):
+    if not fumv.check_model_functionality(local_model, False, True):
         raise IncompatibleModelError('This functionality requires the local '
                                      'model to be capable of outputting '
                                      'predicted class via predict method.')
 
     if not isinstance(r_fid, float):
-            raise TypeError('r_fid must be float.')
+            raise TypeError('r_fid must be a float.')
     else:
         if r_fid <= 0.0:
-            raise ValueError('r_fid must be a positive integer.')
+            raise ValueError('r_fid must be a positive float.')
 
     if isinstance(samples_number, int):
             if samples_number < 1:
@@ -106,7 +107,22 @@ def _input_is_valid(dataset: np.ndarray,
     else:
         raise TypeError('The samples_number parameter must be an integer.')
 
+    if fuv.get_required_parameters_number(metric) != 2:
+        raise TypeError('The metric function must take only two required '
+                         'parameters.')
+
+    if is_structured:
+        datapoint = dataset[0:1]
+    else:
+        datapoint = dataset[0:1, :]
+
+    n_classes = global_model.predict_proba(datapoint).shape[1]
+    if global_class > n_classes:
+        raise ValueError('global_class is larger than the number of classes '
+                         'outputted by the global model.')
+
     is_input_ok = True
+
     return is_input_ok
 
 
@@ -115,10 +131,10 @@ def local_fidelity_score(dataset: np.ndarray,
                          local_model: object,
                          global_model: object,
                          global_class: int,
-                         local_features=Optional[List[Index]],
-                         r_fid=0.05,
-                         samples_number=50,
-                         roc=False) -> float:
+                         metric: Callable[[np.ndarray, np.ndarray], float],
+                         local_features: Optional[List[Index]]=None,
+                         r_fid: float=0.05,
+                         samples_number: int=50) -> float:
     """
     Computes local fidelity score for an instance in a dataset.
 
@@ -162,16 +178,38 @@ def local_fidelity_score(dataset: np.ndarray,
         of the l-2 hypersphere that points will be sampled in.
     samples_number : integer, Optional(default=50)
         The number of samples to be generated.
+    metric : Callable[[numpy.ndarray, numpy.ndarray], float]
+        A function that computes a metric between the predicted class of the
+        local model, and the predicted probability of the global model. It must
+        take only two required parameters and return a float. THe first
+        parameter must be the local predictions and the second must be the
+        global model probability predictions.
 
     Raises
     ------
+    IncorrectShapeError
+        The input dataset must be a 2-dimensional numpy array. The data_row
+        must either be a 1-dimensional numpy array or numpy void object for
+        structured rows. The data_row must contain the same number of features
+        as the dataset.
+    TypeError
+        The input dataset must be of a base type. The dtype of the data_row
+        must be the same dtype of the dataset array. The local_features
+        parameter must be a Python list or None. r_fid must be a float. The
+        samples_number paramter must be an integer. The metric function must
+        take only two required parameters.
 
     Returns
     -------
-    accuracy : float
-        Agreement between ``local_model`` predictions and ``global_model``
-        predictions for the data sampled.
+    metric_result : float
+        metric calculated between ``local_model`` predictions and
+        ``global_model`` prediction probabilities for the data sampled.
     """
+    assert _input_is_valid(dataset, data_row, local_model, global_model,
+                           local_features, r_fid, samples_number,
+                           metric, global_class), 'Input is invalid.'
+
+    # TODO: int_to_float to be or not to be
     augmentor = fuda.LocalFidelity(dataset, int_to_float=True)
     sampled_data = augmentor.sample(data_row, r_fid, samples_number)
 
@@ -185,23 +223,7 @@ def local_fidelity_score(dataset: np.ndarray,
         local_predictions = local_model.predict(local_data)
 
     global_predictions = global_model.predict_proba(sampled_data)[:, global_class]
-    global_predictions[global_predictions>=0.5] = 1
-    global_predictions[global_predictions<0.5] = 0
 
-    if not roc:
-        local_predictions[local_predictions>=0.5] = 1
-        local_predictions[local_predictions<0.5] = 0
+    metric_result = metric(local_predictions, global_predictions)
 
-        confusion_matrix = fumm.get_confusion_matrix(local_predictions,
-                                                    global_predictions,
-                                                    labels=[0, 1])
-        accuracy = fumm.accuracy(confusion_matrix)
-    else:
-        import sklearn.metrics
-        global_predictions = global_predictions.astype(int)
-        try:
-            accuracy = sklearn.metrics.roc_auc_score(global_predictions, local_predictions)
-        except ValueError:
-            accuracy = None
-
-    return accuracy
+    return metric_result

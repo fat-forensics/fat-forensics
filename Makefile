@@ -136,6 +136,7 @@ doc-clean:
 # starting with `test_` and classes starting with `Test` will be found.)
 test-doc:
 	mkdir -p doc/tutorials/img
+	mkdir -p doc/how_to/img
 	PYTHONPATH=./ PYTEST_IN_PROGRESS='true' pytest \
 		-W default::UserWarning \
 		--doctest-glob='*.txt' \

@@ -26,4 +26,11 @@ The *How To Accountability* guides are coming soon.
 Transparency How-To
 ===================
 
+.. toctree::
+   :maxdepth: 2
+   :titlesonly:
+   :name: tutorialstoc
+
+   bLIMEy-how-to
+
 The *How To Transparency* guides are coming soon.

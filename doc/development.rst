@@ -64,9 +64,9 @@ or alongside the package with
 given that your current directory is the root directory of the package. (See
 the section below for more information.)
 
-.. _requirements.txt: https://github.com/So-Cool/fat-forensics/blob/dev/requirements.txt
-.. _requirements-aux.txt: https://github.com/So-Cool/fat-forensics/blob/dev/requirements-aux.txt
-.. _requirements-dev.txt: https://github.com/So-Cool/fat-forensics/blob/dev/requirements-dev.txt
+.. _requirements.txt: https://github.com/fat-forensics/fat-forensics/blob/dev/requirements.txt
+.. _requirements-aux.txt: https://github.com/fat-forensics/fat-forensics/blob/dev/requirements-aux.txt
+.. _requirements-dev.txt: https://github.com/fat-forensics/fat-forensics/blob/dev/requirements-dev.txt
 
 Installing the Package
 ----------------------
@@ -79,7 +79,7 @@ commands shown below.
 
 .. code-block:: bash
 
-   $ git clone https://github.com/So-Cool/fat-forensics.git
+   $ git clone https://github.com/fat-forensics/fat-forensics.git
    $ cd fat-forensics
    $ pip install -e '.[all,dev]'
 
@@ -120,9 +120,9 @@ Our Continuous Integration (CI) is run on Travis_ with the configuration file
    If anywhere in the tests you wish to restore it to the desired value,
    calling the :func:`fatf.setup_random_seed` function should suffice.
 
-.. _Makefile: https://github.com/So-Cool/fat-forensics/blob/dev/Makefile
-.. _Travis: https://travis-ci.com/So-Cool/fat-forensics
-.. _`.travis.yml`: https://github.com/So-Cool/fat-forensics/blob/dev/.travis.yml
+.. _Makefile: https://github.com/fat-forensics/fat-forensics/blob/dev/Makefile
+.. _Travis: https://travis-ci.com/fat-forensics/fat-forensics
+.. _`.travis.yml`: https://github.com/fat-forensics/fat-forensics/blob/dev/.travis.yml
 
 Code Formatting
 ---------------
@@ -160,13 +160,13 @@ directory of the package.
 
 .. _`Google Python Style Guide`: http://google.github.io/styleguide/pyguide.html
 .. _YAPF: https://github.com/google/yapf
-.. _`.style.yapf`: https://github.com/So-Cool/fat-forensics/blob/dev/style.yapf
+.. _`.style.yapf`: https://github.com/fat-forensics/fat-forensics/blob/dev/style.yapf
 .. _Pylint: https://www.pylint.org/
 .. _Flake8: http://flake8.pycqa.org/en/latest/
-.. _`.pylintrc`: https://github.com/So-Cool/fat-forensics/blob/dev/.pylintrc
-.. _`.flake8`: https://github.com/So-Cool/fat-forensics/blob/dev/.flake8
+.. _`.pylintrc`: https://github.com/fat-forensics/fat-forensics/blob/dev/.pylintrc
+.. _`.flake8`: https://github.com/fat-forensics/fat-forensics/blob/dev/.flake8
 .. _EditorConfig: https://EditorConfig.org
-.. _`.editorconfig`: https://github.com/So-Cool/fat-forensics/blob/dev/.editorconfig
+.. _`.editorconfig`: https://github.com/fat-forensics/fat-forensics/blob/dev/.editorconfig
 
 Type Hints
 ----------
@@ -181,7 +181,7 @@ type checking is performed by executing the following line of code:
    $ make check-types
 
 .. _mypy: http://mypy-lang.org/
-.. _`.mypy.ini`: https://github.com/So-Cool/fat-forensics/blob/dev/.mypy.ini
+.. _`.mypy.ini`: https://github.com/fat-forensics/fat-forensics/blob/dev/.mypy.ini
 
 Testing
 -------
@@ -255,9 +255,9 @@ tests can be run with:
    we are using pure doctest syntax, i.e. no group annotations are possible.
 
 .. _pytest: https://pytest.org/en/latest/
-.. _`pytest.ini`: https://github.com/So-Cool/fat-forensics/blob/dev/pytest.ini
+.. _`pytest.ini`: https://github.com/fat-forensics/fat-forensics/blob/dev/pytest.ini
 .. _pytest-cov: https://pytest-cov.readthedocs.io/en/latest/
-.. _`.coveragerc`: https://github.com/So-Cool/fat-forensics/blob/dev/.coveragerc
+.. _`.coveragerc`: https://github.com/fat-forensics/fat-forensics/blob/dev/.coveragerc
 
 Step by Step Guide
 ==================
@@ -356,10 +356,10 @@ placed in the :ref:`user_guide`:
 - Is it *Post-Hoc* or *Ante-Hoc*.
 
 .. _Sphinx: http://www.sphinx-doc.org/en/master/
-.. _`custom theme`: https://github.com/So-Cool/fat-forensics/tree/dev/doc/themes/fat-forensics
+.. _`custom theme`: https://github.com/fat-forensics/fat-forensics/tree/dev/doc/themes/fat-forensics
 .. _numpydoc: https://numpydoc.readthedocs.io/en/latest/
 .. _sphinx-gallery: https://sphinx-gallery.github.io/
-.. _`documentation-specific Makefile`: https://github.com/So-Cool/fat-forensics/blob/dev/doc/Makefile
+.. _`documentation-specific Makefile`: https://github.com/fat-forensics/fat-forensics/blob/dev/doc/Makefile
 
 Pull Requests and Issues
 ========================
@@ -373,10 +373,10 @@ yours.
 Similarly, we have `issue templates`_. Please use them (whenever possible)
 while opening a new issue.
 
-.. _`pull request template`: https://github.com/So-Cool/fat-forensics/blob/dev/.github/PULL_REQUEST_TEMPLATE.md
-.. _`pull requests`: https://github.com/So-Cool/fat-forensics/pulls
-.. _issues: https://github.com/So-Cool/fat-forensics/issues
-.. _`issue templates`: https://github.com/So-Cool/fat-forensics/tree/dev/.github/ISSUE_TEMPLATE
+.. _`pull request template`: https://github.com/fat-forensics/fat-forensics/blob/dev/.github/PULL_REQUEST_TEMPLATE.md
+.. _`pull requests`: https://github.com/fat-forensics/fat-forensics/pulls
+.. _issues: https://github.com/fat-forensics/fat-forensics/issues
+.. _`issue templates`: https://github.com/fat-forensics/fat-forensics/tree/dev/.github/ISSUE_TEMPLATE
 
 Package Structure
 =================

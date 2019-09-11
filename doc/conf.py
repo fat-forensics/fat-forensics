@@ -115,8 +115,8 @@ master_doc = 'index'
 # directories to ignore when looking for source files.
 # This pattern also affects html_static_path and html_extra_path .
 exclude_patterns = ['_build', 'themes', 'templates', 'resources',
-                    'Thumbs.db', '.DS_Store', 'linkcode_github.py',
-                    '__pycache__']
+                    'Thumbs.db', '.DS_Store', '__pycache__',
+                    'linkcode_github.py', 'JOSS_paper']
 
 # If true, '()' will be appended to :func: etc. cross-reference text.
 add_function_parentheses = False

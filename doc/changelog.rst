@@ -5,8 +5,8 @@
 Changelog
 +++++++++
 
-0.0.1-dev1 (01/08/2019)
-=======================
+0.0.1 (01/08/2019)
+==================
 
 This is the initial (developmental) releases of the package. The following
 functionality is made available with this release:

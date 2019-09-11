@@ -11,7 +11,7 @@ fi
 KEY_ENC="build_tools/doc/fat-forensics-deploy-key.enc"
 KEY="build_tools/doc/fat-forensics-deploy-key"
 
-DOC_REPO="So-Cool/fat-forensics-doc"
+DOC_REPO="fat-forensics/fat-forensics-doc"
 DOC_SOURCE="doc/_build/html/*"
 DOC_TARGET="$HOME/fat-forensics-doc"
 

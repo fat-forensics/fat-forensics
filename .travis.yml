@@ -85,16 +85,29 @@ jobs:
       python: 3.6
       if: |
         env(FATF_TEST_SCIPY) = 1.3.0 AND \
-        env(FATF_TEST_NUMPY) = 1.16.3 AND \
+        env(FATF_TEST_NUMPY) = 1.16.3
       script:
         - if [[ $TRAVIS_TEST_DOCUMENTATION == 1 ]]; then make test-doc; fi
-#        - if [[ $TRAVIS_TEST_DOCUMENTATION == 1 ]]; then make doc-linkcheck; fi
+        - if [[ $TRAVIS_TEST_DOCUMENTATION == 1 ]]; then make doc-linkcheck; fi
         - if [[ $TRAVIS_TEST_DOCUMENTATION == 1 ]]; then make doc-coverage; fi
       before_deploy:
         - make doc-html
       deploy:
         provider: script
         script: bash build_tools/doc/deploy-doc.sh dev
+        skip_cleanup: true
+        on:
+          repo: fat-forensics/fat-forensics
+          branch: dev
+    - stage: Deploy Code Coverage
+      python: 3.6
+      if: |
+        env(FATF_TEST_SCIPY) = 1.3.0 AND \
+        env(FATF_TEST_NUMPY) = 1.16.3
+      script: make test-with-code-coverage
+      deploy:
+        provider: script
+        script: make deploy-code-coverage
         skip_cleanup: true
         on:
           repo: fat-forensics/fat-forensics

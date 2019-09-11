@@ -174,7 +174,7 @@ html_theme_path = ['themes']
 html_static_path = []
 
 # Copy extra files to the target build directory.
-html_extra_path = ['Readme.md']
+html_extra_path = ['Readme.md', '.nojekyll']
 
 # Custom sidebar templates, must be a dictionary that maps document names
 # to template names.

@@ -160,7 +160,7 @@ directory of the package.
 
 .. _`Google Python Style Guide`: http://google.github.io/styleguide/pyguide.html
 .. _YAPF: https://github.com/google/yapf
-.. _`.style.yapf`: https://github.com/fat-forensics/fat-forensics/blob/dev/style.yapf
+.. _`.style.yapf`: https://github.com/fat-forensics/fat-forensics/blob/dev/.style.yapf
 .. _Pylint: https://www.pylint.org/
 .. _Flake8: http://flake8.pycqa.org/en/latest/
 .. _`.pylintrc`: https://github.com/fat-forensics/fat-forensics/blob/dev/.pylintrc

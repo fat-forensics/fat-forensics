@@ -4,7 +4,7 @@
 Software       |Licence|_ |GitHubRelease|_ |PyPi|_ |Python35|_
 Docs           |Homepage|_
 CI             |Travis|_ |Codecov|_
-Try it         |Binder|_ |Docker|_
+Try it         |Binder|_
 Contact        |MailingList|_ |Gitter|_
 Cite           |BibTeX|_ |DOI|_
 =============  ================================================================
@@ -42,7 +42,7 @@ Cite           |BibTeX|_ |DOI|_
 .. https://requires.io/
 
 .. |Binder| image:: https://mybinder.org/badge_logo.svg
-.. _Binder: https://mybinder.org/v2/gh/fat-forensics/fat-forensics/dev
+.. _Binder: https://mybinder.org/v2/gh/fat-forensics/fat-forensics-doc/master?filepath=notebooks
 
 .. |Docker| image:: https://images.microbadger.com/badges/image/anthropocentricai/ai-python.svg
 .. _Docker: https://hub.docker.com/r/anthropocentricai/ai-python

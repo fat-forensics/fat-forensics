@@ -175,16 +175,10 @@ test-with-code-coverage:
 deploy-code-coverage:
 # @ before the command suppresses printing it out, hence hides the token
 ifeq ($(TRAVIS_PULL_REQUEST),'false')
-ifndef CODECOV_TOKEN
-	@echo 'CODECOV_TOKEN environment variable is NOT set'
-	$(error CODECOV_TOKEN is undefined)
+	@codecov -f temp/coverage_$(PYTHON_VERSION).xml
 else
-	@echo 'codecov -t $$CODECOV_TOKEN -f temp/coverage_$(PYTHON_VERSION).xml'
-#	@codecov -t $(CODECOV_TOKEN) -f temp/coverage_$(PYTHON_VERSION).xml
-endif
-else
-	@echo 'Code coverage can only be submitted from a branch of the upstream repo'
-	$(error TRAVIS_PULL_REQUEST is undefined)
+	$(error Code coverage can only be submitted from a branch of the main \
+		repository. (TRAVIS_PULL_REQUEST variable is undefined.))
 endif
 
 linting-pylint:

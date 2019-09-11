@@ -174,7 +174,7 @@ test-with-code-coverage:
 
 deploy-code-coverage:
 # @ before the command suppresses printing it out, hence hides the token
-ifeq ($(TRAVIS_PULL_REQUEST),'false')
+ifeq ($(TRAVIS_PULL_REQUEST),false)
 	@codecov -f temp/coverage_$(PYTHON_VERSION).xml
 else
 	$(error Code coverage can only be submitted from a branch of the main \

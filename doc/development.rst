@@ -370,7 +370,9 @@ Pull Requests and Issues
 
 When making a pull request on GitHub please use the provided
 `pull request template`_ and make sure that you comply with all the
-requirements listed therein. Furthermore, please have a browse through other
+requirements listed therein. All of the pull requests should be made against
+the ``dev`` branch (please note that by default they will be created against
+the ``master`` branch). Furthermore, please have a browse through other
 `pull requests`_ and issues_ to locate all the problems/solutions similar to
 yours.
 

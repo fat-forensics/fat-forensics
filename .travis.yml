@@ -109,7 +109,9 @@ jobs:
         provider: script
         script: make deploy-code-coverage
         skip_cleanup: true
-        on: *deploy-conditions
+        on:
+          <<: *deploy-conditions
+          all_branches: true
     - stage: Release on PyPi
       python: 3.6
       if: |
@@ -138,7 +140,7 @@ jobs:
       script: skip
       before_deploy: make build
       deploy:
-        provider: release
+        provider: releases
         api_key:
           secure: "VriMfSzh4qwm8XmGg4o09x9UO/y0k3JAjQal1hU3qrp25r4/9nM0NDUBsHWTFJeUH35KNkhk/R53Sd1a+aXZa/67eFufkv37JBuST0ZT4w5/c1rX5eJ3t3Kcgl/6zVn7sIwCzVZUyiLMyrQ2+L/cFWJ0kveUNXqyoV69TbRlnyfVOe45jqi89+a7s9Y8QiPqD80cy8S3qXYWhGzj+44ATPvCYslm3kiWxITzQd3vXxi9v+QNngSfzfeVSIEBgOP6Hc5uh7Tdt0iaacyRv9OOcPh8J2ABazoKuDVa3I2kVutbtrdjeHwJdglifmfYm4ARwupvb42kPq798F9Kv7OhdEoXPdvyiAAC0ByYVj05ZZUmGQTRWBW4rjhc9RTedwF8tZCbVVq7Vcay2uEqPcl6EWVlvi4kUsCMD389vQWtbtT+o6SfmS5lju/sO3jvb8HOmaJ/vqx8PAI1vWqhezbrwhEyfirtMhCWOnJRvBgYI8eFLmK8rMWjiwmxT4Aass9F6Axjn2AM/GfWBZsOxjXsJop6CP2dvh6VqmzaUgZD7hsTeXhnCFYol3e79m37hKsq1M/WynTigfdaOkbfAcmXzzZTSJ+qUVopJD5VymSpB3G7zK0R41EWQ/nFPtN8KpI0WsMpa2ZqJry5bULBQLmHx7qNjmUyNmO34jQqxNHX4+A="
         file_glob: true

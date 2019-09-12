@@ -98,7 +98,7 @@ jobs:
         skip_cleanup: true
         on: &deploy-conditions
           repo: fat-forensics/fat-forensics
-          branch: dev
+          branch: master
     - stage: Deploy Code Coverage
       python: 3.6
       if: |

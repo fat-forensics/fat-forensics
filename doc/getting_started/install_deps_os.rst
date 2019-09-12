@@ -130,11 +130,11 @@ Developers and contributors may be interesting in the following pages as well:
 .. _PyPi: https://pypi.org/
 .. _NumPy: https://numpy.org/
 .. _SciPy: https://www.scipy.org/
-.. _requirements.txt: https://github.com/fat-forensics/fat-forensics/blob/dev/requirements.txt
+.. _requirements.txt: https://github.com/fat-forensics/fat-forensics/blob/master/requirements.txt
 .. |lime| replace:: ``lime``
 .. _lime: https://github.com/marcotcr/lime
 .. |scikit-learn| replace:: ``scikit-learn>=0.19.2``
 .. _scikit-learn: https://scikit-learn.org/stable/
 .. |matplotlib| replace:: ``matplotlib>=3.0.0``
 .. _matplotlib: https://matplotlib.org/
-.. _requirements-aux.txt: https://github.com/fat-forensics/fat-forensics/blob/dev/requirements-aux.txt
+.. _requirements-aux.txt: https://github.com/fat-forensics/fat-forensics/blob/master/requirements-aux.txt

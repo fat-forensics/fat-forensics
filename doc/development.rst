@@ -64,29 +64,33 @@ or alongside the package with
 given that your current directory is the root directory of the package. (See
 the section below for more information.)
 
-.. _requirements.txt: https://github.com/fat-forensics/fat-forensics/blob/dev/requirements.txt
-.. _requirements-aux.txt: https://github.com/fat-forensics/fat-forensics/blob/dev/requirements-aux.txt
-.. _requirements-dev.txt: https://github.com/fat-forensics/fat-forensics/blob/dev/requirements-dev.txt
+.. _requirements.txt: https://github.com/fat-forensics/fat-forensics/blob/master/requirements.txt
+.. _requirements-aux.txt: https://github.com/fat-forensics/fat-forensics/blob/master/requirements-aux.txt
+.. _requirements-dev.txt: https://github.com/fat-forensics/fat-forensics/blob/master/requirements-dev.txt
 
 Installing the Package
 ----------------------
 
 When developing code for the package we advise to install it as an
-**editable copy** directly from sources. To achieve that you need to first
-clone our git repository and then install FAT Forensics as an editable package
-alongside all the required dependencies. To this end, please execute the three
-commands shown below.
+**editable copy** directly from sources placed in the ``dev`` branch. To
+achieve that you need to first clone our git repository and then install FAT
+Forensics as an editable package alongside all the required dependencies. To
+this end, please execute the four commands shown below.
 
 .. code-block:: bash
 
    $ git clone https://github.com/fat-forensics/fat-forensics.git
    $ cd fat-forensics
+   $ git checkout dev
    $ pip install -e '.[all,dev]'
 
 .. note::
 
    Consider using pyenv_ and pyenv-virtualenv_ plugin to manage your Python
    versions and virtual environments. It makes the development so much easier.
+
+If you want to install the latest *stable* version from sources instead, please
+use the ``master`` branch instead.
 
 .. _pyenv: https://github.com/pyenv/pyenv
 .. _pyenv-virtualenv: https://github.com/pyenv/pyenv-virtualenv
@@ -120,9 +124,9 @@ Our Continuous Integration (CI) is run on Travis_ with the configuration file
    If anywhere in the tests you wish to restore it to the desired value,
    calling the :func:`fatf.setup_random_seed` function should suffice.
 
-.. _Makefile: https://github.com/fat-forensics/fat-forensics/blob/dev/Makefile
+.. _Makefile: https://github.com/fat-forensics/fat-forensics/blob/master/Makefile
 .. _Travis: https://travis-ci.com/fat-forensics/fat-forensics
-.. _`.travis.yml`: https://github.com/fat-forensics/fat-forensics/blob/dev/.travis.yml
+.. _`.travis.yml`: https://github.com/fat-forensics/fat-forensics/blob/master/.travis.yml
 
 Code Formatting
 ---------------
@@ -160,13 +164,13 @@ directory of the package.
 
 .. _`Google Python Style Guide`: http://google.github.io/styleguide/pyguide.html
 .. _YAPF: https://github.com/google/yapf
-.. _`.style.yapf`: https://github.com/fat-forensics/fat-forensics/blob/dev/.style.yapf
+.. _`.style.yapf`: https://github.com/fat-forensics/fat-forensics/blob/master/.style.yapf
 .. _Pylint: https://www.pylint.org/
 .. _Flake8: http://flake8.pycqa.org/en/latest/
-.. _`.pylintrc`: https://github.com/fat-forensics/fat-forensics/blob/dev/.pylintrc
-.. _`.flake8`: https://github.com/fat-forensics/fat-forensics/blob/dev/.flake8
+.. _`.pylintrc`: https://github.com/fat-forensics/fat-forensics/blob/master/.pylintrc
+.. _`.flake8`: https://github.com/fat-forensics/fat-forensics/blob/master/.flake8
 .. _EditorConfig: https://editorconfig.org
-.. _`.editorconfig`: https://github.com/fat-forensics/fat-forensics/blob/dev/.editorconfig
+.. _`.editorconfig`: https://github.com/fat-forensics/fat-forensics/blob/master/.editorconfig
 
 Type Hints
 ----------
@@ -181,7 +185,7 @@ type checking is performed by executing the following line of code:
    $ make check-types
 
 .. _mypy: http://mypy-lang.org/
-.. _`.mypy.ini`: https://github.com/fat-forensics/fat-forensics/blob/dev/.mypy.ini
+.. _`.mypy.ini`: https://github.com/fat-forensics/fat-forensics/blob/master/.mypy.ini
 
 Testing
 -------
@@ -255,9 +259,9 @@ tests can be run with:
    we are using pure doctest syntax, i.e. no group annotations are possible.
 
 .. _pytest: https://pytest.org/en/latest/
-.. _`pytest.ini`: https://github.com/fat-forensics/fat-forensics/blob/dev/pytest.ini
+.. _`pytest.ini`: https://github.com/fat-forensics/fat-forensics/blob/master/pytest.ini
 .. _pytest-cov: https://pytest-cov.readthedocs.io/en/latest/
-.. _`.coveragerc`: https://github.com/fat-forensics/fat-forensics/blob/dev/.coveragerc
+.. _`.coveragerc`: https://github.com/fat-forensics/fat-forensics/blob/master/.coveragerc
 
 Step by Step Guide
 ==================
@@ -356,10 +360,10 @@ placed in the :ref:`user_guide`:
 - Is it *Post-Hoc* or *Ante-Hoc*.
 
 .. _Sphinx: http://www.sphinx-doc.org/en/master/
-.. _`custom theme`: https://github.com/fat-forensics/fat-forensics/tree/dev/doc/themes/fat-forensics
+.. _`custom theme`: https://github.com/fat-forensics/fat-forensics/tree/master/doc/themes/fat-forensics
 .. _numpydoc: https://numpydoc.readthedocs.io/en/latest/
 .. _sphinx-gallery: https://sphinx-gallery.github.io/
-.. _`documentation-specific Makefile`: https://github.com/fat-forensics/fat-forensics/blob/dev/doc/Makefile
+.. _`documentation-specific Makefile`: https://github.com/fat-forensics/fat-forensics/blob/master/doc/Makefile
 
 Pull Requests and Issues
 ========================
@@ -373,10 +377,10 @@ yours.
 Similarly, we have `issue templates`_. Please use them (whenever possible)
 while opening a new issue.
 
-.. _`pull request template`: https://github.com/fat-forensics/fat-forensics/blob/dev/.github/PULL_REQUEST_TEMPLATE.md
+.. _`pull request template`: https://github.com/fat-forensics/fat-forensics/blob/master/.github/PULL_REQUEST_TEMPLATE.md
 .. _`pull requests`: https://github.com/fat-forensics/fat-forensics/pulls
 .. _issues: https://github.com/fat-forensics/fat-forensics/issues
-.. _`issue templates`: https://github.com/fat-forensics/fat-forensics/tree/dev/.github/ISSUE_TEMPLATE
+.. _`issue templates`: https://github.com/fat-forensics/fat-forensics/tree/master/.github/ISSUE_TEMPLATE
 
 Package Structure
 =================

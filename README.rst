@@ -10,7 +10,7 @@ Cite           |BibTeX|_ |DOI|_
 =============  ================================================================
 
 .. |Licence| image:: https://img.shields.io/github/license/fat-forensics/fat-forensics.svg
-.. _Licence: https://github.com/fat-forensics/fat-forensics/blob/dev/LICENCE
+.. _Licence: https://github.com/fat-forensics/fat-forensics/blob/master/LICENCE
 
 .. |GitHubRelease| image:: https://img.shields.io/github/release/fat-forensics/fat-forensics.svg
 .. _GitHubRelease: https://github.com/fat-forensics/fat-forensics/releases
@@ -31,10 +31,10 @@ Cite           |BibTeX|_ |DOI|_
 .. |Travis| image:: https://travis-ci.com/fat-forensics/fat-forensics.svg
 .. _Travis: https://travis-ci.com/fat-forensics/fat-forensics
 
-.. .. |CircleCI| image:: https://circleci.com/gh/fat-forensics/fat-forensics/tree/dev.svg?style=shield
-.. .. _CircleCI: https://circleci.com/gh/fat-forensics/fat-forensics/tree/dev
+.. .. |CircleCI| image:: https://circleci.com/gh/fat-forensics/fat-forensics/tree/master.svg?style=shield
+.. .. _CircleCI: https://circleci.com/gh/fat-forensics/fat-forensics/tree/master
 
-.. |Codecov| image:: https://codecov.io/gh/fat-forensics/fat-forensics/branch/dev/graph/badge.svg
+.. |Codecov| image:: https://codecov.io/gh/fat-forensics/fat-forensics/branch/master/graph/badge.svg
 .. _Codecov: https://codecov.io/gh/fat-forensics/fat-forensics
 
 .. https://codeclimate.com/

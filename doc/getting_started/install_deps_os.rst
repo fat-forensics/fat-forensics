@@ -128,7 +128,7 @@ Developers and contributors may be interesting in the following pages as well:
 * the package development :ref:`roadmap`.
 
 .. _PyPi: https://pypi.org/
-.. _NumPy: https://www.numpy.org/
+.. _NumPy: https://numpy.org/
 .. _SciPy: https://www.scipy.org/
 .. _requirements.txt: https://github.com/fat-forensics/fat-forensics/blob/dev/requirements.txt
 .. |lime| replace:: ``lime``

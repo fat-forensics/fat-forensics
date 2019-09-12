@@ -32,7 +32,7 @@ endif
 	test-doc test-notebooks test code-coverage test-with-code-coverage \
 	deploy-code-coverage linting-pylint linting-flake8 linting-yapf check-types \
 	build readme-gen readme-preview validate-travis validate-sphinx-conf \
-	find-flags
+	find-flags deploy-pypi
 
 all: \
 	test-with-code-coverage \
@@ -199,7 +199,10 @@ check-types:
 	mypy --config-file=.mypy.ini fatf/
 
 build:
-	python3 setup.py sdist bdist_wheel
+	python setup.py sdist bdist_wheel
+
+deploy-pypi:
+	python -m twine upload dist/*
 
 readme-gen:
 	pandoc -t html README.rst -o temp/README.html

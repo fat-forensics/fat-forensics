@@ -34,11 +34,11 @@ def get_dependency_version(dependency, list_of_dependencies):
 
     return matched_dependencies
 
-DISTNAME = 'FAT-forensics'
+DISTNAME = 'FAT-Forensics'
 PACKAGE_NAME = 'fatf'
 VERSION = fatf.__version__
-DESCRIPTION = ('A set of python modules to assess fairness, accountability and '
-               'transparency of artificial intelligence techniques')
+DESCRIPTION = ('A Python Toolbox for Algorithmic Fairness, Accountability and '
+               'Transparency')
 with open('README.rst') as f:
     LONG_DESCRIPTION = f.read()
 MAINTAINER = 'Kacper Sokol'

@@ -8,4 +8,5 @@ pytest==3.9.1
 pytest-cov==2.6.0
 sphinx==2.0
 sphinx-gallery==0.3.1
+twine==1.14.0
 yapf==0.26.0

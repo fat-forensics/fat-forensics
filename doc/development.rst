@@ -165,7 +165,7 @@ directory of the package.
 .. _Flake8: http://flake8.pycqa.org/en/latest/
 .. _`.pylintrc`: https://github.com/fat-forensics/fat-forensics/blob/dev/.pylintrc
 .. _`.flake8`: https://github.com/fat-forensics/fat-forensics/blob/dev/.flake8
-.. _EditorConfig: https://EditorConfig.org
+.. _EditorConfig: https://editorconfig.org
 .. _`.editorconfig`: https://github.com/fat-forensics/fat-forensics/blob/dev/.editorconfig
 
 Type Hints

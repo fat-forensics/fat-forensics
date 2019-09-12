@@ -125,7 +125,8 @@ jobs:
         distributions: "sdist bdist_wheel"
         skip_existing: true
         skip_cleanup: false
-        on: *deploy-conditions
+        on:
+          <<: *deploy-conditions
           tags: true
           condition: "$TRAVIS_TAG =~ ^[0-9]+\\.[0-9]+\\.[0-9]+(-rev[0-9]+)?$"
     - stage: Release on GitHub
@@ -145,6 +146,7 @@ jobs:
         name: FAT-Forensics ${TRAVIS_TAG}
         body: "See change log at: https://fat-forensics.org/changelog.html"
         skip_cleanup: true
-        on: *deploy-conditions
+        on:
+          <<: *deploy-conditions
           tags: true
           condition: "$TRAVIS_TAG =~ ^[0-9]+\\.[0-9]+\\.[0-9]+(-rev[0-9]+)?$"

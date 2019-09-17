@@ -4,7 +4,7 @@ Tests surrogate_explainers classes.
 # Author: Alex Hepburn <ah13558@bristol.ac.uk>
 # License: new BSD
 
-from typing import Dict, Union
+from typing import Dict, Union, Tuple
 
 import pytest
 
@@ -16,16 +16,14 @@ import fatf
 
 import fatf.transparency.sklearn.surrogate_explainers as ftsse
 import fatf.utils.models as fum
+import fatf.utils.data.datasets as fatf_datasets
 import fatf.utils.data.augmentation as fuda
 import fatf.utils.data.discretisation as fudd
-import fatf.utils.transparency.explainers as fute
-import fatf.utils.distances as fud
-import fatf.utils.kernels as fuk
-import fatf.transparency.sklearn.linear_model as ftslm
 
 from fatf.exceptions import IncompatibleModelError, IncorrectShapeError
 
 Index = Union[int, str]
+
 
 ONE_D_ARRAY = np.array([0, 4, 3, 0])
 NUMERICAL_NP_ARRAY_TARGET = np.array([2, 0, 1, 1, 0, 2])
@@ -50,6 +48,9 @@ MIXED_ARRAY = np.array([(0, 'a', 0.08, 'a'), (0, 'f', 0.03, 'bb'),
                         (0, 'c', 0.36, 'b'), (1, 'f', 0.07, 'bb')],
                        dtype=[('a', 'i'), ('b', 'U1'), ('c', 'f'), ('d',
                                                                     'U2')])
+
+# Test LIME and bLIMEy on IRIS dataset
+IRIS_DATASET = fatf_datasets.load_iris()
 
 
 class InvalidModel(object):
@@ -112,6 +113,31 @@ def _is_explanation_equal(dict1: Dict[str, Dict[Index, np.float64]],
                     feat_vals2 = class_exp2[feature]
                     if not np.isclose(feat_vals1, feat_vals2, tol):
                         equal = False
+            else:
+                equal = False
+    else:
+        equal = False
+    return equal
+
+def _is_bin_sampling_equal(dict1: Dict[str, Dict[Index, Tuple[float, ...]]],
+                           dict2: Dict[str, Dict[Index, Tuple[float, ...]]],
+                           tol: float = 1e-2) -> bool:
+    """
+    Tests if two bin sampling dictionarys are equal within a tolerance.
+    """
+    equal = True
+
+    if set(dict1.keys()) == set(dict2.keys()):
+        for key in dict1.keys():
+            class_exp1 = dict1[key]
+            class_exp2 = dict2[key]
+            if set(class_exp1.keys()) == set(class_exp2.keys()):
+                for feature in class_exp1.keys():
+                    feat_vals1 = class_exp1[feature]
+                    feat_vals2 = class_exp2[feature]
+                    for (val1, val2) in zip(feat_vals1, feat_vals2):
+                        if not np.isclose(val1, val2, tol):
+                            equal = False
             else:
                 equal = False
     else:
@@ -486,3 +512,389 @@ class TestSurrogateExplainer():
             self.categorical_np_dummy_surrogate.explain_instance(
                 np.array(['a', 'b']))
         assert str(exin.value) == incorrect_shape_features
+
+
+class TestTabularBlimeyTree():
+    """
+    Tests :class:`fatf.transparency.sklearn.surrogate_explainers.\
+    TabularBlimeyTree` abstract class.
+    """
+    numerical_np_array_classifier = fum.KNN(k=3)
+    numerical_np_array_classifier.fit(NUMERICAL_NP_ARRAY,
+                                      NUMERICAL_NP_ARRAY_TARGET)
+
+    numerical_struct_array_classifier = fum.KNN(k=3)
+    numerical_struct_array_classifier.fit(NUMERICAL_STRUCT_ARRAY,
+                                          NUMERICAL_NP_ARRAY_TARGET)
+
+    categorical_array_classifier = fum.KNN(k=3)
+    categorical_array_classifier.fit(CATEGORICAL_NP_ARRAY,
+                                     NUMERICAL_NP_ARRAY_TARGET)
+
+    iris_classifier = fum.KNN(k=3)
+    iris_classifier.fit(IRIS_DATASET['data'], IRIS_DATASET['target'])
+
+    numerical_np_tabular_lime = ftsse.TabularBlimeyTree(
+        NUMERICAL_NP_ARRAY,
+        numerical_np_array_classifier)
+
+    numerical_np_cat_tabular_lime= ftsse.TabularBlimeyTree(
+        NUMERICAL_NP_ARRAY,
+        numerical_np_array_classifier,
+        categorical_indices=[0, 1])
+
+    iris_blimey = ftsse.TabularBlimeyTree(
+        IRIS_DATASET['data'],
+        iris_classifier,
+        class_names=list(IRIS_DATASET['target_names']),
+        feature_names=list(IRIS_DATASET['feature_names']))
+
+    def test_tabular_blimey_tree_init(self):
+        """
+        Tests :class:`fatf.transparency.sklearn.surrogate_explainers.\
+        TabularBlimeyTree` class init.
+        """
+        # Test class inheritance
+        assert (self.numerical_np_tabular_blimey.__class__.__bases__[0].__name__
+                == 'SurrogateExplainer')
+
+        string_array_error = ('TabularBlimeyTree does not support string '
+                              'dtype as it uses sci-kit learn '
+                              'implementation of decision trees.')
+        structured_array_error = ('TabularBlimeyTree does not support '
+                                  'structured arrays as it uses sci-kit learn '
+                                  'implementation of decision trees.')
+
+        with pytest.raises(TypeError) as exin:
+            ftsse.TabularBlimeyTree(NUMERICAL_STRUCT_ARRAY,
+                                    self.numerical_struct_array_classifier)
+        assert str(exin.value) == structured_array_error
+
+        with pytest.raises(TypeError) as exin:
+            ftsse.TabularBlimeyTree(CATEGORICAL_NP_ARRAY,
+                                     self.categorical_array_classifier)
+        assert str(exin.value) == string_array_error
+
+        # Assert indices
+        assert self.numerical_np_tabular_blimey.numerical_indices == \
+            [0, 1, 2, 3]
+        assert self.numerical_np_tabular_blimey.categorical_indices == []
+        assert isinstance(self.numerical_np_tabular_blimey.augmentor,
+                          fuda.Mixup)
+        #
+        assert self.numerical_np_cat_tabular_blimey.numerical_indices == \
+            [2, 3]
+        assert self.numerical_np_cat_tabular_blimey.categorical_indices == \
+            [0, 1]
+        assert isinstance(self.numerical_np_tabular_blimey.augmentor,
+                          fuda.Mixup)
+
+    def test_tabular_blimey_tree_explain_instance_input_is_valid(self):
+        """
+        Tests :func:`fatf.transparency.sklearn.surrogate_explainers.\
+        TabularBlimeyTree._explain_instance_input_is_valid`.
+        """
+        samples_number_type = ('samples_number must be an integer.')
+        samples_number_value = ('samples_number must be a positive integer '
+                                'larger than 0.')
+        maximum_depth_type = ('maximum_depth must be an integer.')
+        maximum_depth_value = ('maximum_depth must be a positive integer '
+                                'larger than 0.')
+
+        with pytest.raises(TypeError) as exin:
+            self.numerical_np_tabular_blimey._explain_instance_input_is_valid(
+                NUMERICAL_NP_ARRAY[0], 'a', 3)
+        assert str(exin.value) == samples_number_type
+        #
+        with pytest.raises(ValueError) as exin:
+            self.numerical_np_tabular_blimey._explain_instance_input_is_valid(
+                NUMERICAL_NP_ARRAY[0], -1, 3)
+        assert str(exin.value) == samples_number_value
+        #
+        with pytest.raises(TypeError) as exin:
+            self.numerical_np_tabular_blimey._explain_instance_input_is_valid(
+                NUMERICAL_NP_ARRAY[0], 1, 'a')
+        assert str(exin.value) == maximum_depth_type
+        #
+        with pytest.raises(ValueError) as exin:
+            self.numerical_np_tabular_blimey._explain_instance_input_is_valid(
+                NUMERICAL_NP_ARRAY[0], 1, -1)
+        assert str(exin.value) == maximum_depth_value
+        # All good
+        assert self.numerical_np_tabular_blimey._explain_instance_input_is_valid(
+            NUMERICAL_NP_ARRAY[0], 10, 3)
+        assert self.numerical_np_cat_tabular_blimey._explain_instance_input_is_valid(
+            NUMERICAL_NP_ARRAY[0], 10, 3)
+
+    def test_tabular_blimey_tree_explain_instance(self):
+        fatf.setup_random_seed()
+
+        numerical_np_explanation = {
+            'class 0': {
+                'feature 0': 0.074,
+                'feature 1': 0.797,
+                'feature 2': 0.130,
+                'feature 3': 0.0},
+            'class 1': {
+                'feature 0': 0.0,
+                'feature 1': 0.149,
+                'feature 2': 0.851,
+                'feature 3': 0.0},
+            'class 2': {
+                'feature 0': 0.052,
+                'feature 1': 0.408,
+                'feature 2': 0.540,
+                'feature 3': 0.0}}
+
+        numerical_np_cat_explanation = {
+            'class 0': {
+                'feature 0': 0.071,
+                'feature 1': 0.460,
+                'feature 2': 0.197,
+                'feature 3': 0.272},
+            'class 1': {
+                'feature 0': 0.0,
+                'feature 1': 0.534,
+                'feature 2': 0.466,
+                'feature 3': 0.0},
+            'class 2': {
+                'feature 0': 0.166,
+                'feature 1': 0.151,
+                'feature 2': 0.0,
+                'feature 3': 0.683}}
+
+        iris_explanation = {
+            'setosa': {
+                'petal length (cm)': 0.0044,
+                'petal width (cm)': 0.996,
+                'sepal length (cm)': 0.0,
+                'sepal width (cm)': 0.0},
+            'versicolor': {
+                'petal length (cm)': 0.0,
+                'petal width (cm)': 1.0,
+                'sepal length (cm)': 0.0,
+                'sepal width (cm)': 0.0},
+            'virginica': {
+                'petal length (cm)': 0.0,
+                'petal width (cm)': 0.093,
+                'sepal length (cm)': 0.817,
+                'sepal width (cm)': 0.089}}
+
+        explanation = self.numerical_np_tabular_blimey.explain_instance(
+            NUMERICAL_NP_ARRAY[0],
+            samples_number=50,
+            maximum_depth=3,
+            random_state=42)
+        assert _is_explanation_equal(numerical_np_explanation, explanation)
+
+        explanation = self.numerical_np_cat_tabular_blimey.explain_instance(
+            NUMERICAL_NP_ARRAY[0],
+            samples_number=50,
+            maximum_depth=3,
+            random_state=42)
+        assert _is_explanation_equal(numerical_np_cat_explanation, explanation)
+
+        # Test IRIS
+        explanation = self.iris_blimey.explain_instance(
+            IRIS_DATASET['data'][0],
+            samples_number=50,
+            maximum_depth=3,
+            random_state=42)
+        assert _is_explanation_equal(iris_explanation, explanation)
+
+
+class TestTabularLIME():
+    """
+    Tests :class:`fatf.transparency.sklearn.surrogate_explainers.\
+    TabularLIME` class.
+    """
+
+    numerical_np_array_classifier = fum.KNN(k=3)
+    numerical_np_array_classifier.fit(NUMERICAL_NP_ARRAY,
+                                      NUMERICAL_NP_ARRAY_TARGET)
+
+    numerical_struct_array_classifier = fum.KNN(k=3)
+    numerical_struct_array_classifier.fit(NUMERICAL_STRUCT_ARRAY,
+                                          NUMERICAL_NP_ARRAY_TARGET)
+
+    categorical_array_classifier = fum.KNN(k=3)
+    categorical_array_classifier.fit(CATEGORICAL_NP_ARRAY,
+                                     NUMERICAL_NP_ARRAY_TARGET)
+
+    iris_classifier = fum.KNN(k=3)
+    iris_classifier.fit(IRIS_DATASET['data'], IRIS_DATASET['target'])
+
+    numerical_np_tabular_lime = ftsse.TabularLIME(
+        NUMERICAL_NP_ARRAY,
+        numerical_np_array_classifier)
+
+    numerical_struct_cat_tabular_lime = ftsse.TabularLIME(
+        NUMERICAL_STRUCT_ARRAY,
+        numerical_struct_array_classifier,
+        categorical_indices=['a', 'b'])
+
+    categorical_np_lime = ftsse.TabularLIME(
+        CATEGORICAL_NP_ARRAY,
+        categorical_array_classifier,
+        categorical_indices=[0, 1, 2])
+
+    iris_lime = ftsse.TabularLIME(
+        IRIS_DATASET['data'],
+        iris_classifier,
+        class_names=list(IRIS_DATASET['target_names']),
+        feature_names=list(IRIS_DATASET['feature_names']))
+
+    def test_tabular_LIME_init(self):
+        """
+        Tests :class:`fatf.transparency.sklearn.surrogate_explainers.\
+        TabularLIME` class init.
+        """
+        numerical_bin_sampling_values = {
+            0: { # Index 0
+                0: (0.0, 0.0, 0.0, 0.0),
+                2: (1.0, 1.0, 1.0, 0.0),
+                3: (2.0, 2.0, 2.0, 0.0)},
+            1: { # Index 1
+                0: (0.0, 0.0, 0.0, 0.0),
+                2: (1.0, 1.0, 1.0, 0.0)},
+            2: { # Index 2
+                0: (0.03, 0.07, 0.05, 0.020),
+                1: (0.08, 0.08, 0.08, 0.0),
+                2: (0.36, 0.36, 0.36, 0.0),
+                3: (0.73, 0.99, 0.86, 0.13)},
+            3: { # Index 3
+                0: (0.21, 0.29, 0.25, 0.04),
+                1: (0.48, 0.48, 0.48, 0.0),
+                2: (0.69, 0.69, 0.69, 0.0),
+                3: (0.82, 0.89, 0.855, 0.035)}}
+        numerical_struct_sampling_values = {
+            'c': numerical_bin_sampling_values[2],
+            'd': numerical_bin_sampling_values[3]}
+        iris_lime_sampling_values = {
+            0: {
+                0: (4.3, 5.1, 4.856, 0.228),
+                1: (5.2, 5.8, 5.559, 0.185),
+                2: (5.9, 6.4, 6.189, 0.163),
+                3: (6.5, 7.9, 6.971, 0.412)},
+            1: {
+                0: (2.0, 2.8, 2.585, 0.208),
+                1: (2.9, 3.0, 2.972, 0.045),
+                2: (3.1, 3.3, 3.183, 0.073),
+                3: (3.4, 4.4, 3.638, 0.252)},
+            2: {
+                0: (1.0, 1.6, 1.420, 0.134),
+                1: (1.7, 4.3, 3.474, 0.890),
+                2: (4.4, 5.1, 4.766, 0.243),
+                3: (5.2, 6.9, 5.826, 0.437)},
+            3: {
+                0: (0.1, 0.3, 0.205, 0.054),
+                1: (0.4, 1.3, 1.003, 0.342),
+                2: (1.4, 1.8, 1.595, 0.157),
+                3: (1.9, 2.5, 2.171, 0.187)}}
+
+        # Assert indices
+        assert self.numerical_np_tabular_lime.numerical_indices == \
+            [0, 1, 2, 3]
+        assert self.numerical_np_tabular_lime.categorical_indices == []
+        assert isinstance(self.numerical_np_tabular_lime.augmentor,
+                          fuda.NormalSampling)
+        assert isinstance(self.numerical_np_tabular_lime.discretiser,
+                          fudd.QuartileDiscretiser)
+        assert _is_bin_sampling_equal(self.numerical_np_tabular_lime.\
+            bin_sampling_values, numerical_bin_sampling_values)
+        #
+        assert self.numerical_struct_cat_tabular_lime.numerical_indices == \
+            ['c', 'd']
+        assert self.numerical_struct_cat_tabular_lime.categorical_indices == \
+            ['a', 'b']
+        assert isinstance(self.numerical_struct_cat_tabular_lime.augmentor,
+                          fuda.NormalSampling)
+        assert isinstance(self.numerical_struct_cat_tabular_lime.discretiser,
+                          fudd.QuartileDiscretiser)
+        assert _is_bin_sampling_equal(self.numerical_struct_cat_tabular_lime.\
+            bin_sampling_values, numerical_struct_sampling_values)
+        #
+        assert self.categorical_np_lime.numerical_indices == \
+            []
+        assert self.categorical_np_lime.categorical_indices == \
+            [0, 1, 2]
+        assert isinstance(self.categorical_np_lime.augmentor,
+                          fuda.NormalSampling)
+        assert isinstance(self.categorical_np_lime.discretiser,
+                          fudd.QuartileDiscretiser)
+        assert self.categorical_np_lime.bin_sampling_values == {}
+        #
+        assert self.iris_lime.numerical_indices == \
+            [0, 1, 2, 3]
+        assert self.iris_lime.categorical_indices == []
+        assert isinstance(self.iris_lime.augmentor,
+                          fuda.NormalSampling)
+        assert isinstance(self.iris_lime.discretiser,
+                          fudd.QuartileDiscretiser)
+        assert _is_bin_sampling_equal(self.iris_lime.bin_sampling_values,
+                iris_lime_sampling_values)
+
+    def test_tabular_LIME_explain_instance_input_is_valid(self):
+        """
+        Tests :func:`fatf.transparency.sklearn.surrogate_explainers.\
+        TabularLIME._explain_instance_input_is_valid`.
+        """
+        samples_number_type = ('samples_number must be an integer.')
+        samples_number_value = ('samples_number must be a positive integer '
+                                'larger than 0.')
+        features_number_type = ('features_number must be an integer.')
+        features_number_value = ('features_number must be a positive integer '
+                                'larger than 0.')
+        kernel_width_type = ('kernel_width must be None or a float.')
+        kernel_width_value = ('kernel_width must be None or a positive float '
+                                'larger than 0.')
+        with pytest.raises(TypeError) as exin:
+            self.numerical_np_tabular_lime._explain_instance_input_is_valid(
+                NUMERICAL_NP_ARRAY[0], 'a', 3, 1.0)
+        assert str(exin.value) == samples_number_type
+        #
+        with pytest.raises(ValueError) as exin:
+            self.numerical_np_tabular_lime._explain_instance_input_is_valid(
+                NUMERICAL_NP_ARRAY[0], -1, 3, 1.0)
+        assert str(exin.value) == samples_number_value
+        #
+        with pytest.raises(TypeError) as exin:
+            self.numerical_np_tabular_lime._explain_instance_input_is_valid(
+                NUMERICAL_NP_ARRAY[0], 1, 'a', 1.0)
+        assert str(exin.value) == features_number_type
+        #
+        with pytest.raises(ValueError) as exin:
+            self.numerical_np_tabular_lime._explain_instance_input_is_valid(
+                NUMERICAL_NP_ARRAY[0], 1, -1, 1.0)
+        assert str(exin.value) == features_number_value
+        #
+        with pytest.raises(TypeError) as exin:
+            self.numerical_np_tabular_lime._explain_instance_input_is_valid(
+                NUMERICAL_NP_ARRAY[0], 1, 2, 'a')
+        assert str(exin.value) == kernel_width_type
+        #
+        with pytest.raises(ValueError) as exin:
+            self.numerical_np_tabular_lime._explain_instance_input_is_valid(
+                NUMERICAL_NP_ARRAY[0], 1, 2, -1.0)
+        assert str(exin.value) == kernel_width_value
+        # All good
+        assert self.numerical_np_tabular_lime._explain_instance_input_is_valid(
+            NUMERICAL_NP_ARRAY[0], 10, 3, 1.0)
+        assert self.numerical_np_tabular_lime._explain_instance_input_is_valid(
+            NUMERICAL_NP_ARRAY[0], 10, 3, 1.0)
+
+    def test_tabular_LIME_explain_instance(self):
+        """
+        Tests :func:`fatf.transparency.sklearn.surrogate_explainers.\
+        TabularLIME.explain_instance`.
+        """
+        fatf.setup_random_seed()
+        numerical_np_explanation = {}
+
+        explanation = self.numerical_np_tabular_lime.explain_instance(
+            NUMERICAL_NP_ARRAY[0],
+            samples_number=50,
+            features_number=2,
+            kernel_width=None,
+            random_state=42)
+        assert _is_explanation_equal(numerical_np_explanation, explanation)

@@ -10,6 +10,11 @@ import warnings
 
 import numpy as np
 
+import sklearn.linear_model
+import sklearn.tree
+
+import scipy.stats
+
 import fatf.utils.data.feature_selection.sklearn as fudfs
 import fatf.transparency.sklearn.linear_model as ftslm
 import fatf.transparency.sklearn.tools as ftst
@@ -17,12 +22,11 @@ import fatf.transparency.sklearn.tools as ftst
 import fatf.utils.data.augmentation as fuda
 import fatf.utils.data.discretisation as fudd
 import fatf.utils.distances as fud
-import fatf.utils.kernels as fatf_kernels
+import fatf.utils.kernels as fuk
 import fatf.utils.transparency.explainers as fute
 import fatf.utils.array.validation as fuav
 import fatf.utils.models.validation as fumv
 import fatf.utils.array.tools as fuat
-import fatf.utils.data.transformation as fudt
 
 from fatf.exceptions import IncompatibleModelError, IncorrectShapeError
 
@@ -231,7 +235,6 @@ class SurrogateExplainer(abc.ABC):
         indices = fuat.indices_by_type(dataset)
         cat_indices = set(indices[1])
         num_indices = set(indices[0])
-        cat_indices = set(indices[1])
         all_indices = num_indices.union(cat_indices)
 
         if categorical_indices is None:
@@ -259,6 +262,8 @@ class SurrogateExplainer(abc.ABC):
             self.prediction_function = global_model.predict_proba
         else:
             self.prediction_function = global_model.predict
+
+        self.probabilistic = probabilistic
 
         if self.is_structured:
             row = np.array([dataset[0]], dtype=self.dataset.dtype)
@@ -385,16 +390,18 @@ class SurrogateExplainer(abc.ABC):
                                   'overwritten.')
 
 
-class TabularLime(SurrogateExplainer):
+class TabularLIME(SurrogateExplainer):
     """
-    An implemented of LIME explainer.
+    An implementation of LIME explainer.
 
-    Normal sampling around instance if ``sample_around_instance`` is
-    ``True`` else samples around the mean of the dataset. Then computes
-    distances between sampled points and ``data_row`` and uses K-LASSO to
-    select ``features_number`` number of features to use in the explanation.
+    Samples from the discretise dataset so the sample data has the same
+    proportions of bins as the original dataset. Then computes distances
+    between sampled points and ``data_row`` and uses K-LASSO to select
+    ``features_number`` number of features to use in the explanation.
     Then fits a local ridge regression model. The weightings of this ridge
     regression is then interpreted as feature importances.
+
+    Indicies in the parameter ``categorical_indices`` will not be discretised.
 
     For additional parameters, warnings and errors please see the parent class
     :class:`fatf.transparency.sklearn.surrogate_explainers.SurrogateExplainer`.
@@ -407,7 +414,19 @@ class TabularLime(SurrogateExplainer):
 
     Attributes
     ----------
-
+    discretiser : fatf.utils.data.discretisation.QuartileDiscretiser
+        Quartile discretiser to be used to discretise dataset and ``data_row``
+        when ``explain_instance`` is called.
+    augmentor : fatf.utils.data.augmentation.NormalSampling
+        Augmentor for performing normal sampling on the data.
+    discretised_dataset : numpy.ndarray
+        A discretised version of the dataset.
+    bin_sampling_values : Dictionary[Index, Dictionary[value, Tuple(float, float, float, float)]]
+        A dictionary specifying for each feature, a dictionary that maps the
+        discretised values in the dataset to the (minimum, maximum, mean,
+        standard deviation) for the original data bin corresponding to the
+        value. This is used to go from discretised sampled values to the
+        original data space.
     """
     def __init__(self,
                  dataset: np.ndarray,
@@ -420,12 +439,41 @@ class TabularLime(SurrogateExplainer):
                 dataset, global_model, probabilistic, categorical_indices,
                 class_names, feature_names)
 
+        self.discretiser = fudd.QuartileDiscretiser(
+            dataset,
+            categorical_indices=self.categorical_indices,
+            feature_names=feature_names)
+
+        self.discretised_dataset = self.discretiser.discretise(self.dataset)
+
+        self.augmentor = fuda.NormalSampling(
+            self.discretised_dataset,
+            categorical_indices=self.categorical_indices+self.numerical_indices)
+
+        self.bin_sampling_values = {}
+        for index in self.numerical_indices:
+            self.bin_sampling_values[index] = {}
+            if self.is_structured:
+                discretised_feature = self.discretised_dataset[index]
+                feature = self.dataset[index]
+            else:
+                discretised_feature = self.discretised_dataset[:, index]
+                feature = self.dataset[:, index]
+
+            unique_values = np.unique(discretised_feature)
+            for value in unique_values:
+                indices = (discretised_feature == value).nonzero()[0]
+                bin_values = feature[indices]
+                stats = (bin_values.min(), bin_values.max(), bin_values.mean(),
+                         bin_values.std())
+                self.bin_sampling_values[index][value] = stats
+
     def _explain_instance_input_is_valid(
             self,
             data_row: Union[np.ndarray, np.void],
             samples_number: Optional[int],
-            sample_around_instance: Optiona[bool],
-            features_number: Optional[int]) -> bool:
+            features_number: Optional[int],
+            kernel_width: Optional[float]) -> bool:
         """
         Validates explain_instance input parameters for the class.
 
@@ -439,17 +487,84 @@ class TabularLime(SurrogateExplainer):
         ``True`` if input is valid, ``False`` otherwise.
         """
         is_valid = False
-        assert super()._validate_sample_input(data_row)
+        assert super()._explain_instance_input_is_valid(data_row)
+
+        if not isinstance(samples_number, int):
+            raise TypeError('samples_number must be an integer.')
+        else:
+            if samples_number < 1:
+                raise ValueError('samples_number must be a positive integer '
+                                 'larger than 0.')
+
+        if not isinstance(features_number, int):
+            raise TypeError('features_number must be an integer.')
+        else:
+            if features_number < 1:
+                raise ValueError('features_number must be a positive integer '
+                                 'larger than 0.')
+
+        if kernel_width is not None:
+            if not isinstance(kernel_width, float):
+                raise TypeError('kernel_width must be None or a float.')
+            else:
+                if kernel_width <= 0.0:
+                    raise ValueError('kernel_width must be None or a positive '
+                                     'float larger than 0.')
 
         is_valid = True
         return is_valid
+
+    def _undiscretise_feature(self,
+                              index: Index,
+                              values: np.ndarray,
+                              random_state: int) -> np.ndarray:
+        """
+        Transforms ``values`` from discretised data space to original. Adapted
+        from: https://github.com/marcotcr/lime/blob/master/lime/discretize.py
+
+        Parameters
+        ----------
+        index : Index
+            The index that values are a feature for
+        values : numpy.ndarray
+            Values from the feature column
+        random_state : int
+            Used for testing purposes. Used in sampling the truncnorm for
+            undiscretising data.
+        Returns
+        -------
+        undiscretised_feature : numpy.ndarray
+            The feature values in the original data space.
+        """
+        mins = np.array(
+            [self.bin_sampling_values[index][v][0]for v in values])
+        maxs = np.array(
+            [self.bin_sampling_values[index][v][1] for v in values])
+        means = np.array(
+            [self.bin_sampling_values[index][v][2] for v in values])
+        stds = np.array(
+            [self.bin_sampling_values[index][v][3] for v in values])
+        nonzero_stds = (stds != 0)
+        a = (mins[nonzero_stds] - means[nonzero_stds]) / (stds[nonzero_stds])
+        b = (maxs[nonzero_stds] - means[nonzero_stds]) / (stds[nonzero_stds])
+        undiscretised_feature = means
+        undiscretised_feature[np.where(nonzero_stds)] = \
+            scipy.stats.truncnorm.rvs(
+                    a,
+                    b,
+                    loc=means[nonzero_stds],
+                    scale=stds[nonzero_stds],
+                    random_state=random_state)
+
+        return undiscretised_feature
 
     def explain_instance(
             self,
             data_row: Union[np.ndarray, np.void],
             samples_number: Optional[int] = 50,
-            sample_around_instance: Optiona[bool] = True,
-            features_number: Optional[int] = None
+            features_number: Optional[int] = None,
+            kernel_width: Optional[float] = None,
+            random_state: Optional[int] = 42
     ) -> Dict[str, Dict[Index, np.float64]]:
         """
         Explains instance ``data_row`` using LIME algorithm.
@@ -462,30 +577,93 @@ class TabularLime(SurrogateExplainer):
         ----------
         samples_number : integer, optional (default=50)
             The number of samples to be generated.
-        sample_around_instance : bool, optional (default=True)
-            Boolean whether to normally sample around the instance or the mean
-            of the dataset. If ``True`` then data is sampled around the
-            instance, if ``False`` then data is sampled around the mean of the
-            dataset.
         features_number : integer, optional (default=None)
             Number of features to find the K-LASSO to train the local model
             using. Default is ``None``, meaning all features will be used.
+        kernel_width : float, optional (default=None)
+            Kernel width to use in exponential kernel when computing distance
+            between sampled data and ``data_row``.
+        random_state : integer, optional (default=42)
+            Used for testing purposes. The random state to be used in the
+            DecisionTreeRegressor that is the local model. Also used for
+            sampling the truncnorm for undiscretising data.
         """
-        assert self._validate_sample_input(data_row), \
+        assert self._explain_instance_input_is_valid(
+            data_row, samples_number, features_number, kernel_width), \
             'Invalid explain_instance method input.'
 
+         # Create an array to hold the samples.
+        features_number = (len(self.categorical_indices) +
+                           len(self.numerical_indices))
+        if self.is_structured:
+            shape = (samples_number, )  # type: Tuple[int, ...]
+        else:
+            shape = (samples_number, features_number)
+        samples = np.zeros(shape, dtype=self.dataset.dtype)
+
+        discretised_data_row = self.discretiser.discretise(data_row)
+        discretised_sampled_data = self.augmentor.sample(
+            discretised_data_row, samples_number=samples_number)
+
+        # Create sampled_data in the original space
+        for index in self.numerical_indices:
+            if self.is_structured:
+                values = discretised_sampled_data[index]
+            else:
+                values = discretised_sampled_data[:, index]
+
+            undiscretised_feature = self._undiscretise_feature(
+                index, values, random_state)
+
+            if self.is_structured:
+                samples[index] = undiscretised_feature
+            else:
+                samples[:, index] = undiscretised_feature
+
+        for i in range(self.n_classes):
+            if self.probabilistic:
+                predictions = self.prediction_function(samples)[:, i]
+            else:
+                predictions = self.prediction_function(samples)
+                class_indx = np.where(predictions==i)
+                rest_indx = np.where(predictions!=i)
+                predictions[class_indx] = 1
+                predictions[rest_indx] = 0
+
+            
+            local_model.fit(sampled_data, predictions)
+            self.local_models.append(local_model)
+            lime_explanation[self.class_names[i]] = dict(
+                zip(self.feature_names,
+                    list(local_model.feature_importances_)))
 
 class TabularBlimeyTree(SurrogateExplainer):
     """
-    Parameters
-    ----------
+    An implemented of bLIMEy explainer.
+
+    Use ``Mixup`` (:class:`fatf.utils.data.augmentation.Mixup`) sampling
+    around instance. Then fits a local decision tree regressor on the sampled
+    data. Extracts feature importances from the decision tree and exports this
+    as an explanation.
+
+    For additional parameters, warnings and errors please see the parent class
+    :class:`fatf.transparency.sklearn.surrogate_explainers.SurrogateExplainer`.
 
     Raises
     ------
+    TypeError
+        ``dataset`` is a structured array. ``dataset`` contains non-numerical
+        dtype.
 
     Attributes
     ----------
-
+    local_models : List[object]
+        Stores the local models that were used to get explanations in the
+        most recent call of ``explain_insatnce``. Will be an empty list if
+        ``explain_instance`` has not been called yet.
+    augmentor : fatf.utils.data.augmentation.Mixup
+        The augmentor used to sample locally around ``data_row`` in each call
+        to ``explain_instance``.
     """
     def __init__(self,
                  dataset: np.ndarray,
@@ -497,6 +675,31 @@ class TabularBlimeyTree(SurrogateExplainer):
         super().__init__(
                 dataset, global_model, probabilistic, categorical_indices,
                 class_names, feature_names)
+
+        if self.is_structured:
+            raise TypeError('TabularBlimeyTree does not support structured '
+                            'arrays as it uses sci-kit learn implementation '
+                            'of decision trees.')
+        # Check if dtype is string based.
+        if fuav.is_textual_dtype(dataset.dtype):
+            raise TypeError('TabularBlimeyTree does not support string dtype '
+                            'as it uses sci-kit learn implementation of '
+                            'decision trees.')
+
+        # List to store all the local_models constructed in the latest call
+        # of explain_instance.
+        self.local_models = []
+
+        # Get predictions for dataset for mixup
+        dataset_predictions = self.global_model.predict(self.dataset)
+
+        # Initialise Mixup augmentor
+        self.augmentor = fuda.Mixup(
+            dataset=self.dataset,
+            ground_truth=dataset_predictions,
+            categorical_indices=self.categorical_indices,
+            beta_parameters=(2, 5),
+            int_to_float=True)
 
     def _explain_instance_input_is_valid(
             self,
@@ -516,7 +719,21 @@ class TabularBlimeyTree(SurrogateExplainer):
         ``True`` if input is valid, ``False`` otherwise.
         """
         is_valid = False
-        assert super()._validate_sample_input(data_row)
+        assert super()._explain_instance_input_is_valid(data_row)
+
+        if not isinstance(samples_number, int):
+            raise TypeError('samples_number must be an integer.')
+        else:
+            if samples_number < 1:
+                raise ValueError('samples_number must be a positive integer '
+                                 'larger than 0.')
+
+        if not isinstance(maximum_depth, int):
+            raise TypeError('maximum_depth must be an integer.')
+        else:
+            if maximum_depth < 1:
+                raise ValueError('maximum_depth must be a positive integer '
+                                 'larger than 0.')
 
         is_valid = True
         return is_valid
@@ -525,8 +742,9 @@ class TabularBlimeyTree(SurrogateExplainer):
             self,
             data_row: Union[np.ndarray, np.void],
             samples_number: Optional[int] = 50,
-            maximum_depth: Optional[int] = 3
-    ) -> Dict[str, Dict[Index, np.float64]]:
+            maximum_depth: Optional[int] = 3,
+            random_state: Optional[int] = 42
+    ) -> Dict[str, Dict[str, np.float64]]:
         """
         Explains instance ``data_row`` using bLIMEy algorithm with a
         decision tree as the local surrogate model.
@@ -543,6 +761,38 @@ class TabularBlimeyTree(SurrogateExplainer):
             Maximum depth of the decision tree local surrogate model, can be
             used to limit the number of splits and simplify the resulting
             local model.
+        random_state : integer, optional (default=42)
+            Used for testing purposes. The random state to be used in the
+            DecisionTreeRegressor that is the local model.
         """
-        assert self._validate_sample_input(data_row), \
-            'Invalid explain_instance method input.'
+        assert self._explain_instance_input_is_valid(
+            data_row, samples_number, maximum_depth), \
+                'Invalid explain_instance method input.'
+
+        sampled_data = self.augmentor.sample(data_row,
+                                             samples_number=samples_number)
+        blimey_explanation = {}
+
+        for i in range(self.n_classes):
+            if self.probabilistic:
+                predictions = self.prediction_function(sampled_data)[:, i]
+            else:
+                predictions = self.prediction_function(sampled_data)
+                class_indx = np.where(predictions==i)
+                rest_indx = np.where(predictions!=i)
+                predictions[class_indx] = 1
+                predictions[rest_indx] = 0
+
+            local_model = sklearn.tree.DecisionTreeRegressor(
+                max_depth=maximum_depth,
+                random_state=random_state)
+
+            local_model.fit(sampled_data, predictions)
+            self.local_models.append(local_model)
+            blimey_explanation[self.class_names[i]] = dict(
+                zip(self.feature_names,
+                    list(local_model.feature_importances_)))
+
+            # TODO: Decision tree explainer
+
+        return blimey_explanation

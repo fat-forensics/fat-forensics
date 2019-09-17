@@ -889,12 +889,38 @@ class TestTabularLIME():
         TabularLIME.explain_instance`.
         """
         fatf.setup_random_seed()
-        numerical_np_explanation = {}
+        numerical_np_explanation = {
+            'class 0': {
+                '*feature 0* <= 0.00': -0.387,
+                '*feature 1* <= 0.00': 0.242,
+                '0.07 < *feature 2* <= 0.22': 0.097,
+                '0.58 < *feature 3* <= 0.79': 0.055},
+            'class 1': {
+                '*feature 0* <= 0.00': 0.046,
+                '*feature 1* <= 0.00': -0.159,
+                '0.07 < *feature 2* <= 0.22': -0.065,
+                '0.58 < *feature 3* <= 0.79': 0.036},
+            'class 2': {
+                '*feature 0* <= 0.00': 0.341,
+                '*feature 1* <= 0.00': -0.083,
+                '0.07 < *feature 2* <= 0.22': -0.031,
+                '0.58 < *feature 3* <= 0.79': -0.091}}
 
         explanation = self.numerical_np_tabular_lime.explain_instance(
             NUMERICAL_NP_ARRAY[0],
             samples_number=50,
-            features_number=2,
+            features_number=4,
             kernel_width=None,
             random_state=42)
-        assert _is_explanation_equal(numerical_np_explanation, explanation)
+        assert _is_explanation_equal(numerical_np_explanation, explanation,
+                                     tol=1e-1)
+
+        explanation = self.numerical_struct_cat_tabular_lime.explain_instance(
+            NUMERICAL_STRUCT_ARRAY[0],
+            samples_number=50,
+            features_number=4,
+            kernel_width=None,
+            random_state=42)
+        # not working yet
+        assert _is_explanation_equal(numerical_np_explanation, explanation,
+                                     tol=1e-1)

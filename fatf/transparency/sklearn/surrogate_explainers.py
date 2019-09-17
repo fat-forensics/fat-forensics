@@ -20,6 +20,7 @@ import fatf.transparency.sklearn.linear_model as ftslm
 import fatf.transparency.sklearn.tools as ftst
 
 import fatf.utils.data.augmentation as fuda
+import fatf.utils.data.transformation as fudt
 import fatf.utils.data.discretisation as fudd
 import fatf.utils.distances as fud
 import fatf.utils.kernels as fuk
@@ -427,6 +428,10 @@ class TabularLIME(SurrogateExplainer):
         standard deviation) for the original data bin corresponding to the
         value. This is used to go from discretised sampled values to the
         original data space.
+    local_models : List[object]
+        Stores the local models that were used to get explanations in the
+        most recent call of ``explain_insatnce``. Will be an empty list if
+        ``explain_instance`` has not been called yet.
     """
     def __init__(self,
                  dataset: np.ndarray,
@@ -442,10 +447,14 @@ class TabularLIME(SurrogateExplainer):
         self.discretiser = fudd.QuartileDiscretiser(
             dataset,
             categorical_indices=self.categorical_indices,
-            feature_names=feature_names)
+            feature_names=self.feature_names)
 
         self.discretised_dataset = self.discretiser.discretise(self.dataset)
 
+        # Normal sampler will just sample all indices to be the proportion that
+        # is present in the dataset, as categorical_indices will be treated as
+        # categorical and numerical_indices will be treated as categorical as
+        # they will be discretised.
         self.augmentor = fuda.NormalSampling(
             self.discretised_dataset,
             categorical_indices=self.categorical_indices+self.numerical_indices)
@@ -467,6 +476,8 @@ class TabularLIME(SurrogateExplainer):
                 stats = (bin_values.min(), bin_values.max(), bin_values.mean(),
                          bin_values.std())
                 self.bin_sampling_values[index][value] = stats
+
+        self.local_models = []
 
     def _explain_instance_input_is_valid(
             self,
@@ -597,6 +608,10 @@ class TabularLIME(SurrogateExplainer):
          # Create an array to hold the samples.
         features_number = (len(self.categorical_indices) +
                            len(self.numerical_indices))
+
+        if kernel_width is None:
+            kernel_width = np.sqrt(features_number) * .75
+
         if self.is_structured:
             shape = (samples_number, )  # type: Tuple[int, ...]
         else:
@@ -622,6 +637,32 @@ class TabularLIME(SurrogateExplainer):
             else:
                 samples[:, index] = undiscretised_feature
 
+        # Get feature names for binarised data
+        discretised_value_names = self.discretiser.feature_value_names
+        binarised_feature_names = []
+        for i, index in enumerate(self.indices):
+            data_row_value = int(discretised_data_row[index])
+            if index in discretised_value_names.keys():
+                binarised_feature_names.append(
+                    discretised_value_names[index][data_row_value])
+            elif index in self.categorical_indices:
+                binarised_feature_names.append('{} = {}'.format(
+                    self.feature_names[i], data_row_value))
+            else:
+                binarised_feature_names.append(self.feature_names[i])
+        lime_explanation = {}
+
+         # binarised data will be 1 if value is the same as in data_row
+        # else 0
+        binarised_data = fudt.dataset_row_masking(
+            discretised_sampled_data, discretised_data_row)
+        # kernalised distances between data_row and the binarised sampled
+        # data.
+        distances = fud.euclidean_array_distance(
+                np.expand_dims(np.ones_like(data_row), 0),
+                binarised_data).flatten()
+        weights = fuk.exponential_kernel(distances, width=kernel_width)
+
         for i in range(self.n_classes):
             if self.probabilistic:
                 predictions = self.prediction_function(samples)[:, i]
@@ -632,12 +673,34 @@ class TabularLIME(SurrogateExplainer):
                 predictions[class_indx] = 1
                 predictions[rest_indx] = 0
 
+            # Choose indices using k-LASSO
+            lasso_indices = fudfs.lasso_path(discretised_sampled_data,
+                                             predictions,
+                                             weights,
+                                             features_number)
+            if self.is_structured:
+                local_training_data = fuat.as_unstructured(
+                    binarised_data[lasso_indices])
+            else:
+                local_training_data = binarised_data[:, lasso_indices]
 
-            local_model.fit(sampled_data, predictions)
+            # Train the local ridge regression and use our linear model
+            # explainer to generate explanations.
+            local_model = sklearn.linear_model.Ridge(random_state=random_state)
+            local_model.fit(local_training_data, predictions)
             self.local_models.append(local_model)
+
+            explainer = ftslm.SKLearnLinearModelExplainer(
+                local_model,
+                feature_names=binarised_feature_names)
+
+            # TODO: maybe put this in SkLearnLinearModelExplainer.\
+            # feature_importance
             lime_explanation[self.class_names[i]] = dict(
-                zip(self.feature_names,
-                    list(local_model.feature_importances_)))
+                zip(binarised_feature_names,
+                    explainer.feature_importance()))
+
+        return lime_explanation
 
 class TabularBlimeyTree(SurrogateExplainer):
     """

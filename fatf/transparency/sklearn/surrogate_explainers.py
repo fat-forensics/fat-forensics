@@ -535,6 +535,8 @@ class TabularLIME(SurrogateExplainer):
         -------
         undiscretised_feature : numpy.ndarray
             The feature values in the original data space.
+
+        # TODO: too similar to LIME rewrite
         """
         mins = np.array(
             [self.bin_sampling_values[index][v][0]for v in values])
@@ -630,7 +632,7 @@ class TabularLIME(SurrogateExplainer):
                 predictions[class_indx] = 1
                 predictions[rest_indx] = 0
 
-            
+
             local_model.fit(sampled_data, predictions)
             self.local_models.append(local_model)
             lime_explanation[self.class_names[i]] = dict(

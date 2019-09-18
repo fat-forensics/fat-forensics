@@ -534,11 +534,11 @@ class TestTabularBlimeyTree():
     iris_classifier = fum.KNN(k=3)
     iris_classifier.fit(IRIS_DATASET['data'], IRIS_DATASET['target'])
 
-    numerical_np_tabular_lime = ftsse.TabularBlimeyTree(
+    numerical_np_tabular_blimey = ftsse.TabularBlimeyTree(
         NUMERICAL_NP_ARRAY,
         numerical_np_array_classifier)
 
-    numerical_np_cat_tabular_lime= ftsse.TabularBlimeyTree(
+    numerical_np_cat_tabular_blimey= ftsse.TabularBlimeyTree(
         NUMERICAL_NP_ARRAY,
         numerical_np_array_classifier,
         categorical_indices=[0, 1])
@@ -631,68 +631,70 @@ class TestTabularBlimeyTree():
 
         numerical_np_explanation = {
             'class 0': {
-                'feature 0': 0.074,
-                'feature 1': 0.797,
-                'feature 2': 0.130,
+                'feature 0': 0.552,
+                'feature 1': 0.448,
+                'feature 2': 0.0,
                 'feature 3': 0.0},
             'class 1': {
                 'feature 0': 0.0,
-                'feature 1': 0.149,
-                'feature 2': 0.851,
+                'feature 1': 1.0,
+                'feature 2': 0.0,
                 'feature 3': 0.0},
             'class 2': {
-                'feature 0': 0.052,
-                'feature 1': 0.408,
-                'feature 2': 0.540,
+                'feature 0': 0.564,
+                'feature 1': 0.436,
+                'feature 2': 0.0,
                 'feature 3': 0.0}}
 
         numerical_np_cat_explanation = {
             'class 0': {
-                'feature 0': 0.071,
-                'feature 1': 0.460,
-                'feature 2': 0.197,
-                'feature 3': 0.272},
+                'feature 0': 0.197,
+                'feature 1': 0.242,
+                'feature 2': 0.267,
+                'feature 3': 0.295},
             'class 1': {
                 'feature 0': 0.0,
-                'feature 1': 0.534,
-                'feature 2': 0.466,
-                'feature 3': 0.0},
+                'feature 1': 0.086,
+                'feature 2': 0.847,
+                'feature 3': 0.067},
             'class 2': {
-                'feature 0': 0.166,
-                'feature 1': 0.151,
+                'feature 0': 0.083,
+                'feature 1': 0.190,
                 'feature 2': 0.0,
-                'feature 3': 0.683}}
+                'feature 3': 0.727}}
 
         iris_explanation = {
             'setosa': {
-                'petal length (cm)': 0.0044,
-                'petal width (cm)': 0.996,
+                'petal length (cm)': 0.991,
+                'petal width (cm)': 0.0,
                 'sepal length (cm)': 0.0,
-                'sepal width (cm)': 0.0},
+                'sepal width (cm)': 0.008},
             'versicolor': {
-                'petal length (cm)': 0.0,
-                'petal width (cm)': 1.0,
+                'petal length (cm)': 0.789,
+                'petal width (cm)': 0.190,
                 'sepal length (cm)': 0.0,
-                'sepal width (cm)': 0.0},
+                'sepal width (cm)': 0.019},
             'virginica': {
-                'petal length (cm)': 0.0,
-                'petal width (cm)': 0.093,
-                'sepal length (cm)': 0.817,
-                'sepal width (cm)': 0.089}}
+                'petal length (cm)': 0.138,
+               'petal width (cm)': 0.789,
+               'sepal length (cm)': 0.036,
+               'sepal width (cm)': 0.035}}
 
         explanation = self.numerical_np_tabular_blimey.explain_instance(
             NUMERICAL_NP_ARRAY[0],
             samples_number=50,
             maximum_depth=3,
             random_state=42)
-        assert _is_explanation_equal(numerical_np_explanation, explanation)
+        assert _is_explanation_equal(numerical_np_explanation, explanation,
+                                     tol=0.1)
 
         explanation = self.numerical_np_cat_tabular_blimey.explain_instance(
             NUMERICAL_NP_ARRAY[0],
             samples_number=50,
             maximum_depth=3,
             random_state=42)
-        assert _is_explanation_equal(numerical_np_cat_explanation, explanation)
+        assert _is_explanation_equal(numerical_np_cat_explanation, explanation,
+                                     tol=0.1)
 
         # Test IRIS
         explanation = self.iris_blimey.explain_instance(
@@ -700,7 +702,9 @@ class TestTabularBlimeyTree():
             samples_number=50,
             maximum_depth=3,
             random_state=42)
-        assert _is_explanation_equal(iris_explanation, explanation)
+        from pprint import pprint
+        pprint(explanation)
+        assert _is_explanation_equal(iris_explanation, explanation, tol=0.1)
 
 
 class TestTabularLIME():
@@ -883,7 +887,7 @@ class TestTabularLIME():
         assert self.numerical_np_tabular_lime._explain_instance_input_is_valid(
             NUMERICAL_NP_ARRAY[0], 10, 3, 1.0)
 
-    def test_tabular_LIME_explain_instance(self):
+    def test_tabular_LIME_explain_instance(self, caplog):
         """
         Tests :func:`fatf.transparency.sklearn.surrogate_explainers.\
         TabularLIME.explain_instance`.
@@ -905,6 +909,42 @@ class TestTabularLIME():
                 '*feature 1* <= 0.00': -0.083,
                 '0.07 < *feature 2* <= 0.22': -0.031,
                 '0.58 < *feature 3* <= 0.79': -0.091}}
+        numerical_struct_explanation = {
+            'class 0': {
+                '0.07 < *feature 2* <= 0.22': 0.153,
+                '0.58 < *feature 3* <= 0.79': 0.194},
+            'class 1': {
+                '0.07 < *feature 2* <= 0.22': -0.113,
+                '*feature 0* = 0': 0.037},
+            'class 2': {
+                '0.07 < *feature 2* <= 0.22': -0.026,
+                '0.58 < *feature 3* <= 0.79': -0.143}}
+        categorical_np_explanation = { # Values not quite zero but very close.
+            'class 0': {
+                '*feature 0* = a': 0.0,
+                '*feature 1* = b': 0.0,
+                '*feature 2* = c': 0.0},
+            'class 1': {
+                '*feature 0* = a': 0.0,
+                '*feature 1* = b': 0.0,
+                '*feature 2* = c': 0.0},
+            'class 2': {
+                '*feature 0* = a': 0.0,
+                '*feature 1* = b': 0.0,
+                '*feature 2* = c': 0.0}}
+        iris_explanation = {
+            'setosa': {
+                '*petal length (cm)* <= 1.60': 0.878,
+                '3.30 < *sepal width (cm)*': 0.043},
+            'versicolor': {
+                '*petal length (cm)* <= 1.60': -0.565,
+                '3.30 < *sepal width (cm)*': -0.138},
+            'virginica': {
+                '*petal length (cm)* <= 1.60': -0.304,
+               '*petal width (cm)* <= 0.30': -0.088}}
+        lasso_warning = ('The lasso path feature selection could not pick '
+                         'any feature subset. All of the features were '
+                         'selected.')
 
         explanation = self.numerical_np_tabular_lime.explain_instance(
             NUMERICAL_NP_ARRAY[0],
@@ -918,9 +958,31 @@ class TestTabularLIME():
         explanation = self.numerical_struct_cat_tabular_lime.explain_instance(
             NUMERICAL_STRUCT_ARRAY[0],
             samples_number=50,
-            features_number=4,
+            features_number=2,
             kernel_width=None,
             random_state=42)
-        # not working yet
-        assert _is_explanation_equal(numerical_np_explanation, explanation,
+        assert _is_explanation_equal(numerical_struct_explanation, explanation,
+                                     tol=1e-1)
+
+        explanation = self.categorical_np_lime.explain_instance(
+            CATEGORICAL_NP_ARRAY[0],
+            samples_number=50,
+            features_number=2,
+            kernel_width=None,
+            random_state=42)
+        assert len(caplog.records) == 4
+        assert caplog.records[2].levelname == 'WARNING'
+        assert caplog.records[2].getMessage() == lasso_warning
+        # TODO: this result is a bit strange because of the limited options
+        # when it comes to sampling I think.
+        assert _is_explanation_equal(categorical_np_explanation, explanation,
+                                     tol=1e-1)
+
+        explanation = self.iris_lime.explain_instance(
+            IRIS_DATASET['data'][0],
+            samples_number=50,
+            features_number=2,
+            kernel_width=None,
+            random_state=42)
+        assert _is_explanation_equal(iris_explanation, explanation,
                                      tol=1e-1)

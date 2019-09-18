@@ -606,16 +606,16 @@ class TabularLIME(SurrogateExplainer):
             'Invalid explain_instance method input.'
 
          # Create an array to hold the samples.
-        features_number = (len(self.categorical_indices) +
-                           len(self.numerical_indices))
+        dataset_features = (len(self.categorical_indices) +
+                            len(self.numerical_indices))
 
         if kernel_width is None:
-            kernel_width = np.sqrt(features_number) * .75
+            kernel_width = np.sqrt(dataset_features) * .75
 
         if self.is_structured:
             shape = (samples_number, )  # type: Tuple[int, ...]
         else:
-            shape = (samples_number, features_number)
+            shape = (samples_number, dataset_features)
         samples = np.zeros(shape, dtype=self.dataset.dtype)
 
         discretised_data_row = self.discretiser.discretise(data_row)
@@ -641,15 +641,13 @@ class TabularLIME(SurrogateExplainer):
         discretised_value_names = self.discretiser.feature_value_names
         binarised_feature_names = []
         for i, index in enumerate(self.indices):
-            data_row_value = int(discretised_data_row[index])
+            data_row_value = discretised_data_row[index]
             if index in discretised_value_names.keys():
                 binarised_feature_names.append(
-                    discretised_value_names[index][data_row_value])
+                    discretised_value_names[index][int(data_row_value)])
             elif index in self.categorical_indices:
-                binarised_feature_names.append('{} = {}'.format(
+                binarised_feature_names.append('*{}* = {}'.format(
                     self.feature_names[i], data_row_value))
-            else:
-                binarised_feature_names.append(self.feature_names[i])
         lime_explanation = {}
 
          # binarised data will be 1 if value is the same as in data_row
@@ -659,7 +657,7 @@ class TabularLIME(SurrogateExplainer):
         # kernalised distances between data_row and the binarised sampled
         # data.
         distances = fud.euclidean_array_distance(
-                np.expand_dims(np.ones_like(data_row), 0),
+                np.ones((1, dataset_features)),
                 binarised_data).flatten()
         weights = fuk.exponential_kernel(distances, width=kernel_width)
 
@@ -674,15 +672,21 @@ class TabularLIME(SurrogateExplainer):
                 predictions[rest_indx] = 0
 
             # Choose indices using k-LASSO
-            lasso_indices = fudfs.lasso_path(discretised_sampled_data,
+            lasso_indices = fudfs.lasso_path(binarised_data,
                                              predictions,
                                              weights,
                                              features_number)
             if self.is_structured:
                 local_training_data = fuat.as_unstructured(
                     binarised_data[lasso_indices])
+                feature_name_indices = [binarised_data.dtype.names.index(i)
+                                        for i in lasso_indices]
             else:
                 local_training_data = binarised_data[:, lasso_indices]
+                feature_name_indices = lasso_indices
+
+            feature_names = [binarised_feature_names[name]
+                             for name in feature_name_indices]
 
             # Train the local ridge regression and use our linear model
             # explainer to generate explanations.
@@ -692,15 +696,16 @@ class TabularLIME(SurrogateExplainer):
 
             explainer = ftslm.SKLearnLinearModelExplainer(
                 local_model,
-                feature_names=binarised_feature_names)
+                feature_names=feature_names)
 
             # TODO: maybe put this in SkLearnLinearModelExplainer.\
             # feature_importance
             lime_explanation[self.class_names[i]] = dict(
-                zip(binarised_feature_names,
+                zip(feature_names,
                     explainer.feature_importance()))
 
         return lime_explanation
+
 
 class TabularBlimeyTree(SurrogateExplainer):
     """

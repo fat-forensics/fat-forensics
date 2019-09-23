@@ -21,6 +21,7 @@ doc/resources
 doc/generated
 doc/sphinx_gallery_auto
 doc/tutorials/img
+doc/how_to/img
 
 temp/*
 .coverage.*

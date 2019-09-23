@@ -9,25 +9,26 @@ The :mod:`fatf.utils.data.augmentation` module implements data set augmenters.
 # pylint: disable=too-many-lines
 
 import abc
+import scipy.stats
 import warnings
 
 from numbers import Number
-from typing import List, Optional, Tuple, Union, Callable
+from typing import Callable, List, Optional, Tuple, Union
 
 import numpy as np
 
-import scipy.stats
-
-from fatf.exceptions import IncorrectShapeError, IncompatibleModelError
+from fatf.exceptions import IncompatibleModelError, IncorrectShapeError
 
 import fatf.utils.array.tools as fuat
 import fatf.utils.array.validation as fuav
-import fatf.utils.models.validation as fumv
 import fatf.utils.distances as fud
+import fatf.utils.models.validation as fumv
 import fatf.utils.validation as fuv
 
-
-__all__ = ['NormalSampling', 'Mixup', 'TruncatedNormal', 'GrowingSpheres',
+__all__ = ['NormalSampling',
+           'Mixup',
+           'TruncatedNormal',
+           'GrowingSpheres',
            'LocalFidelity']
 
 Index = Union[int, str]
@@ -504,6 +505,7 @@ Tuple[numpy.ndarray, numpy.ndarray]]
                 mean = sampling_parameters[0]
             else:
                 mean = data_row[index]
+
             sample_values = np.random.normal(0, 1, samples_number) * std + mean
 
             if self.is_structured:
@@ -1162,6 +1164,7 @@ class Mixup(Augmentation):
             shape = (samples_number, )  # type: Tuple[int, ...]
         else:
             shape = (samples_number, self.features_number)
+
         samples = np.zeros(shape, dtype=self.sample_dtype)
         # Sort out numerical features
         # yapf: disable

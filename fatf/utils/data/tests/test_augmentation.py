@@ -5,20 +5,21 @@ Functions for testing data augmentation classes.
 #         Kacper Sokol <k.sokol@bristol.ac.uk>
 # License: new BSD
 
-import pytest
-
-import numpy as np
 import scipy
 import scipy.stats
 
+import pytest
+
+import numpy as np
+
 import fatf
 
-from fatf.exceptions import IncorrectShapeError, IncompatibleModelError
+from fatf.exceptions import IncompatibleModelError, IncorrectShapeError
 
-import fatf.utils.models as fum
-import fatf.utils.data.augmentation as fuda
 import fatf.utils.array.tools as fuat
+import fatf.utils.data.augmentation as fuda
 import fatf.utils.distances as fud
+import fatf.utils.models as fum
 
 # yapf: disable
 NUMERICAL_NP_ARRAY = np.array([
@@ -1169,7 +1170,7 @@ class TestTruncatedNormal(object):
         mean = NUMERICAL_NP_ARRAY.mean(axis=0)
         numerical_truncated_results_mean, numerical_truncated_results_std = \
             get_truncated_mean_std(mini, maxi, NUMERICAL_NP_ARRAY[0], std)
-        (numerical_truncated_results_dataset_mean, 
+        (numerical_truncated_results_dataset_mean,
             numerical_truncated_results_dataset_std) = \
                 get_truncated_mean_std(mini, maxi, mean, std)
         mixed_numerical_values = fuat.structured_to_unstructured(
@@ -1796,7 +1797,7 @@ class TestGrowingSpheres(object):
             freq = freq / freq.sum()
             assert np.array_equal(val, vals[i])
             assert np.allclose(freq, proportions[i], atol=1e-1)
-    
+
         samples = self.categorical_struct_abc_augmentor.sample(
             CATEGORICAL_STRUCT_ARRAY[0], samples_number=1000)
         predictions = self.categorical_struct_classifier.predict(samples)
@@ -2125,7 +2126,7 @@ class TestLocalSurrogate():
         samples = self.numerical_np_augmentor.sample(
             NUMERICAL_NP_ARRAY[0], r_sx=r_sx, samples_number=4)
         assert np.allclose(samples, numerical_results, atol=0.1)
-        
+
         samples = self.numerical_np_augmentor.sample(
             NUMERICAL_NP_ARRAY[0], r_sx=r_sx, samples_number=100,
             samples_get_decision_boundary=1000)
@@ -2140,7 +2141,7 @@ class TestLocalSurrogate():
         for i in samples.dtype.names:
             assert np.allclose(
                 samples[i], numerical_struct_results[i], atol=0.1)
-        
+
         samples = self.numerical_struct_augmentor.sample(
             NUMERICAL_STRUCT_ARRAY[0], r_sx=r_sx, samples_number=100,
             samples_get_decision_boundary=1000)
@@ -2166,7 +2167,7 @@ class TestLocalSurrogate():
         max_dist = np.max(fud.euclidean_array_distance(samples,
                                                        samples).flatten())
         assert np.isclose(max_dist, 2*r_sx, atol=0.1)
-        
+
 
 
 class TestLocalFidelity(object):

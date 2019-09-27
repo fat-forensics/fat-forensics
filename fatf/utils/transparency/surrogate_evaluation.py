@@ -181,7 +181,7 @@ def local_fidelity_score(
     with ``fidelity_radius_percentage`` parameter -- of the maximum l-2
     distance between the specified data point and all the instances in the
     ``dataset``. (This sampling is based on
-    :class:`fatf.utils.data.augmentation.LocalFidelity` data augmenter.)
+    :class:`fatf.utils.data.augmentation.LocalSphere` data augmenter.)
 
     .. warning:: A ``dataset`` with categorical features.
 
@@ -190,7 +190,7 @@ def local_fidelity_score(
        e.g., one-hot encoding) since the l-2 distance computed on mixed true
        numerical and (numerically-encoded) categorical features causes the
        local sample (computed with the
-       :class:`fatf.utils.data.augmentation.LocalFidelity` data augmenter) to
+       :class:`fatf.utils.data.augmentation.LocalSphere` data augmenter) to
        be ill-defined. Feature scaling could possibly be used to overcome this
        issue, however we leave such consideration up to the user.
 
@@ -506,9 +506,9 @@ def local_fidelity_score(
         fidelity_radius_percentage,
         samples_number), 'Input is invalid.'
 
-    augmentor = fuda.LocalFidelity(dataset, int_to_float=False)
+    augmentor = fuda.LocalSphere(dataset, int_to_float=False)
     sampled_data = augmentor.sample(
-        data_row, fidelity_radius_percentage / 100, samples_number)
+        data_row, fidelity_radius_percentage, samples_number)
 
     global_predictions = global_predictive_function(sampled_data)
     assert not fuav.is_structured_array(global_predictions), 'Is structured.'

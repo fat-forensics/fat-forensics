@@ -1056,27 +1056,27 @@ def get_truncated_mean_std(minimum, maximum, original_mean, original_std):
         return mean, std
 
 
-class TestTruncatedNormal(object):
+class TestTruncatedNormalSampling(object):
     """
-    Tests :class:`fatf.utils.data.augmentation.TruncatedNormal` class.
+    Tests :class:`fatf.utils.data.augmentation.TruncatedNormalSampling` class.
     """
-    numerical_np_0_augmentor = fuda.TruncatedNormal(NUMERICAL_NP_ARRAY, [0])
-    numerical_np_augmentor = fuda.TruncatedNormal(NUMERICAL_NP_ARRAY)
-    numerical_struct_a_augmentor = fuda.TruncatedNormal(NUMERICAL_STRUCT_ARRAY,
+    numerical_np_0_augmentor = fuda.TruncatedNormalSampling(NUMERICAL_NP_ARRAY, [0])
+    numerical_np_augmentor = fuda.TruncatedNormalSampling(NUMERICAL_NP_ARRAY)
+    numerical_struct_a_augmentor = fuda.TruncatedNormalSampling(NUMERICAL_STRUCT_ARRAY,
                                                        ['a'])
-    numerical_struct_augmentor = fuda.TruncatedNormal(NUMERICAL_STRUCT_ARRAY)
-    numerical_struct_augmentor_f = fuda.TruncatedNormal(
+    numerical_struct_augmentor = fuda.TruncatedNormalSampling(NUMERICAL_STRUCT_ARRAY)
+    numerical_struct_augmentor_f = fuda.TruncatedNormalSampling(
         NUMERICAL_STRUCT_ARRAY, int_to_float=False)
-    categorical_np_augmentor = fuda.TruncatedNormal(CATEGORICAL_NP_ARRAY)
-    categorical_np_012_augmentor = fuda.TruncatedNormal(CATEGORICAL_NP_ARRAY,
+    categorical_np_augmentor = fuda.TruncatedNormalSampling(CATEGORICAL_NP_ARRAY)
+    categorical_np_012_augmentor = fuda.TruncatedNormalSampling(CATEGORICAL_NP_ARRAY,
                                                        [0, 1, 2])
-    categorical_struct_abc_augmentor = fuda.TruncatedNormal(
+    categorical_struct_abc_augmentor = fuda.TruncatedNormalSampling(
         CATEGORICAL_STRUCT_ARRAY, ['a', 'b', 'c'])
-    mixed_augmentor = fuda.TruncatedNormal(MIXED_ARRAY, ['b', 'd'])
+    mixed_augmentor = fuda.TruncatedNormalSampling(MIXED_ARRAY, ['b', 'd'])
 
     def test_init(self):
         """
-        Tests :class:`fatf.utils.data.augmentation.TruncatedNormal` class init.
+        Tests :class:`fatf.utils.data.augmentation.TruncatedNormalSampling` class init.
         """
         # Test class inheritance
         assert (self.numerical_np_0_augmentor.__class__.__bases__[0].__name__
@@ -1096,7 +1096,7 @@ class TestTruncatedNormal(object):
         assert self.categorical_np_augmentor.categorical_indices == [0, 1, 2]
         assert self.categorical_np_augmentor.numerical_indices == []
 
-        # Test attributes unique to TruncatedNormal
+        # Test attributes unique to TruncatedNormalSampling
         csv = self.numerical_np_0_augmentor.categorical_sampling_values
         nsv = self.numerical_np_0_augmentor.numerical_sampling_values
         #
@@ -1127,7 +1127,7 @@ class TestTruncatedNormal(object):
 
     def test_sample(self):
         """
-        Tests :func:`~fatf.utils.data.augmentation.TruncatedNormal.sample`.
+        Tests :func:`~fatf.utils.data.augmentation.TruncatedNormalSampling.sample`.
         """
         fatf.setup_random_seed()
 
@@ -1463,64 +1463,98 @@ class TestTruncatedNormal(object):
             assert np.allclose(samples[i], samples_answer[i], atol=1e-3)
 
 
-def test_validate_input_growingspheres():
+def test_validate_input_normalclassdiscovery():
     """
-    Tests :func:`fatf.utils.data.augmentation._validate_input_growingspheres`.
+    Tests :func:`fatf.utils.data.augmentation._validate_input_normalclassdiscovery`.
     """
-    incompatible_model_msg = ('This functionality requires the model '
-                              'to be capable of outputting predicted '
-                              'class via predict method.')
-    starting_std_msg = ('starting_std is not a float.')
-    increment_std_msg = ('increment_std is not a float.')
-    minimum_per_class_msg = ('minimum_per_class is not a float.')
-    minimum_per_class_value_msg = ('minimum_per_class must be a float '
-                                   'between 0 and 1.')
-    starting_std_value_msg = ('starting_std must be a positive float greater '
-                              'than 0.')
-    increment_std_value_msg = ('increment_std must be a positive float '
-                               'greater than 0.')
+    predictive_function_model = ('The predictive function must take exactly '
+                                 '*one* required parameter: a data array to '
+                                 'be predicted.')
+    predictive_function_type = ('The predictive_function should be a Python '
+                                'callable, e.g., a Python function.')
+    classes_number_type = ('The classes_number parameter is neither None nor '
+                           'an integer.')
+    classes_number_value = ('The classes_number parameter has to be an '
+                            'integer larger than 1 (at least a binary '
+                            'classification problem).')
+    class_proportion_type = ('The class_proportion_threshold parameter is not '
+                             'a float.')
+    class_proportion_value = ('The class_proportion_threshold parameter must '
+                              'be a number between 0 and 1 (not inclusive).')
+    standard_deviation_init_type = ('The standard_deviation_init parameter is '
+                                    'not a float.')
+    standard_deviation_init_value = ('The standard_deviation_init parameter '
+                                     'must be a positive number (greater than '
+                                     '0).')
 
-    class invalid_model():
-        def __init__(self): pass
-        def predict_proba(self, x, y): pass
-    model = invalid_model()
-    with pytest.raises(IncompatibleModelError) as exin:
-        fuda._validate_input_growingspheres(model, None, None, None)
-    assert str(exin.value) == incompatible_model_msg
+    standard_deviation_increment_type = ('The standard_deviation_increment '
+                                         'parameter is not a float.')
+    standard_deviation_increment_value = ('The standard_deviation_increment '
+                                          'parameter must be a positive '
+                                          'number (greater than 0).')
 
+    def invalid_predict_proba(self, x, y): pass
     model = fum.KNN(k=3)
-    with pytest.raises(TypeError) as exin:
-        fuda._validate_input_growingspheres(model, 'a', None, None)
-    assert str(exin.value) == starting_std_msg
 
     with pytest.raises(TypeError) as exin:
-        fuda._validate_input_growingspheres(model, 0.1, 'a', None)
-    assert str(exin.value) == increment_std_msg
+        fuda._validate_input_normalclassdiscovery(
+            None, None, None, None, None)
+    assert str(exin.value) == predictive_function_type
+    with pytest.raises(IncompatibleModelError) as exin:
+        fuda._validate_input_normalclassdiscovery(
+            invalid_predict_proba, None, None, None, None)
+    assert str(exin.value) == predictive_function_model
 
     with pytest.raises(TypeError) as exin:
-        fuda._validate_input_growingspheres(model, 0.1, 0.1, 'a')
-    assert str(exin.value) == minimum_per_class_msg
-
+        fuda._validate_input_normalclassdiscovery(
+            model.predict, '1', None, None, None)
+    assert str(exin.value) == classes_number_type
     with pytest.raises(ValueError) as exin:
-        fuda._validate_input_growingspheres(model, 0.1, 0.1, -0.1)
-    assert str(exin.value) == minimum_per_class_value_msg
+        fuda._validate_input_normalclassdiscovery(model.predict, 1, None, None, None)
+    assert str(exin.value) == classes_number_value
 
+    with pytest.raises(TypeError) as exin:
+        fuda._validate_input_normalclassdiscovery(
+            model.predict, 2, None, None, None)
+    assert str(exin.value) == class_proportion_type
     with pytest.raises(ValueError) as exin:
-        fuda._validate_input_growingspheres(model, 0.1, 0.1, 1.1)
-    assert str(exin.value) == minimum_per_class_value_msg
-
+        fuda._validate_input_normalclassdiscovery(model.predict, None, 0, None, None)
+    assert str(exin.value) == class_proportion_value
     with pytest.raises(ValueError) as exin:
-        fuda._validate_input_growingspheres(model, -0.1, 0.1, 0.1)
-    assert str(exin.value) == starting_std_value_msg
+        fuda._validate_input_normalclassdiscovery(
+            model.predict, None, 1.0, None, None)
+    assert str(exin.value) == class_proportion_value
 
+    with pytest.raises(TypeError) as exin:
+        fuda._validate_input_normalclassdiscovery(
+            model.predict_proba, 3, 0.9, None, None)
+    assert str(exin.value) == standard_deviation_init_type
     with pytest.raises(ValueError) as exin:
-        fuda._validate_input_growingspheres(model, 0.1, -0.1, 0.1)
-    assert str(exin.value) == increment_std_value_msg
+        fuda._validate_input_normalclassdiscovery(
+            model.predict, None, 0.1, 0, None)
+    assert str(exin.value) == standard_deviation_init_value
+    with pytest.raises(ValueError) as exin:
+        fuda._validate_input_normalclassdiscovery(
+            model.predict, None, 0.1, -5, None)
+    assert str(exin.value) == standard_deviation_init_value
+
+    with pytest.raises(TypeError) as exin:
+        fuda._validate_input_normalclassdiscovery(
+            model.predict_proba, None, 0.5, 6, None)
+    assert str(exin.value) == standard_deviation_increment_type
+    with pytest.raises(ValueError) as exin:
+        fuda._validate_input_normalclassdiscovery(
+            model.predict_proba, None, 0.5, 6, 0)
+    assert str(exin.value) == standard_deviation_increment_value
+    with pytest.raises(ValueError) as exin:
+        fuda._validate_input_normalclassdiscovery(
+            model.predict_proba, None, 0.5, 6, -0.5)
+    assert str(exin.value) == standard_deviation_increment_value
 
 
-class TestGrowingSpheres(object):
+class TestNormalClassDiscovery(object):
     """
-    Tests :class:`fatf.utils.data.augmentation.GrowingSpheres` class.
+    Tests :class:`fatf.utils.data.augmentation.NormalClassDiscovery` class.
     """
     # Construct new dataset made up of 3 Gaussian clouds in 2-dimensions
     #dataset = np.vstack([
@@ -1539,28 +1573,28 @@ class TestGrowingSpheres(object):
                                       numerical_labels)
     mixed_classifier = fum.KNN(k=3)
     mixed_classifier.fit(MIXED_ARRAY, numerical_labels)
-    numerical_np_0_augmentor = fuda.GrowingSpheres(
-        NUMERICAL_NP_ARRAY, numerical_classifier, [0])
-    numerical_np_augmentor = fuda.GrowingSpheres(
-        NUMERICAL_NP_ARRAY, numerical_classifier)
-    numerical_struct_a_augmentor = fuda.GrowingSpheres(
-        NUMERICAL_STRUCT_ARRAY, numerical_struct_classifier, ['a'])
-    numerical_struct_augmentor = fuda.GrowingSpheres(
-        NUMERICAL_STRUCT_ARRAY, numerical_struct_classifier)
-    numerical_struct_augmentor_f = fuda.GrowingSpheres(
-        NUMERICAL_STRUCT_ARRAY, numerical_struct_classifier, int_to_float=False)
-    categorical_np_augmentor = fuda.GrowingSpheres(
-        CATEGORICAL_NP_ARRAY, categorical_classifier)
-    categorical_np_012_augmentor = fuda.GrowingSpheres(
-        CATEGORICAL_NP_ARRAY, categorical_classifier, [0, 1, 2])
-    categorical_struct_abc_augmentor = fuda.GrowingSpheres(
-        CATEGORICAL_STRUCT_ARRAY, categorical_struct_classifier, ['a', 'b', 'c'])
-    mixed_augmentor = fuda.GrowingSpheres(
-        MIXED_ARRAY, mixed_classifier, ['b', 'd'])
+    numerical_np_0_augmentor = fuda.NormalClassDiscovery(
+        NUMERICAL_NP_ARRAY, numerical_classifier.predict, [0], classes_number=2)
+    numerical_np_augmentor = fuda.NormalClassDiscovery(
+        NUMERICAL_NP_ARRAY, numerical_classifier.predict, classes_number=2)
+    numerical_struct_a_augmentor = fuda.NormalClassDiscovery(
+        NUMERICAL_STRUCT_ARRAY, numerical_struct_classifier.predict, ['a'], classes_number=2)
+    numerical_struct_augmentor = fuda.NormalClassDiscovery(
+        NUMERICAL_STRUCT_ARRAY, numerical_struct_classifier.predict, classes_number=2)
+    numerical_struct_augmentor_f = fuda.NormalClassDiscovery(
+        NUMERICAL_STRUCT_ARRAY, numerical_struct_classifier.predict, int_to_float=False, classes_number=2)
+    categorical_np_augmentor = fuda.NormalClassDiscovery(
+        CATEGORICAL_NP_ARRAY, categorical_classifier.predict, classes_number=2)
+    categorical_np_012_augmentor = fuda.NormalClassDiscovery(
+        CATEGORICAL_NP_ARRAY, categorical_classifier.predict, [0, 1, 2], classes_number=2)
+    categorical_struct_abc_augmentor = fuda.NormalClassDiscovery(
+        CATEGORICAL_STRUCT_ARRAY, categorical_struct_classifier.predict, ['a', 'b', 'c'], classes_number=2)
+    mixed_augmentor = fuda.NormalClassDiscovery(
+        MIXED_ARRAY, mixed_classifier.predict, ['b', 'd'], classes_number=2)
 
     def test_init(self):
         """
-        Tests :class:`fatf.utils.data.augmentation.GrowingSpheres` class init.
+        Tests :class:`fatf.utils.data.augmentation.NormalClassDiscovery` class init.
         """
         # Test class inheritance
         assert (self.numerical_np_0_augmentor.__class__.__bases__[0].__name__
@@ -1580,27 +1614,27 @@ class TestGrowingSpheres(object):
         assert self.categorical_np_augmentor.categorical_indices == [0, 1, 2]
         assert self.categorical_np_augmentor.numerical_indices == []
 
-        # Test attributes unique to GrowingSpheres
+        # Test attributes unique to NormalClassDiscovery
         assert self.numerical_np_0_augmentor
 
     def test_sample(self):
         """
-        Tests :func:`~fatf.utils.data.augmentation.GrowingSpheres.sample`.
+        Tests :func:`~fatf.utils.data.augmentation.NormalClassDiscovery.sample`.
         """
         fatf.setup_random_seed()
-        max_iter_msg = 'max_iter is not a positive integer.'
-        runtime_msg = ('Maximum iterations reached. Try increasing '
-                       'max_iter or decreasing minimum_per_class.')
+        max_iter_type = 'The max_iter parameter is not a positive integer.'
+        max_iter_value = 'The max_iter parameter must be a positive number.'
+        runtime_msg = ('Maximum iterations reached. Try increasing max_iter '
+                       'or decreasing class_proportion_threshold.')
 
         with pytest.raises(TypeError) as exin:
-            self.numerical_np_0_augmentor.sample(NUMERICAL_NP_ARRAY[0],
-                                                 max_iter='a')
-        assert str(exin.value) == max_iter_msg
-
-        with pytest.raises(TypeError) as exin:
-            self.numerical_np_0_augmentor.sample(NUMERICAL_NP_ARRAY[0],
-                                                 max_iter=-1)
-        assert str(exin.value) == max_iter_msg
+            self.numerical_np_0_augmentor.sample(
+                NUMERICAL_NP_ARRAY[0], max_iter='a')
+        assert str(exin.value) == max_iter_type
+        with pytest.raises(ValueError) as exin:
+            self.numerical_np_0_augmentor.sample(
+                NUMERICAL_NP_ARRAY[0], max_iter=-1)
+        assert str(exin.value) == max_iter_value
 
         numerical_samples = np.array([
             [-0.014, 0.022, 0.071, 0.680],
@@ -1935,77 +1969,78 @@ class TestGrowingSpheres(object):
             assert np.allclose(freq, proportions[i], atol=1e-1)
 
 
-def test_validate_input_local_surrogate():
+def test_validate_input_decisionboundarysphere():
     """
-    Tests :func:`fatf.utils.data.augmentation._validate_input_local_surrogate`.
+    Tests :func:`fatf.utils.data.augmentation._validate_input_decisionboundarysphere`.
     """
-    incompatible_model_msg = ('This functionality requires the model '
-                              'to be capable of outputting predicted '
-                              'class via predict method.')
-    starting_std_msg = ('starting_radius is not a float.')
-    increment_std_msg = ('increment_radius is not a float.')
-    starting_std_value_msg = ('starting_radius must be a positive float greater '
-                              'than 0.')
-    increment_std_value_msg = ('increment_radius must be a positive float '
-                               'greater than 0.')
+    incompatible_model_msg = ('The predictive function must take '
+                                         'exactly *one* required parameter: '
+                                         'a data array to be predicted.')
+    starting_std_msg = ('The radius_init parameter is not a number.')
+    starting_std_value_msg = ('The radius_init parameter must be a positive '
+                             'number (greater than 0).')
 
-    class invalid_model():
-        def __init__(self): pass
-        def predict_proba(self, x, y): pass
-    model = invalid_model()
-    with pytest.raises(IncompatibleModelError) as exin:
-        fuda._validate_input_local_surrogate(model, None, None)
-    assert str(exin.value) == incompatible_model_msg
+    increment_std_msg = 'The radius_increment parameter is not a number.'
+    increment_std_value_msg = ('The radius_increment parameter is not a '
+                             'positive number (greater than 0).')
 
     model = fum.KNN(k=3)
+    def predict(x, y=None): pass
+    def invalid_predict(x, y): pass
+
+    with pytest.raises(IncompatibleModelError) as exin:
+        fuda._validate_input_decisionboundarysphere(invalid_predict, None, None)
+    assert str(exin.value) == incompatible_model_msg
+
+
     with pytest.raises(TypeError) as exin:
-        fuda._validate_input_local_surrogate(model, 'a', None)
+        fuda._validate_input_decisionboundarysphere(model.predict, 'a', None)
     assert str(exin.value) == starting_std_msg
 
     with pytest.raises(TypeError) as exin:
-        fuda._validate_input_local_surrogate(model, 0.1, 'a')
+        fuda._validate_input_decisionboundarysphere(model.predict_proba, 0.1, 'a')
     assert str(exin.value) == increment_std_msg
 
     with pytest.raises(ValueError) as exin:
-        fuda._validate_input_local_surrogate(model, -0.1, 0.1)
+        fuda._validate_input_decisionboundarysphere(predict, -0.1, 0.1)
     assert str(exin.value) == starting_std_value_msg
 
     with pytest.raises(ValueError) as exin:
-        fuda._validate_input_local_surrogate(model, 0.1, -0.1)
+        fuda._validate_input_decisionboundarysphere(predict, 0.1, -0.1)
     assert str(exin.value) == increment_std_value_msg
 
 
-class TestLocalSurrogate():
+class TestDecisionBoundarySphere():
     """
-    Tests :class:`fatf.utils.data.augmentation.LocalSurrogate` class.
+    Tests :class:`fatf.utils.data.augmentation.DecisionBoundarySphere` class.
     """
     numerical_easy_labels = np.array([0, 0, 1, 1])
     numerical_array_easy = np.array([[0., 0.], [0., 1.], [1., 0.], [1., 1.]])
     numerical_easy_classifier = fum.KNN(k=1)
     numerical_easy_classifier.fit(numerical_array_easy, numerical_easy_labels)
-    numerical_np_easy_augmentor = fuda.LocalSurrogate(
-        numerical_array_easy, numerical_easy_classifier)
+    numerical_np_easy_augmentor = fuda.DecisionBoundarySphere(
+        numerical_array_easy, numerical_easy_classifier.predict)
 
     numerical_labels = np.array([0, 1, 0, 1, 1, 0])
     numerical_classifier = fum.KNN(k=3)
     numerical_classifier.fit(NUMERICAL_NP_ARRAY, numerical_labels)
     numerical_struct_classifier = fum.KNN(k=3)
     numerical_struct_classifier.fit(NUMERICAL_STRUCT_ARRAY, numerical_labels)
-    numerical_np_augmentor = fuda.LocalSurrogate(NUMERICAL_NP_ARRAY,
-                                                 numerical_classifier)
-    numerical_np_augmentor_runtime = fuda.LocalSurrogate(
-        NUMERICAL_NP_ARRAY, numerical_classifier, starting_radius=0.0001)
-    numerical_struct_augmentor = fuda.LocalSurrogate(
-        NUMERICAL_STRUCT_ARRAY, numerical_struct_classifier)
-    numerical_struct_augmentor_f = fuda.LocalSurrogate(
-        NUMERICAL_STRUCT_ARRAY, numerical_struct_classifier,
+    numerical_np_augmentor = fuda.DecisionBoundarySphere(NUMERICAL_NP_ARRAY,
+                                                 numerical_classifier.predict)
+    numerical_np_augmentor_runtime = fuda.DecisionBoundarySphere(
+        NUMERICAL_NP_ARRAY, numerical_classifier.predict, radius_init=0.0001)
+    numerical_struct_augmentor = fuda.DecisionBoundarySphere(
+        NUMERICAL_STRUCT_ARRAY, numerical_struct_classifier.predict)
+    numerical_struct_augmentor_f = fuda.DecisionBoundarySphere(
+        NUMERICAL_STRUCT_ARRAY, numerical_struct_classifier.predict,
         int_to_float=False)
     categorical_classifier = fum.KNN(k=3)
     categorical_classifier.fit(CATEGORICAL_NP_ARRAY, numerical_labels)
 
     def test_init(self):
         """
-        Tests :class:`fatf.utils.data.augmentation.LocalSurrogate` class init
+        Tests :class:`fatf.utils.data.augmentation.DecisionBoundarySphere` class init
         """
         # Test class inheritance
         assert (self.numerical_np_augmentor.__class__.__bases__[0].__name__
@@ -2019,35 +2054,35 @@ class TestLocalSurrogate():
         assert (self.numerical_struct_augmentor.numerical_indices
                 == ['a', 'b', 'c', 'd'])  # yapf: disable
 
-        cat_err = 'categorical values are not supported in this augmentor.'
+        cat_err = ('The DecisionBoundarySphere augmenter does not currently '
+                   'support data sets with categorical features.')
         with pytest.raises(NotImplementedError) as exin:
-            categorical = fuda.LocalSurrogate(CATEGORICAL_NP_ARRAY,
-                                              self.categorical_classifier)
+            categorical = fuda.DecisionBoundarySphere(CATEGORICAL_NP_ARRAY,
+                                              self.categorical_classifier.predict)
         assert str(exin.value) == cat_err
 
     def test_validate_sample_input(self):
         """
-        Tests :func:`fatf.utils.data.augmentation.LocalSurrogate.
+        Tests :func:`fatf.utils.data.augmentation.DecisionBoundarySphere.
         _validate_sample_input`.
         """
         # Most errors are caught by :func:`fatf.utils.data.augmentation.
         # Augmentation._validate_sample_input` and have already been tested.
-        type_msg = ('r_sx must be float.')
-        value_msg = ('r_sx must be a positive float.')
-        samples_val = ('samples_get_decision_boundary must be an integer '
-                       'larger than 0.')
-        samples_type = ('samples_get_decision_boundary must be an integer.')
-        max_iter_type = ('max_iter must be an integer.')
-        max_iter_val = ('max_iter must be a positive integer.')
+        value_msg = ('The sphere_radius parameter must be a positive number '
+                     '(greater than 0).')
+        type_msg = 'The sphere_radius parameter must be a number.'
+        #
+        samples_val = ('The discover_samples_number parameter must be a '
+                       'positive integer (greater than 0).')
+        samples_type = ('The discover_samples_number parameter must be an '
+                        'integer.')
+        max_iter_type = 'The max_iter parameter must be an integer.'
+        max_iter_val = ('The max_iter parameter must be a positive integer '
+                        '(greater than 0).')
 
         with pytest.raises(TypeError) as exin:
             self.numerical_np_augmentor._validate_sample_input(
                 NUMERICAL_NP_ARRAY[0], 'a', 10, 10, 10)
-        assert str(exin.value) == type_msg
-
-        with pytest.raises(TypeError) as exin:
-            self.numerical_np_augmentor._validate_sample_input(
-                NUMERICAL_NP_ARRAY[0], 0, 10, 10, 10)
         assert str(exin.value) == type_msg
 
         with pytest.raises(ValueError) as exin:
@@ -2082,15 +2117,18 @@ class TestLocalSurrogate():
 
     def test_sample(self):
         """
-        Tests :func:`fatf.utils.data.augmentation.LocalSurrogate.sample`.
+        Tests :func:`fatf.utils.data.augmentation.DecisionBoundarySphere.sample`.
         """
-        runtime_msg = ('Maximum iterations reached without finding the '
-                       'decision boundary. Try increasing max_iter or '
-                       'increment_radius.')
-        mean_msg = ('Sampling around the mean is not implemeneted for '
-                    'LocalSurrogate.')
+        runtime_msg = ('The maximum number of iterations was reached without '
+                       'discovering a decision boundary. Please try '
+                       'increasing the max_iter or discover_samples_number '
+                       'parameter. Alternatively, initialise this class with '
+                       'a larger radius_init or radius_increment parameter.')
+        mean_msg = ('Sampling around the mean of the initialisation dataset '
+                    'is not currently supported by the DecisionBoundarySphere '
+                    'augmenter.')
 
-        with pytest.raises(ValueError) as exin:
+        with pytest.raises(NotImplementedError) as exin:
             self.numerical_np_augmentor.sample(None)
         assert str(exin.value) == mean_msg
 
@@ -2112,77 +2150,76 @@ class TestLocalSurrogate():
              (0, 0, -0.114, 0.718), (0, 0, 0.085, 0.674)],
             dtype=NUMERICAL_STRUCT_ARRAY.dtype)
 
-        r_sx = 0.4
+        sphere_radius = 0.4
         fatf.setup_random_seed()
         # Easy example of (0,0), (0,1), (1,0) and (1,1)
         samples = self.numerical_np_easy_augmentor.sample(
-            self.numerical_array_easy[3], r_sx=r_sx, samples_number=100,
-            samples_get_decision_boundary=1000)
+            self.numerical_array_easy[3], sphere_radius=sphere_radius, samples_number=100,
+            discover_samples_number=1000)
         assert np.allclose(samples.mean(axis=0), np.array([0.5, 1]), atol=0.1)
         max_dist = np.max(fud.euclidean_array_distance(samples,
                                                        samples).flatten())
-        assert np.isclose(max_dist, 2*r_sx, atol=0.1)
+        assert np.isclose(max_dist, 2*sphere_radius, atol=0.1)
 
         samples = self.numerical_np_augmentor.sample(
-            NUMERICAL_NP_ARRAY[0], r_sx=r_sx, samples_number=4)
+            NUMERICAL_NP_ARRAY[0], sphere_radius=sphere_radius, samples_number=4)
         assert np.allclose(samples, numerical_results, atol=0.1)
 
         samples = self.numerical_np_augmentor.sample(
-            NUMERICAL_NP_ARRAY[0], r_sx=r_sx, samples_number=100,
-            samples_get_decision_boundary=1000)
+            NUMERICAL_NP_ARRAY[0], sphere_radius=sphere_radius, samples_number=100,
+            discover_samples_number=1000)
         decision_boundary = np.array([-0.01, 0.01, 0.07, 0.69])
         assert np.allclose(samples.mean(axis=0), decision_boundary, atol=0.1)
         max_dist = np.max(fud.euclidean_array_distance(samples,
                                                        samples).flatten())
-        assert np.isclose(max_dist, 2*r_sx, atol=0.1)
+        assert np.isclose(max_dist, 2*sphere_radius, atol=0.1)
 
         samples = self.numerical_struct_augmentor.sample(
-            NUMERICAL_STRUCT_ARRAY[0], r_sx=r_sx, samples_number=4)
+            NUMERICAL_STRUCT_ARRAY[0], sphere_radius=sphere_radius, samples_number=4)
         for i in samples.dtype.names:
             assert np.allclose(
                 samples[i], numerical_struct_results[i], atol=0.1)
 
         samples = self.numerical_struct_augmentor.sample(
-            NUMERICAL_STRUCT_ARRAY[0], r_sx=r_sx, samples_number=100,
-            samples_get_decision_boundary=1000)
+            NUMERICAL_STRUCT_ARRAY[0], sphere_radius=sphere_radius, samples_number=100,
+            discover_samples_number=1000)
         decision_boundary = [-0.01, 0.01, 0.07, 0.69]
         for i, bound in zip(samples.dtype.names, decision_boundary):
             assert np.isclose(samples[i].mean(), bound, atol=0.1)
         max_dist = np.max(fud.euclidean_array_distance(samples,
                                                        samples).flatten())
-        assert np.isclose(max_dist, 2*r_sx, atol=0.1)
+        assert np.isclose(max_dist, 2*sphere_radius, atol=0.1)
 
         samples = self.numerical_struct_augmentor_f.sample(
-            NUMERICAL_STRUCT_ARRAY[0], r_sx=r_sx, samples_number=4)
+            NUMERICAL_STRUCT_ARRAY[0], sphere_radius=sphere_radius, samples_number=4)
         for i in samples.dtype.names:
             assert np.allclose(
                 samples[i], numerical_struct_results_f[i], atol=0.1)
 
         samples = self.numerical_struct_augmentor_f.sample(
-            NUMERICAL_STRUCT_ARRAY[0], r_sx=r_sx, samples_number=100,
-            samples_get_decision_boundary=1000)
+            NUMERICAL_STRUCT_ARRAY[0], sphere_radius=sphere_radius, samples_number=100,
+            discover_samples_number=1000)
         decision_boundary = [0, 0, 0.05, 0.6]
         for i, bound in zip(samples.dtype.names, decision_boundary):
             assert np.isclose(samples[i].mean(), bound, atol=0.1)
         max_dist = np.max(fud.euclidean_array_distance(samples,
                                                        samples).flatten())
-        assert np.isclose(max_dist, 2*r_sx, atol=0.1)
+        assert np.isclose(max_dist, 2*sphere_radius, atol=0.1)
 
 
 
-class TestLocalFidelity(object):
+class TestLocalSphere(object):
     """
-    Tests :class:`fatf.utils.data.augmentation.LocalFidelity` class.
+    Tests :class:`fatf.utils.data.augmentation.LocalSphere` class.
     """
-    numerical_np_augmentor = fuda.LocalFidelity(NUMERICAL_NP_ARRAY)
-    numerical_struct_augmentor = fuda.LocalFidelity(NUMERICAL_STRUCT_ARRAY,
-                                                    r_fid=0.10)
-    numerical_struct_augmentor_f = fuda.LocalFidelity(
-        NUMERICAL_STRUCT_ARRAY, int_to_float=False, r_fid=0.10)
+    numerical_np_augmentor = fuda.LocalSphere(NUMERICAL_NP_ARRAY)
+    numerical_struct_augmentor = fuda.LocalSphere(NUMERICAL_STRUCT_ARRAY)
+    numerical_struct_augmentor_f = fuda.LocalSphere(
+        NUMERICAL_STRUCT_ARRAY, int_to_float=False)
 
     def test_init(self):
         """
-        Tests :class:`fatf.utils.data.augmentation.LocalFidelity` class init.
+        Tests :class:`fatf.utils.data.augmentation.LocalSphere` class init.
         """
         # Test class inheritance
         assert (self.numerical_np_augmentor.__class__.__bases__[0].__name__
@@ -2194,49 +2231,52 @@ class TestLocalFidelity(object):
         #
         assert (self.numerical_struct_augmentor.numerical_indices
                 == ['a', 'b', 'c', 'd'])  # yapf: disable
-        cat_err = 'categorical values are not supported in this augmentor.'
+        cat_err = ('The LocalSphere augmenter does not currently support data '
+                   'sets with categorical features.')
         with pytest.raises(NotImplementedError) as exin:
-            categorical = fuda.LocalFidelity(CATEGORICAL_NP_ARRAY)
+            categorical = fuda.LocalSphere(CATEGORICAL_NP_ARRAY)
         assert str(exin.value) == cat_err
 
     def test_validate_sample_input(self):
         """
-        Tests :func:`fatf.utils.data.augmentation.LocalFidelity.
+        Tests :func:`fatf.utils.data.augmentation.LocalSphere.
         _validate_sample_input`.
         """
         # Most errors are caught by :func:`fatf.utils.data.augmentation.
         # Augmentation._validate_sample_input` and have already been tested.
 
-        type_msg = ('r_fid must be float.')
-        value_msg = ('r_fid must be a positive float.')
+        type_msg = ('The fidelity_radius_percentage parameter must be an '
+                    'integer.')
+        value_msg = ('The fidelity_radius_percentage parameter must be a '
+                     'positive integer (greater than 0).')
 
         with pytest.raises(TypeError) as exin:
-            self.numerical_np_augmentor._validate_sample_input(
-                NUMERICAL_NP_ARRAY[0], r_fid='a')
+            self.numerical_np_augmentor.sample(
+                NUMERICAL_NP_ARRAY[0], fidelity_radius_percentage='a')
         assert str(exin.value) == type_msg
 
         with pytest.raises(TypeError) as exin:
-            self.numerical_np_augmentor._validate_sample_input(
-                NUMERICAL_NP_ARRAY[0], r_fid=0)
+            self.numerical_np_augmentor.sample(
+                NUMERICAL_NP_ARRAY[0], fidelity_radius_percentage=0.0)
         assert str(exin.value) == type_msg
 
         with pytest.raises(ValueError) as exin:
-            self.numerical_np_augmentor._validate_sample_input(
-                NUMERICAL_NP_ARRAY[0], r_fid=0.0)
+            self.numerical_np_augmentor.sample(
+                NUMERICAL_NP_ARRAY[0], fidelity_radius_percentage=0)
         assert str(exin.value) == value_msg
 
         with pytest.raises(ValueError) as exin:
-            self.numerical_np_augmentor._validate_sample_input(
-                NUMERICAL_NP_ARRAY[0], r_fid=-0.05)
+            self.numerical_np_augmentor.sample(
+                NUMERICAL_NP_ARRAY[0], fidelity_radius_percentage=-5)
         assert str(exin.value) == value_msg
 
     def test_sample(self):
         """
-        Tests :func:`fatf.utils.data.augmentation.LocalFidelity.sample`.
+        Tests :func:`fatf.utils.data.augmentation.LocalSphere.sample`.
         """
-        mean_msg = ('Sampling around the mean is not implemeneted for '
-                    'LocalFidelity.')
-        with pytest.raises(ValueError) as exin:
+        mean_msg = ('Sampling around the mean of the initialisation dataset '
+                    'is not currently supported by the LocalSphere augmenter.')
+        with pytest.raises(NotImplementedError) as exin:
             self.numerical_np_augmentor.sample(None)
         assert str(exin.value) == mean_msg
 
@@ -2257,12 +2297,12 @@ class TestLocalFidelity(object):
         # NUMERICAL NON-STRUCTURED
         # Numerical data with 5 samples
         samples = self.numerical_np_augmentor.sample(
-            NUMERICAL_NP_ARRAY[0], r_fid=0.5, samples_number=4)
+            NUMERICAL_NP_ARRAY[0], fidelity_radius_percentage=50, samples_number=4)
         assert np.allclose(numerical_results, samples, atol=1e-2)
 
         # Numerical data with 1000 samples
         samples = self.numerical_np_augmentor.sample(
-            NUMERICAL_NP_ARRAY[0], r_fid=0.2, samples_number=1000)
+            NUMERICAL_NP_ARRAY[0], fidelity_radius_percentage=20, samples_number=1000)
         max_dist = np.max(fud.euclidean_array_distance(
             np.expand_dims(NUMERICAL_NP_ARRAY[0], 0), samples).flatten())
         assert np.isclose(max_dist, 0.2*max_distance_dataset, atol=1e-1)
@@ -2279,14 +2319,14 @@ class TestLocalFidelity(object):
         # NUMERICAL STRUCTURED
         # Numerical data with 5 samples
         samples = self.numerical_struct_augmentor.sample(
-            NUMERICAL_STRUCT_ARRAY[0], r_fid=0.5, samples_number=4)
+            NUMERICAL_STRUCT_ARRAY[0], fidelity_radius_percentage=50, samples_number=4)
         for i in samples.dtype.names:
             assert np.allclose(
                 samples[i], numerical_struct_results[i], atol=0.1)
 
         # Numerical data with 1000 samples
         samples = self.numerical_struct_augmentor.sample(
-            NUMERICAL_STRUCT_ARRAY[0], r_fid=0.2, samples_number=1000)
+            NUMERICAL_STRUCT_ARRAY[0], fidelity_radius_percentage=20, samples_number=1000)
         max_dist = np.max(fud.euclidean_array_distance(
             np.expand_dims(NUMERICAL_STRUCT_ARRAY[0], 0), samples).flatten())
         assert np.isclose(max_dist, 0.2*max_distance_dataset, atol=1e-1)
@@ -2304,14 +2344,14 @@ class TestLocalFidelity(object):
 
         # NUMERICAL STRUCT W/O CAST
         samples = self.numerical_struct_augmentor_f.sample(
-            NUMERICAL_STRUCT_ARRAY[0], r_fid=0.5, samples_number=4)
+            NUMERICAL_STRUCT_ARRAY[0], fidelity_radius_percentage=50, samples_number=4)
         for i in samples.dtype.names:
             assert np.allclose(
                 samples[i], numerical_struct_results_f[i], atol=0.1)
 
         # Numerical data with 1000 samples
         samples = self.numerical_struct_augmentor_f.sample(
-            NUMERICAL_STRUCT_ARRAY[0], r_fid=0.2, samples_number=1000)
+            NUMERICAL_STRUCT_ARRAY[0], fidelity_radius_percentage=20, samples_number=1000)
         max_dist = np.max(fud.euclidean_array_distance(
             np.expand_dims(NUMERICAL_STRUCT_ARRAY[0], 0), samples).flatten())
         assert np.isclose(max_dist, 0.2*max_distance_dataset, atol=1e-1)

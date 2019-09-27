@@ -9,7 +9,9 @@ The :mod:`fatf.utils.data.augmentation` module implements data set augmenters.
 # pylint: disable=too-many-lines
 
 import abc
+import logging
 import scipy.stats
+import scipy.spatial
 import warnings
 
 from numbers import Number
@@ -26,10 +28,13 @@ import fatf.utils.models.validation as fumv
 import fatf.utils.validation as fuv
 
 __all__ = ['NormalSampling',
+           'TruncatedNormalSampling',
            'Mixup',
-           'TruncatedNormal',
-           'GrowingSpheres',
-           'LocalFidelity']
+           'NormalClassDiscovery',
+           'DecisionBoundarySphere',
+           'LocalSphere']
+
+logger = logging.getLogger(__name__)  # pylint: disable=invalid-name
 
 Index = Union[int, str]
 
@@ -41,35 +46,9 @@ def _validate_input(dataset: np.ndarray,
     """
     Validates the input parameters of an arbitrary augmentation class.
 
-    Parameters
-    ----------
-    dataset : numpy.ndarray
-        A 2-dimensional numpy array with a dataset to be used for sampling.
-    ground_truth : numpy.ndarray, optional (default=None)
-        A 1-dimensional numpy array with labels for the supplied dataset.
-    categorical_indices : List[column indices], optional (default=None)
-        A list of column indices that should be treat as categorical features.
-    int_to_float : boolean, optional (default=True)
-        If ``True``, all of the integer dtype columns in the ``dataset`` will
-        be generalised to ``numpy.float64`` type. Otherwise, integer type
-        columns will remain integer and floating point type columns will remain
-        floating point.
-
-    Raises
-    ------
-    IncorrectShapeError
-        The input ``dataset`` is not a 2-dimensional numpy array. The
-        ``ground_truth`` array is not a 1-dimensional numpy array. The number
-        of ground truth annotation is different than the number of rows in the
-        data array.
-    IndexError
-        Some of the column indices given in the ``categorical_indices``
-        parameter are not valid for the input ``dataset``.
-    TypeError
-        The ``categorical_indices`` parameter is neither a list nor ``None``.
-        The ``dataset`` or the ``ground_truth`` array (if not ``None``) are not
-        of base (numerical and/or string) type. The ``int_to_float`` parameter
-        is not a boolean.
+    For the description of the input parameters and exceptions raised by this
+    function, please see the documentation of the
+    :class:`fatf.utils.data.augmentation.Augmentation` class.
 
     Returns
     -------
@@ -395,9 +374,10 @@ class NormalSampling(Augmentation):
         numbers: column's *mean* and its *standard deviation*.
     categorical_sampling_values : Dictionary[column index, \
 Tuple[numpy.ndarray, numpy.ndarray]]
-        Dictionary mapping categorical column feature indices to tuples two
-        1-dimensional numpy arrays: one with unique values for that column
-        and the other one with their normalised (sum up to 1) frequencies.
+        Dictionary mapping categorical column feature indices to tuples
+        consisting of two 1-dimensional numpy arrays: one with unique values
+        for that column and the other one with their normalised (summing up to
+        1) frequencies.
     """
 
     # pylint: disable=too-few-public-methods
@@ -516,49 +496,49 @@ Tuple[numpy.ndarray, numpy.ndarray]]
         return samples
 
 
-class TruncatedNormal(Augmentation):
+class TruncatedNormalSampling(Augmentation):
     """
     Sampling data from a truncated normal distribution.
 
-    This class allows to sample data according to a truncated normal
-    distribution (__). The sampling can be performed either around a particular
-    data point (by supplying the ``data_row`` parameter to the ``sample``
-    method) or around the mean of the whole ``dataset`` (if ``data_row`` is
-    not given when calling the ``sample`` method). In both cases, the standard
-    deviation of each numerical feature calculated for the whole dataset is
-    used. The minimum and maximum for each numerical feature are also used as
-    the bounds for the truncated normal distribution. For categorical features,
-    the values are sampled with replacement with the probability for each
-    unique value calculated based on the frequency of its appearance in the
-    dataset.
+    This class allows to sample data according to the
+    `truncated normal distribution`_. The sampling can be performed either
+    around a particular data point (by supplying the ``data_row`` parameter to
+    the ``sample`` method) or around the mean of the whole ``dataset`` (if
+    ``data_row`` is not given when calling the ``sample`` method). In both
+    cases, the standard deviation of each numerical feature calculated for the
+    whole ``dataset`` is used. The minimum and maximum of each numerical
+    feature are also used as the bounds for the truncated normal distribution.
+    For categorical features, the values are sampled with replacement with the
+    probability for each unique value calculated based on the frequency of
+    their appearance in the dataset.
 
     For additional parameters, attributes, warnings and exceptions raised by
     this class please see the documentation of its parent class:
     :class:`fatf.utils.data.augmentation.Augmentation`.
 
-    __ https://en.wikipedia.org/wiki/Truncated_normal_distribution
+    .. _`truncated normal distribution`: https://en.wikipedia.org/wiki/Truncated_normal_distribution
 
     Attributes
     ----------
-    numerical_sampling_values : Dictionary[column index,
-            Tuple[number, number, number, number]]
-        Dictionary mapping numerical column feature indices to tuples of two
-        numbers: column's *mean*, *standard deviation*, *minimum* and
-        *maximum*.
-    categorical_sampling_values :
-    Dictionary[column index, Tuple[numpy.ndarray, numpy.ndarray]]
-        Dictionary mapping categorical column feature indices to tuples two
-        1-dimensional numpy arrays: one with unique values for that column
-        and the other one with their normalised (sum up to 1) frequencies.
+    numerical_sampling_values : Dictionary[column index, \
+Tuple[number, number, number, number]]
+        Dictionary mapping numerical column feature indices to tuples of four
+        numbers: column's *mean*, *standard deviation*, its *minimum* and
+        *maximum* value.
+    categorical_sampling_values : Dictionary[column index, \
+Tuple[numpy.ndarray, numpy.ndarray]]
+        Dictionary mapping categorical column feature indices to tuples
+        consisting of two 1-dimensional numpy arrays: one with unique values
+        for that column and the other one with their normalised (summing up to
+        1) frequencies.
     """
 
     def __init__(self,
                  dataset: np.ndarray,
                  categorical_indices: Optional[List[Index]] = None,
-                 int_to_float: bool = True,
-                 **kwargs) -> None:
+                 int_to_float: bool = True) -> None:
         """
-        Constructs an ``TruncatedNormal`` data augmentation class.
+        Constructs a ``TruncatedNormalSampling`` data augmentation class.
         """
         super().__init__(
             dataset=dataset,
@@ -575,17 +555,17 @@ class TruncatedNormal(Augmentation):
                 num_features_array = self.dataset[:, self.numerical_indices]
 
             num_features_mean = num_features_array.mean(axis=0)
+            num_features_std = num_features_array.std(axis=0)
             num_features_min = num_features_array.min(axis=0)
             num_features_max = num_features_array.max(axis=0)
-            num_features_std = num_features_array.std(axis=0)
 
             for i, index in enumerate(self.numerical_indices):
                 numerical_sampling_values[index] = (num_features_mean[i],
                                                     num_features_std[i],
                                                     num_features_min[i],
                                                     num_features_max[i])
-
         self.numerical_sampling_values = numerical_sampling_values
+
         # Get sampling parameters for categorical features.
         categorical_sampling_values = dict()
         for column_name in self.categorical_indices:
@@ -615,7 +595,7 @@ class TruncatedNormal(Augmentation):
 
         Numerical features are sampled around their corresponding values in the
         ``data_row`` parameter or the mean of that feature in the dataset using
-        the standard deviation, minimum and maximum calculated from the
+        the standard deviation, minimum and maximum values calculated from the
         dataset. Categorical features are sampled by choosing with replacement
         all the possible values of that feature with the probability of
         sampling each value corresponding to this value's frequency in the
@@ -635,6 +615,7 @@ class TruncatedNormal(Augmentation):
         else:
             shape = (samples_number, self.features_number)
         samples = np.zeros(shape, dtype=self.sample_dtype)
+
         # Sample categorical features.
         for index in self.categorical_indices:
             sample_values = np.random.choice(
@@ -653,11 +634,14 @@ class TruncatedNormal(Augmentation):
             mean, std, minimum, maximum = sampling_parameters
             if data_row is not None:
                 mean = data_row[index]
+
             sample_values = scipy.stats.truncnorm.rvs(
-                (minimum - mean) / std, (maximum - mean) / std,
+                (minimum - mean) / std,
+                (maximum - mean) / std,
                 loc=mean,
                 scale=std,
                 size=samples_number)
+
             if self.is_structured:
                 samples[index] = sample_values
             else:
@@ -1164,8 +1148,8 @@ class Mixup(Augmentation):
             shape = (samples_number, )  # type: Tuple[int, ...]
         else:
             shape = (samples_number, self.features_number)
-
         samples = np.zeros(shape, dtype=self.sample_dtype)
+
         # Sort out numerical features
         # yapf: disable
         for index in self.numerical_indices:
@@ -1199,158 +1183,259 @@ class Mixup(Augmentation):
         return to_return
 
 
-def _validate_input_growingspheres(global_model: object,
-                                   starting_std: np.float32,
-                                   increment_std: np.float32,
-                                   minimum_per_class: np.float32) -> bool:
+def _validate_input_normalclassdiscovery(
+        predictive_function: Callable[[np.ndarray], np.ndarray],
+        classes_number: Union[None, int],
+        class_proportion_threshold: float,
+        standard_deviation_init: float,
+        standard_deviation_increment: float) -> bool:
     """
-    Validates :class:``.GrowingSpheres`` class-specific input parameters.
+    Validates the input parameters of the ``NormalClassDiscovery`` class.
 
-    Parameters
-    ----------
-    global_model : object
-        A trained global model that must be able to output predicted class
-        via ``predict`` method.
-    starting_std : numpy.float32
-        The standard deviation that sampling around each point will start at.
-    increment_std : numpy.float32
-        The amount to increment the standard deviation around a point with each
-        iteration of the algorithm.
-    minimum_per_class : numpy.float32
-        Minimum fraction of data points that aren't in the same class as the
-        data point that the normal is centered on.
-
-    Raises
-    ------
-    IncompatibleModelError:
-        Global model does not have ``predict`` method.
-    TypeError:
-        ``starting_std`` is not a float. ``increment_std`` is not a float.
-        ``minimum_per_class`` is not a float. ``max_iter`` is not an integer.
-    ValueError:
-        ``minimum_per_class`` greater or equal to 1, or less than or equal to
-        0. ``starting_std`` is negative. ``increment_std`` is negative.
-        ``max_iter`` is negative.
+    This function validates input parameters of the
+    :class:`fatf.utils.data.augmentation.NormalClassDiscovery` class. For the
+    description of the input parameters and errors please see the documentation
+    of the :class:`fatf.utils.data.augmentation.NormalClassDiscovery` class.
 
     Returns
     -------
     is_valid : boolean
-        ``True`` if input is valid, ``False`` otherwise.
+        ``True`` if the input is valid, ``False`` otherwise.
     """
     is_valid = False
 
-    if not fumv.check_model_functionality(global_model, suppress_warning=True):
-        raise IncompatibleModelError('This functionality requires the model '
-                                     'to be capable of outputting predicted '
-                                     'class via predict method.')
+    if callable(predictive_function):
+        prms_n = fuv.get_required_parameters_number(predictive_function)
+        if prms_n != 1:
+            raise IncompatibleModelError('The predictive function must take '
+                                         'exactly *one* required parameter: '
+                                         'a data array to be predicted.')
+    else:
+        raise TypeError('The predictive_function should be a Python '
+                        'callable, e.g., a Python function.')
 
-    if not isinstance(starting_std, float):
-        raise TypeError('starting_std is not a float.')
+    if classes_number is not None:
+        if isinstance(classes_number, int):
+            if classes_number < 2:
+                raise ValueError('The classes_number parameter has to be an '
+                                 'integer larger than 1 (at least a binary '
+                                 'classification problem).')
+        else:
+            raise TypeError('The classes_number parameter is neither None nor '
+                            'an integer.')
 
-    if not isinstance(increment_std, float):
-        raise TypeError('increment_std is not a float.')
+    if isinstance(class_proportion_threshold, Number):
+        if class_proportion_threshold >= 1 or class_proportion_threshold <= 0:
+            raise ValueError('The class_proportion_threshold parameter must '
+                             'be a number between 0 and 1 (not inclusive).')
+    else:
+        raise TypeError('The class_proportion_threshold parameter is not a '
+                        'float.')
 
-    if not isinstance(minimum_per_class, float):
-        raise TypeError('minimum_per_class is not a float.')
+    if isinstance(standard_deviation_init, Number):
+        if standard_deviation_init <= 0:
+            raise ValueError('The standard_deviation_init parameter must be a '
+                             'positive number (greater than 0).')
+    else:
+        raise TypeError('The standard_deviation_init parameter is not a '
+                        'float.')
 
-    if minimum_per_class >= 1.0 or minimum_per_class <= 0:
-        raise ValueError('minimum_per_class must be a float between 0 and 1.')
-
-    if starting_std <= 0:
-        raise ValueError('starting_std must be a positive float greater than '
-                         '0.')
-
-    if increment_std <= 0:
-        raise ValueError('increment_std must be a positive float greater than '
-                         '0.')
+    if isinstance(standard_deviation_increment, Number):
+        if standard_deviation_increment <= 0:
+            raise ValueError('The standard_deviation_increment parameter must '
+                             'be a positive number (greater than 0).')
+    else:
+        raise TypeError('The standard_deviation_increment parameter is not a '
+                        'float.')
 
     is_valid = True
     return is_valid
 
 
-class GrowingSpheres(Augmentation):
+class NormalClassDiscovery(Augmentation):
     """
-    Sampling data with the Growing Spheres method.
+    Sampling data to discover instances spanning all the possible classes.
 
-    This object implements a adapted version of the Growing Spheres method
-    introduced by [LAUGEL2018SPHERES]_. For a specific data point, it samples
-    with a normal distribution centered on the data point, incrementing the
-    standard deviation until a percentage of the samples are not classified as
-    being in the original class by the global model. After this is achieved,
-    one of the data points found to be in another class is used as the center
-    of the normal distribution. The process is repeated until all of the
-    classes are in the sampled dataset. All of the normal distributions are
-    sampled equally.
+    This augmenter ensures that the generated sample has at least a predefined
+    proportion (cf. ``class_proportion_threshold`` parameter) of every possible
+    class. For a specific data point, it samples with a normal distribution
+    centered around this point, incrementally increasing the standard deviation
+    of the sample until the proportion of the samples of a class different
+    (assigned by the predictive function) than the one of the specified data
+    point is reached. Next, one of the data points found to be in another class
+    is used as the centre of the normal distribution sampling to discover
+    another class. These steps are repeated until all of the classes (with
+    satisfying proportion) are in the sampled data set. If the ``sample``
+    method is called without a ``data_row``, the starting point for the
+    sampling procedure is the mean of the ``dataset``. For categorical
+    features in the dataset, the values are sampled with replacement with the
+    probability for each unique value calculated based on the frequency of
+    their appearance in the dataset.
+
+    .. note:: The number of classes for classifiers.
+
+       Consider using the ``classes_number`` parameter when using a
+       non-probabilistic ``predictive_function``. For more details please see
+       the description of the ``classes_number`` parameter.
+
+       (When initialising this class without user-defined number of classes --
+       via the ``classes_number`` parameter -- it will log the number of
+       discovered target classes when the ``predictive_function`` is a
+       *classifier*.)
 
     For additional parameters, attributes, warnings and exceptions raised by
     this class please see the documentation of its parent class:
-    :class:`fatf.utils.data.augmentation.Augmentation` and the function that
-    validates the input parameter
-    :func:`fatf.utils.data.augmentation._validate_input`.
+    :class:`fatf.utils.data.augmentation.Augmentation`.
 
-    .. [LAUGEL2018SPHERES] Laugel, T., Lesot M., Marsala, C., Renard, X.,
-       and De-tyniecki, M., 2017. Inverse classification for
-       comparison-basedinterpretability in machine learning.arXiv
-       preprintarXiv:1712.08443.
+    This augmentation approach is similar to the *Growing Spheres* technique
+    introduced by [LAUGEL2018INVERSE]_.
+
+    .. [LAUGEL2018INVERSE] Laugel, T., Lesot, M.J., Marsala, C., Renard, X. and
+       Detyniecki, M., 2017. Inverse Classification for Comparison-based
+       Interpretability in Machine Learning. arXiv preprint arXiv:1712.08443.
 
     Parameters
     ----------
-    global_model : object
-        A trained global model that must be able to output predicted class
-        via ``predict`` method.
-    starting_std : numpy.float32
-        The standard deviation that sampling around each point will start at.
-    increment_std : numpy.float32
-        The amount to increment the standard deviation around a point with each
-        iteration of the algorithm.
-    minimum_per_class : numpy.float32
-        Minimum fraction of data points that aren't in the same class as the
-        data point that the normal is centered on.
+    predictive_function : Callable[[numpy.ndarray], numpy.ndarray]
+        A Python callable, e.g., a function, that is either a *classifier* or a
+        *probabilistic* predictor. This function is used to compute the class
+        of the sampled data, which is used to ensure meeting the
+        ``class_proportion_threshold``. A probabilistic function is expected to
+        output a 2-dimensional numpy array with the assigned class being the
+        one with maximum probability. A classifier function is expected to
+        output a 1-dimensional numpy array with class assignment. The
+        ``predictive_function`` should require exactly one input parameter --
+        a data array to be predicted.
+    classes_number : integer, optional (default=None)
+        The number of classes (target values) modelled by the
+        ``predictive_function``. If the ``predictive_function`` is
+        probabilistic, the number of classes is inferred from the width of the
+        probabilities outputted by the ``predictive_function``. If the
+        ``predictive_function`` is a classifier, it is applied to the input
+        ``dataset`` and the number of classes is computed based on the unique
+        number of elements in this predictions array. **Since the latter case**
+        **may result in not all of the classes being discovered, it is**
+        **advised to specify the number of classes using this parameter.**
+    class_proportion_threshold : float, optional (default=0.05)
+        The minimum proportion of data points assigned to a different class
+        by the ``predictive_function`` when sampling for each data point as per
+        the procedure described above.
+    standard_deviation_init : float, optional (default=0.01)
+        The standard deviation of the normal distribution used for initial
+        sampling around each selected data point.
+    standard_deviation_increment : float, optional (default=0.001)
+        The increment used to increase the standard deviation every time the
+        sample does not satisfy the specified ``class_proportion_threshold``.
 
     Raises
     ------
-    IncompatibleModelError:
-        Global model does not have ``predict`` method.
-    TypeError:
-        ``starting_std`` is not a float. ``increment_std`` is not a float.
-        ``minimum_per_class`` is not a float. ``max_iter`` is not an integer.
-    ValueError:
-        ``minimum_per_class`` greater than 1 or negative. ``starting_std`` is
-        negative. ``increment_std`` is negative. ``max_iter`` is negative.
+    IncompatibleModelError
+        The ``predictive_function`` does not require exactly one input
+        parameter.
+    RuntimeError
+        The class initialisation was unable to identify the number of classes
+        using the input ``dataset`` and the provided ``predictive_function``.
+    TypeError
+        The ``predictive_function`` is not a Python callable. The
+        ``classes_number`` is neither ``None`` nor an integer.
+        Either ``class_proportion_threshold``, ``standard_deviation_init`` or
+        ``standard_deviation_increment`` is not a float.
+    ValueError
+        The ``classes_number`` parameter is smaller than 2.
+        The ``class_proportion_threshold`` parameter is outside of the (0, 1)
+        range (non-inclusive). The ``standard_deviation_init`` or
+        ``standard_deviation_increment`` parameter is not a positive number.
 
     Attributes
     ----------
-    global_model : object
-    n_classes : integer
-    categorical_sampling_values :
-    Dictionary[column index, Tuple[numpy.ndarray, numpy.ndarray]]
-        Dictionary mapping categorical column feature indices to tuples two
-        1-dimensional numpy arrays: one with unique values for that column
-        and the other one with their normalised (sum up to 1) frequencies.
+    predictive_function : Callable[[numpy.ndarray], numpy.ndarray]
+        The predictive function used to initialise this class.
+    is_probabilistic : boolean
+        ``True`` if the ``predictive_function`` is probabilistic, ``False``
+        otherwise. This is set based on the shape of the numpy array outputted
+        by the ``predictive_function``: if it is a 2-dimensional array, it is
+        assumed to be probabilistic, if it is a 1-dimensional array, it is
+        assumed to be a classifier.
+    classes_number : integer
+        The number of classes modelled by the ``predictive_function``, either
+        defined by the user when initialising this class or inferred from the
+        output of the ``predictive_function``.
+    standard_deviation_init : float
+        The initial value of the standard deviation used to initialise this
+        class.
+    standard_deviation_increment : float
+        The standard deviation increment value used to initialise this class.
+    class_proportion_threshold : float
+        The value of the smallest proportion of a different class for sampling
+        used to initialise this class.
+    categorical_sampling_values : Dictionary[column index, \
+Tuple[numpy.ndarray, numpy.ndarray]]
+        Dictionary mapping categorical column feature indices to tuples
+        consisting of two 1-dimensional numpy arrays: one with unique values
+        for that column and the other one with their normalised (summing up to
+        1) frequencies.
     """
 
     def __init__(self,
                  dataset: np.ndarray,
-                 global_model: object,
+                 predictive_function: Callable[[np.ndarray], np.ndarray],
                  categorical_indices: Optional[np.ndarray] = None,
                  int_to_float: bool = True,
-                 starting_std: np.float32 = 0.01,
-                 increment_std: np.float32 = 0.001,
-                 minimum_per_class: np.float32 = 0.05) -> None:
+                 classes_number: Optional[int] = None,
+                 class_proportion_threshold: float = 0.05,
+                 standard_deviation_init: float = 0.01,
+                 standard_deviation_increment: float = 0.001) -> None:
         """
-        Constructs a ``GrowingSpheres`` data augmentation class.
+        Constructs a ``NormalClassDiscovery`` data augmentation class.
         """
         super().__init__(
             dataset,
             categorical_indices=categorical_indices,
             int_to_float=int_to_float)
-        assert _validate_input_growingspheres(global_model, starting_std,
-                                              increment_std, minimum_per_class)
-        self.global_model = global_model
-        self.n_classes = self.global_model.predict_proba(dataset).shape[1]
-        self.starting_std = starting_std
-        self.increment_std = increment_std
-        self.minimum_per_class = minimum_per_class
+        assert _validate_input_normalclassdiscovery(
+            predictive_function,
+            classes_number,
+            class_proportion_threshold,
+            standard_deviation_init,
+            standard_deviation_increment), 'Invalid input.'
+
+        self.predictive_function = predictive_function
+
+        # Check whether the function is probabilistic or a plane classifier
+        predictions = self.predictive_function(dataset[[0]])
+        assert not fuav.is_structured_array(predictions), 'Not plain numpy.'
+        assert (fuav.is_2d_array(predictions)
+                or fuav.is_1d_array(predictions)), 'Can only be 1-D or 2-D.'
+        self.is_probabilistic = fuav.is_2d_array(predictions)
+
+        # Try to infer the number of classes, otherwise prompt the user to
+        # provide the number of classes.
+        if classes_number is None:
+            if self.is_probabilistic:
+                classes_number = predictions.shape[1]
+            else:
+                predictions = self.predictive_function(dataset)
+                unique_predictions = np.unique(predictions)
+                assert fuav.is_1d_array(unique_predictions), 'Not a 1-D array.'
+                if unique_predictions.shape[0] < 2:
+                    raise RuntimeError('For the specified (classification) '
+                                       'predictive function, classifying the '
+                                       'input dataset provided only one '
+                                       'target class. To use this augmenter '
+                                       'please initialise it with the '
+                                       'classes_number parameter.')
+                else:
+                    classes_number = unique_predictions.shape[0]
+                logger.info('The number of classes was not specified by the '
+                            'user. Based on *classification* of the input '
+                            'dataset {} classes were found.'.format(
+                                classes_number))
+        self.classes_number = classes_number
+
+        self.standard_deviation_init = standard_deviation_init
+        self.standard_deviation_increment = standard_deviation_increment
+        self.class_proportion_threshold = class_proportion_threshold
+
         # Get sampling parameters for categorical features.
         categorical_sampling_values = dict()
         for column_name in self.categorical_indices:
@@ -1368,79 +1453,123 @@ class GrowingSpheres(Augmentation):
         self.categorical_sampling_values = categorical_sampling_values
 
     def sample(self,
-               data_row: np.ndarray = None,
+               data_row: Optional[Union[np.ndarray, np.void]] = None,
                samples_number: int = 50,
                max_iter: int = 1000) -> np.ndarray:
         """
-        Samples new data using growing spheres method.
+        Samples data using normal distribution class discovery process.
 
         For the additional documentation of parameters, warnings and errors
         please see the description of the
-        :func:`~fatf.utils.data.augmentation.Augmentation.sample` method in the
+        :func:`fatf.utils.data.augmentation.Augmentation.sample` method in the
         parent :class:`fatf.utils.data.augmentation.Augmentation` class.
 
         Parameters
         ----------
-        max_iter : integer (default=1000)
-            Maximum number of iterations for growing spheres algorithm before
-            returning a RuntimeError.
+        max_iter : integer, optional (default=1000)
+            The maximum number of iterations for the iterative normal sampling
+            procedure. If the limit is reached and the
+            ``class_proportion_threshold`` is not satisfied a ``RuntimeError``
+            is raised. If this is the case you may want to consider
+            initialising the class with a smaller
+            ``class_proportion_threshold`` parameter or larger
+            ``standard_deviation_init`` and ``standard_deviation_increment``
+            parameters. Alternatively, increasing the ``max_iter`` may help
+            to discover all of the classes with the other parameters fixed.
 
         Raises
         ------
         RuntimeError
-            Maximum number of iterations reached without the algorithm
-            sampling from every class in the global model.
+            The maximum number of iterations was reached without the algorithm
+            sampling from every class (with the specified proportion).
         TypeError
-            ``max_iter`` must be a positive integer
+            The ``max_iter`` parameter is not an integer.
+        ValueError
+            The ``max_iter`` parameter is not a positive number
+            (greater than 0).
 
         Returns
         -------
         samples : numpy.ndarray
-            A numpy array of shape [``samples_number``, number of features]
-            that holds the sampled data.
+            A numpy array of [``samples_number``, number of features] shape
+            holding the sampled data.
         """
         assert self._validate_sample_input(data_row, samples_number)
+        if isinstance(max_iter, int):
+            if max_iter <= 0:
+                raise ValueError('The max_iter parameter must be a positive '
+                                 'number.')
+        else:
+            raise TypeError('The max_iter parameter is not a positive '
+                            'integer.')
 
-        if not isinstance(max_iter, int) or max_iter <= 0:
-            raise TypeError('max_iter is not a positive integer.')
-
-        # Sample from mean of dataset
+        # Sample from the mean of the dataset if a data_row is not given
         if data_row is None:
             data_row = np.zeros_like(self.dataset[0])
+            # Get the most frequent value for each categorical feature
             for index in self.categorical_indices:
-                maximum = self.categorical_sampling_values[index][1].argmax()
-                data_row[index] = \
-                    self.categorical_sampling_values[index][0][maximum]
+                max_freq_idx = (
+                    self.categorical_sampling_values[index][1].argmax())
+                # Most frequent value
+                data_row[index] = (
+                    self.categorical_sampling_values[index][0][max_freq_idx])
+            # Get the mean of each numerical feature
             for index in self.numerical_indices:
                 data_row[index] = self.dataset[index].mean(axis=0)
 
-        # Reshape row to be used in global_model.predict
+        # Prepare the row to be used with the predictive_function
+        # and get the output array shape
         if self.is_structured:
-            row = np.array([data_row], dtype=self.dataset.dtype)
-        else:
-            row = data_row.reshape(1, -1)
-        label = self.global_model.predict(row)
-        samples_per_sphere = [int(float(samples_number) / (self.n_classes))
-                              ] * self.n_classes
-        if np.sum(samples_per_sphere) != samples_number:
-            samples_per_sphere[0] = (
-                samples_number - np.sum(samples_per_sphere[1:]))
-        # Create an array to hold the samples.
-        if self.is_structured:
+            row = data_row.reshape(-1)
             shape = (samples_number, )  # type: Tuple[int, ...]
         else:
+            row = data_row.reshape(1, -1)
             shape = (samples_number, self.features_number)
-        std = self.starting_std
+
+        row_labels = self.predictive_function(row)
+        assert row_labels.shape[0] == 1, 'Only 1 data point predicted.'
+        if self.is_probabilistic:
+            assert fuav.is_2d_array(row_labels), 'Probabilistic outputs 2-D.'
+            row_label = row_labels[0].argmax()
+        else:
+            assert fuav.is_1d_array(row_labels), 'Classifier outputs 1-D.'
+            row_label = row_labels[0]
+
+        # Get the number of (almost) equal samples per (class) normal
+        # distribution
+        min_nomal_smaples = int(samples_number / self.classes_number)
+        samples_per_normal = self.classes_number * [min_nomal_smaples]
+        #
+        missing_normal_smaples = (
+            samples_number - self.classes_number * min_nomal_smaples)
+        for i in range(missing_normal_smaples):
+            samples_per_normal[i] += 1
+        assert sum(samples_per_normal) - samples_number == 0, 'Wrong samples #'
+
         samples_list = []
-        labels = [label]
-        class_counter = 0
+        normal_dist_counter = 0
+        # Labels seen in the correct proportion
+        seen_labels = set()
+        #
+        current_std = self.standard_deviation_init
+        current_data_row = data_row
+        current_label = row_label
+        if self.is_structured:
+            iter_shape = (samples_per_normal[normal_dist_counter],
+                         )  # type: Tuple[int, ...]
+        else:
+            iter_shape = (samples_per_normal[normal_dist_counter],
+                          self.features_number)
+
         for iterations in range(max_iter):
-            samples_iter = np.zeros(shape, dtype=self.sample_dtype)
+            # Create an array to hold the samples.
+            samples_iter = np.zeros(iter_shape, dtype=self.sample_dtype)
+
             # Sample categorical features.
             for index in self.categorical_indices:
                 sample_values = np.random.choice(
                     self.categorical_sampling_values[index][0],
-                    size=samples_number,
+                    size=samples_per_normal[normal_dist_counter],
                     replace=True,
                     p=self.categorical_sampling_values[index][1])
                 if self.is_structured:
@@ -1450,243 +1579,342 @@ class GrowingSpheres(Augmentation):
 
             # Sample numerical features.
             for index in self.numerical_indices:
-                mean = data_row[index]
-                # Fetch mean and standard deviation
-                sample_values = np.random.normal(0, 1, samples_number) \
-                    * std + mean
-                std += self.increment_std
+                mean = current_data_row[index]
+                sample_values = np.random.normal(
+                    0, 1, samples_per_normal[normal_dist_counter])
+                sample_values = sample_values * current_std + mean
                 if self.is_structured:
                     samples_iter[index] = sample_values
                 else:
                     samples_iter[:, index] = sample_values
 
-            # Get predictions for sampled data
-            predictions = self.global_model.predict(samples_iter)
-            # Get the predictions that aren't in the classes we already have
-            new = [p for p in predictions if p not in labels]
-            if len(new) >= self.minimum_per_class * samples_number:
-                for i in range(samples_per_sphere[class_counter]):
-                    pred = predictions[i]
-                    if pred not in labels:
-                        means = samples_iter[i]
-                        class_counter += 1
-                        samples_list.append(samples_iter)
-                        std = self.starting_std
-                        labels.append(pred)
-            if len(labels) == self.n_classes:
-                break
-        else:
-            raise RuntimeError('Maximum iterations reached. Try increasing '
-                               'max_iter or decreasing minimum_per_class.')
+            # Get predictions for the sampled data
+            predictions = self.predictive_function(samples_iter)
+            if self.is_probabilistic:
+                predictions = predictions.argmax(axis=1)
 
-        if len(samples_list) == 1:
-            samples = samples_list[0]
+            current_label_count = np.where(
+                predictions == current_label)[0].shape[0]
+            expected_proportion = (
+                self.class_proportion_threshold * samples_number)
+
+            # At least one unseen class different than the current label
+            unique_labels = np.unique(predictions)
+            new_label = False
+            for label in unique_labels:
+                # A class different to the current one has been discovered...
+                if label != current_label:
+                    # ...and it is either the last one or an unseen one
+                    if (normal_dist_counter + 1 == self.classes_number
+                            or label not in seen_labels):
+                        new_label = True
+                        # Get a random data point of unseen label
+                        new_label_data_row_index = np.random.choice(
+                            np.where(predictions == label)[0])
+                        new_label_data_row = (
+                            samples_iter[[new_label_data_row_index]])
+                        break
+
+            # If the proportion of the current label is satisfied
+            # and there is at least one data point of an unseen label...
+            if current_label_count >= expected_proportion and new_label:
+                # Add sampled array to the samples_list
+                samples_list.append(samples_iter)
+                # Add the current_label to the seen_labels
+                seen_labels.add(current_label)
+                # Have we seen all of the classes
+                if len(seen_labels) == self.classes_number:
+                    break
+
+                # Increment normal_dist_counter
+                normal_dist_counter += 1
+                # Update iter_shape
+                if self.is_structured:
+                    iter_shape = (samples_per_normal[normal_dist_counter],
+                                 )  # type: Tuple[int, ...]
+                else:
+                    iter_shape = (samples_per_normal[normal_dist_counter],
+                                  self.features_number)
+                # Reset the current_std
+                current_std = self.standard_deviation_init
+
+                # Pick a new current_data_row of a different class
+                current_data_row = new_label_data_row[0]
+                # Save its class to current_label
+                current_labels = self.predictive_function(new_label_data_row)
+                if self.is_probabilistic:
+                    current_label = current_labels[0].argmax()
+                else:
+                    current_label = current_labels[0]
+            else:
+                current_std += self.standard_deviation_increment
         else:
-            samples = np.vstack(samples_list)
+            raise RuntimeError('The maximum number of iterations was reached '
+                               'without sampling enough data points for each '
+                               'class. Please try increasing the max_iter '
+                               'parameter or decreasing the '
+                               'class_proportion_threshold parameter. '
+                               'Increasing the standard_deviation_init and '
+                               'standard_deviation_increment parameters '
+                               'may also help.')
+
+        samples = np.vstack(samples_list)
         return samples
 
 
-def _validate_input_local_surrogate(global_model: object,
-                                    starting_radius: np.float32,
-                                    increment_radius: np.float32) -> bool:
+def _validate_input_decisionboundarysphere(
+        predictive_function: Callable[[np.ndarray], np.ndarray],
+        radius_init: float,
+        radius_increment: float) -> bool:
     """
-    Validates :class:``.LocalSurrogate`` class-specific input parameters.
+    Validates input parameters of the ``DecisionBoundarySphere`` augmenter.
 
-    Parameters
-    ----------
-    global_model : object
-        A trained global model that must be able to output predicted class
-        via ``predict`` method.
-    starting_radius : numpy.float32
-        The radius that sampling around each point will start at to find
-        decision boundary.
-    increment_radius : numpy.float32
-        The amount to increment the radius around a point with each iteration
-        of the algorithm for finding the decision boundary.
-
-    Raises
-    ------
-    IncompatibleModelError:
-        Global model does not have ``predict`` method.
-    TypeError:
-        ``starting_radius`` is not a float. ``increment_radius`` is not a float.
-    ValueError:
-        ``starting_radius`` is negative. ``increment_radius`` is negative.
+    For the description of the input parameters, errors and exceptions please
+    see the documentation of the
+    :class:`fatf.utils.data.augmentation.DecisionBoundarySphere` class.
 
     Returns
     -------
     is_valid : boolean
-        ``True`` if input is valid, ``False`` otherwise.
+        ``True`` if the input is valid, ``False`` otherwise.
     """
     is_valid = False
 
-    if not fumv.check_model_functionality(global_model, suppress_warning=True):
-        raise IncompatibleModelError('This functionality requires the model '
-                                     'to be capable of outputting predicted '
-                                     'class via predict method.')
+    if callable(predictive_function):
+        prms_n = fuv.get_required_parameters_number(predictive_function)
+        if prms_n != 1:
+            raise IncompatibleModelError('The predictive function must take '
+                                         'exactly *one* required parameter: '
+                                         'a data array to be predicted.')
+    else:
+        raise TypeError('The predictive_function should be a Python '
+                        'callable, e.g., a Python function.')
 
-    if not isinstance(starting_radius, float):
-        raise TypeError('starting_radius is not a float.')
+    if isinstance(radius_init, Number):
+        if radius_init <= 0:
+            raise ValueError('The radius_init parameter must be a positive '
+                             'number (greater than 0).')
+    else:
+        raise TypeError('The radius_init parameter is not a number.')
 
-    if not isinstance(increment_radius, float):
-        raise TypeError('increment_radius is not a float.')
-
-    if starting_radius <= 0:
-        raise ValueError('starting_radius must be a positive float greater '
-                         'than 0.')
-
-    if increment_radius <= 0:
-        raise ValueError('increment_radius must be a positive float greater '
-                         'than 0.')
+    if isinstance(radius_increment, Number):
+        if radius_increment <= 0:
+            raise ValueError('The radius_increment parameter is not a '
+                             'positive number (greater than 0).')
+    else:
+        raise TypeError('The radius_increment parameter is not a number.')
 
     is_valid = True
     return is_valid
 
 
-class LocalSurrogate(Augmentation):
+class DecisionBoundarySphere(Augmentation):
     """
-    Sampling data with the local fidelity method.
+    Sampling data in a hyper-sphere around the closest decision boundary.
 
-    This object implements a adapted version of the local surrogate sampling
-    defined in [LAUGEL2018SPHERES]_. A sphere is grown around a data point
-    until the decision boundary is found, then data points are sampled
-    uniformally in an l-2 hyersphere of radius ``r_sx`` around the closest
-    decision boundary.
+    ``DecisionBoundarySphere`` implements an adapted version of the local
+    surrogate sampling introduced by [LAUGEL2018DEFINING]_. A hyper-sphere is
+    grown around the specified data point until a decision boundary is found,
+    then from a point on this decision boundary data points are sampled
+    uniformly in an l-2 hyper-sphere with a user-predefined radius.
+
+    .. note:: Categorical features.
+
+       This augmenter does not currently support data sets with categorical
+       features.
 
     For additional parameters, attributes, warnings and exceptions raised by
     this class please see the documentation of its parent class:
-    :class:`fatf.utils.data.augmentation.Augmentation` and the function that
-    validates the input parameter
-    :func:`fatf.utils.data.augmentation._validate_input` and
-    :func:`fatf.utils.data.augmentation._validate_input_local_fidelity`.
+    :class:`fatf.utils.data.augmentation.Augmentation`.
 
-    .. [LAUGEL2018SPHERES] Laugel, T., Renard, X., Lesot, M. J., Marsala,
+    .. [LAUGEL2018DEFINING] Laugel, T., Renard, X., Lesot, M. J., Marsala,
        C., & Detyniecki, M. (2018). Defining locality for surrogates in
        post-hoc interpretablity. Workshop on Human Interpretability for
-       Machine Learning (WHI)-International Conference on Machine Learning,
+       Machine Learning (WHI) -- International Conference on Machine Learning,
        2018.
 
     Parameters
     ----------
-    global_model : object
-        A trained global model that must be able to output predicted class
-        via ``predict`` method.
-    starting_radius : numpy.float32
-        The radius that sampling around each point will start at to find
-        decision boundary.
-    increment_radius : numpy.float32
-        The amount to increment the radius around a point with each iteration
-        of the algorithm for finding the decision boundary.
+    predictive_function : Callable[[numpy.ndarray], numpy.ndarray]
+        A Python callable, e.g., a function, that is either a *classifier* or a
+        *probabilistic* predictor. This function is used to compute the class
+        of the sampled data, which is used to identify a decision boundary.
+        A probabilistic function is expected to output a 2-dimensional numpy
+        array with the assigned class being the one with maximum probability. A
+        classifier function is expected to output a 1-dimensional numpy array
+        with class assignment. The ``predictive_function`` should require
+        exactly one input parameter -- a data array to be predicted.
+    radius_init : float, optional (default=0.01)
+        The initial radius of the specified data point around which a
+        hyper-sphere will be placed to discover a decision boundary.
+    radius_increment : float, optional (default=0.01)
+        The additive increment to the initial hyper-sphere radius by which it
+        will be incremented (in every iteration of the sampling procedure) if
+        no decision boundary has been discovered.
 
     Raises
     ------
-    IncompatibleModelError:
-        Global model does not have ``predict`` method.
-    TypeError:
-        ``starting_radius`` is not a float. ``increment_radius`` is not a float.
-    ValueError:
-        ``starting_radius`` is negative. ``increment_radius`` is negative.
+    IncompatibleModelError
+        The ``predictive_function`` does not require exactly one input
+        parameter.
+    NotImplementedError
+        Some of the features in the data set are categorical -- this feature
+        type is not supported at present.
+    TypeError
+        The ``predictive_function`` parameter is not a Python callable. Either
+        the ``radius_init`` or ``radius_increment`` parameter is not a number.
+    ValueError
+        Either ``radius_init`` or ``radius_increment`` parameter is less or
+        equal to 0.
 
+    Attributes
+    ----------
+    predictive_function : Callable[[numpy.ndarray], numpy.ndarray]
+        The predictive function used to initialise this class.
+    is_probabilistic : boolean
+        ``True`` if the ``predictive_function`` is probabilistic, ``False``
+        otherwise. This is set based on the shape of the numpy array outputted
+        by the ``predictive_function``: if it is a 2-dimensional array, it is
+        assumed to be probabilistic, if it is a 1-dimensional array, it is
+        assumed to be a classifier.
+    radius_init : float
+        The initial radius of the specified data point around which a
+        hyper-sphere will be placed to discover a decision boundary.
+    radius_increment : float
+        The additive increment to the initial hyper-sphere radius by which it
+        will be incremented (in every iteration of the sampling procedure) if
+        no decision boundary has been discovered.
     """
+
     def __init__(self,
                  dataset: np.ndarray,
-                 global_model: object,
+                 predictive_function: Callable[[np.ndarray], np.ndarray],
                  categorical_indices: Optional[List[Index]] = None,
-                 starting_radius: np.float32 = 0.01,
-                 increment_radius: np.float32 = 0.01,
                  int_to_float: bool = True,
-                 **kwargs) -> None:
+                 radius_init: float = 0.01,
+                 radius_increment: float = 0.01) -> None:
         """
-        Constructs an ``LocalFidelity`` data augmentation class.
+        Constructs a ``DecisionBoundarySphere`` data augmentation class.
         """
         super().__init__(
             dataset=dataset,
             categorical_indices=categorical_indices,
             int_to_float=int_to_float)
-
-        assert _validate_input_local_surrogate(global_model, starting_radius,
-                                               increment_radius)
-        self.global_model = global_model
-        self.starting_radius = starting_radius
-        self.increment_radius = increment_radius
-        # Get sampling parameters for categorical features.
+        assert _validate_input_decisionboundarysphere(
+            predictive_function, radius_init, radius_increment)
         if self.categorical_indices:
-            raise NotImplementedError('categorical values are not supported '
-                                      'in this augmentor.')
+            raise NotImplementedError('The DecisionBoundarySphere augmenter '
+                                      'does not currently support data sets '
+                                      'with categorical features.')
+
+        self.predictive_function = predictive_function
+        self.radius_init = radius_init
+        self.radius_increment = radius_increment
+
+        # Check whether the function is probabilistic or a plane classifier
+        predictions = self.predictive_function(dataset[[0]])
+        assert not fuav.is_structured_array(predictions), 'Not plain numpy.'
+        assert (fuav.is_2d_array(predictions)
+                or fuav.is_1d_array(predictions)), 'Can only be 1-D or 2-D.'
+        self.is_probabilistic = fuav.is_2d_array(predictions)
 
     def _validate_sample_input(self,
-                               data_row: np.ndarray,
-                               r_sx: float,
-                               samples_number:int,
-                               samples_get_decision_boundary,
-                               max_iter) -> bool:
+                               data_row: Union[np.ndarray, np.void],
+                               sphere_radius: float,
+                               samples_number: int,
+                               discover_samples_number: int,
+                               max_iter: int) -> bool:
         """
-        Validates sample input parameterse for the class.
+        Validates input parameters for the ``sample`` method.
 
-        For additional documentation of parameters, warnings and errors
-        please see the description of
-        :func:`~fatf.utils.data.augmentation.LocalFidelity.sample`.
+        For additional description of the input parameters, warnings and
+        errors please see the documentation of the
+        :func:`fatf.utils.data.augmentation.DecisionBoundarySphere.sample`
+        method.
 
         Returns
         -------
         is_valid : boolean
-        ``True`` if input is valid, ``False`` otherwise.
+        ``True`` if the input is valid, ``False`` otherwise.
         """
         is_valid = False
         assert super()._validate_sample_input(data_row, samples_number)
 
-        if not isinstance(r_sx, float):
-            raise TypeError('r_sx must be float.')
+        if isinstance(sphere_radius, Number):
+            if sphere_radius <= 0:
+                raise ValueError('The sphere_radius parameter must be a '
+                                 'positive number (greater than 0).')
         else:
-            if r_sx <= 0.0:
-                raise ValueError('r_sx must be a positive float.')
+            raise TypeError('The sphere_radius parameter must be a number.')
 
-        if not isinstance(samples_get_decision_boundary, int):
-            raise TypeError('samples_get_decision_boundary must be an '
+        if isinstance(discover_samples_number, int):
+            if discover_samples_number <= 0:
+                    raise ValueError('The discover_samples_number parameter '
+                                     'must be a positive integer (greater '
+                                     'than 0).')
+        else:
+            raise TypeError('The discover_samples_number parameter must be an '
                             'integer.')
-        elif samples_get_decision_boundary <= 0:
-                raise ValueError('samples_get_decision_boundary must be an '
-                                 'integer larger than 0.')
 
-        if not isinstance(max_iter, int):
-            raise TypeError('max_iter must be an integer.')
-        elif max_iter <=0:
-            raise ValueError('max_iter must be a positive integer.')
+        if isinstance(max_iter, int):
+            if max_iter <= 0:
+                raise ValueError('The max_iter parameter must be a positive '
+                                 'integer (greater than 0).')
+        else:
+            raise TypeError('The max_iter parameter must be an integer.')
 
         is_valid = True
         return is_valid
 
     def sample(self,
-               data_row: np.ndarray = None,
-               r_sx: float = 0.05,
+               data_row: Union[np.ndarray, np.void],
+               sphere_radius: float = 0.05,
                samples_number: int = 50,
-               samples_get_decision_boundary = 100,
-               max_iter = 1000) -> np.ndarray:
+               discover_samples_number: int = 100,
+               max_iter: int = 1000) -> np.ndarray:
         """
-        Samples new data using growing spheres method.
+        Samples data around the closest decision boundary to the ``data_row``.
 
-        For the additional documentation of parameters, warnings and errors
-        please see the description of the
-        :func:`~fatf.utils.data.augmentation.Augmentation.sample` method in the
+        For the additional documentation of the input parameters, warnings and
+        errors please see the description of the
+        :func:`fatf.utils.data.augmentation.Augmentation.sample` method in the
         parent :class:`fatf.utils.data.augmentation.Augmentation` class.
 
         Parameters
         ----------
-        r_sx : float, Optional (default=0.05)
-            Radius of hypersphere around closest decision boundary to
-            ``data_row`` that points will be sampled around.
-        samples_get_decision_boundary, Optional (default=100)
-            Number of samples generated at each step when the sphere is being
-            grown to find the closest decision boundary.
+        sphere_radius : float, optional (default=0.05)
+            Radius of the hyper-sphere around the closest decision boundary to
+            ``data_row`` withing which new data points will be sampled.
+        discover_samples_number : integer, optional (default=100)
+            Number of samples generated at each iteration of the sampling
+            procedure that are used to discover the nearest decision boundary
+            around the ``data_row``.
+        max_iter : integer, optional (default=1000)
+            The maximum number of iterations for the iterative hyper-sphere
+            growing (around the ``data_row``) procedure. If the limit is
+            reached and a decision boundary has not be found a ``RuntimeError``
+            is raised. If this is the case you may want to consider
+            initialising the class with a larger ``radius_init`` or
+            ``radius_increment`` parameter. Alternatively, increasing the
+            ``discover_samples_number`` or ``max_iter`` parameter may help
+            to discover the nearest boundary with all the other parameters
+            fixed.
 
         Raises
         ------
-        TypeError:
-            ``r_sx`` is not a float. ``samples_get_decision_boundary`` is not
+        NotImplementedError
+            The ``data_row`` is ``None`` -- sampling from the mean of the
+            ``dataset`` used to initialise this class is not yet implemented.
+        RuntimeError
+            The maximum number of iterations was reached without the algorithm
+            discovering a decision boundary.
+        TypeError
+            The ``sphere_radius`` parameter is not a number. The
+            ``discover_samples_number`` or ``max_iter`` parameter is not
             an integer.
-        ValueError:
-            ``r_sx`` must be a positive float.
-            ``samples_get_decision_boundary`` is zero. ``data_row`` is None.
+        ValueError
+            The ``sphere_radius``, ``discover_samples_number`` or ``max_iter``
+            parameter is not a positive number (greater than 0).
 
         Returns
         -------
@@ -1695,212 +1923,234 @@ class LocalSurrogate(Augmentation):
             that holds the sampled data.
         """
         assert self._validate_sample_input(
-            data_row, r_sx, samples_number, samples_get_decision_boundary,
-            max_iter)
-
+            data_row,
+            sphere_radius,
+            samples_number,
+            discover_samples_number,
+            max_iter), 'Invalid input.'
         if data_row is None:
-            raise ValueError('Sampling around the mean is not implemeneted '
-                             'for LocalSurrogate.')
+            raise NotImplementedError('Sampling around the mean of the '
+                                      'initialisation dataset is not '
+                                      'currently supported by the '
+                                      'DecisionBoundarySphere augmenter.')
 
         if self.is_structured:
-            shape = (samples_get_decision_boundary, )  # type: Tuple[int, ...]
-            row = np.array([data_row], dtype=self.dataset.dtype)
+            shape_ds = (discover_samples_number, )  # type: Tuple[int, ...]
+            shape_sample = (samples_number, )  # type: Tuple[int, ...]
+            row = data_row.reshape(-1)
         else:
-            shape = (samples_get_decision_boundary, self.features_number)
+            shape_ds = (discover_samples_number, self.features_number)
+            shape_sample = (samples_number, self.features_number)
             row = data_row.reshape(1, -1)
-        radius = self.starting_radius
-        label = self.global_model.predict(row)
+
+        current_radius = self.radius_init
+
+        row_labels = self.predictive_function(row)
+        assert row_labels.shape[0] == 1, 'Only 1 data point predicted.'
+        if self.is_probabilistic:
+            assert fuav.is_2d_array(row_labels), 'Probabilistic outputs 2-D.'
+            row_label = row_labels[0].argmax()
+        else:
+            assert fuav.is_1d_array(row_labels), 'Classifier outputs 1-D.'
+            row_label = row_labels[0]
 
         for iterations in range(max_iter):
-            samples_iter = np.zeros(shape, dtype=self.sample_dtype)
+            discover_samples = np.zeros(shape_ds, dtype=self.sample_dtype)
+
             uniform = np.random.uniform(
-                0, radius, size=(samples_get_decision_boundary, 1))
-            random =  np.random.normal(
-                0, 1, (samples_get_decision_boundary, self.features_number))
-            norm = np.expand_dims(np.linalg.norm(random, ord=2, axis=1), 1)
-            x = random * uniform / norm
+                0, current_radius, size=(discover_samples_number, 1))
+            normal =  np.random.normal(
+                0, 1, (discover_samples_number, self.features_number))
+            normal_norm = np.linalg.norm(normal, ord=2, axis=1)
+            normal_norm = np.expand_dims(normal_norm, 1)
+            directional_vectors = uniform * normal / normal_norm
+
             for i, index in enumerate(self.numerical_indices):
                 if self.is_structured:
-                    samples_iter[index] = x[:, i] + data_row[index]
+                    discover_samples[index] = (
+                        data_row[index] + directional_vectors[:, i])
                 else:
-                    samples_iter[:, index] = x[:, i] + data_row[i]
-            # Get predictions for sampled data
-            predictions = self.global_model.predict(samples_iter)
-            indx = np.where(predictions != label)[0]
-            if indx.size > 0:
-                samples_different = samples_iter[indx]
-                distance = fud.euclidean_array_distance(
-                    np.expand_dims(data_row, 0), samples_different).flatten()
-                max_distance = np.max(distance)
-                decision_boundary = samples_different[np.argmax(distance)]
+                    discover_samples[:, index] = (
+                        data_row[i] + directional_vectors[:, i])
+
+            # Get predictions for the sampled data
+            predictions_sampled = self.predictive_function(discover_samples)
+            if self.is_probabilistic:
+                predictions_sampled = predictions_sampled.argmax(axis=1)
+            unseen_predictions = np.where(predictions_sampled != row_label)[0]
+
+            if unseen_predictions.size:
+                # Get one of the samples on (or past) the decision boundary
+                unclassified_samples = discover_samples[unseen_predictions]
+                if self.is_structured:
+                    distances = fud.euclidean_array_distance(
+                        row, unclassified_samples)
+                else:
+                    distances = scipy.spatial.distance.cdist(
+                         row, unclassified_samples, metric='euclidean')
+                boundary_sample = unclassified_samples[np.argmin(distances)]
                 break
             else:
-                radius += self.increment_radius
+                current_radius += self.radius_increment
         else:
-            raise RuntimeError('Maximum iterations reached without finding '
-                               'the decision boundary. Try increasing '
-                               'max_iter or increment_radius.')
+            raise RuntimeError('The maximum number of iterations was reached '
+                               'without discovering a decision boundary. '
+                               'Please try increasing the max_iter or '
+                               'discover_samples_number parameter. '
+                               'Alternatively, initialise this class with a '
+                               'larger radius_init or radius_increment '
+                               'parameter.')
 
-        # Now uniformaly sample in l-2 hypersphere aroun data_row with radius
-        # max_distance * r_sx
-        if self.is_structured:
-            shape = (samples_number, )
-        else:
-            shape = (samples_number, self.features_number)
-        samples = np.zeros(shape, dtype=self.sample_dtype)
-        uniform = np.random.uniform(0, r_sx, size=(samples_number, 1))
-        random =  np.random.normal(0, 1, (samples_number,
-                                          self.features_number))
-        norm = np.expand_dims(np.linalg.norm(random, ord=2, axis=1), 1)
-        x = random * uniform / norm
+        # Uniformly sample in an l-2 hyper-sphere around the decision boundary
+        samples = np.zeros(shape_sample, dtype=self.sample_dtype)
+
+        uniform = np.random.uniform(0, sphere_radius, size=(samples_number, 1))
+        normal = np.random.normal(0, 1, (samples_number, self.features_number))
+        normal_norm = np.linalg.norm(normal, ord=2, axis=1)
+        normal_norm = np.expand_dims(normal_norm, 1)
+        directional_vectors = uniform * normal / normal_norm
+
         for i, index in enumerate(self.numerical_indices):
             if self.is_structured:
-                samples[index] = x[:, i] + decision_boundary[index]
+                samples[index] = (
+                    boundary_sample[index] + directional_vectors[:, i])
             else:
-                samples[:, index] = x[:, i] + decision_boundary[i]
+                samples[:, index] = (
+                    boundary_sample[i] + directional_vectors[:, i])
 
         return samples
 
 
-
-class LocalFidelity(Augmentation):
+class LocalSphere(Augmentation):
     """
-    Sampling data with the local fidelity method.
+    Sampling data in a hyper-sphere around the selected data point.
 
-    This object implements a adapted version of the local fidelity sampling
-    method introduced by [LAUGEL2018SPHERES]_. For a specific data point,
-    it samples uniformally within a hypersphere with radius corresponding to a
-    percentage of the maximum l-2 distance between the instance to generate
-    around and all other instances in the dataset.
+    ``LocalSphere`` implements an adapted version of the local fidelity
+    sampling method introduced by [LAUGEL2018DEFINING]_. For a specific data
+    point, it samples uniformly within a hyper-sphere, which radius corresponds
+    to a specified percentage of the maximum l-2 distance between the specified
+    data point and all the other instances in the input ``dataset``.
+
+    .. note:: Categorical features.
+
+       This augmenter does not currently support data sets with categorical
+       features.
 
     For additional parameters, attributes, warnings and exceptions raised by
     this class please see the documentation of its parent class:
-    :class:`fatf.utils.data.augmentation.Augmentation` and the function that
-    validates the input parameter
-    :func:`fatf.utils.data.augmentation._validate_input'.
+    :class:`fatf.utils.data.augmentation.Augmentation`.
 
-    .. [LAUGEL2018SPHERES] Laugel, T., Renard, X., Lesot, M. J., Marsala,
+    .. [LAUGEL2018DEFINING] Laugel, T., Renard, X., Lesot, M. J., Marsala,
        C., & Detyniecki, M. (2018). Defining locality for surrogates in
        post-hoc interpretablity. Workshop on Human Interpretability for
-       Machine Learning (WHI)-International Conference on Machine Learning,
+       Machine Learning (WHI) -- International Conference on Machine Learning,
        2018.
+
+    Raises
+    ------
+    NotImplementedError
+        Some of the features in the data set are categorical -- this feature
+        type is not supported at present.
     """
+
     def __init__(self,
                  dataset: np.ndarray,
                  categorical_indices: Optional[List[Index]] = None,
-                 int_to_float: bool = True,
-                 **kwargs) -> None:
+                 int_to_float: bool = True) -> None:
         """
-        Constructs an ``LocalFidelity`` data augmentation class.
+        Constructs a ``LocalSphere`` data augmentation class.
         """
         super().__init__(
             dataset=dataset,
             categorical_indices=categorical_indices,
             int_to_float=int_to_float)
 
-        # Get sampling parameters for categorical features.
         if self.categorical_indices:
-            raise NotImplementedError('categorical values are not supported '
-                                      'in this augmentor.')
-
-    def _validate_sample_input(self,
-                               data_row: np.ndarray = None,
-                               r_fid: float = 0.05,
-                               samples_number: int = 50) -> bool:
-        """
-        Validates sample input parameterse for the class.
-
-        For additional documentation of parameters, warnings and errors
-        please see the description of
-        :func:`~fatf.utils.data.augmentation.LocalFidelity.sample`.
-
-        Returns
-        -------
-        is_valid : boolean
-        ``True`` if input is valid, ``False`` otherwise.
-        """
-        is_valid = False
-        assert super()._validate_sample_input(data_row, samples_number)
-
-        if not isinstance(r_fid, float):
-            raise TypeError('r_fid must be float.')
-        else:
-            if r_fid <= 0.0:
-                raise ValueError('r_fid must be a positive float.')
-
-        is_valid = True
-        return is_valid
+            raise NotImplementedError('The LocalSphere augmenter does not '
+                                      'currently support data sets with '
+                                      'categorical features.')
 
     def sample(self,
-               data_row: np.ndarray,
-               r_fid: float = 0.05,
+               data_row: Union[np.ndarray, np.void],
+               fidelity_radius_percentage: int = 5,
                samples_number: int = 50) -> np.ndarray:
         """
-        Samples new data using growing spheres method.
+        Samples new data in a hyper-sphere around the selected data point.
 
-        For the additional documentation of parameters, warnings and errors
-        please see the description of the
-        :func:`~fatf.utils.data.augmentation.Augmentation.sample` method in the
+        For the additional description of the parameters, warnings and errors
+        please see the documentation of the
+        :func:`fatf.utils.data.augmentation.Augmentation.sample` method in the
         parent :class:`fatf.utils.data.augmentation.Augmentation` class.
 
         Parameters
         ----------
-        r_fid : float, Optional (default=0.05)
-            Radius of fideility which is the percentage of the maximum distance
-            between any two dataponts in the dataset, which will be the radius
-            of the l-2 hypersphere that points will be sampled in.
-        max_iter : integer (default=1000)
-            Maximum number of iterations for growing spheres algorithm before
-            returning a RuntimeError.
+        fidelity_radius_percentage : integer, optional (default=5)
+            The percentage of the maximum distance between the input
+            ``data_row`` and all of the points in the ``dataset`` used to
+            initialise, which will determine the radius of the hyper-sphere
+            for sampling.
+
         Raises
         ------
-        TypeError:
-            ``r_fid`` is not a float. ``max_iter`` must be a positive integer
-        ValueError:
-            ``r_fid`` must be a positive float. ``data_row`` is None.
-        RuntimeError
-            Maximum number of iterations reached without the algorithm
-            sampling from every class in the global model.
+        NotImplementedError
+            The ``data_row`` is ``None`` -- sampling from the mean of the
+            ``dataset`` used to initialise this class is not yet implemented.
+        TypeError
+            The ``fidelity_radius_percentage`` parameter is not an integer.
+        ValueError
+            The ``fidelity_radius_percentage`` parameter is not a positive
+            integer.
 
         Returns
         -------
         samples : numpy.ndarray
             A numpy array of shape [``samples_number``, number of features]
-            that holds the sampled data.
+            holding the sampled data.
         """
-        assert self._validate_sample_input(data_row, r_fid, samples_number)
-
+        assert self._validate_sample_input(data_row,
+                                           samples_number), 'Invalid input.'
         if data_row is None:
-            raise ValueError('Sampling around the mean is not implemeneted '
-                             'for LocalFidelity.')
+            raise NotImplementedError('Sampling around the mean of the '
+                                      'initialisation dataset is not '
+                                      'currently supported by the LocalSphere '
+                                      'augmenter.')
+        if isinstance(fidelity_radius_percentage, int):
+            if fidelity_radius_percentage <= 0:
+                raise ValueError('The fidelity_radius_percentage parameter '
+                                 'must be a positive integer (greater than '
+                                 '0).')
+        else:
+            raise TypeError('The fidelity_radius_percentage parameter must be '
+                            'an integer.')
 
         if self.is_structured:
             shape = (samples_number, )  # type: Tuple[int, ...]
+            distances = fud.euclidean_array_distance(
+                np.expand_dims(data_row, 0), self.dataset)
         else:
             shape = (samples_number, self.features_number)
+            distances = scipy.spatial.distance.cdist(
+                 np.expand_dims(data_row, 0), self.dataset, metric='euclidean')
+        assert np.all(distances >= 0), 'Distances cannot be negative.'
 
-        distances = fud.euclidean_array_distance(
-            np.expand_dims(data_row, 0), self.dataset)
-        maximum_distance = np.max(np.abs(distances.flatten()))
+        # Get max radius
+        radius = fidelity_radius_percentage / 100 * distances.max()
 
-        radius = r_fid * maximum_distance
-
-        if self.is_structured:
-            samples = np.zeros((samples_number, ), dtype=self.sample_dtype)
-        else:
-            samples = np.zeros((samples_number, self.features_number),
-                               dtype=self.sample_dtype)
+        # Get radii
+        uniform = np.random.uniform(0, radius, size=(samples_number, 1))
+        # Get random directions for the radii
+        normal =  np.random.normal(
+            0, 1, (samples_number, self.features_number))
+        # Get scaling of the random directions to preserve the radii
+        normal_norm = np.linalg.norm(normal, ord=2, axis=1)
+        normal_norm = np.expand_dims(normal_norm, 1)
+        # Compute the directional vectors
+        directional_vectors = uniform * normal / normal_norm
 
         samples = np.zeros(shape, dtype=self.sample_dtype)
-        uniform = np.random.uniform(0, radius, size=(samples_number, 1))
-        random =  np.random.normal(0, 1, (samples_number,
-                                          self.features_number))
-        norm = np.expand_dims(np.linalg.norm(random, ord=2, axis=1), 1)
-        x = random * uniform / norm
         for i, index in enumerate(self.numerical_indices):
             if self.is_structured:
-                samples[index] = x[:, i] + data_row[index]
+                samples[index] = data_row[index] + directional_vectors[:, i]
             else:
-                samples[:, index] = x[:, i] + data_row[i]
-
+                samples[:, index] = data_row[i] + directional_vectors[:, i]
         return samples

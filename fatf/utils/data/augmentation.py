@@ -604,7 +604,7 @@ Tuple[numpy.ndarray, numpy.ndarray]]
 
         For the documentation of parameters, warnings and errors please see the
         description of the
-        :func:`~fatf.utils.data.augmentation.Augmentation.sample` method in the
+        :func:`fatf.utils.data.augmentation.Augmentation.sample` method in the
         parent :class:`fatf.utils.data.augmentation.Augmentation` class.
         """
         assert self._validate_sample_input(data_row,
@@ -1230,7 +1230,7 @@ def _validate_input_normalclassdiscovery(
                              'be a number between 0 and 1 (not inclusive).')
     else:
         raise TypeError('The class_proportion_threshold parameter is not a '
-                        'float.')
+                        'number.')
 
     if isinstance(standard_deviation_init, Number):
         if standard_deviation_init <= 0:
@@ -1238,7 +1238,7 @@ def _validate_input_normalclassdiscovery(
                              'positive number (greater than 0).')
     else:
         raise TypeError('The standard_deviation_init parameter is not a '
-                        'float.')
+                        'number.')
 
     if isinstance(standard_deviation_increment, Number):
         if standard_deviation_increment <= 0:
@@ -1246,7 +1246,7 @@ def _validate_input_normalclassdiscovery(
                              'be a positive number (greater than 0).')
     else:
         raise TypeError('The standard_deviation_increment parameter is not a '
-                        'float.')
+                        'number.')
 
     is_valid = True
     return is_valid
@@ -1272,7 +1272,7 @@ class NormalClassDiscovery(Augmentation):
     probability for each unique value calculated based on the frequency of
     their appearance in the dataset.
 
-    .. note:: The number of classes for classifiers.
+    .. note:: The number of classes when using a *classifier*.
 
        Consider using the ``classes_number`` parameter when using a
        non-probabilistic ``predictive_function``. For more details please see
@@ -1320,12 +1320,25 @@ class NormalClassDiscovery(Augmentation):
         The minimum proportion of data points assigned to a different class
         by the ``predictive_function`` when sampling for each data point as per
         the procedure described above.
-    standard_deviation_init : float, optional (default=0.01)
+
+        .. warning:: Setting the ``class_proportion_threshold`` parameter.
+
+           This augmenter samples a cloud of points for each discovered class
+           with each cloud having 1 / ``classes_number`` number of points.
+           This means that the value of the ``class_proportion_threshold`` has
+           to be smaller than this number for the sampling to be successful.
+           For example, for 2 classes and 100 sampled points, 2 clouds of 50
+           data points each will be generated. By setting the
+           ``class_proportion_threshold`` parameter to ``0.6``, at least 60
+           point of each class are expected, which cannot be achieved.
+
+    standard_deviation_init : float, optional (default=1)
         The standard deviation of the normal distribution used for initial
         sampling around each selected data point.
-    standard_deviation_increment : float, optional (default=0.001)
+    standard_deviation_increment : float, optional (default=0.1)
         The increment used to increase the standard deviation every time the
-        sample does not satisfy the specified ``class_proportion_threshold``.
+        sample does not satisfy the specified ``class_proportion_threshold``
+        or at least one data point of yet unseen class is not discovered.
 
     Raises
     ------
@@ -1335,11 +1348,16 @@ class NormalClassDiscovery(Augmentation):
     RuntimeError
         The class initialisation was unable to identify the number of classes
         using the input ``dataset`` and the provided ``predictive_function``.
+        The value of the ``class_proportion_threshold`` parameter is too large
+        for the given number of classes (please see the warning in the
+        ``class_proportion_threshold`` parameter description for more
+        information).
     TypeError
         The ``predictive_function`` is not a Python callable. The
         ``classes_number`` is neither ``None`` nor an integer.
-        Either ``class_proportion_threshold``, ``standard_deviation_init`` or
-        ``standard_deviation_increment`` is not a float.
+        The ``class_proportion_threshold`` is not a float. Either
+        ``standard_deviation_init`` or ``standard_deviation_increment`` is not
+        a number.
     ValueError
         The ``classes_number`` parameter is smaller than 2.
         The ``class_proportion_threshold`` parameter is outside of the (0, 1)
@@ -1352,10 +1370,11 @@ class NormalClassDiscovery(Augmentation):
         The predictive function used to initialise this class.
     is_probabilistic : boolean
         ``True`` if the ``predictive_function`` is probabilistic, ``False``
-        otherwise. This is set based on the shape of the numpy array outputted
-        by the ``predictive_function``: if it is a 2-dimensional array, it is
-        assumed to be probabilistic, if it is a 1-dimensional array, it is
-        assumed to be a classifier.
+        otherwise. This attribute is set based on the shape of the numpy array
+        outputted by the ``predictive_function``: if it is a 2-dimensional
+        array, the ``predictive_function`` is assumed to be probabilistic, if
+        it is a 1-dimensional array, the ``predictive_function`` is assumed to
+        be a classifier.
     classes_number : integer
         The number of classes modelled by the ``predictive_function``, either
         defined by the user when initialising this class or inferred from the
@@ -1383,8 +1402,8 @@ Tuple[numpy.ndarray, numpy.ndarray]]
                  int_to_float: bool = True,
                  classes_number: Optional[int] = None,
                  class_proportion_threshold: float = 0.05,
-                 standard_deviation_init: float = 0.01,
-                 standard_deviation_increment: float = 0.001) -> None:
+                 standard_deviation_init: float = 1.0,
+                 standard_deviation_increment: float = 0.1) -> None:
         """
         Constructs a ``NormalClassDiscovery`` data augmentation class.
         """
@@ -1436,6 +1455,17 @@ Tuple[numpy.ndarray, numpy.ndarray]]
         self.standard_deviation_increment = standard_deviation_increment
         self.class_proportion_threshold = class_proportion_threshold
 
+        # If expected class_proportion_threshold is equal or larger than
+        # 1/the number of classes, sampling *cannot* be successful since a new
+        # class will never be discovered.
+        if self.class_proportion_threshold >= 1 / self.classes_number:
+            raise RuntimeError('The lower bound on the proportion of each '
+                               'class must be smaller than 1/(the number of '
+                               'classes) for this sampling implementation. '
+                               '(Please see the documentation of the '
+                               'NormalClassDiscovery augmenter for more '
+                               'information.' )
+
         # Get sampling parameters for categorical features.
         categorical_sampling_values = dict()
         for column_name in self.categorical_indices:
@@ -1469,19 +1499,20 @@ Tuple[numpy.ndarray, numpy.ndarray]]
         max_iter : integer, optional (default=1000)
             The maximum number of iterations for the iterative normal sampling
             procedure. If the limit is reached and the
-            ``class_proportion_threshold`` is not satisfied a ``RuntimeError``
-            is raised. If this is the case you may want to consider
-            initialising the class with a smaller
+            ``class_proportion_threshold`` is not satisfied in addition to
+            discovering at least one data point of yet unseen class a
+            ``RuntimeError`` is raised. If this is the case you may want to
+            consider initialising the class with a smaller
             ``class_proportion_threshold`` parameter or larger
             ``standard_deviation_init`` and ``standard_deviation_increment``
-            parameters. Alternatively, increasing the ``max_iter`` may help
-            to discover all of the classes with the other parameters fixed.
+            parameters. Alternatively, increasing the ``max_iter`` may help to
+            discover all of the classes with the other parameters fixed.
 
         Raises
         ------
         RuntimeError
-            The maximum number of iterations was reached without the algorithm
-            sampling from every class (with the specified proportion).
+            The maximum number of iterations was reached without discovering
+            samples from every class (with the specified proportion).
         TypeError
             The ``max_iter`` parameter is not an integer.
         ValueError
@@ -1658,7 +1689,7 @@ Tuple[numpy.ndarray, numpy.ndarray]]
                                'standard_deviation_increment parameters '
                                'may also help.')
 
-        samples = np.vstack(samples_list)
+        samples = np.concatenate(samples_list)
         return samples
 
 
@@ -1774,12 +1805,14 @@ class DecisionBoundarySphere(Augmentation):
     is_probabilistic : boolean
         ``True`` if the ``predictive_function`` is probabilistic, ``False``
         otherwise. This is set based on the shape of the numpy array outputted
-        by the ``predictive_function``: if it is a 2-dimensional array, it is
-        assumed to be probabilistic, if it is a 1-dimensional array, it is
-        assumed to be a classifier.
+        by the ``predictive_function``: if it is a 2-dimensional array, the
+        ``predictive_function`` is assumed to be probabilistic, if it is a
+        1-dimensional array, the ``predictive_function`` is assumed to be a
+        classifier.
     radius_init : float
-        The initial radius of the specified data point around which a
-        hyper-sphere will be placed to discover a decision boundary.
+        The initial radius of a hyper-sphere placed around the specified data
+        point within which new data points will be sampled to discover a
+        decision boundary.
     radius_increment : float
         The additive increment to the initial hyper-sphere radius by which it
         will be incremented (in every iteration of the sampling procedure) if
@@ -1835,7 +1868,7 @@ class DecisionBoundarySphere(Augmentation):
         Returns
         -------
         is_valid : boolean
-        ``True`` if the input is valid, ``False`` otherwise.
+            ``True`` if the input is valid, ``False`` otherwise.
         """
         is_valid = False
         assert super()._validate_sample_input(data_row, samples_number)
@@ -1884,7 +1917,7 @@ class DecisionBoundarySphere(Augmentation):
         ----------
         sphere_radius : float, optional (default=0.05)
             Radius of the hyper-sphere around the closest decision boundary to
-            ``data_row`` withing which new data points will be sampled.
+            ``data_row`` within which new data points will be sampled.
         discover_samples_number : integer, optional (default=100)
             Number of samples generated at each iteration of the sampling
             procedure that are used to discover the nearest decision boundary
@@ -1892,13 +1925,12 @@ class DecisionBoundarySphere(Augmentation):
         max_iter : integer, optional (default=1000)
             The maximum number of iterations for the iterative hyper-sphere
             growing (around the ``data_row``) procedure. If the limit is
-            reached and a decision boundary has not be found a ``RuntimeError``
-            is raised. If this is the case you may want to consider
-            initialising the class with a larger ``radius_init`` or
+            reached and a decision boundary has not been found a
+            ``RuntimeError`` is raised. If this is the case you may want to
+            consider initialising the class with a larger ``radius_init`` or
             ``radius_increment`` parameter. Alternatively, increasing the
-            ``discover_samples_number`` or ``max_iter`` parameter may help
-            to discover the nearest boundary with all the other parameters
-            fixed.
+            ``discover_samples_number`` or ``max_iter`` parameter may help to
+            discover the nearest boundary with all the other parameters fixed.
 
         Raises
         ------
@@ -2086,9 +2118,10 @@ class LocalSphere(Augmentation):
         ----------
         fidelity_radius_percentage : integer, optional (default=5)
             The percentage of the maximum distance between the input
-            ``data_row`` and all of the points in the ``dataset`` used to
-            initialise, which will determine the radius of the hyper-sphere
-            for sampling.
+            ``data_row`` and all of the points in the ``dataset`` (provided
+            when initialising this class), which will determine the radius of
+            the hyper-sphere used for sampling uniformly around the
+            ``data_row``.
 
         Raises
         ------

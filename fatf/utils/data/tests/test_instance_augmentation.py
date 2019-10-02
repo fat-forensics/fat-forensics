@@ -36,7 +36,7 @@ def test_validate_input():
     """
     shape_msg = ('The data_row must either be a 1-dimensional numpy array or '
                  'a numpy void object for structured rows.')
-    samples_msg  = 'The samples_number parameter must be a positive integer.'
+    samples_msg = 'The samples_number parameter must be a positive integer.'
     samples_type_msg = 'The samples_number parameter must be an integer.'
 
     with pytest.raises(IncorrectShapeError) as exin:

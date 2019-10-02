@@ -115,7 +115,9 @@ def dataset_row_masking(dataset: np.ndarray,
         dtypes = [(name, np.int8) for name in dataset.dtype.names]
         binary_representation = np.zeros_like(dataset, dtype=dtypes)
         for index in dataset.dtype.names:
-            binary_representation[index] = dataset[index] == data_row[index]
+            # E1337 is unsupported-assignment-operation
+            binary_representation[index] = (  # pylint: disable=E1137
+                dataset[index] == data_row[index])
     else:
         binary_representation = (dataset == data_row).astype(np.int8)
 

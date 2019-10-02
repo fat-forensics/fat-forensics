@@ -10,7 +10,6 @@ across the FAT-Forensics package.
 
 from typing import Union
 
-import inspect
 import warnings
 
 import fatf.utils.validation as fuv

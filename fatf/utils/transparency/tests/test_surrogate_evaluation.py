@@ -5,8 +5,6 @@ Tests surrogate evaluation metrics.
 #         Kacper Sokol <k.sokol@bristol.ac.uk>
 # License: new BSD
 
-from typing import Dict, Union
-
 import pytest
 
 import numpy as np
@@ -14,7 +12,6 @@ import numpy as np
 from fatf.exceptions import IncompatibleModelError, IncorrectShapeError
 
 import fatf
-import fatf.utils.data.augmentation as fuda
 import fatf.utils.metrics.metrics as fummet
 import fatf.utils.metrics.tools as fumt
 import fatf.utils.models.models as fumm
@@ -128,10 +125,17 @@ surrogate_evaluation._validate_input_local_fidelity` function.
             None, None, None, None, None, None, None)
     assert str(exin.value) == datarow_features_error
 
-    def predict(x): return np.ones(x.shape[0])
-    def predict_invalid(x_1, x_2): pass
-    def predict_proba(x): return np.ones((x.shape[0], 3))
-    def predict_proba_invalid(): pass
+    def predict(x):
+        return np.ones(x.shape[0])
+
+    def predict_invalid(x_1, x_2):
+        pass  # pragma: no cover
+
+    def predict_proba(x):
+        return np.ones((x.shape[0], 3))
+
+    def predict_proba_invalid():
+        pass  # pragma: no cover
 
     with pytest.raises(TypeError) as exin:
         futs._validate_input_local_fidelity(
@@ -155,8 +159,11 @@ surrogate_evaluation._validate_input_local_fidelity` function.
             predict_proba, predict_proba_invalid, None, None, None, None, None)
     assert str(exin.value) == local_model_incompatible
 
-    def invalid_metric(x): pass
-    def metric(x_1, x_2): pass
+    def invalid_metric(x):
+        pass  # pragma: no cover
+
+    def metric(x_1, x_2):
+        pass  # pragma: no cover
 
     with pytest.raises(TypeError) as exin:
         futs._validate_input_local_fidelity(
@@ -194,7 +201,7 @@ surrogate_evaluation._validate_input_local_fidelity` function.
 
     with pytest.raises(TypeError) as exin:
         futs._validate_input_local_fidelity(
-            NUMERICAL_NP_ARRAY, NUMERICAL_NP_ARRAY[0],  predict_proba, predict,
+            NUMERICAL_NP_ARRAY, NUMERICAL_NP_ARRAY[0], predict_proba, predict,
             metric, None, np.array([10, 11]), None, None)
     assert str(exin.value) == features_type_error
     with pytest.raises(IndexError) as exin:

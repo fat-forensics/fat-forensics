@@ -21,12 +21,23 @@ def test_get_required_parameters_number():
         fuv.get_required_parameters_number('callable')
     assert str(error.value) == type_error
 
-    def function1(): pass
-    def function2(x): pass
-    def function3(x, y): pass
-    def function4(x, y=3): pass
-    def function5(x=3, y=3): pass
-    def function6(x, **kwargs): pass
+    def function1():
+        pass  # pragma: no cover
+
+    def function2(x):
+        pass  # pragma: no cover
+
+    def function3(x, y):
+        pass  # pragma: no cover
+
+    def function4(x, y=3):
+        pass  # pragma: no cover
+
+    def function5(x=3, y=3):
+        pass  # pragma: no cover
+
+    def function6(x, **kwargs):
+        pass  # pragma: no cover
 
     assert fuv.get_required_parameters_number(function1) == 0
     assert fuv.get_required_parameters_number(function2) == 1
@@ -43,8 +54,8 @@ def test_check_object_functionality():
     methods_key_type_error = ('All of the keys in the methods dictionary must '
                               "be strings. The '{}' key in not a string.")
     methods_value_type_error = ('All of the values in the methods dictionary '
-                                "must be integers. The '{}' value for the '{}' "
-                                'key in not a string.')
+                                "must be integers. The '{}' value for the "
+                                "'{}' key in not a string.")
     methods_value_value_error = ('All of the values in the methods dictionary '
                                  "must be non-negative integers. The '{}' "
                                  "value for '{}' key does not comply.")
@@ -69,50 +80,58 @@ def test_check_object_functionality():
     assert str(exin.value) == methods_empty_value_error
     #
     with pytest.raises(TypeError) as exin:
-        fuv.check_object_functionality('object', {'1':1, 2:'2', '3':3}, 574)
+        fuv.check_object_functionality('object', {'1': 1, 2: '2', '3': 3}, 574)
     assert str(exin.value) == methods_key_type_error.format(2)
     #
     with pytest.raises(TypeError) as exin:
-        fuv.check_object_functionality('object', {'1':'1', 2:'2', '3':3}, 574)
+        fuv.check_object_functionality(
+            'object', {'1': '1', 2: '2', '3': 3}, 574)
     assert str(exin.value) == methods_value_type_error.format(1, 1)
     #
     with pytest.raises(ValueError) as exin:
-        fuv.check_object_functionality('object', {'1':1, '2':-2, '3':3}, 574)
+        fuv.check_object_functionality(
+            'object', {'1': 1, '2': -2, '3': 3}, 574)
     assert str(exin.value) == methods_value_value_error.format(-2, 2)
     #
     #
     with pytest.raises(TypeError) as exin:
-        fuv.check_object_functionality('object', {'1':1, '2':2, '3':3}, 574)
+        fuv.check_object_functionality('object', {'1': 1, '2': 2, '3': 3}, 574)
     assert str(exin.value) == reference_type_error
 
-    class A(object): pass
+    class A(object):
+        pass
+
     class B(A):
-        def zero(self): pass
-        def one(self, a, b=0): pass
+        def zero(self):
+            pass  # pragma: no cover
+
+        def one(self, a, b=0):
+            pass  # pragma: no cover
+
     class C(B):
-        def zero(self, a=0, b=1): pass
+        def zero(self, a=0, b=1):
+            pass  # pragma: no cover
     #
-    a = A()
     b = B()
     c = C()
 
     is_functional, msg = fuv.check_object_functionality(
-        b, {'one':1})
+        b, {'one': 1})
     assert is_functional
     assert msg == ''
 
     is_functional, msg = fuv.check_object_functionality(
-        B, {'one':1, 'zero':0}, None)
+        B, {'one': 1, 'zero': 0}, None)
     assert is_functional
     assert msg == ''
 
     is_functional, msg = fuv.check_object_functionality(
-        c, {'one':1, 'zero':0, 'two':2}, 'test object')
+        c, {'one': 1, 'zero': 0, 'two': 2}, 'test object')
     assert not is_functional
     assert msg == missing_callable.format('*C* (test object) class', 'two')
 
     is_functional, msg = fuv.check_object_functionality(
-        C, {'one':1, 'zero':2, 'two':2}, None)
+        C, {'one': 1, 'zero': 2, 'two': 2}, None)
     assert not is_functional
     assert missing_callable.format('*C* class', 'two') in msg
     assert missing_param.format('zero', '*C* class', 0, 2) in msg

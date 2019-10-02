@@ -32,7 +32,7 @@ endif
 	test-doc test-notebooks test code-coverage test-with-code-coverage \
 	deploy-code-coverage linting-pylint linting-flake8 linting-yapf check-types \
 	build readme-gen readme-preview validate-travis validate-sphinx-conf \
-	find-flags clean doc-clean
+	find-flags clean doc-clean test-docstrings
 
 all: \
 	test-with-code-coverage \
@@ -146,6 +146,15 @@ test-doc:
 		--ignore=doc/sphinx_gallery_auto/ \
 		-k 'not test_ and not Test' \
 		doc/ \
+		fatf/
+
+test-docstrings:
+	PYTHONPATH=./ PYTEST_IN_PROGRESS='true' pytest \
+		-W default::UserWarning \
+		--doctest-modules \
+		--ignore=doc/_build/ \
+		--ignore=doc/sphinx_gallery_auto/ \
+		-k 'not test_ and not Test' \
 		fatf/
 
 test-notebooks:

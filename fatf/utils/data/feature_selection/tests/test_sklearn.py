@@ -108,9 +108,10 @@ def test_validate_input_lasso_path():
                            'data set.')
     weights_type_msg = 'The weights array must be purely numerical.'
     #
-    features_number_type_msg = 'The features_number parameter must be an integer.'
-    features_number_value_msg = ('The features_number parameter must be a positive '
-                                 'integer.')
+    features_number_type_msg = ('The features_number parameter must be an '
+                                'integer.')
+    features_number_value_msg = ('The features_number parameter must be a '
+                                 'positive integer.')
     #
     features_percentage_type_msg = ('The feature_percentage parameter must be '
                                     'an integer.')

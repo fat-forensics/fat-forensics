@@ -8,10 +8,9 @@ objects implemented across the FAT-Forensics package.
 #         Alex Hepburn <ah13558@bristol.ac.uk>
 # License: new BSD
 
-from typing import Any, Callable, Dict, Optional, Tuple, Union
+from typing import Callable, Dict, Optional, Tuple, Union
 
 import inspect
-import warnings
 
 __all__ = ['get_required_parameters_number', 'check_object_functionality']
 
@@ -53,9 +52,9 @@ def get_required_parameters_number(callable_object: Callable) -> int:
 
 
 def check_object_functionality(
-    an_object: Union[object, type],
-    methods: Dict[str, int],
-    object_reference_name: Optional[str] = None) -> Tuple[bool, str]:
+        an_object: Union[object, type],
+        methods: Dict[str, int],
+        object_reference_name: Optional[str] = None) -> Tuple[bool, str]:
     """
     Checks if an object has specified methods with given number of parameters.
 
@@ -93,6 +92,7 @@ def check_object_functionality(
     message : string
         A message detailing the lacking functionality of ``an_object``.
     """
+    # pylint: disable=too-many-branches
     if isinstance(methods, dict):
         if methods:
             for key, value in methods.items():
@@ -126,7 +126,7 @@ def check_object_functionality(
         object_name = an_object.__class__.__name__
         param_correction = 0
     else:
-        object_name = an_object.__name__
+        object_name = an_object.__name__  # type: ignore
         # `self` is an extra parameter if the object is not instantiated
         param_correction = 1
 

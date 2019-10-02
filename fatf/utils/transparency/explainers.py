@@ -47,8 +47,8 @@ class Explainer(abc.ABC):
 
 
 def check_instance_explainer_functionality(
-    explainer_object: Union[object, type],
-    suppress_warning: bool = False) -> bool:
+        explainer_object: Union[object, type],
+        suppress_warning: bool = False) -> bool:
     """
     Checks whether an explainer object can explain a data point (instance).
 

@@ -17,7 +17,7 @@ NUMERICAL_NP_ARRAY = np.array([0.2, 0.1, 0.3, 0.5])
 CATEGORICAL_NP_ARRAY = np.array(['a', 'b', 'c'])
 MIXED_ARRAY = np.array(
     [(0.1, 'a', 0.4, 'a')],
-    dtype=[('a', 'i'), ('b', 'U1'), ('c', 'f'),('d', 'U2')])
+    dtype=[('a', 'i'), ('b', 'U1'), ('c', 'f'), ('d', 'U2')])
 
 
 def test_input_is_valid():
@@ -95,12 +95,23 @@ def test_check_kernel_functionality():
                  'exactly 1 required parameter. Try using optional '
                  'parameters if you require more functionality.')
 
-    def function1(): pass
-    def function2(x): pass
-    def function3(x, y): pass
-    def function4(x, y=3): pass
-    def function5(x=3, y=3): pass
-    def function6(x, **kwargs): pass
+    def function1():
+        pass  # pragma: no cover
+
+    def function2(x):
+        pass  # pragma: no cover
+
+    def function3(x, y):
+        pass  # pragma: no cover
+
+    def function4(x, y=3):
+        pass  # pragma: no cover
+
+    def function5(x=3, y=3):
+        pass  # pragma: no cover
+
+    def function6(x, **kwargs):
+        pass  # pragma: no cover
 
     with pytest.raises(TypeError) as exin:
         fatf_kernels.check_kernel_functionality('callable')

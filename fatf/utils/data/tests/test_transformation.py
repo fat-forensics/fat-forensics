@@ -9,8 +9,6 @@ import pytest
 
 import numpy as np
 
-import fatf
-
 import fatf.utils.data.transformation as fudt
 
 from fatf.exceptions import IncorrectShapeError

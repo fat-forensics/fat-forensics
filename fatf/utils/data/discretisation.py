@@ -6,7 +6,7 @@ discretisation approaches.
 #         Kacper Sokol <k.sokol@bristol.ac.uk>
 # License: new BSD
 
-from typing import List, Optional, Union
+from typing import Dict, List, Optional, Union
 
 import abc
 import warnings
@@ -24,9 +24,9 @@ Index = Union[int, str]
 
 
 def _validate_input_discretiser(
-    dataset: np.ndarray,
-    categorical_indices: Optional[List[Index]] = None,
-    feature_names: Optional[List[str]] = None) -> bool:
+        dataset: np.ndarray,
+        categorical_indices: Optional[List[Index]] = None,
+        feature_names: Optional[List[str]] = None) -> bool:
     """
     Validates the input parameters of an arbitrary discretiser class.
 
@@ -60,6 +60,7 @@ def _validate_input_discretiser(
     is_valid : boolean
         ``True`` if the input is valid, ``False`` otherwise.
     """
+    # pylint: disable=too-many-branches
     is_valid = False
 
     if not fuav.is_2d_array(dataset):
@@ -205,6 +206,7 @@ class Discretiser(abc.ABC):
         arrays holding bin boundaries (with the upper threshold inclusive) for
         each feature.
     """
+    # pylint: disable=too-few-public-methods,too-many-instance-attributes
 
     def __init__(self,
                  dataset: np.ndarray,
@@ -214,8 +216,8 @@ class Discretiser(abc.ABC):
         Constructs a ``Discretiser`` abstract class.
         """
         # Must be overwritten in children classes
-        self.feature_value_names = {}
-        self.feature_bin_boundaries = {}
+        self.feature_value_names = {}  # type: Dict[Index, Dict[int, str]]
+        self.feature_bin_boundaries = {}  # type: Dict[Index, np.ndarray]
 
         assert _validate_input_discretiser(
             dataset,
@@ -227,13 +229,13 @@ class Discretiser(abc.ABC):
         self.dataset_dtype = dataset.dtype
 
         # Sort out column indices
-        indices = fuat.indices_by_type(dataset)
-        num_indices = set(indices[0])
-        cat_indices = set(indices[1])
+        indices_num, indices_cat = fuat.indices_by_type(dataset)
+        num_indices = set(indices_num)
+        cat_indices = set(indices_cat)
         all_indices = num_indices.union(cat_indices)
 
         if categorical_indices is None:
-            categorical_indices = cat_indices
+            categorical_indices = cat_indices  # type: ignore
             numerical_indices = num_indices
         else:
             if cat_indices.difference(categorical_indices):
@@ -245,9 +247,11 @@ class Discretiser(abc.ABC):
                        '(in addition to the ones selected with the '
                        'categorical_indices parameter).')
                 warnings.warn(msg, UserWarning)
-                categorical_indices = cat_indices.union(categorical_indices)
+                categorical_indices = cat_indices.union(  # type: ignore
+                    categorical_indices)
             numerical_indices = all_indices.difference(categorical_indices)
-        self.categorical_indices = sorted(list(categorical_indices))
+        self.categorical_indices = sorted(list(  # type: ignore
+            categorical_indices))
         self.numerical_indices = sorted(list(numerical_indices))
 
         self.features_number = len(all_indices)
@@ -258,13 +262,13 @@ class Discretiser(abc.ABC):
             indices = range(self.features_number)
 
         if feature_names is None:
-            feature_names_map = {x:str(x) for x in indices}
+            feature_names_map = {x: str(x) for x in indices}
         else:
             feature_names_map = dict(zip(indices, feature_names))
         self.feature_names_map = feature_names_map
 
     def _validate_input_discretise(
-        self, dataset: Union[np.ndarray, np.void]) -> bool:
+            self, dataset: Union[np.ndarray, np.void]) -> bool:
         """
         Validates the input parameters of the ``discretise`` method.
 
@@ -451,6 +455,7 @@ class QuartileDiscretiser(Discretiser):
         The dtype of the discretised arrays outputted by the ``discrete``
         method.
     """
+    # pylint: disable=too-few-public-methods
 
     def __init__(self,
                  dataset: np.ndarray,
@@ -466,7 +471,7 @@ class QuartileDiscretiser(Discretiser):
 
         # Prepare dtype of the discretised array
         if self.is_structured:
-            self.discretised_dtype = []
+            self.discretised_dtype = []  # type: List[np.dtype]
             for feature in self.dataset_dtype.names:
                 if feature in self.numerical_indices:
                     self.discretised_dtype.append((feature, np.int8))
@@ -496,7 +501,7 @@ class QuartileDiscretiser(Discretiser):
             }
             for i in range(1, qts.shape[0]):
                 bin_name = '{:.2f} < *{}* <= {:.2f}'.format(
-                    qts[i-1], feature_name, qts[i])
+                    qts[i - 1], feature_name, qts[i])
                 self.feature_value_names[feature][i] = bin_name
 
     def discretise(self, dataset: Union[np.ndarray, np.void]

@@ -6,7 +6,7 @@ augmentation function for 1-dimensional numpy array-like objects.
 #         Kacper Sokol <k.sokol@bristol.ac.uk>
 # License: new BSD
 
-from typing import Union
+from typing import Tuple, Union
 
 import numpy as np
 

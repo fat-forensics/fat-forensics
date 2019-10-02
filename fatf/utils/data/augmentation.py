@@ -8,14 +8,15 @@ The :mod:`fatf.utils.data.augmentation` module implements data set augmenters.
 
 # pylint: disable=too-many-lines
 
+from numbers import Number
+from typing import Callable, List, Optional, Set, Tuple, Union
+
 import abc
 import logging
-import scipy.stats
-import scipy.spatial
 import warnings
 
-from numbers import Number
-from typing import Callable, List, Optional, Tuple, Union
+import scipy.stats
+import scipy.spatial
 
 import numpy as np
 
@@ -24,7 +25,6 @@ from fatf.exceptions import IncompatibleModelError, IncorrectShapeError
 import fatf.utils.array.tools as fuat
 import fatf.utils.array.validation as fuav
 import fatf.utils.distances as fud
-import fatf.utils.models.validation as fumv
 import fatf.utils.validation as fuv
 
 __all__ = ['NormalSampling',
@@ -516,7 +516,8 @@ class TruncatedNormalSampling(Augmentation):
     this class please see the documentation of its parent class:
     :class:`fatf.utils.data.augmentation.Augmentation`.
 
-    .. _`truncated normal distribution`: https://en.wikipedia.org/wiki/Truncated_normal_distribution
+    .. _`truncated normal distribution`: https://en.wikipedia.org/wiki/
+       Truncated_normal_distribution
 
     Attributes
     ----------
@@ -532,6 +533,7 @@ Tuple[numpy.ndarray, numpy.ndarray]]
         for that column and the other one with their normalised (summing up to
         1) frequencies.
     """
+    # pylint: disable=too-few-public-methods
 
     def __init__(self,
                  dataset: np.ndarray,
@@ -540,6 +542,7 @@ Tuple[numpy.ndarray, numpy.ndarray]]
         """
         Constructs a ``TruncatedNormalSampling`` data augmentation class.
         """
+        # pylint: disable=too-many-locals
         super().__init__(
             dataset=dataset,
             categorical_indices=categorical_indices,
@@ -1202,6 +1205,7 @@ def _validate_input_normalclassdiscovery(
     is_valid : boolean
         ``True`` if the input is valid, ``False`` otherwise.
     """
+    # pylint: disable=too-many-branches
     is_valid = False
 
     if callable(predictive_function):
@@ -1394,6 +1398,7 @@ Tuple[numpy.ndarray, numpy.ndarray]]
         for that column and the other one with their normalised (summing up to
         1) frequencies.
     """
+    # pylint: disable=too-few-public-methods
 
     def __init__(self,
                  dataset: np.ndarray,
@@ -1407,6 +1412,7 @@ Tuple[numpy.ndarray, numpy.ndarray]]
         """
         Constructs a ``NormalClassDiscovery`` data augmentation class.
         """
+        # pylint: disable=too-many-arguments,too-many-locals
         super().__init__(
             dataset,
             categorical_indices=categorical_indices,
@@ -1447,8 +1453,7 @@ Tuple[numpy.ndarray, numpy.ndarray]]
                     classes_number = unique_predictions.shape[0]
                 logger.info('The number of classes was not specified by the '
                             'user. Based on *classification* of the input '
-                            'dataset {} classes were found.'.format(
-                                classes_number))
+                            'dataset %d classes were found.', classes_number)
         self.classes_number = classes_number
 
         self.standard_deviation_init = standard_deviation_init
@@ -1464,7 +1469,7 @@ Tuple[numpy.ndarray, numpy.ndarray]]
                                'classes) for this sampling implementation. '
                                '(Please see the documentation of the '
                                'NormalClassDiscovery augmenter for more '
-                               'information.' )
+                               'information.')
 
         # Get sampling parameters for categorical features.
         categorical_sampling_values = dict()
@@ -1525,6 +1530,8 @@ Tuple[numpy.ndarray, numpy.ndarray]]
             A numpy array of [``samples_number``, number of features] shape
             holding the sampled data.
         """
+        # pylint: disable=arguments-differ,too-many-locals,too-many-branches
+        # pylint: disable=too-many-statements
         assert self._validate_sample_input(data_row, samples_number)
         if isinstance(max_iter, int):
             if max_iter <= 0:
@@ -1552,10 +1559,8 @@ Tuple[numpy.ndarray, numpy.ndarray]]
         # and get the output array shape
         if self.is_structured:
             row = data_row.reshape(-1)
-            shape = (samples_number, )  # type: Tuple[int, ...]
         else:
             row = data_row.reshape(1, -1)
-            shape = (samples_number, self.features_number)
 
         row_labels = self.predictive_function(row)
         assert row_labels.shape[0] == 1, 'Only 1 data point predicted.'
@@ -1580,19 +1585,19 @@ Tuple[numpy.ndarray, numpy.ndarray]]
         samples_list = []
         normal_dist_counter = 0
         # Labels seen in the correct proportion
-        seen_labels = set()
+        seen_labels = set()  # type: Set[Union[int, str]]
         #
         current_std = self.standard_deviation_init
         current_data_row = data_row
         current_label = row_label
         if self.is_structured:
             iter_shape = (samples_per_normal[normal_dist_counter],
-                         )  # type: Tuple[int, ...]
+                          )  # type: Tuple[int, ...]
         else:
             iter_shape = (samples_per_normal[normal_dist_counter],
                           self.features_number)
 
-        for iterations in range(max_iter):
+        for _ in range(max_iter):
             # Create an array to hold the samples.
             samples_iter = np.zeros(iter_shape, dtype=self.sample_dtype)
 
@@ -1661,8 +1666,7 @@ Tuple[numpy.ndarray, numpy.ndarray]]
                 normal_dist_counter += 1
                 # Update iter_shape
                 if self.is_structured:
-                    iter_shape = (samples_per_normal[normal_dist_counter],
-                                 )  # type: Tuple[int, ...]
+                    iter_shape = (samples_per_normal[normal_dist_counter], )
                 else:
                     iter_shape = (samples_per_normal[normal_dist_counter],
                                   self.features_number)
@@ -1818,6 +1822,7 @@ class DecisionBoundarySphere(Augmentation):
         will be incremented (in every iteration of the sampling procedure) if
         no decision boundary has been discovered.
     """
+    # pylint: disable=too-few-public-methods
 
     def __init__(self,
                  dataset: np.ndarray,
@@ -1829,6 +1834,7 @@ class DecisionBoundarySphere(Augmentation):
         """
         Constructs a ``DecisionBoundarySphere`` data augmentation class.
         """
+        # pylint: disable=too-many-arguments
         super().__init__(
             dataset=dataset,
             categorical_indices=categorical_indices,
@@ -1851,7 +1857,7 @@ class DecisionBoundarySphere(Augmentation):
                 or fuav.is_1d_array(predictions)), 'Can only be 1-D or 2-D.'
         self.is_probabilistic = fuav.is_2d_array(predictions)
 
-    def _validate_sample_input(self,
+    def _validate_sample_input(self,  # type: ignore
                                data_row: Union[np.ndarray, np.void],
                                sphere_radius: float,
                                samples_number: int,
@@ -1870,6 +1876,7 @@ class DecisionBoundarySphere(Augmentation):
         is_valid : boolean
             ``True`` if the input is valid, ``False`` otherwise.
         """
+        # pylint: disable=arguments-differ,too-many-arguments
         is_valid = False
         assert super()._validate_sample_input(data_row, samples_number)
 
@@ -1882,9 +1889,8 @@ class DecisionBoundarySphere(Augmentation):
 
         if isinstance(discover_samples_number, int):
             if discover_samples_number <= 0:
-                    raise ValueError('The discover_samples_number parameter '
-                                     'must be a positive integer (greater '
-                                     'than 0).')
+                raise ValueError('The discover_samples_number parameter must '
+                                 'be a positive integer (greater than 0).')
         else:
             raise TypeError('The discover_samples_number parameter must be an '
                             'integer.')
@@ -1899,7 +1905,7 @@ class DecisionBoundarySphere(Augmentation):
         is_valid = True
         return is_valid
 
-    def sample(self,
+    def sample(self,  # type: ignore
                data_row: Union[np.ndarray, np.void],
                sphere_radius: float = 0.05,
                samples_number: int = 50,
@@ -1954,6 +1960,8 @@ class DecisionBoundarySphere(Augmentation):
             A numpy array of shape [``samples_number``, number of features]
             that holds the sampled data.
         """
+        # pylint: disable=arguments-differ,too-many-arguments
+        # pylint: disable=too-many-locals,too-many-branches,too-many-statements
         assert self._validate_sample_input(
             data_row,
             sphere_radius,
@@ -1986,12 +1994,12 @@ class DecisionBoundarySphere(Augmentation):
             assert fuav.is_1d_array(row_labels), 'Classifier outputs 1-D.'
             row_label = row_labels[0]
 
-        for iterations in range(max_iter):
+        for _ in range(max_iter):
             discover_samples = np.zeros(shape_ds, dtype=self.sample_dtype)
 
             uniform = np.random.uniform(
                 0, current_radius, size=(discover_samples_number, 1))
-            normal =  np.random.normal(
+            normal = np.random.normal(
                 0, 1, (discover_samples_number, self.features_number))
             normal_norm = np.linalg.norm(normal, ord=2, axis=1)
             normal_norm = np.expand_dims(normal_norm, 1)
@@ -2019,7 +2027,7 @@ class DecisionBoundarySphere(Augmentation):
                         row, unclassified_samples)
                 else:
                     distances = scipy.spatial.distance.cdist(
-                         row, unclassified_samples, metric='euclidean')
+                        row, unclassified_samples, metric='euclidean')
                 boundary_sample = unclassified_samples[np.argmin(distances)]
                 break
             else:
@@ -2084,6 +2092,7 @@ class LocalSphere(Augmentation):
         Some of the features in the data set are categorical -- this feature
         type is not supported at present.
     """
+    # pylint: disable=too-few-public-methods
 
     def __init__(self,
                  dataset: np.ndarray,
@@ -2102,7 +2111,7 @@ class LocalSphere(Augmentation):
                                       'currently support data sets with '
                                       'categorical features.')
 
-    def sample(self,
+    def sample(self,  # type: ignore
                data_row: Union[np.ndarray, np.void],
                fidelity_radius_percentage: int = 5,
                samples_number: int = 50) -> np.ndarray:
@@ -2140,6 +2149,7 @@ class LocalSphere(Augmentation):
             A numpy array of shape [``samples_number``, number of features]
             holding the sampled data.
         """
+        # pylint: disable=arguments-differ
         assert self._validate_sample_input(data_row,
                                            samples_number), 'Invalid input.'
         if data_row is None:
@@ -2163,7 +2173,7 @@ class LocalSphere(Augmentation):
         else:
             shape = (samples_number, self.features_number)
             distances = scipy.spatial.distance.cdist(
-                 np.expand_dims(data_row, 0), self.dataset, metric='euclidean')
+                np.expand_dims(data_row, 0), self.dataset, metric='euclidean')
         assert np.all(distances >= 0), 'Distances cannot be negative.'
 
         # Get max radius
@@ -2172,7 +2182,7 @@ class LocalSphere(Augmentation):
         # Get radii
         uniform = np.random.uniform(0, radius, size=(samples_number, 1))
         # Get random directions for the radii
-        normal =  np.random.normal(
+        normal = np.random.normal(
             0, 1, (samples_number, self.features_number))
         # Get scaling of the random directions to preserve the radii
         normal_norm = np.linalg.norm(normal, ord=2, axis=1)

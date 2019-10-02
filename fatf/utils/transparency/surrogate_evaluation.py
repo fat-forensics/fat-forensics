@@ -17,7 +17,6 @@ from fatf.exceptions import IncompatibleModelError, IncorrectShapeError
 import fatf.utils.array.tools as fuat
 import fatf.utils.array.validation as fuav
 import fatf.utils.data.augmentation as fuda
-import fatf.utils.models.validation as fumv
 import fatf.utils.validation as fuv
 
 __all__ = ['local_fidelity_score']
@@ -27,15 +26,15 @@ PredictiveFunctionType = Callable[[np.ndarray], np.ndarray]
 
 
 def _validate_input_local_fidelity(
-    dataset: np.ndarray,
-    data_row: Union[np.ndarray, np.void],
-    global_predictive_function: PredictiveFunctionType,
-    local_predictive_function: PredictiveFunctionType,
-    metric_function: Callable[[np.ndarray, np.ndarray], float],
-    explained_class_index: Union[int, None],
-    explained_feature_indices: Union[List[IndexType], None],
-    fidelity_radius_percentage: int,
-    samples_number: int) -> bool:
+        dataset: np.ndarray,
+        data_row: Union[np.ndarray, np.void],
+        global_predictive_function: PredictiveFunctionType,
+        local_predictive_function: PredictiveFunctionType,
+        metric_function: Callable[[np.ndarray, np.ndarray], float],
+        explained_class_index: Union[int, None],
+        explained_feature_indices: Union[List[IndexType], None],
+        fidelity_radius_percentage: int,
+        samples_number: int) -> bool:
     """
     Validates the input parameters for the ``local_fidelity_score`` function.
 
@@ -49,6 +48,7 @@ def _validate_input_local_fidelity(
     is_input_ok : boolean
         ``True`` if the input is valid, ``False`` otherwise.
     """
+    # pylint: disable=too-many-arguments,too-many-branches,too-many-statements
     is_input_ok = False
 
     if not fuav.is_2d_array(dataset):
@@ -197,17 +197,22 @@ def local_fidelity_score(
     The global and local predictive functions can be either: a probabilistic
     predictor, a (multi-class) classifier or a regressor.
 
-    +-------+----------------------------------------------------------------------------------+
-    |       | Global Model                                                                     |
-    +-------+-------------------+-------------------------+--------------------+---------------+
-    | Local |                   | **probabilistic**       | **classifier**     | **regressor** |
-    | Model +-------------------+-------------------------+--------------------+---------------+
-    |       | **probabilistic** | OK, e.g., KL-divergence | OK, e.g., log-loss | Not possible  |
-    |       +-------------------+-------------------------+--------------------+---------------+
-    |       | **classifier**    | OK (via thresholding)   | OK                 | Not possible  |
-    |       +-------------------+-------------------------+--------------------+---------------+
-    |       | **regressor**     | OK for a single class   | Not possible       | OK            |
-    +-------+-------------------+-------------------------+--------------------+---------------+
+    +-------+---------------------------------------------------------------+
+    |       | Global Model                                                  |
+    +-------+--------+-------------------------+--------------------+-------+
+    | Local |        | |prob|                  | |clf|              | |reg| |
+    | Model +--------+-------------------------+--------------------+-------+
+    |       | |prob| | OK, e.g., KL-divergence | OK, e.g., log-loss | |imp| |
+    |       +--------+-------------------------+--------------------+-------+
+    |       | |clf|  | OK (via thresholding)   | OK                 | |imp| |
+    |       +--------+-------------------------+--------------------+-------+
+    |       | |reg|  | OK for a single class   | |imp|              | OK    |
+    +-------+--------+-------------------------+--------------------+-------+
+
+    .. |prob| replace:: **probabilistic**
+    .. |clf| replace:: **classifier**
+    .. |reg| replace:: **regressor**
+    .. |imp| replace:: Not possible
 
     If the ``global_predictive_function`` outputs **probabilities**, the
     following should be considered for different types of a local model:
@@ -305,8 +310,10 @@ def local_fidelity_score(
     *Examples* section down below. This local fidelity evaluation is inspired
     by the local fidelity method introduced in [LAUGEL2018SPHERES]_.
 
-    .. _`Kullback–Leibler divergence`: https://en.wikipedia.org/wiki/Kullback–Leibler_divergence
-    .. _log-loss: https://scikit-learn.org/stable/modules/model_evaluation.html#log-loss
+    .. _`Kullback–Leibler divergence`: https://en.wikipedia.org/wiki/
+       Kullback–Leibler_divergence
+    .. _log-loss: https://scikit-learn.org/stable/modules/
+       model_evaluation.html#log-loss
     .. [LAUGEL2018SPHERES] Laugel, T., Renard, X., Lesot, M. J., Marsala,
        C., & Detyniecki, M. (2018). Defining locality for surrogates in
        post-hoc interpretablity. Workshop on Human Interpretability for
@@ -495,6 +502,7 @@ def local_fidelity_score(
         function predictions calculated using the ``metric_function`` on the
         sampled data.
     """
+    # pylint: disable=too-many-arguments
     assert _validate_input_local_fidelity(
         dataset,
         data_row,

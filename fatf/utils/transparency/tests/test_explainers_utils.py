@@ -54,25 +54,38 @@ check_instance_explainer_functionality` function.
         'Every explainer object should inherit from fatf.utils.transparency.'
         'explainers.Explainer abstract class.')
 
-    class ClassPlain(object): pass
+    class ClassPlain(object):
+        pass
     class_plain = ClassPlain()
+
     class ClassInit(fute.Explainer):
-        def __init__(self): pass
+        def __init__(self):
+            pass
     class_init = ClassInit()
+
     class ClassExplainer1(object):
-        def explain_instance(self): pass
+        def explain_instance(self):
+            pass  # pragma: no cover
     class_explainer_1 = ClassExplainer1()
+
     class ClassExplainer2(fute.Explainer):
-        def explain_instance(self, x, y): pass
+        def explain_instance(self, x, y):
+            pass  # pragma: no cover
     class_explainer_2 = ClassExplainer2()
+
     class ClassExplainer3(object):
-        def explain_instance(self, x): pass
+        def explain_instance(self, x):
+            pass  # pragma: no cover
     class_explainer_3 = ClassExplainer3()
+
     class ClassExplainer4(fute.Explainer):
-        def explain_instance(self, x, y=3): pass
+        def explain_instance(self, x, y=3):
+            pass  # pragma: no cover
     class_explainer_4 = ClassExplainer4()
+
     class ClassExplainer5(object):
-        def explain_instance(self, x, y=3, z=3): pass
+        def explain_instance(self, x, y=3, z=3):
+            pass  # pragma: no cover
     class_explainer_5 = ClassExplainer5()
 
     with pytest.raises(TypeError) as exinf:

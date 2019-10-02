@@ -1913,12 +1913,23 @@ def test_check_distance_functionality():
                  'exactly 2 required parameters. Try using optional '
                  'parameters if you require more functionality.')
 
-    def function1(): pass
-    def function2(x): pass
-    def function3(x, y): pass
-    def function4(x, y, z=3): pass
-    def function5(x=3, y=3): pass
-    def function6(x, y, **kwargs): pass
+    def function1():
+        pass  # pragma: no cover
+
+    def function2(x):
+        pass  # pragma: no cover
+
+    def function3(x, y):
+        pass  # pragma: no cover
+
+    def function4(x, y, z=3):
+        pass  # pragma: no cover
+
+    def function5(x=3, y=3):
+        pass  # pragma: no cover
+
+    def function6(x, y, **kwargs):
+        pass  # pragma: no cover
 
     with pytest.raises(TypeError) as exin:
         fud.check_distance_functionality('callable')

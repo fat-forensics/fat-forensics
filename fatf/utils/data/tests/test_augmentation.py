@@ -1032,39 +1032,39 @@ class TestMixup(object):
 
 
 def get_truncated_mean_std(minimum, maximum, original_mean, original_std):
-        """
-        Computes the theoretical mean and standard deviation of a truncated
-        normal distribution from its initialisation parameters: the original
-        normal mean and standard deviation, and the minimum and maximum within
-        which values are truncated.
+    """
+    Computes the theoretical mean and standard deviation of a truncated
+    normal distribution from its initialisation parameters: the original
+    normal mean and standard deviation, and the minimum and maximum within
+    which values are truncated.
 
-        Equations for calculating these -- implemented by this function -- can
-        be found here_.
+    Equations for calculating these -- implemented by this function -- can
+    be found here_.
 
-        .. _here: https://en.wikipedia.org/wiki/Truncated_normal_distribution
-        """
-        def cdf(epsilon):
-            return (1 / 2) * (1 + scipy.special.erf(epsilon / np.sqrt(2)))
+    .. _here: https://en.wikipedia.org/wiki/Truncated_normal_distribution
+    """
+    def cdf(epsilon):
+        return (1 / 2) * (1 + scipy.special.erf(epsilon / np.sqrt(2)))
 
-        def norm(episilon):
-            return 1 / np.sqrt(2 * np.pi) * np.exp(-1 / 2 * episilon**2)
+    def norm(episilon):
+        return 1 / np.sqrt(2 * np.pi) * np.exp(-1 / 2 * episilon**2)
 
-        alpha = (minimum - original_mean) / original_std
-        beta = (maximum - original_mean) / original_std
-        z_phi = cdf(beta) - cdf(alpha)
+    alpha = (minimum - original_mean) / original_std
+    beta = (maximum - original_mean) / original_std
+    z_phi = cdf(beta) - cdf(alpha)
 
-        n_ab = norm(alpha) - norm(beta)
+    n_ab = norm(alpha) - norm(beta)
 
-        computed_mean = (
-            original_mean + (n_ab / z_phi) * original_std)
-        computed_var = (
-            original_std**2 *
-            (1 + (alpha * norm(alpha) - beta * norm(beta)) / z_phi
-             - (n_ab / z_phi)**2)
-        )
-        computed_std = np.sqrt(computed_var)
+    computed_mean = (
+        original_mean + (n_ab / z_phi) * original_std)
+    computed_var = (
+        original_std**2
+        * (1 + (alpha * norm(alpha) - beta * norm(beta)) / z_phi
+           - (n_ab / z_phi)**2)
+    )
+    computed_std = np.sqrt(computed_var)
 
-        return computed_mean, computed_std
+    return computed_mean, computed_std
 
 
 class TestTruncatedNormalSampling(object):
@@ -1166,7 +1166,7 @@ class TestTruncatedNormalSampling(object):
             [(0, 0.243, 0.048, 0.697),
              (1, 0.066, 0.591, 0.842),
              (1, 0.728, 0.214, 0.418)],
-             dtype=[('a', 'i'), ('b', 'f'), ('c', 'f'), ('d', 'f')])
+            dtype=[('a', 'i'), ('b', 'f'), ('c', 'f'), ('d', 'f')])
         categorical_np_results = np.array([
             ['a', 'f', 'c'],
             ['a', 'f', 'c'],
@@ -1175,7 +1175,7 @@ class TestTruncatedNormalSampling(object):
             [('a', 'b', 'g'),
              ('a', 'f', 'c'),
              ('a', 'f', 'c')],
-             dtype=[('a', 'U1'), ('b', 'U1'), ('c', 'U1')])
+            dtype=[('a', 'U1'), ('b', 'U1'), ('c', 'U1')])
         mixed_results = np.array(
             [(0.668, 'a', 0.522, 'bb'),
              (0.195, 'c', 0.075, 'a'),
@@ -1201,7 +1201,7 @@ class TestTruncatedNormalSampling(object):
         mean = mixed_numerical_values.mean(axis=0)
 
         nt_mixed_results_mean, nt_mixed_results_std = get_truncated_mean_std(
-                min_, max_, mixed_numerical_values[0], std)
+            min_, max_, mixed_numerical_values[0], std)
         nt_mixed_results_data = get_truncated_mean_std(min_, max_, mean, std)
         nt_mixed_results_data_mean = nt_mixed_results_data[0]
         nt_mixed_results_data_std = nt_mixed_results_data[1]
@@ -1495,7 +1495,9 @@ def test_validate_input_normalclassdiscovery():
                                           'parameter must be a positive '
                                           'number (greater than 0).')
 
-    def invalid_predict_proba(self, x, y): pass
+    def invalid_predict_proba(self, x, y):
+        pass  # pragma: no cover
+
     model = fum.KNN(k=3)
 
     with pytest.raises(TypeError) as exin:
@@ -1634,7 +1636,7 @@ class TestNormalClassDiscovery(object):
                               'classes) for this sampling implementation. '
                               '(Please see the documentation of the '
                               'NormalClassDiscovery augmenter for more '
-                              'information.' )
+                              'information.')
 
         # Test class inheritance
         assert (self.numerical_np_0_augmentor.__class__.__bases__[0].__name__
@@ -1797,7 +1799,7 @@ class TestNormalClassDiscovery(object):
              (1, -0.728, 1.033, 1.372),
              (1, -1.509, -0.972, -0.833),
              (0, -0.943, -0.142, -3.236)],
-             dtype=[('a', 'i'), ('b', 'f'), ('c', 'f'), ('d', 'f')])
+            dtype=[('a', 'i'), ('b', 'f'), ('c', 'f'), ('d', 'f')])
 
         categorical_samples = np.array([
             ['a', 'b', 'g'],
@@ -1816,7 +1818,7 @@ class TestNormalClassDiscovery(object):
              ('b', 'b', 'c'),
              ('a', 'b', 'g'),
              ('a', 'f', 'g')],
-             dtype=CATEGORICAL_STRUCT_ARRAY.dtype)
+            dtype=CATEGORICAL_STRUCT_ARRAY.dtype)
 
         mixed_samples = np.array(
             [(0.690, 'a', -1.944, 'b'),
@@ -1849,7 +1851,7 @@ class TestNormalClassDiscovery(object):
              (0, 0.462, -0.683, 2.174),
              (2, 0.439, -1.637, 1.484),
              (1, 1.292, -1.461, 4.102)],
-             dtype=[('a', 'i'), ('b', 'f'), ('c', 'f'), ('d', 'f')])
+            dtype=[('a', 'i'), ('b', 'f'), ('c', 'f'), ('d', 'f')])
 
         categorical_samples_mean = np.array([
             ['b', 'f', 'c'],
@@ -1868,7 +1870,7 @@ class TestNormalClassDiscovery(object):
              ('a', 'b', 'c'),
              ('a', 'b', 'c'),
              ('a', 'f', 'c')],
-             dtype=CATEGORICAL_STRUCT_ARRAY.dtype)
+            dtype=CATEGORICAL_STRUCT_ARRAY.dtype)
 
         mixed_samples_mean = np.array(
             [(-1.250, 'c', 2.623, 'bb'),
@@ -2137,9 +2139,13 @@ def test_validate_input_decisionboundarysphere():
     increment_std_value = ('The radius_increment parameter is not a '
                            'positive number (greater than 0).')
 
+    def predict(x, y=None):
+        pass  # pragma: no cover
+
+    def invalid_predict(x, y):
+        pass  # pragma: no cover
+
     model = fum.KNN(k=3)
-    def predict(x, y=None): pass
-    def invalid_predict(x, y): pass
 
     with pytest.raises(TypeError) as exin:
         fuda._validate_input_decisionboundarysphere(None, None, None)
@@ -2199,7 +2205,10 @@ class TestDecisionBoundarySphere():
 
     def test_init(self):
         """
-        Tests :class:`fatf.utils.data.augmentation.DecisionBoundarySphere` class init
+        Tests ``DecisionBoundarySphere`` class initialisation.
+
+        Tests :class:`fatf.utils.data.augmentation.DecisionBoundarySphere`
+        class initialisation.
         """
         cat_err = ('The DecisionBoundarySphere augmenter does not currently '
                    'support data sets with categorical features.')
@@ -2484,7 +2493,6 @@ class TestLocalSphere(object):
         fatf.setup_random_seed()
 
         max_distance_dataset = 2.34
-        max_distance_mean = 1.47
 
         # Numerical non-structured
         samples = self.numerical_np_augmentor.sample(
@@ -2528,7 +2536,6 @@ class TestLocalSphere(object):
             np.expand_dims(NUMERICAL_STRUCT_ARRAY[0], 0),
             samples).max()
         assert np.isclose(max_dist, 0.2 * max_distance_dataset, atol=1e-1)
-        decision_boundary = [0, 0, 0.05, 0.6]
         for i in samples.dtype.names:
             assert np.isclose(samples[i].mean(),
                               NUMERICAL_STRUCT_ARRAY[0][i],
@@ -2558,7 +2565,6 @@ class TestLocalSphere(object):
             np.expand_dims(NUMERICAL_STRUCT_ARRAY[0], 0),
             samples).max()
         assert np.isclose(max_dist, 0.2 * max_distance_dataset, atol=1e-1)
-        decision_boundary = [0, 0, 0.05, 0.6]
         for i in samples.dtype.names:
             assert np.isclose(
                 samples[i].mean(), NUMERICAL_STRUCT_ARRAY[0][i], atol=0.1)

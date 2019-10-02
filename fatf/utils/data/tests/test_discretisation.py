@@ -241,8 +241,9 @@ _validate_input_discretise` method.
         assert categorical_struct_discretiser.feature_bin_boundaries == {}
 
         mixed_discretiser = self.BaseDiscretiser(MIXED_ARRAY)
-        assert (mixed_discretiser.dataset_dtype ==
-                np.dtype([('a', 'i'), ('b', 'U1'), ('c', 'f'), ('d', 'U2')]))
+        assert (mixed_discretiser.dataset_dtype
+                == np.dtype([('a', 'i'), ('b', 'U1'),
+                             ('c', 'f'), ('d', 'U2')]))
         assert mixed_discretiser.is_structured
         assert mixed_discretiser.features_number == 4
         assert mixed_discretiser.categorical_indices == ['b', 'd']
@@ -288,8 +289,6 @@ _validate_input_discretise` method.
         categorical_np_discretiser = self.BaseDiscretiser(CATEGORICAL_NP_ARRAY)
         numerical_struct_discretiser = self.BaseDiscretiser(
             NUMERICAL_STRUCT_ARRAY)
-        categorical_struct_discretiser = self.BaseDiscretiser(
-            CATEGORICAL_STRUCT_ARRAY, categorical_indices=['a', 'b', 'c'])
 
         # Data row shape
         with pytest.raises(IncorrectShapeError) as exin:
@@ -352,11 +351,11 @@ class TestQuartileDiscretiser(object):
     Tests :class:`fatf.utils.data.discretisation.QuartileDiscretiser` class.
     """
     numerical_np_discretiser = fudd.QuartileDiscretiser(
-            NUMERICAL_NP_ARRAY, [0])
+        NUMERICAL_NP_ARRAY, [0])
     numerical_np_discretiser_full = fudd.QuartileDiscretiser(
         NUMERICAL_NP_ARRAY[:, 1:], [])
     numerical_struct_discretiser = fudd.QuartileDiscretiser(
-            NUMERICAL_STRUCT_ARRAY, ['a'])
+        NUMERICAL_STRUCT_ARRAY, ['a'])
 
     categorical_np_discretiser = fudd.QuartileDiscretiser(
         CATEGORICAL_NP_ARRAY, [0, 1, 2])

@@ -28,6 +28,7 @@ import fatf.utils.testing.imports as futi
 
 from fatf.exceptions import IncorrectShapeError
 
+# yapf: disable
 ONE_D_ARRAY = np.array([0, 4, 3, 0])
 NUMERICAL_NP_ARRAY_TARGET = np.array([2, 0, 1, 1, 0, 2])
 NUMERICAL_NP_ARRAY = np.array([
@@ -52,6 +53,7 @@ CATEGORICAL_NP_ARRAY = np.array([
     ['b', 'f', 'c'],
     ['a', 'f', 'c'],
     ['a', 'b', 'g']])
+# yapf: enable
 
 
 def test_sklearn_import():
@@ -128,18 +130,19 @@ def test_validate_input_lasso_path():
     assert str(exin.value) == dataset_type_msg
     #
     with pytest.raises(TypeError) as exin:
-        fudfs._validate_input_lasso_path(
-            CATEGORICAL_NP_ARRAY, None, None, None, None)
+        fudfs._validate_input_lasso_path(CATEGORICAL_NP_ARRAY, None, None,
+                                         None, None)
     assert str(exin.value) == dataset_type_msg
 
     with pytest.raises(IncorrectShapeError) as exin:
-        fudfs._validate_input_lasso_path(
-            NUMERICAL_NP_ARRAY, NUMERICAL_NP_ARRAY, None, None, None)
+        fudfs._validate_input_lasso_path(NUMERICAL_NP_ARRAY,
+                                         NUMERICAL_NP_ARRAY, None, None, None)
     assert str(exin.value) == target_shape_msg
     #
     with pytest.raises(TypeError) as exin:
-        fudfs._validate_input_lasso_path(
-            NUMERICAL_NP_ARRAY, np.array(['1', 2, 3, 4]), None, None, None)
+        fudfs._validate_input_lasso_path(NUMERICAL_NP_ARRAY,
+                                         np.array(['1', 2, 3, 4]), None, None,
+                                         None)
     assert str(exin.value) == target_type_msg
     #
     with pytest.raises(IncorrectShapeError) as exin:
@@ -148,99 +151,66 @@ def test_validate_input_lasso_path():
     assert str(exin.value) == target_shape_2_msg
 
     with pytest.raises(IncorrectShapeError) as exin:
-        fudfs._validate_input_lasso_path(
-            NUMERICAL_NP_ARRAY,
-            NUMERICAL_NP_ARRAY_TARGET,
-            NUMERICAL_NP_ARRAY,
-            None,
-            None)
+        fudfs._validate_input_lasso_path(NUMERICAL_NP_ARRAY,
+                                         NUMERICAL_NP_ARRAY_TARGET,
+                                         NUMERICAL_NP_ARRAY, None, None)
     assert str(exin.value) == weights_shape_msg
     #
     with pytest.raises(TypeError) as exin:
         fudfs._validate_input_lasso_path(
-            NUMERICAL_NP_ARRAY,
-            NUMERICAL_NP_ARRAY_TARGET,
-            np.array([None, 'b', 3, 'c']),
-            None,
-            None)
+            NUMERICAL_NP_ARRAY, NUMERICAL_NP_ARRAY_TARGET,
+            np.array([None, 'b', 3, 'c']), None, None)
     assert str(exin.value) == weights_type_msg
     #
     with pytest.raises(IncorrectShapeError) as exin:
         fudfs._validate_input_lasso_path(
-            NUMERICAL_STRUCT_ARRAY,
-            NUMERICAL_NP_ARRAY_TARGET,
-            NUMERICAL_NP_ARRAY_TARGET[0:4],
-            None,
-            None)
+            NUMERICAL_STRUCT_ARRAY, NUMERICAL_NP_ARRAY_TARGET,
+            NUMERICAL_NP_ARRAY_TARGET[0:4], None, None)
     assert str(exin.value) == weights_shape_2_msg
 
     with pytest.raises(TypeError) as exin:
-        fudfs._validate_input_lasso_path(
-            NUMERICAL_NP_ARRAY,
-            NUMERICAL_NP_ARRAY_TARGET,
-            NUMERICAL_NP_ARRAY_TARGET,
-            'a',
-            None)
+        fudfs._validate_input_lasso_path(NUMERICAL_NP_ARRAY,
+                                         NUMERICAL_NP_ARRAY_TARGET,
+                                         NUMERICAL_NP_ARRAY_TARGET, 'a', None)
     assert str(exin.value) == features_number_type_msg
     #
     with pytest.raises(ValueError) as exin:
-        fudfs._validate_input_lasso_path(
-            NUMERICAL_NP_ARRAY,
-            NUMERICAL_NP_ARRAY_TARGET,
-            NUMERICAL_NP_ARRAY_TARGET,
-            0,
-            None)
+        fudfs._validate_input_lasso_path(NUMERICAL_NP_ARRAY,
+                                         NUMERICAL_NP_ARRAY_TARGET,
+                                         NUMERICAL_NP_ARRAY_TARGET, 0, None)
     assert str(exin.value) == features_number_value_msg
 
     with pytest.raises(TypeError) as exin:
-        fudfs._validate_input_lasso_path(
-            NUMERICAL_NP_ARRAY,
-            NUMERICAL_NP_ARRAY_TARGET,
-            NUMERICAL_NP_ARRAY_TARGET,
-            2,
-            None)
+        fudfs._validate_input_lasso_path(NUMERICAL_NP_ARRAY,
+                                         NUMERICAL_NP_ARRAY_TARGET,
+                                         NUMERICAL_NP_ARRAY_TARGET, 2, None)
     assert str(exin.value) == features_percentage_type_msg
     #
     with pytest.raises(TypeError) as exin:
-        fudfs._validate_input_lasso_path(
-            NUMERICAL_NP_ARRAY,
-            NUMERICAL_NP_ARRAY_TARGET,
-            NUMERICAL_NP_ARRAY_TARGET,
-            2,
-            5.5)
+        fudfs._validate_input_lasso_path(NUMERICAL_NP_ARRAY,
+                                         NUMERICAL_NP_ARRAY_TARGET,
+                                         NUMERICAL_NP_ARRAY_TARGET, 2, 5.5)
     assert str(exin.value) == features_percentage_type_msg
     #
     with pytest.raises(ValueError) as exin:
-        fudfs._validate_input_lasso_path(
-            NUMERICAL_NP_ARRAY,
-            NUMERICAL_NP_ARRAY_TARGET,
-            NUMERICAL_NP_ARRAY_TARGET,
-            2,
-            -1)
+        fudfs._validate_input_lasso_path(NUMERICAL_NP_ARRAY,
+                                         NUMERICAL_NP_ARRAY_TARGET,
+                                         NUMERICAL_NP_ARRAY_TARGET, 2, -1)
     assert str(exin.value) == features_percentage_value_msg
     #
     with pytest.raises(ValueError) as exin:
-        fudfs._validate_input_lasso_path(
-            NUMERICAL_NP_ARRAY,
-            NUMERICAL_NP_ARRAY_TARGET,
-            NUMERICAL_NP_ARRAY_TARGET,
-            2,
-            101)
+        fudfs._validate_input_lasso_path(NUMERICAL_NP_ARRAY,
+                                         NUMERICAL_NP_ARRAY_TARGET,
+                                         NUMERICAL_NP_ARRAY_TARGET, 2, 101)
     assert str(exin.value) == features_percentage_value_msg
 
     # All good
-    fudfs._validate_input_lasso_path(
-        NUMERICAL_NP_ARRAY,
-        NUMERICAL_NP_ARRAY_TARGET,
-        NUMERICAL_NP_ARRAY_TARGET,
-        2,
-        0)
-    fudfs._validate_input_lasso_path(
-        NUMERICAL_STRUCT_ARRAY,
-        NUMERICAL_NP_ARRAY_TARGET,
-        NUMERICAL_NP_ARRAY_TARGET,
-        3,
-        100)
+    fudfs._validate_input_lasso_path(NUMERICAL_NP_ARRAY,
+                                     NUMERICAL_NP_ARRAY_TARGET,
+                                     NUMERICAL_NP_ARRAY_TARGET, 2, 0)
+    fudfs._validate_input_lasso_path(NUMERICAL_STRUCT_ARRAY,
+                                     NUMERICAL_NP_ARRAY_TARGET,
+                                     NUMERICAL_NP_ARRAY_TARGET, 3, 100)
 
 
 def test_lasso_path(caplog):
@@ -271,8 +241,8 @@ def test_lasso_path(caplog):
     # Weights and no-weights
     weights = np.ones((NUMERICAL_NP_ARRAY.shape[0], ))
     # Classic array -- weights
-    features = fudfs.lasso_path(
-        NUMERICAL_NP_ARRAY, NUMERICAL_NP_ARRAY_TARGET, weights, 2)
+    features = fudfs.lasso_path(NUMERICAL_NP_ARRAY, NUMERICAL_NP_ARRAY_TARGET,
+                                weights, 2)
     assert np.array_equal(features, np.array([0, 1]))
     # Structured array -- no-weights
     features = fudfs.lasso_path(
@@ -280,13 +250,13 @@ def test_lasso_path(caplog):
     assert np.array_equal(features, np.array(['a', 'b']))
     #
     # Selecting exactly 4 features -- no need for Lasso
-    features = fudfs.lasso_path(
-        NUMERICAL_NP_ARRAY, NUMERICAL_NP_ARRAY_TARGET, weights, 4)
+    features = fudfs.lasso_path(NUMERICAL_NP_ARRAY, NUMERICAL_NP_ARRAY_TARGET,
+                                weights, 4)
     assert np.array_equal(features, np.array([0, 1, 2, 3]))
     # Selecting more than 4 features
     with pytest.warns(UserWarning) as warning:
-        features = fudfs.lasso_path(
-            NUMERICAL_STRUCT_ARRAY, NUMERICAL_NP_ARRAY_TARGET, weights, 5)
+        features = fudfs.lasso_path(NUMERICAL_STRUCT_ARRAY,
+                                    NUMERICAL_NP_ARRAY_TARGET, weights, 5)
     assert len(warning) == 1
     assert str(warning[0].message) == feature_indices_warning
     assert np.array_equal(features, np.array(['a', 'b', 'c', 'd']))
@@ -307,8 +277,8 @@ def test_lasso_path(caplog):
     # Weights too small so no path is found -- returns all features
     weights = np.array([1, 1, 100, 1, 1, 1]) * 1e-20
     assert len(caplog.records) == 2
-    features = fudfs.lasso_path(
-        NUMERICAL_NP_ARRAY, NUMERICAL_NP_ARRAY_TARGET, weights, 2)
+    features = fudfs.lasso_path(NUMERICAL_NP_ARRAY, NUMERICAL_NP_ARRAY_TARGET,
+                                weights, 2)
     assert np.array_equal(features, np.array([0, 1, 2, 3]))
     assert len(caplog.records) == 3
     assert caplog.records[2].levelname == 'WARNING'
@@ -316,11 +286,11 @@ def test_lasso_path(caplog):
 
     # Another selection
     weights = np.array([1, 1, 100, 1, 1, 1])
-    features = fudfs.lasso_path(
-        NUMERICAL_NP_ARRAY, NUMERICAL_NP_ARRAY_TARGET, weights, 2)
+    features = fudfs.lasso_path(NUMERICAL_NP_ARRAY, NUMERICAL_NP_ARRAY_TARGET,
+                                weights, 2)
     assert np.array_equal(features, np.array([0, 2]))
-    features = fudfs.lasso_path(
-        NUMERICAL_STRUCT_ARRAY, NUMERICAL_NP_ARRAY_TARGET, weights, 2)
+    features = fudfs.lasso_path(NUMERICAL_STRUCT_ARRAY,
+                                NUMERICAL_NP_ARRAY_TARGET, weights, 2)
     assert np.array_equal(features, np.array(['a', 'c']))
 
     # Lasso with no possibility of reducing the number of features

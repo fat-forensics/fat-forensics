@@ -15,6 +15,7 @@ import fatf.utils.data.instance_augmentation as fudi
 
 from fatf.exceptions import IncorrectShapeError
 
+# yapf: disable
 NUMERICAL_NP_ARRAY = np.array([[0, 0, 0.08, 0.69], [0, 1, 0.07, 0.21]])
 NUMERICAL_STRUCT_ARRAY = np.array(
     [(0, 0, 0.08, 0.69), (1, 0, 0.03, 0.29)],
@@ -28,6 +29,7 @@ CATEGORICAL_STRUCT_ARRAY = np.array(
 MIXED_ARRAY = np.array(
     [(0, 'a', 0.08, 'a'), (0, 'f', 0.03, 'bb')],
     dtype=[('a', 'i'), ('b', 'U1'), ('c', 'f'), ('d', 'U2')])
+# yapf: enable
 
 
 def test_validate_input():
@@ -84,18 +86,19 @@ def test_binary_sampler():
         [0, 0, 0, 1],
         [0, 0, 0, 1],
         [0, 0, 1, 0]
-    ])
+    ])  # yapf: disable
 
     struct_dtype = [('a', 'i'), ('b', 'i'), ('c', 'f'), ('d', bool)]
-    numerical_binary_struct_array = np.array(
-        [(1, 0, 1., True)], dtype=struct_dtype)
+    numerical_binary_struct_array = np.array([(1, 0, 1., True)],
+                                             dtype=struct_dtype)
     numerical_binary_struct_array = numerical_binary_struct_array[0]
     numerical_binary_struct_array_sampled = np.array(
         [(1, 0, 0., False),
          (0, 0, 0., True),
          (1, 0, 0., True),
          (1, 0, 1., True),
-         (1, 0, 0., False)], dtype=struct_dtype)
+         (1, 0, 0., False)],
+        dtype=struct_dtype)  # yapf: disable
 
     with pytest.raises(ValueError) as exin:
         fudi.binary_sampler(np.array([0, 1, 2, 3]))
@@ -119,16 +122,18 @@ def test_binary_sampler():
     assert np.allclose(
         samples.sum(axis=0) / samples.shape[0], proportions, atol=1e-1)
 
-    samples = fudi.binary_sampler(numerical_binary_struct_array,
-                                  samples_number=5)
+    samples = fudi.binary_sampler(
+        numerical_binary_struct_array, samples_number=5)
     assert np.array_equal(samples, numerical_binary_struct_array_sampled)
     assert fuav.are_similar_dtype_arrays(
         np.asarray(numerical_binary_struct_array), samples, True)
 
-    samples = fudi.binary_sampler(numerical_binary_struct_array,
-                                  samples_number=1000)
+    samples = fudi.binary_sampler(
+        numerical_binary_struct_array, samples_number=1000)
     for i, name in enumerate(numerical_binary_struct_array.dtype.names):
-        assert np.allclose(samples[name].sum() / samples[name].shape[0],
-                           proportions[i], atol=1e-1)
+        assert np.allclose(
+            samples[name].sum() / samples[name].shape[0],
+            proportions[i],
+            atol=1e-1)
     assert fuav.are_similar_dtype_arrays(
         np.asarray(numerical_binary_struct_array), samples, True)

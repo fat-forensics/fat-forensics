@@ -26,15 +26,13 @@ PredictiveFunctionType = Callable[[np.ndarray], np.ndarray]
 
 
 def _validate_input_local_fidelity(
-        dataset: np.ndarray,
-        data_row: Union[np.ndarray, np.void],
+        dataset: np.ndarray, data_row: Union[np.ndarray, np.void],
         global_predictive_function: PredictiveFunctionType,
         local_predictive_function: PredictiveFunctionType,
         metric_function: Callable[[np.ndarray, np.ndarray], float],
         explained_class_index: Union[int, None],
         explained_feature_indices: Union[List[IndexType], None],
-        fidelity_radius_percentage: int,
-        samples_number: int) -> bool:
+        fidelity_radius_percentage: int, samples_number: int) -> bool:
     """
     Validates the input parameters for the ``local_fidelity_score`` function.
 
@@ -126,9 +124,10 @@ def _validate_input_local_fidelity(
                                 'integer or None.')
     elif fuav.is_1d_array(global_prediction):
         if explained_class_index is not None:
-            warnings.warn('The explained_class_index parameter is not None '
-                          'and will be ignored since the global model is not '
-                          'probabilistic.', UserWarning)
+            warnings.warn(
+                'The explained_class_index parameter is not None and will be '
+                'ignored since the global model is not probabilistic.',
+                UserWarning)
     else:
         assert False, ('Global predictor must output a 1- or 2-dimensional '
                        'numpy array.')  # pragma: nocover
@@ -138,9 +137,9 @@ def _validate_input_local_fidelity(
             invalid_indices = fuat.get_invalid_indices(
                 dataset, np.asarray(explained_feature_indices))
             if invalid_indices.size:
-                raise IndexError('The following column indices are invalid '
-                                 'for the input dataset: {}.'.format(
-                                     invalid_indices))
+                raise IndexError(
+                    'The following column indices are invalid for the input '
+                    'dataset: {}.'.format(invalid_indices))
         else:
             raise TypeError('The explained_feature_indices parameter must be '
                             'a Python list or None.')
@@ -504,19 +503,14 @@ def local_fidelity_score(
     """
     # pylint: disable=too-many-arguments
     assert _validate_input_local_fidelity(
-        dataset,
-        data_row,
-        global_predictive_function,
-        local_predictive_function,
-        metric_function,
-        explained_class_index,
-        explained_feature_indices,
-        fidelity_radius_percentage,
+        dataset, data_row, global_predictive_function,
+        local_predictive_function, metric_function, explained_class_index,
+        explained_feature_indices, fidelity_radius_percentage,
         samples_number), 'Input is invalid.'
 
     augmentor = fuda.LocalSphere(dataset, int_to_float=False)
-    sampled_data = augmentor.sample(
-        data_row, fidelity_radius_percentage, samples_number)
+    sampled_data = augmentor.sample(data_row, fidelity_radius_percentage,
+                                    samples_number)
 
     global_predictions = global_predictive_function(sampled_data)
     assert not fuav.is_structured_array(global_predictions), 'Is structured.'

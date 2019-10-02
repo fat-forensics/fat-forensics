@@ -103,8 +103,9 @@ def check_instance_explainer_functionality(
     else:
         inherits_correctly = isinstance(explainer_object, Explainer)
     if not inherits_correctly:
-        warnings.warn('Every explainer object should inherit from fatf.utils.'
-                      'transparency.explainers.Explainer abstract class.',
-                      category=UserWarning)
+        warnings.warn(
+            'Every explainer object should inherit from '
+            'fatf.utils.transparency.explainers.Explainer abstract class.',
+            category=UserWarning)
 
     return is_functional

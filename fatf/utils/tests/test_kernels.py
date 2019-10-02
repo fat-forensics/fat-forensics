@@ -17,7 +17,7 @@ NUMERICAL_NP_ARRAY = np.array([0.2, 0.1, 0.3, 0.5])
 CATEGORICAL_NP_ARRAY = np.array(['a', 'b', 'c'])
 MIXED_ARRAY = np.array(
     [(0.1, 'a', 0.4, 'a')],
-    dtype=[('a', 'i'), ('b', 'U1'), ('c', 'f'), ('d', 'U2')])
+    dtype=[('a', 'i'), ('b', 'U1'), ('c', 'f'), ('d', 'U2')])  # yapf: disable
 
 
 def test_input_is_valid():
@@ -74,7 +74,7 @@ def test_exponential_kernel():
     assert np.allclose(kernelised, results, atol=1e-3)
 
     results = np.array([0.607, 0.607, 0.607, 0.607])
-    kernelised = fatf_kernels.exponential_kernel(np.ones(4,), 1.0)
+    kernelised = fatf_kernels.exponential_kernel(np.ones(4, ), 1.0)
     assert np.allclose(kernelised, results, atol=1e-3)
 
     results = np.array([1, 1, 1, 1])
@@ -129,8 +129,8 @@ def test_check_kernel_functionality():
     assert str(warning[0].message) == error_msg.format('function1', 0)
     #
     with pytest.warns(UserWarning) as warning:
-        assert fatf_kernels.check_kernel_functionality(
-            function1, False) is False
+        assert fatf_kernels.check_kernel_functionality(function1,
+                                                       False) is False
     assert len(warning) == 1
     assert str(warning[0].message) == error_msg.format('function1', 0)
     #
@@ -144,8 +144,8 @@ def test_check_kernel_functionality():
     assert str(warning[0].message) == error_msg.format('function5', 0)
     #
     with pytest.warns(UserWarning) as warning:
-        assert fatf_kernels.check_kernel_functionality(
-            function5, False) is False
+        assert fatf_kernels.check_kernel_functionality(function5,
+                                                       False) is False
     assert len(warning) == 1
     assert str(warning[0].message) == error_msg.format('function5', 0)
     #
@@ -159,8 +159,8 @@ def test_check_kernel_functionality():
     assert str(warning[0].message) == error_msg.format('function3', 2)
     #
     with pytest.warns(UserWarning) as warning:
-        assert fatf_kernels.check_kernel_functionality(
-            function3, False) is False
+        assert fatf_kernels.check_kernel_functionality(function3,
+                                                       False) is False
     assert len(warning) == 1
     assert str(warning[0].message) == error_msg.format('function3', 2)
     #

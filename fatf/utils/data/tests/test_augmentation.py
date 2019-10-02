@@ -1043,6 +1043,7 @@ def get_truncated_mean_std(minimum, maximum, original_mean, original_std):
 
     .. _here: https://en.wikipedia.org/wiki/Truncated_normal_distribution
     """
+
     def cdf(epsilon):
         return (1 / 2) * (1 + scipy.special.erf(epsilon / np.sqrt(2)))
 
@@ -1055,13 +1056,12 @@ def get_truncated_mean_std(minimum, maximum, original_mean, original_std):
 
     n_ab = norm(alpha) - norm(beta)
 
-    computed_mean = (
-        original_mean + (n_ab / z_phi) * original_std)
-    computed_var = (
-        original_std**2
-        * (1 + (alpha * norm(alpha) - beta * norm(beta)) / z_phi
-           - (n_ab / z_phi)**2)
-    )
+    computed_mean = original_mean + (n_ab / z_phi) * original_std
+    computed_var = (original_std**2
+                    * (1 + (alpha * norm(alpha) - beta * norm(beta)) / z_phi
+                       - (n_ab / z_phi)**2
+                       )
+                    )  # yapf: disable
     computed_std = np.sqrt(computed_var)
 
     return computed_mean, computed_std
@@ -1109,7 +1109,7 @@ class TestTruncatedNormalSampling(object):
         #
         assert self.numerical_struct_a_augmentor.categorical_indices == ['a']
         assert (self.numerical_struct_a_augmentor.numerical_indices
-                == ['b', 'c', 'd'])
+                == ['b', 'c', 'd'])  # yapf: disable
         #
         assert self.categorical_np_augmentor.categorical_indices == [0, 1, 2]
         assert self.categorical_np_augmentor.numerical_indices == []
@@ -1149,6 +1149,7 @@ class TestTruncatedNormalSampling(object):
         """
         fatf.setup_random_seed()
 
+        # yapf: disable
         numerical_np_truncated_results = np.array([
             [0.361, 0.396, 0.0593, 0.731],
             [1.423, 0.094, 0.595, 0.258],
@@ -1181,6 +1182,7 @@ class TestTruncatedNormalSampling(object):
              (0.195, 'c', 0.075, 'a'),
              (0.266, 'f', 0.586, 'b')],
             dtype=[('a', '<f8'), ('b', 'U1'), ('c', '<f8'), ('d', 'U2')])
+        # yapf: enable
 
         # Calculate what the mean and std of truncated normals should be
         min_ = NUMERICAL_NP_ARRAY.min(axis=0)
@@ -1216,9 +1218,10 @@ class TestTruncatedNormalSampling(object):
         samples_struct = self.numerical_struct_augmentor.sample(
             NUMERICAL_STRUCT_ARRAY[0], samples_number=3)
         for i in samples_struct.dtype.names:
-            assert np.allclose(samples_struct[i],
-                               numerical_struct_truncated_results[i],
-                               atol=1e-3)
+            assert np.allclose(
+                samples_struct[i],
+                numerical_struct_truncated_results[i],
+                atol=1e-3)
 
         # ...numpy array results mean
         samples = self.numerical_np_augmentor.sample(
@@ -1240,19 +1243,20 @@ class TestTruncatedNormalSampling(object):
         samples = self.numerical_np_augmentor.sample(samples_number=1000)
         assert np.allclose(
             samples.mean(axis=0), nt_results_data_mean, atol=1e-1)
-        assert np.allclose(
-            samples.std(axis=0), nt_results_data_std, atol=1e-1)
+        assert np.allclose(samples.std(axis=0), nt_results_data_std, atol=1e-1)
 
         # ...structured array mean
         samples_struct = self.numerical_struct_augmentor.sample(
             samples_number=1000)
         for i, name in enumerate(samples_struct.dtype.names):
-            assert np.allclose(np.mean(samples_struct[name]),
-                               nt_results_data_mean[i],
-                               atol=1e-1)
-            assert np.allclose(np.std(samples_struct[name]),
-                               nt_results_data_std[i],
-                               atol=1e-1)
+            assert np.allclose(
+                np.mean(samples_struct[name]),
+                nt_results_data_mean[i],
+                atol=1e-1)
+            assert np.allclose(
+                np.std(samples_struct[name]),
+                nt_results_data_std[i],
+                atol=1e-1)
 
         #######################################################################
 
@@ -1267,9 +1271,10 @@ class TestTruncatedNormalSampling(object):
         samples_struct = self.numerical_struct_a_augmentor.sample(
             NUMERICAL_STRUCT_ARRAY[0], samples_number=3)
         for i in samples_struct.dtype.names:
-            assert np.allclose(samples_struct[i],
-                               numerical_struct_truncated_cat_results[i],
-                               atol=1e-3)
+            assert np.allclose(
+                samples_struct[i],
+                numerical_struct_truncated_cat_results[i],
+                atol=1e-3)
 
         # ...numpy array results mean
         # ......numerical
@@ -1290,9 +1295,10 @@ class TestTruncatedNormalSampling(object):
             NUMERICAL_STRUCT_ARRAY[0], samples_number=100)
         # ......numerical
         for i, name in enumerate(samples_struct.dtype.names[1:]):
-            assert np.allclose(np.mean(samples_struct[name]),
-                               nt_results_mean[1:][i],
-                               atol=1e-1)
+            assert np.allclose(
+                np.mean(samples_struct[name]),
+                nt_results_mean[1:][i],
+                atol=1e-1)
             assert np.allclose(
                 np.std(samples_struct[name]), nt_results_std[1:][i], atol=1e-1)
         # ......categorical
@@ -1320,15 +1326,17 @@ class TestTruncatedNormalSampling(object):
             samples_number=1000)
         # ......numerical
         for i, name in enumerate(samples_struct.dtype.names[1:]):
-            assert np.allclose(np.mean(samples_struct[name]),
-                               nt_results_data_mean[1:][i],
-                               atol=1e-1)
-            assert np.allclose(np.std(samples_struct[name]),
-                               nt_results_data_std[1:][i],
-                               atol=1e-1)
+            assert np.allclose(
+                np.mean(samples_struct[name]),
+                nt_results_data_mean[1:][i],
+                atol=1e-1)
+            assert np.allclose(
+                np.std(samples_struct[name]),
+                nt_results_data_std[1:][i],
+                atol=1e-1)
         # ......categorical
-        val_struct, freq_struct = np.unique(samples_struct['a'],
-                                            return_counts=True)
+        val_struct, freq_struct = np.unique(
+            samples_struct['a'], return_counts=True)
         freq_struct = freq_struct / freq_struct.sum()
         assert np.array_equal(val_struct, NUMERICAL_NP_0_CAT_VAL)
         assert np.allclose(freq_struct, NUMERICAL_NP_0_CAT_FREQ, atol=1e-1)
@@ -1402,8 +1410,8 @@ class TestTruncatedNormalSampling(object):
             assert np.allclose(samples[i], mixed_results[i], atol=1e-3)
 
         # Instance mean
-        samples = self.mixed_augmentor.sample(MIXED_ARRAY[0],
-                                              samples_number=1000)
+        samples = self.mixed_augmentor.sample(
+            MIXED_ARRAY[0], samples_number=1000)
         # ...numerical
         for i, name in enumerate(mixed_num):
             assert np.allclose(
@@ -1421,9 +1429,10 @@ class TestTruncatedNormalSampling(object):
         samples = self.mixed_augmentor.sample(samples_number=1000)
         # ...numerical
         for i, name in enumerate(mixed_num):
-            assert np.allclose(np.mean(samples[name]),
-                               nt_mixed_results_data_mean[i],
-                               atol=1e-1)
+            assert np.allclose(
+                np.mean(samples[name]),
+                nt_mixed_results_data_mean[i],
+                atol=1e-1)
             assert np.allclose(
                 np.std(samples[name]), nt_mixed_results_data_std[i], atol=1e-1)
         # ...categorical
@@ -1443,7 +1452,7 @@ class TestTruncatedNormalSampling(object):
              (1, 0, 0.040, 0.553),
              (0, 0, 0.886, 0.822),
              (0, 0, 0.164, 0.315)],
-            dtype=NUMERICAL_STRUCT_ARRAY.dtype)
+            dtype=NUMERICAL_STRUCT_ARRAY.dtype)  # yapf: disable
         for i in NUMERICAL_STRUCT_ARRAY.dtype.names:
             assert np.allclose(samples[i], samples_answer[i], atol=1e-3)
 
@@ -1451,13 +1460,12 @@ class TestTruncatedNormalSampling(object):
         # casted to integers afterwards (generated with
         # self.numerical_struct_augmentor).
         samples = self.numerical_struct_augmentor_f.sample(samples_number=5)
-        samples_answer = np.array(
-            [(0.718, 0.476, 0.449, 0.615),
-             (0.047, 0.883, 0.205, 0.329),
-             (1.255, 0.422, 0.302, 0.627),
-             (1.024, 0.512, 0.122, 0.790),
-             (1.123, 0.670, 0.386, 0.471)],
-            dtype=NUMERICAL_STRUCT_ARRAY.dtype)
+        samples_answer = np.array([(0.718, 0.476, 0.449, 0.615),
+                                   (0.047, 0.883, 0.205, 0.329),
+                                   (1.255, 0.422, 0.302, 0.627),
+                                   (1.024, 0.512, 0.122, 0.790),
+                                   (1.123, 0.670, 0.386, 0.471)],
+                                  dtype=NUMERICAL_STRUCT_ARRAY.dtype)
         for i in NUMERICAL_STRUCT_ARRAY.dtype.names:
             assert np.allclose(samples[i], samples_answer[i], atol=1e-3)
 
@@ -1501,60 +1509,59 @@ def test_validate_input_normalclassdiscovery():
     model = fum.KNN(k=3)
 
     with pytest.raises(TypeError) as exin:
-        fuda._validate_input_normalclassdiscovery(
-            None, None, None, None, None)
+        fuda._validate_input_normalclassdiscovery(None, None, None, None, None)
     assert str(exin.value) == predictive_function_type
     with pytest.raises(IncompatibleModelError) as exin:
-        fuda._validate_input_normalclassdiscovery(
-            invalid_predict_proba, None, None, None, None)
+        fuda._validate_input_normalclassdiscovery(invalid_predict_proba, None,
+                                                  None, None, None)
     assert str(exin.value) == predictive_function_model
 
     with pytest.raises(TypeError) as exin:
-        fuda._validate_input_normalclassdiscovery(
-            model.predict, '1', None, None, None)
+        fuda._validate_input_normalclassdiscovery(model.predict, '1', None,
+                                                  None, None)
     assert str(exin.value) == classes_number_type
     with pytest.raises(ValueError) as exin:
-        fuda._validate_input_normalclassdiscovery(
-            model.predict, 1, None, None, None)
+        fuda._validate_input_normalclassdiscovery(model.predict, 1, None, None,
+                                                  None)
     assert str(exin.value) == classes_number_value
 
     with pytest.raises(TypeError) as exin:
-        fuda._validate_input_normalclassdiscovery(
-            model.predict, 2, None, None, None)
+        fuda._validate_input_normalclassdiscovery(model.predict, 2, None, None,
+                                                  None)
     assert str(exin.value) == class_proportion_type
     with pytest.raises(ValueError) as exin:
-        fuda._validate_input_normalclassdiscovery(
-            model.predict, None, 0, None, None)
+        fuda._validate_input_normalclassdiscovery(model.predict, None, 0, None,
+                                                  None)
     assert str(exin.value) == class_proportion_value
     with pytest.raises(ValueError) as exin:
-        fuda._validate_input_normalclassdiscovery(
-            model.predict, None, 1.0, None, None)
+        fuda._validate_input_normalclassdiscovery(model.predict, None, 1.0,
+                                                  None, None)
     assert str(exin.value) == class_proportion_value
 
     with pytest.raises(TypeError) as exin:
-        fuda._validate_input_normalclassdiscovery(
-            model.predict_proba, 3, 0.9, None, None)
+        fuda._validate_input_normalclassdiscovery(model.predict_proba, 3, 0.9,
+                                                  None, None)
     assert str(exin.value) == standard_deviation_init_type
     with pytest.raises(ValueError) as exin:
-        fuda._validate_input_normalclassdiscovery(
-            model.predict, None, 0.1, 0, None)
+        fuda._validate_input_normalclassdiscovery(model.predict, None, 0.1, 0,
+                                                  None)
     assert str(exin.value) == standard_deviation_init_value
     with pytest.raises(ValueError) as exin:
-        fuda._validate_input_normalclassdiscovery(
-            model.predict, None, 0.1, -5, None)
+        fuda._validate_input_normalclassdiscovery(model.predict, None, 0.1, -5,
+                                                  None)
     assert str(exin.value) == standard_deviation_init_value
 
     with pytest.raises(TypeError) as exin:
-        fuda._validate_input_normalclassdiscovery(
-            model.predict_proba, None, 0.5, 6, None)
+        fuda._validate_input_normalclassdiscovery(model.predict_proba, None,
+                                                  0.5, 6, None)
     assert str(exin.value) == standard_deviation_increment_type
     with pytest.raises(ValueError) as exin:
-        fuda._validate_input_normalclassdiscovery(
-            model.predict_proba, None, 0.5, 6, 0)
+        fuda._validate_input_normalclassdiscovery(model.predict_proba, None,
+                                                  0.5, 6, 0)
     assert str(exin.value) == standard_deviation_increment_value
     with pytest.raises(ValueError) as exin:
-        fuda._validate_input_normalclassdiscovery(
-            model.predict_proba, None, 0.5, 6, -0.5)
+        fuda._validate_input_normalclassdiscovery(model.predict_proba, None,
+                                                  0.5, 6, -0.5)
     assert str(exin.value) == standard_deviation_increment_value
 
 
@@ -1588,8 +1595,7 @@ class TestNormalClassDiscovery(object):
         classes_number=2)
     numerical_struct_a_augmentor = fuda.NormalClassDiscovery(
         NUMERICAL_STRUCT_ARRAY,
-        numerical_struct_classifier.predict,
-        ['a'],
+        numerical_struct_classifier.predict, ['a'],
         classes_number=2)
 
     categorical_classifier = fum.KNN(k=3)
@@ -1599,8 +1605,7 @@ class TestNormalClassDiscovery(object):
         CATEGORICAL_NP_ARRAY, categorical_classifier.predict, classes_number=2)
     categorical_np_012_augmentor = fuda.NormalClassDiscovery(
         CATEGORICAL_NP_ARRAY,
-        categorical_classifier.predict,
-        [0, 1, 2],
+        categorical_classifier.predict, [0, 1, 2],
         classes_number=2)
 
     categorical_struct_classifier = fum.KNN(k=3)
@@ -1609,8 +1614,7 @@ class TestNormalClassDiscovery(object):
     #
     categorical_struct_abc_augmentor = fuda.NormalClassDiscovery(
         CATEGORICAL_STRUCT_ARRAY,
-        categorical_struct_classifier.predict,
-        ['a', 'b', 'c'],
+        categorical_struct_classifier.predict, ['a', 'b', 'c'],
         classes_number=2)
 
     mixed_classifier = fum.KNN(k=3)
@@ -1651,7 +1655,7 @@ class TestNormalClassDiscovery(object):
         #
         assert self.numerical_struct_a_augmentor.categorical_indices == ['a']
         assert (self.numerical_struct_a_augmentor.numerical_indices
-                == ['b', 'c', 'd'])
+                == ['b', 'c', 'd'])  # yapf: disable
         #
         assert self.categorical_np_augmentor.categorical_indices == [0, 1, 2]
         assert self.categorical_np_augmentor.numerical_indices == []
@@ -1682,7 +1686,7 @@ class TestNormalClassDiscovery(object):
         # Test attributes unique to NormalClassDiscovery...
         # ...numpy probabilistic
         assert (self.numerical_np_augmentor.predictive_function
-                == self.numerical_classifier.predict_proba)
+                == self.numerical_classifier.predict_proba)  # yapf: disable
         assert self.numerical_np_augmentor.is_probabilistic is True
         assert self.numerical_np_augmentor.classes_number == 2
         assert self.numerical_np_augmentor.standard_deviation_init == 1
@@ -1692,7 +1696,7 @@ class TestNormalClassDiscovery(object):
 
         # ...numpy classifier
         assert (self.numerical_np_0_augmentor.predictive_function
-                == self.numerical_classifier.predict)
+                == self.numerical_classifier.predict)  # yapf: disable
         assert self.numerical_np_0_augmentor.is_probabilistic is False
         assert self.numerical_np_0_augmentor.classes_number == 2
         assert self.numerical_np_0_augmentor.standard_deviation_init == 1
@@ -1708,31 +1712,33 @@ class TestNormalClassDiscovery(object):
             csv[0][1], np.array([3 / 6, 2 / 6, 1 / 6]), atol=1e-3)
 
         # ...structured probabilistic
-        assert (self.numerical_struct_augmentor.predictive_function
-                == self.numerical_struct_classifier.predict_proba)
+        assert (
+            self.numerical_struct_augmentor.predictive_function
+            == self.numerical_struct_classifier.predict_proba
+        )  # yapf: disable
         assert self.numerical_struct_augmentor.is_probabilistic is True
         assert self.numerical_struct_augmentor.classes_number == 2
         assert (self.numerical_struct_augmentor.standard_deviation_init
-                == 0.5)
+                == 0.5)  # yapf: disable
         assert (self.numerical_struct_augmentor.standard_deviation_increment
-                == 0.2)
+                == 0.2)  # yapf: disable
         assert (self.numerical_struct_augmentor.class_proportion_threshold
-                == 0.1)
+                == 0.1)  # yapf: disable
         assert not self.numerical_struct_augmentor.categorical_sampling_values
 
         # ...structured classifier
         assert (self.categorical_struct_abc_augmentor.predictive_function
-                == self.categorical_struct_classifier.predict)
+                == self.categorical_struct_classifier.predict)  # yapf: disable
         assert self.categorical_struct_abc_augmentor.is_probabilistic is False
         assert self.categorical_struct_abc_augmentor.classes_number == 2
         assert (
             self.categorical_struct_abc_augmentor.standard_deviation_init == 1)
         assert (
             self.categorical_struct_abc_augmentor.standard_deviation_increment
-            == 0.1)
+            == 0.1)  # yapf: disable
         assert (
             self.categorical_struct_abc_augmentor.class_proportion_threshold
-            == 0.05)
+            == 0.05)  # yapf: disable
         csv = self.categorical_struct_abc_augmentor.categorical_sampling_values
         assert len(csv) == 3
         assert 'a' in csv and 'b' in csv and 'c' in csv
@@ -1775,6 +1781,7 @@ class TestNormalClassDiscovery(object):
                 NUMERICAL_NP_ARRAY[0], max_iter=-1)
         assert str(exin.value) == max_iter_value
 
+        # yapf: disable
         numerical_samples = np.array([
             [0.088, 0.024, -0.505, 0.934],
             [-0.175, -0.471, -0.049, -0.155],
@@ -1878,6 +1885,7 @@ class TestNormalClassDiscovery(object):
              (0.489, 'f', -0.604, 'bb'),
              (3.556, 'a', -0.741, 'bb')],
             dtype=[('a', '<f8'), ('b', 'U1'), ('c', '<f8'), ('d', 'U2')])
+        # yapf: enable
 
         samples = self.numerical_np_augmentor.sample(
             NUMERICAL_NP_ARRAY[0], samples_number=4)
@@ -1912,8 +1920,7 @@ class TestNormalClassDiscovery(object):
         for i in samples.dtype.names:
             assert np.array_equal(samples[i], categorical_struct_samples[i])
 
-        samples = self.mixed_augmentor.sample(
-            MIXED_ARRAY[0], samples_number=4)
+        samples = self.mixed_augmentor.sample(MIXED_ARRAY[0], samples_number=4)
         assert np.array_equal(samples[['b', 'd']], mixed_samples[['b', 'd']])
         for i in ['a', 'c']:
             assert np.allclose(samples[i], mixed_samples[i], atol=1e-3)
@@ -2008,7 +2015,7 @@ class TestNormalClassDiscovery(object):
              (1, -1, 1.104, 0.609),
              (0, -1, -3.930, -0.454),
              (0, 0, -0.483, 1.122)],
-            dtype=NUMERICAL_STRUCT_ARRAY.dtype)
+            dtype=NUMERICAL_STRUCT_ARRAY.dtype)  # yapf: disable
         for i in NUMERICAL_STRUCT_ARRAY.dtype.names:
             assert np.allclose(samples[i], samples_answer[i], atol=1e-3)
 
@@ -2016,8 +2023,8 @@ class TestNormalClassDiscovery(object):
 
         # Test if max_iter is too low to find all classes
         with pytest.raises(RuntimeError) as exin:
-            self.numerical_np_0_augmentor.sample(NUMERICAL_NP_ARRAY[0],
-                                                 max_iter=1)
+            self.numerical_np_0_augmentor.sample(
+                NUMERICAL_NP_ARRAY[0], max_iter=1)
         assert str(exin.value) == runtime_msg
 
         #######################################################################
@@ -2048,8 +2055,8 @@ class TestNormalClassDiscovery(object):
         samples = self.categorical_struct_abc_augmentor.sample(
             samples_number=4)
         for i in samples.dtype.names:
-            assert np.array_equal(
-                samples[i], categorical_struct_samples_mean[i])
+            assert np.array_equal(samples[i],
+                                  categorical_struct_samples_mean[i])
 
         samples = self.mixed_augmentor.sample(samples_number=4)
         assert np.array_equal(samples[['b', 'd']],
@@ -2152,7 +2159,7 @@ def test_validate_input_decisionboundarysphere():
     assert str(exin.value) == predictive_function_type
     with pytest.raises(IncompatibleModelError) as exin:
         fuda._validate_input_decisionboundarysphere(
-            invalid_predict, None, None)
+            invalid_predict, None, None)  # yapf: disable
     assert str(exin.value) == predictive_function_model
 
     with pytest.raises(TypeError) as exin:
@@ -2164,7 +2171,7 @@ def test_validate_input_decisionboundarysphere():
 
     with pytest.raises(TypeError) as exin:
         fuda._validate_input_decisionboundarysphere(
-            model.predict_proba, 0.1, 'a')
+            model.predict_proba, 0.1, 'a')  # yapf: disable
     assert str(exin.value) == increment_std_type
     with pytest.raises(ValueError) as exin:
         fuda._validate_input_decisionboundarysphere(predict, 0.1, -0.1)
@@ -2215,14 +2222,14 @@ class TestDecisionBoundarySphere():
 
         # Test class inheritance
         assert (self.numerical_np_augmentor.__class__.__bases__[0].__name__
-                == 'Augmentation')
+                == 'Augmentation')  # yapf: disable
 
         # Test calculating numerical and categorical indices
         assert self.numerical_np_augmentor.categorical_indices == []
         assert self.numerical_np_augmentor.numerical_indices == [0, 1, 2, 3]
         #
         assert (self.numerical_struct_augmentor.numerical_indices
-                == ['a', 'b', 'c', 'd'])
+                == ['a', 'b', 'c', 'd'])  # yapf: disable
 
         categorical_classifier = fum.KNN(k=3)
         categorical_classifier.fit(CATEGORICAL_NP_ARRAY, self.numerical_labels)
@@ -2234,13 +2241,15 @@ class TestDecisionBoundarySphere():
         # Test attributes unique to DecisionBoundarySphere...
         # ...classifier
         assert (self.numerical_np_augmentor.predictive_function
-                == self.numerical_classifier.predict)
+                == self.numerical_classifier.predict)  # yapf: disable
         assert self.numerical_np_augmentor.is_probabilistic is False
         assert self.numerical_np_augmentor.radius_init == 0.01
         assert self.numerical_np_augmentor.radius_increment == 0.01
         # ...probabilistic
-        assert (self.numerical_np_easy_augmentor.predictive_function
-                == self.numerical_easy_classifier.predict_proba)
+        assert (
+            self.numerical_np_easy_augmentor.predictive_function
+            == self.numerical_easy_classifier.predict_proba
+        )  # yapf: disable
         assert self.numerical_np_easy_augmentor.is_probabilistic is True
         assert self.numerical_np_easy_augmentor.radius_init == 0.01
         assert self.numerical_np_easy_augmentor.radius_increment == 0.01
@@ -2326,18 +2335,18 @@ _validate_sample_input` method (which has already been tested).
                                       [-0.134, 0.129, -0.240, 0.850],
                                       [0.125, 0.087, 0.018, 0.840],
                                       [0.042, 0.053, 0.039, 0.671]])
-        numerical_struct_results = np.array(
-            [(-0.018, 0.003, 0.098, 0.658),
-             (-0.010, 0.158, 0.311, 0.930),
-             (0.115, 0.079, 0.128, 0.700),
-             (-0.013, 0.137, 0.088, 0.548)],
-            dtype=[('a', 'f'), ('b', 'f'), ('c', 'f'), ('d', 'f')])
+        numerical_struct_results = np.array([(-0.018, 0.003, 0.098, 0.658),
+                                             (-0.010, 0.158, 0.311, 0.930),
+                                             (0.115, 0.079, 0.128, 0.700),
+                                             (-0.013, 0.137, 0.088, 0.548)],
+                                            dtype=[('a', 'f'), ('b', 'f'),
+                                                   ('c', 'f'), ('d', 'f')])
         numerical_struct_results_f = np.array(
             [(0, 0, 0.239, 0.747),
              (0, 0, 0.086, 0.584),
              (0, 0, -0.097, 0.722),
              (0, 0, 0.101, 0.678)],
-            dtype=NUMERICAL_STRUCT_ARRAY.dtype)
+            dtype=NUMERICAL_STRUCT_ARRAY.dtype)  # yapf: disable
 
         sphere_radius = 0.4
 
@@ -2426,14 +2435,14 @@ class TestLocalSphere(object):
 
         # Test class inheritance
         assert (self.numerical_np_augmentor.__class__.__bases__[0].__name__
-                == 'Augmentation')
+                == 'Augmentation')  # yapf: disable
 
         # Test calculating numerical and categorical indices
         assert self.numerical_np_augmentor.categorical_indices == []
         assert self.numerical_np_augmentor.numerical_indices == [0, 1, 2, 3]
         #
         assert (self.numerical_struct_augmentor.numerical_indices
-                == ['a', 'b', 'c', 'd'])
+                == ['a', 'b', 'c', 'd'])  # yapf: disable
 
         with pytest.raises(NotImplementedError) as exin:
             fuda.LocalSphere(CATEGORICAL_NP_ARRAY)
@@ -2472,23 +2481,22 @@ class TestLocalSphere(object):
                 NUMERICAL_NP_ARRAY[0], fidelity_radius_percentage=-5)
         assert str(exin.value) == value_msg
 
-        numerical_results = np.array([
-            [-0.057, -0.057, 0.467, 0.878],
-            [-0.536, 0.620, -0.449, 0.158],
-            [0.078, -0.618, -0.477, 0.508],
-            [-0.357, 0.111, -0.240, 0.192]])
-        numerical_struct_results = np.array(
-            [(-0.329, 0.119, 0.161, 0.681),
-             (-0.025, -0.013, 0.075, 0.661),
-             (-0.156, 0.138, 0.382, 0.601),
-             (0.209, -0.528, 0.262, 0.468)],
-            dtype=[('a', 'f'), ('b', 'f'), ('c', 'f'), ('d', 'f')])
+        numerical_results = np.array([[-0.057, -0.057, 0.467, 0.878],
+                                      [-0.536, 0.620, -0.449, 0.158],
+                                      [0.078, -0.618, -0.477, 0.508],
+                                      [-0.357, 0.111, -0.240, 0.192]])
+        numerical_struct_results = np.array([(-0.329, 0.119, 0.161, 0.681),
+                                             (-0.025, -0.013, 0.075, 0.661),
+                                             (-0.156, 0.138, 0.382, 0.601),
+                                             (0.209, -0.528, 0.262, 0.468)],
+                                            dtype=[('a', 'f'), ('b', 'f'),
+                                                   ('c', 'f'), ('d', 'f')])
         numerical_struct_results_f = np.array(
             [(0, 0, 0.122, 0.606),
              (0, 0, -0.024, 0.706),
              (0, 0, 0.105, 0.816),
              (0, 0, -0.151, 0.898)],
-            dtype=NUMERICAL_STRUCT_ARRAY.dtype)
+            dtype=NUMERICAL_STRUCT_ARRAY.dtype)  # yapf: disable
 
         fatf.setup_random_seed()
 
@@ -2506,8 +2514,7 @@ class TestLocalSphere(object):
             fidelity_radius_percentage=20,
             samples_number=1000)
         max_dist = fud.euclidean_array_distance(
-            np.expand_dims(NUMERICAL_NP_ARRAY[0], 0),
-            samples).max()
+            np.expand_dims(NUMERICAL_NP_ARRAY[0], 0), samples).max()
         assert np.isclose(max_dist, 0.2 * max_distance_dataset, atol=1e-1)
         assert np.allclose(
             samples.mean(axis=0), NUMERICAL_NP_ARRAY[0], atol=1e-1)
@@ -2533,13 +2540,11 @@ class TestLocalSphere(object):
             fidelity_radius_percentage=20,
             samples_number=1000)
         max_dist = fud.euclidean_array_distance(
-            np.expand_dims(NUMERICAL_STRUCT_ARRAY[0], 0),
-            samples).max()
+            np.expand_dims(NUMERICAL_STRUCT_ARRAY[0], 0), samples).max()
         assert np.isclose(max_dist, 0.2 * max_distance_dataset, atol=1e-1)
         for i in samples.dtype.names:
-            assert np.isclose(samples[i].mean(),
-                              NUMERICAL_STRUCT_ARRAY[0][i],
-                              atol=0.1)
+            assert np.isclose(
+                samples[i].mean(), NUMERICAL_STRUCT_ARRAY[0][i], atol=0.1)
         # Assert uniformity with Kolmogorov-Smirnov test for goodness of fit
         for i in samples.dtype.names:
             feature = samples[i]
@@ -2562,8 +2567,7 @@ class TestLocalSphere(object):
             fidelity_radius_percentage=20,
             samples_number=1000)
         max_dist = fud.euclidean_array_distance(
-            np.expand_dims(NUMERICAL_STRUCT_ARRAY[0], 0),
-            samples).max()
+            np.expand_dims(NUMERICAL_STRUCT_ARRAY[0], 0), samples).max()
         assert np.isclose(max_dist, 0.2 * max_distance_dataset, atol=1e-1)
         for i in samples.dtype.names:
             assert np.isclose(

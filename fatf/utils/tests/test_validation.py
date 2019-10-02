@@ -85,12 +85,12 @@ def test_check_object_functionality():
     #
     with pytest.raises(TypeError) as exin:
         fuv.check_object_functionality(
-            'object', {'1': '1', 2: '2', '3': 3}, 574)
+            'object', {'1': '1', 2: '2', '3': 3}, 574)  # yapf: disable
     assert str(exin.value) == methods_value_type_error.format(1, 1)
     #
     with pytest.raises(ValueError) as exin:
         fuv.check_object_functionality(
-            'object', {'1': 1, '2': -2, '3': 3}, 574)
+            'object', {'1': 1, '2': -2, '3': 3}, 574)  # yapf: disable
     assert str(exin.value) == methods_value_value_error.format(-2, 2)
     #
     #
@@ -111,27 +111,26 @@ def test_check_object_functionality():
     class C(B):
         def zero(self, a=0, b=1):
             pass  # pragma: no cover
-    #
+
     b = B()
     c = C()
 
-    is_functional, msg = fuv.check_object_functionality(
-        b, {'one': 1})
+    is_functional, msg = fuv.check_object_functionality(b, {'one': 1})
     assert is_functional
     assert msg == ''
 
     is_functional, msg = fuv.check_object_functionality(
-        B, {'one': 1, 'zero': 0}, None)
+        B, {'one': 1, 'zero': 0}, None)  # yapf: disable
     assert is_functional
     assert msg == ''
 
     is_functional, msg = fuv.check_object_functionality(
-        c, {'one': 1, 'zero': 0, 'two': 2}, 'test object')
+        c, {'one': 1, 'zero': 0, 'two': 2}, 'test object')  # yapf: disable
     assert not is_functional
     assert msg == missing_callable.format('*C* (test object) class', 'two')
 
     is_functional, msg = fuv.check_object_functionality(
-        C, {'one': 1, 'zero': 2, 'two': 2}, None)
+        C, {'one': 1, 'zero': 2, 'two': 2}, None)  # yapf: disable
     assert not is_functional
     assert missing_callable.format('*C* class', 'two') in msg
     assert missing_param.format('zero', '*C* class', 0, 2) in msg

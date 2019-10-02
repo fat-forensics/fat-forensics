@@ -13,6 +13,7 @@ import fatf.utils.data.transformation as fudt
 
 from fatf.exceptions import IncorrectShapeError
 
+# yapf: disable
 NUMERICAL_NP_ARRAY = np.array([
     [0, 0, 1., 0.],
     [1, 0, 2., 4.],
@@ -90,6 +91,7 @@ MIXED_BINARY = np.array(
      (1, 0, 0, 0),
      (0, 0, 1, 0)],
     dtype=[('a', np.int8), ('b', np.int8), ('c', np.int8), ('d', np.int8)])
+# yapf: enable
 
 
 def test_validate_input_drm():
@@ -174,6 +176,7 @@ def test_dataset_row_masking():
 
     array = np.array(
         [(2, 'z', 2., 'z')],
-        dtype=[('a', 'i'), ('b', 'U1'), ('c', 'f'), ('d', 'U2')])[0]
+        dtype=[('a', 'i'), ('b', 'U1'), ('c', 'f'), ('d', 'U2')]
+    )[0]  # yapf: disable
     binary = fudt.dataset_row_masking(MIXED_ARRAY, array)
     assert np.array_equal(binary, np.zeros_like(MIXED_BINARY))

@@ -206,6 +206,7 @@ class Discretiser(abc.ABC):
         arrays holding bin boundaries (with the upper threshold inclusive) for
         each feature.
     """
+
     # pylint: disable=too-few-public-methods,too-many-instance-attributes
 
     def __init__(self,
@@ -250,8 +251,8 @@ class Discretiser(abc.ABC):
                 categorical_indices = cat_indices.union(  # type: ignore
                     categorical_indices)
             numerical_indices = all_indices.difference(categorical_indices)
-        self.categorical_indices = sorted(list(  # type: ignore
-            categorical_indices))
+        self.categorical_indices = sorted(  # type: ignore
+            list(categorical_indices))
         self.numerical_indices = sorted(list(numerical_indices))
 
         self.features_number = len(all_indices)
@@ -455,6 +456,7 @@ class QuartileDiscretiser(Discretiser):
         The dtype of the discretised arrays outputted by the ``discrete``
         method.
     """
+
     # pylint: disable=too-few-public-methods
 
     def __init__(self,

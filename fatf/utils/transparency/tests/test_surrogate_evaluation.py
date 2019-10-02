@@ -27,10 +27,11 @@ NUMERICAL_STRUCT_ARRAY = np.array([(0, 0, 0.08, 0.69), (1, 0, 0.03, 0.29),
                                          ('d', 'f')])
 NUMERICAL_NP_ARRAY_LOCAL = np.array([[0, 0, 0.09, 0.70], [1, 0, 0.06, 0.60],
                                      [0, 0, 0.05, 0.50], [0, 1, 0.99, 0.82]])
-NUMERICAL_STRUCT_ARRAY_LOCAL = np.array(
-    [(0, 0, 0.09, 0.7), (1, 0, 0.06, 0.60), (0, 0, 0.05, 0.5),
-     (0, 1, 0.99, 0.82)],
-    dtype=[('a', 'i'), ('b', 'i'), ('c', 'f8'), ('d', 'f8')])
+NUMERICAL_STRUCT_ARRAY_LOCAL = np.array([(0, 0, 0.09, 0.7), (1, 0, 0.06, 0.60),
+                                         (0, 0, 0.05, 0.5),
+                                         (0, 1, 0.99, 0.82)],
+                                        dtype=[('a', 'i'), ('b', 'i'),
+                                               ('c', 'f8'), ('d', 'f8')])
 
 NUMERICAL_NP_ARRAY_TARGET = np.array([2, 0, 1, 1, 0, 2])
 NUMERICAL_NP_ARRAY_LOCAL_TARGET = np.array([1, 0, 1, 1])
@@ -103,26 +104,26 @@ surrogate_evaluation._validate_input_local_fidelity` function.
     assert str(exin.value) == incorrect_shape_dataset
 
     with pytest.raises(TypeError) as exin:
-        futs._validate_input_local_fidelity(np.array([[None]]), None, None,
-                                            None, None, None, None, None, None)
+        futs._validate_input_local_fidelity(
+            np.array([[None]]), None, None, None, None, None, None, None, None)
     assert str(exin.value) == type_error_dataset
 
     with pytest.raises(IncorrectShapeError) as exin:
-        futs._validate_input_local_fidelity(
-            NUMERICAL_NP_ARRAY, NUMERICAL_NP_ARRAY,
-            None, None, None, None, None, None, None)
+        futs._validate_input_local_fidelity(NUMERICAL_NP_ARRAY,
+                                            NUMERICAL_NP_ARRAY, None, None,
+                                            None, None, None, None, None)
     assert str(exin.value) == incorrect_shape_datarow
 
     with pytest.raises(TypeError) as exin:
         futs._validate_input_local_fidelity(
-            NUMERICAL_NP_ARRAY, np.array(['0']),
-            None, None, None, None, None, None, None)
+            NUMERICAL_NP_ARRAY, np.array(['0']), None, None, None, None, None,
+            None, None)  # yapf: disable
     assert str(exin.value) == incorrect_dtype_data
 
     with pytest.raises(IncorrectShapeError) as exin:
-        futs._validate_input_local_fidelity(
-            NUMERICAL_NP_ARRAY, NUMERICAL_NP_ARRAY[0][0:2],
-            None, None, None, None, None, None, None)
+        futs._validate_input_local_fidelity(NUMERICAL_NP_ARRAY,
+                                            NUMERICAL_NP_ARRAY[0][0:2], None,
+                                            None, None, None, None, None, None)
     assert str(exin.value) == datarow_features_error
 
     def predict(x):
@@ -138,25 +139,25 @@ surrogate_evaluation._validate_input_local_fidelity` function.
         pass  # pragma: no cover
 
     with pytest.raises(TypeError) as exin:
-        futs._validate_input_local_fidelity(
-            NUMERICAL_NP_ARRAY, NUMERICAL_NP_ARRAY[0], None,
-            None, None, None, None, None, None)
+        futs._validate_input_local_fidelity(NUMERICAL_NP_ARRAY,
+                                            NUMERICAL_NP_ARRAY[0], None, None,
+                                            None, None, None, None, None)
     assert str(exin.value) == global_model_type
     with pytest.raises(IncompatibleModelError) as exin:
         futs._validate_input_local_fidelity(
-            NUMERICAL_NP_ARRAY, NUMERICAL_NP_ARRAY[0], predict_invalid,
-            None, None, None, None, None, None)
+            NUMERICAL_NP_ARRAY, NUMERICAL_NP_ARRAY[0], predict_invalid, None,
+            None, None, None, None, None)
     assert str(exin.value) == global_model_incompatible
 
     with pytest.raises(TypeError) as exin:
-        futs._validate_input_local_fidelity(
-            NUMERICAL_NP_ARRAY, NUMERICAL_NP_ARRAY[0], predict, None,
-            None, None, None, None, None)
+        futs._validate_input_local_fidelity(NUMERICAL_NP_ARRAY,
+                                            NUMERICAL_NP_ARRAY[0], predict,
+                                            None, None, None, None, None, None)
     assert str(exin.value) == local_model_type
     with pytest.raises(IncompatibleModelError) as exin:
         futs._validate_input_local_fidelity(
-            NUMERICAL_NP_ARRAY, NUMERICAL_NP_ARRAY[0],
-            predict_proba, predict_proba_invalid, None, None, None, None, None)
+            NUMERICAL_NP_ARRAY, NUMERICAL_NP_ARRAY[0], predict_proba,
+            predict_proba_invalid, None, None, None, None, None)
     assert str(exin.value) == local_model_incompatible
 
     def invalid_metric(x):
@@ -167,8 +168,8 @@ surrogate_evaluation._validate_input_local_fidelity` function.
 
     with pytest.raises(TypeError) as exin:
         futs._validate_input_local_fidelity(
-            NUMERICAL_NP_ARRAY, NUMERICAL_NP_ARRAY[0], predict, predict,
-            None, None, None, None, None)
+            NUMERICAL_NP_ARRAY, NUMERICAL_NP_ARRAY[0], predict, predict, None,
+            None, None, None, None)
     assert str(exin.value) == metric_type_error
     with pytest.raises(TypeError) as exin:
         futs._validate_input_local_fidelity(
@@ -193,9 +194,9 @@ surrogate_evaluation._validate_input_local_fidelity` function.
     assert str(exin.value) == explained_class_value_error
     #
     with pytest.warns(UserWarning) as w:
-        futs._validate_input_local_fidelity(
-            NUMERICAL_NP_ARRAY, NUMERICAL_NP_ARRAY[0], predict, predict,
-            metric, 3, None, 1, 1)
+        futs._validate_input_local_fidelity(NUMERICAL_NP_ARRAY,
+                                            NUMERICAL_NP_ARRAY[0], predict,
+                                            predict, metric, 3, None, 1, 1)
     assert len(w) == 1
     assert str(w[0].message) == explained_class_warning
 
@@ -270,8 +271,8 @@ surrogate_evaluation._validate_input_local_fidelity` function.
 
     # All OK
     assert futs._validate_input_local_fidelity(
-        NUMERICAL_NP_ARRAY, NUMERICAL_NP_ARRAY[0], clf.predict_proba,
-        predict, metric, 1, [0, 1], 10, 1)
+        NUMERICAL_NP_ARRAY, NUMERICAL_NP_ARRAY[0], clf.predict_proba, predict,
+        metric, 1, [0, 1], 10, 1)
 
 
 def test_local_fidelity_score():
@@ -299,8 +300,10 @@ def test_local_fidelity_score():
 
         return accuracy
 
-    def accuracy_prob(global_predictions, local_predictions,
-                      global_proba=True, local_proba=True):
+    def accuracy_prob(global_predictions,
+                      local_predictions,
+                      global_proba=True,
+                      local_proba=True):
         if global_proba:
             global_predictions = np.argmax(global_predictions, axis=1)
         if local_proba:
@@ -313,12 +316,18 @@ def test_local_fidelity_score():
         return accuracy
 
     def accuracy_proba_np(global_predictions, local_predictions):
-        return accuracy_prob(global_predictions, local_predictions,
-                             global_proba=False, local_proba=True)
+        return accuracy_prob(
+            global_predictions,
+            local_predictions,
+            global_proba=False,
+            local_proba=True)
 
     def accuracy_proba_nn(global_predictions, local_predictions):
-        return accuracy_prob(global_predictions, local_predictions,
-                             global_proba=False, local_proba=False)
+        return accuracy_prob(
+            global_predictions,
+            local_predictions,
+            global_proba=False,
+            local_proba=False)
 
     def reg_dist(global_predictions, local_predictions):
         return (global_predictions - local_predictions).sum()
@@ -344,19 +353,19 @@ def test_local_fidelity_score():
     # Global: probabilistic...
     # ...local: regressor
     comparison = futs.local_fidelity_score(
-        NUMERICAL_NP_ARRAY, NUMERICAL_NP_ARRAY[0],
-        predictor.predict_proba, regressor.predict, accuracy, 2)
+        NUMERICAL_NP_ARRAY, NUMERICAL_NP_ARRAY[0], predictor.predict_proba,
+        regressor.predict, accuracy, 2)
     assert np.isclose(comparison, 0.26)
     # ...local: classifier
     comparison = futs.local_fidelity_score(
-        NUMERICAL_NP_ARRAY, NUMERICAL_NP_ARRAY[0],
-        predictor.predict_proba, predictor.predict, accuracy, 2)
+        NUMERICAL_NP_ARRAY, NUMERICAL_NP_ARRAY[0], predictor.predict_proba,
+        predictor.predict, accuracy, 2)
     assert np.isclose(comparison, 1.0)
     # ...local: probabilistic
     with pytest.warns(UserWarning) as w:
         comparison = futs.local_fidelity_score(
-            NUMERICAL_NP_ARRAY, NUMERICAL_NP_ARRAY[0],
-            predictor.predict_proba, predictor.predict_proba, accuracy_prob)
+            NUMERICAL_NP_ARRAY, NUMERICAL_NP_ARRAY[0], predictor.predict_proba,
+            predictor.predict_proba, accuracy_prob)
     assert len(w) == 1
     assert str(w[0].message) == accuracy_warning.format(set([1]))
     assert np.isclose(comparison, 1.0)
@@ -365,16 +374,16 @@ def test_local_fidelity_score():
     # ...local: probabilistic
     with pytest.warns(UserWarning) as w:
         comparison = futs.local_fidelity_score(
-            NUMERICAL_NP_ARRAY, NUMERICAL_NP_ARRAY[0],
-            predictor.predict, predictor.predict_proba, accuracy_proba_np)
+            NUMERICAL_NP_ARRAY, NUMERICAL_NP_ARRAY[0], predictor.predict,
+            predictor.predict_proba, accuracy_proba_np)
     assert len(w) == 1
     assert str(w[0].message) == accuracy_warning.format(set([1]))
     assert np.isclose(comparison, 1.0)
     # ...local: classifier
     with pytest.warns(UserWarning) as w:
         comparison = futs.local_fidelity_score(
-            NUMERICAL_NP_ARRAY, NUMERICAL_NP_ARRAY[0],
-            predictor.predict, predictor.predict, accuracy_proba_nn)
+            NUMERICAL_NP_ARRAY, NUMERICAL_NP_ARRAY[0], predictor.predict,
+            predictor.predict, accuracy_proba_nn)
     assert len(w) == 1
     assert str(w[0].message) == accuracy_warning.format(set([1]))
     assert np.isclose(comparison, 1.0)
@@ -382,8 +391,11 @@ def test_local_fidelity_score():
     # Global: regressor...
     # ...local: regressor
     comparison = futs.local_fidelity_score(
-        NUMERICAL_NP_ARRAY, NUMERICAL_NP_ARRAY[0],
-        regressor.predict, regressor_23.predict, reg_dist,
+        NUMERICAL_NP_ARRAY,
+        NUMERICAL_NP_ARRAY[0],
+        regressor.predict,
+        regressor_23.predict,
+        reg_dist,
         explained_feature_indices=[2, 3])
     assert np.isclose(comparison, 0)
 
@@ -391,7 +403,11 @@ def test_local_fidelity_score():
     # Global: probabilistic...
     # ...local: regressor
     comparison = futs.local_fidelity_score(
-        NUMERICAL_STRUCT_ARRAY, NUMERICAL_STRUCT_ARRAY[0],
-        predictor_struct.predict_proba, regressor_struct_cd.predict, accuracy,
-        0, explained_feature_indices=['c', 'd'])
+        NUMERICAL_STRUCT_ARRAY,
+        NUMERICAL_STRUCT_ARRAY[0],
+        predictor_struct.predict_proba,
+        regressor_struct_cd.predict,
+        accuracy,
+        0,
+        explained_feature_indices=['c', 'd'])
     assert np.isclose(comparison, 0.94)

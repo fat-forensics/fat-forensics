@@ -32,7 +32,7 @@ __all__ = ['NormalSampling',
            'Mixup',
            'NormalClassDiscovery',
            'DecisionBoundarySphere',
-           'LocalSphere']
+           'LocalSphere']  # yapf: disable
 
 logger = logging.getLogger(__name__)  # pylint: disable=invalid-name
 
@@ -533,6 +533,7 @@ Tuple[numpy.ndarray, numpy.ndarray]]
         for that column and the other one with their normalised (summing up to
         1) frequencies.
     """
+
     # pylint: disable=too-few-public-methods
 
     def __init__(self,
@@ -639,8 +640,7 @@ Tuple[numpy.ndarray, numpy.ndarray]]
                 mean = data_row[index]
 
             sample_values = scipy.stats.truncnorm.rvs(
-                (minimum - mean) / std,
-                (maximum - mean) / std,
+                (minimum - mean) / std, (maximum - mean) / std,
                 loc=mean,
                 scale=std,
                 size=samples_number)
@@ -1188,8 +1188,7 @@ class Mixup(Augmentation):
 
 def _validate_input_normalclassdiscovery(
         predictive_function: Callable[[np.ndarray], np.ndarray],
-        classes_number: Union[None, int],
-        class_proportion_threshold: float,
+        classes_number: Union[None, int], class_proportion_threshold: float,
         standard_deviation_init: float,
         standard_deviation_increment: float) -> bool:
     """
@@ -1398,6 +1397,7 @@ Tuple[numpy.ndarray, numpy.ndarray]]
         for that column and the other one with their normalised (summing up to
         1) frequencies.
     """
+
     # pylint: disable=too-few-public-methods
 
     def __init__(self,
@@ -1418,9 +1418,7 @@ Tuple[numpy.ndarray, numpy.ndarray]]
             categorical_indices=categorical_indices,
             int_to_float=int_to_float)
         assert _validate_input_normalclassdiscovery(
-            predictive_function,
-            classes_number,
-            class_proportion_threshold,
+            predictive_function, classes_number, class_proportion_threshold,
             standard_deviation_init,
             standard_deviation_increment), 'Invalid input.'
 
@@ -1451,9 +1449,10 @@ Tuple[numpy.ndarray, numpy.ndarray]]
                                        'classes_number parameter.')
                 else:
                     classes_number = unique_predictions.shape[0]
-                logger.info('The number of classes was not specified by the '
-                            'user. Based on *classification* of the input '
-                            'dataset %d classes were found.', classes_number)
+                logger.info(
+                    'The number of classes was not specified by the user. '
+                    'Based on *classification* of the input dataset %d '
+                    'classes were found.', classes_number)
         self.classes_number = classes_number
 
         self.standard_deviation_init = standard_deviation_init
@@ -1647,8 +1646,9 @@ Tuple[numpy.ndarray, numpy.ndarray]]
                         # Get a random data point of unseen label
                         new_label_data_row_index = np.random.choice(
                             np.where(predictions == label)[0])
-                        new_label_data_row = (
-                            samples_iter[[new_label_data_row_index]])
+                        new_label_data_row = samples_iter[[
+                            new_label_data_row_index
+                        ]]
                         break
 
             # If the proportion of the current label is satisfied
@@ -1699,8 +1699,7 @@ Tuple[numpy.ndarray, numpy.ndarray]]
 
 def _validate_input_decisionboundarysphere(
         predictive_function: Callable[[np.ndarray], np.ndarray],
-        radius_init: float,
-        radius_increment: float) -> bool:
+        radius_init: float, radius_increment: float) -> bool:
     """
     Validates input parameters of the ``DecisionBoundarySphere`` augmenter.
 
@@ -1822,6 +1821,7 @@ class DecisionBoundarySphere(Augmentation):
         will be incremented (in every iteration of the sampling procedure) if
         no decision boundary has been discovered.
     """
+
     # pylint: disable=too-few-public-methods
 
     def __init__(self,
@@ -1857,12 +1857,10 @@ class DecisionBoundarySphere(Augmentation):
                 or fuav.is_1d_array(predictions)), 'Can only be 1-D or 2-D.'
         self.is_probabilistic = fuav.is_2d_array(predictions)
 
-    def _validate_sample_input(self,  # type: ignore
-                               data_row: Union[np.ndarray, np.void],
-                               sphere_radius: float,
-                               samples_number: int,
-                               discover_samples_number: int,
-                               max_iter: int) -> bool:
+    def _validate_sample_input(  # type: ignore
+            self, data_row: Union[np.ndarray, np.void], sphere_radius: float,
+            samples_number: int, discover_samples_number: int,
+            max_iter: int) -> bool:
         """
         Validates input parameters for the ``sample`` method.
 
@@ -1905,12 +1903,13 @@ class DecisionBoundarySphere(Augmentation):
         is_valid = True
         return is_valid
 
-    def sample(self,  # type: ignore
-               data_row: Union[np.ndarray, np.void],
-               sphere_radius: float = 0.05,
-               samples_number: int = 50,
-               discover_samples_number: int = 100,
-               max_iter: int = 1000) -> np.ndarray:
+    def sample(  # type: ignore
+            self,
+            data_row: Union[np.ndarray, np.void],
+            sphere_radius: float = 0.05,
+            samples_number: int = 50,
+            discover_samples_number: int = 100,
+            max_iter: int = 1000) -> np.ndarray:
         """
         Samples data around the closest decision boundary to the ``data_row``.
 
@@ -1963,10 +1962,7 @@ class DecisionBoundarySphere(Augmentation):
         # pylint: disable=arguments-differ,too-many-arguments
         # pylint: disable=too-many-locals,too-many-branches,too-many-statements
         assert self._validate_sample_input(
-            data_row,
-            sphere_radius,
-            samples_number,
-            discover_samples_number,
+            data_row, sphere_radius, samples_number, discover_samples_number,
             max_iter), 'Invalid input.'
         if data_row is None:
             raise NotImplementedError('Sampling around the mean of the '
@@ -2092,6 +2088,7 @@ class LocalSphere(Augmentation):
         Some of the features in the data set are categorical -- this feature
         type is not supported at present.
     """
+
     # pylint: disable=too-few-public-methods
 
     def __init__(self,
@@ -2111,10 +2108,11 @@ class LocalSphere(Augmentation):
                                       'currently support data sets with '
                                       'categorical features.')
 
-    def sample(self,  # type: ignore
-               data_row: Union[np.ndarray, np.void],
-               fidelity_radius_percentage: int = 5,
-               samples_number: int = 50) -> np.ndarray:
+    def sample(  # type: ignore
+            self,
+            data_row: Union[np.ndarray, np.void],
+            fidelity_radius_percentage: int = 5,
+            samples_number: int = 50) -> np.ndarray:
         """
         Samples new data in a hyper-sphere around the selected data point.
 
@@ -2182,8 +2180,7 @@ class LocalSphere(Augmentation):
         # Get radii
         uniform = np.random.uniform(0, radius, size=(samples_number, 1))
         # Get random directions for the radii
-        normal = np.random.normal(
-            0, 1, (samples_number, self.features_number))
+        normal = np.random.normal(0, 1, (samples_number, self.features_number))
         # Get scaling of the random directions to preserve the radii
         normal_norm = np.linalg.norm(normal, ord=2, axis=1)
         normal_norm = np.expand_dims(normal_norm, 1)

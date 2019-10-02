@@ -110,7 +110,7 @@ def exponential_kernel(distances: np.ndarray, width: float = 1) -> np.ndarray:
         raise ValueError('The kernel width must be a positive (greater than '
                          '0) number.')
 
-    kernelised_distances = np.sqrt(np.exp(-(distances ** 2) / width ** 2))
+    kernelised_distances = np.sqrt(np.exp(-(distances**2) / width**2))
 
     return kernelised_distances
 

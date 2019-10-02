@@ -68,9 +68,7 @@ def check_model_functionality(model_object: Union[object, type],
         methods['predict_proba'] = 1
 
     is_functional, message = fuv.check_object_functionality(
-        model_object,
-        methods,
-        object_reference_name='model')
+        model_object, methods, object_reference_name='model')
 
     if not is_functional and not suppress_warning:
         warnings.warn(message, category=UserWarning)

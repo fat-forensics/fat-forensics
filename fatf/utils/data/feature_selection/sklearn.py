@@ -36,12 +36,10 @@ Index = Union[int, str]
 logger = logging.getLogger(__name__)  # pylint: disable=invalid-name
 
 
-def _validate_input_lasso_path(
-        dataset: np.ndarray,
-        target: np.ndarray,
-        weights: Union[np.ndarray, None],
-        features_number: Union[int, None],
-        features_percentage: int) -> bool:
+def _validate_input_lasso_path(dataset: np.ndarray, target: np.ndarray,
+                               weights: Union[np.ndarray, None],
+                               features_number: Union[int, None],
+                               features_percentage: int) -> bool:
     """
     Validates the input parameters of the ``lasso_path`` function.
 
@@ -208,25 +206,24 @@ lime/lime_base.py#L116
         if feature_proportion:
             features_number = feature_proportion
         else:
-            logger.warning('Since the number of features to be extracted was '
-                           'not given %d%% of features will be used. This '
-                           'percentage translates to 0 features, therefore '
-                           'the number of features to be used is overwritten '
-                           'to 1. To prevent this from happening, you should '
-                           'either explicitly set the number of features via '
-                           'the features_number parameter or increase the '
-                           'value of the features_percentage '
-                           'parameter.', features_percentage)
+            logger.warning(
+                'Since the number of features to be extracted was not given '
+                '%d%% of features will be used. This percentage translates to '
+                '0 features, therefore the number of features to be used is '
+                'overwritten to 1. To prevent this from happening, you should '
+                'either explicitly set the number of features via the '
+                'features_number parameter or increase the value of the '
+                'features_percentage parameter.', features_percentage)
             features_number = feature_proportion + 1
 
     if features_number == indices_number:
         feature_indices = indices
     elif features_number > indices_number:
         feature_indices = indices
-        warnings.warn('The selected number of features is larger than the '
-                      'total number of features in the dataset array. All of '
-                      'the features are being selected.',
-                      UserWarning)
+        warnings.warn(
+            'The selected number of features is larger than the total number '
+            'of features in the dataset array. All of the features are being '
+            'selected.', UserWarning)
     else:
         if weights is not None:
             weights_scaled = np.sqrt(weights)
@@ -234,8 +231,8 @@ lime/lime_base.py#L116
             weights_scaled = np.ones_like(target)
 
         dataset_avg = np.average(dataset_array, axis=0, weights=weights)
-        weighted_data = ((dataset_array - dataset_avg)
-                         * weights_scaled[:, np.newaxis])
+        weighted_data = (
+            (dataset_array - dataset_avg) * weights_scaled[:, np.newaxis])
 
         target_avg = np.average(target, weights=weights)
         weighted_target = (target - target_avg) * weights_scaled
@@ -252,11 +249,10 @@ lime/lime_base.py#L116
         if nonzero_indices.size:
             feature_indices = indices[nonzero_indices]
             if nonzero_indices.shape[0] != features_number:
-                logger.warning('The lasso path feature selection could not '
-                               'pick %d features. Only %d were '
-                               'selected.',
-                               features_number,
-                               nonzero_indices.shape[0])
+                logger.warning(
+                    'The lasso path feature selection could not pick %d '
+                    'features. Only %d were selected.', features_number,
+                    nonzero_indices.shape[0])
         else:
             feature_indices = indices
             logger.warning('The lasso path feature selection could not pick '

@@ -56,36 +56,43 @@ check_instance_explainer_functionality` function.
 
     class ClassPlain(object):
         pass
+
     class_plain = ClassPlain()
 
     class ClassInit(fute.Explainer):
         def __init__(self):
             pass
+
     class_init = ClassInit()
 
     class ClassExplainer1(object):
         def explain_instance(self):
             pass  # pragma: no cover
+
     class_explainer_1 = ClassExplainer1()
 
     class ClassExplainer2(fute.Explainer):
         def explain_instance(self, x, y):
             pass  # pragma: no cover
+
     class_explainer_2 = ClassExplainer2()
 
     class ClassExplainer3(object):
         def explain_instance(self, x):
             pass  # pragma: no cover
+
     class_explainer_3 = ClassExplainer3()
 
     class ClassExplainer4(fute.Explainer):
         def explain_instance(self, x, y=3):
             pass  # pragma: no cover
+
     class_explainer_4 = ClassExplainer4()
 
     class ClassExplainer5(object):
         def explain_instance(self, x, y=3, z=3):
             pass  # pragma: no cover
+
     class_explainer_5 = ClassExplainer5()
 
     with pytest.raises(TypeError) as exinf:
@@ -98,8 +105,8 @@ check_instance_explainer_functionality` function.
     msg = "The *{}* (explainer) class is missing 'explain_instance' method."
 
     with pytest.warns(UserWarning) as warning:
-        assert fute.check_instance_explainer_functionality(
-            class_plain, False) is False
+        assert fute.check_instance_explainer_functionality(class_plain,
+                                                           False) is False
     assert len(warning) == 2
     assert msg.format('ClassPlain') == str(warning[0].message)
     assert inheritance_warning == str(warning[1].message)
@@ -111,8 +118,8 @@ check_instance_explainer_functionality` function.
     assert inheritance_warning == str(warning[1].message)
 
     with pytest.warns(UserWarning) as warning:
-        assert fute.check_instance_explainer_functionality(
-            class_plain, True) is False
+        assert fute.check_instance_explainer_functionality(class_plain,
+                                                           True) is False
     assert len(warning) == 1
     assert inheritance_warning == str(warning[0].message)
 
@@ -122,8 +129,8 @@ check_instance_explainer_functionality` function.
            'parameters if you require more functionality.')
 
     with pytest.warns(UserWarning) as warning:
-        assert fute.check_instance_explainer_functionality(
-            class_init, False) is False
+        assert fute.check_instance_explainer_functionality(class_init,
+                                                           False) is False
     assert len(warning) == 1
     assert msg.format('ClassInit', 0) == str(warning[0].message)
 
@@ -132,8 +139,8 @@ check_instance_explainer_functionality` function.
     assert len(warning) == 1
     assert msg.format('ClassInit', 0) == str(warning[0].message)
 
-    assert fute.check_instance_explainer_functionality(
-        class_init, True) is False
+    assert fute.check_instance_explainer_functionality(class_init,
+                                                       True) is False
 
     #
 
@@ -171,8 +178,8 @@ check_instance_explainer_functionality` function.
     assert len(warning) == 1
     assert msg.format('ClassExplainer2', 2) == str(warning[0].message)
 
-    assert fute.check_instance_explainer_functionality(
-        class_explainer_2, True) is False
+    assert fute.check_instance_explainer_functionality(class_explainer_2,
+                                                       True) is False
 
     #
     #
@@ -191,10 +198,10 @@ check_instance_explainer_functionality` function.
 
     #
 
-    assert fute.check_instance_explainer_functionality(
-        class_explainer_4, False) is True
-    assert fute.check_instance_explainer_functionality(
-        ClassExplainer4, True) is True
+    assert fute.check_instance_explainer_functionality(class_explainer_4,
+                                                       False) is True
+    assert fute.check_instance_explainer_functionality(ClassExplainer4,
+                                                       True) is True
 
     #
 

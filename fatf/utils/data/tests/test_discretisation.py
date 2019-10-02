@@ -13,6 +13,7 @@ import fatf.utils.data.discretisation as fudd
 
 from fatf.exceptions import IncorrectShapeError
 
+# yapf: disable
 NUMERICAL_NP_ARRAY = np.array([
     [0, 0, 0.08, 0.69],
     [1, 0, 0.03, 0.29],
@@ -75,6 +76,7 @@ MIXED_DISCRETISED = np.array(
      (0, 'c', 2, 'b'),
      (2, 'f', 0, 'bb')],
     dtype=[('a', 'i1'), ('b', 'U1'), ('c', 'i1'), ('d', 'U2')])
+# yapf: enable
 
 
 def test_validate_input_discretiser():
@@ -107,13 +109,13 @@ def test_validate_input_discretiser():
     assert str(exin.value) == data_type_error
 
     with pytest.raises(TypeError) as exin:
-        fudd._validate_input_discretiser(NUMERICAL_NP_ARRAY,
-                                         categorical_indices=0)
+        fudd._validate_input_discretiser(
+            NUMERICAL_NP_ARRAY, categorical_indices=0)
     assert str(exin.value) == cidx_type_error
     #
     with pytest.raises(IndexError) as exin:
-        fudd._validate_input_discretiser(MIXED_ARRAY,
-                                         categorical_indices=['f'])
+        fudd._validate_input_discretiser(
+            MIXED_ARRAY, categorical_indices=['f'])
     assert str(exin.value) == cidx_index_error.format(['f'])
     with pytest.raises(IndexError) as exin:
         fudd._validate_input_discretiser(MIXED_ARRAY, categorical_indices=[1])
@@ -128,17 +130,17 @@ def test_validate_input_discretiser():
     assert str(exin.value) == feature_names_incorrect_shape
     #
     with pytest.raises(TypeError) as exin:
-        fudd._validate_input_discretiser(NUMERICAL_NP_ARRAY,
-                                         feature_names=[0, 1, 2, 'a'])
+        fudd._validate_input_discretiser(
+            NUMERICAL_NP_ARRAY, feature_names=[0, 1, 2, 'a'])
     assert str(exin.value) == feature_name_type_error.format(0)
     #
     with pytest.raises(TypeError) as exin:
-        fudd._validate_input_discretiser(MIXED_ARRAY,
-                                         feature_names=['a', 'b', 3, 'd'])
+        fudd._validate_input_discretiser(
+            MIXED_ARRAY, feature_names=['a', 'b', 3, 'd'])
     assert str(exin.value) == feature_name_type_error.format(3)
 
-    assert fudd._validate_input_discretiser(MIXED_ARRAY,
-                                            categorical_indices=['a', 'b'])
+    assert fudd._validate_input_discretiser(
+        MIXED_ARRAY, categorical_indices=['a', 'b'])
 
 
 class TestDiscretiser():
@@ -222,34 +224,41 @@ _validate_input_discretise` method.
         assert categorical_np_discretiser.categorical_indices == [0, 1, 2]
         assert categorical_np_discretiser.numerical_indices == []
         assert (categorical_np_discretiser.feature_names_map
-                == dict(zip([0, 1, 2], ['aa', 'bb', 'cc'])))
+                == dict(zip([0, 1, 2], ['aa', 'bb', 'cc'])))  # yapf: disable
         assert categorical_np_discretiser.feature_value_names == {}
         assert categorical_np_discretiser.feature_bin_boundaries == {}
 
         categorical_struct_discretiser = self.BaseDiscretiser(
             CATEGORICAL_STRUCT_ARRAY)
-        assert (categorical_struct_discretiser.dataset_dtype
-                == np.dtype([('a', 'U1'), ('b', 'U1'), ('c', 'U1')]))
+        assert (
+            categorical_struct_discretiser.dataset_dtype
+            == np.dtype([('a', 'U1'), ('b', 'U1'), ('c', 'U1')])
+        )  # yapf: disable
         assert categorical_struct_discretiser.is_structured
         assert categorical_struct_discretiser.features_number == 3
         assert (categorical_struct_discretiser.categorical_indices
-                == ['a', 'b', 'c'])
+                == ['a', 'b', 'c'])  # yapf: disable
         assert categorical_struct_discretiser.numerical_indices == []
-        assert (categorical_struct_discretiser.feature_names_map
-                == dict(zip(['a', 'b', 'c'], ['a', 'b', 'c'])))
+        assert (
+            categorical_struct_discretiser.feature_names_map
+            == dict(zip(['a', 'b', 'c'], ['a', 'b', 'c']))
+        )  # yapf: disable
         assert categorical_struct_discretiser.feature_value_names == {}
         assert categorical_struct_discretiser.feature_bin_boundaries == {}
 
         mixed_discretiser = self.BaseDiscretiser(MIXED_ARRAY)
-        assert (mixed_discretiser.dataset_dtype
-                == np.dtype([('a', 'i'), ('b', 'U1'),
-                             ('c', 'f'), ('d', 'U2')]))
+        assert (
+            mixed_discretiser.dataset_dtype
+            == np.dtype([('a', 'i'), ('b', 'U1'), ('c', 'f'), ('d', 'U2')])
+        )  # yapf: disable
         assert mixed_discretiser.is_structured
         assert mixed_discretiser.features_number == 4
         assert mixed_discretiser.categorical_indices == ['b', 'd']
         assert mixed_discretiser.numerical_indices == ['a', 'c']
-        assert (mixed_discretiser.feature_names_map
-                == dict(zip(['a', 'b', 'c', 'd'], ['a', 'b', 'c', 'd'])))
+        assert (
+            mixed_discretiser.feature_names_map
+            == dict(zip(['a', 'b', 'c', 'd'], ['a', 'b', 'c', 'd']))
+        )  # yapf: disable
         assert mixed_discretiser.feature_value_names == {}
         assert mixed_discretiser.feature_bin_boundaries == {}
 
@@ -260,8 +269,10 @@ _validate_input_discretise` method.
         assert numerical_np_discretiser.features_number == 4
         assert numerical_np_discretiser.categorical_indices == [0, 1]
         assert numerical_np_discretiser.numerical_indices == [2, 3]
-        assert (numerical_np_discretiser.feature_names_map
-                == dict(zip([0, 1, 2, 3], ['a', 'b', 'c', 'd'])))
+        assert (
+            numerical_np_discretiser.feature_names_map
+            == dict(zip([0, 1, 2, 3], ['a', 'b', 'c', 'd']))
+        )  # yapf: disable
         assert numerical_np_discretiser.feature_value_names == {}
         assert numerical_np_discretiser.feature_bin_boundaries == {}
 
@@ -374,102 +385,127 @@ class TestQuartileDiscretiser(object):
         initialisation.
         """
         correct_feature_names = {
-            1: {0: '*1* <= 0.00',
+            1: {
+                0: '*1* <= 0.00',
                 1: '0.00 < *1* <= 0.50',
                 2: '0.50 < *1* <= 1.00',
-                3: '1.00 < *1*'},
-            2: {0: '*2* <= 0.07',
+                3: '1.00 < *1*'
+            },
+            2: {
+                0: '*2* <= 0.07',
                 1: '0.07 < *2* <= 0.22',
                 2: '0.22 < *2* <= 0.64',
-                3: '0.64 < *2*'},
-            3: {0: '*3* <= 0.34',
+                3: '0.64 < *2*'
+            },
+            3: {
+                0: '*3* <= 0.34',
                 1: '0.34 < *3* <= 0.58',
                 2: '0.58 < *3* <= 0.79',
-                3: '0.79 < *3*'}
+                3: '0.79 < *3*'
+            }
         }
         correct_feature_names_full = {
-            0: {0: '*0* <= 0.00',
+            0: {
+                0: '*0* <= 0.00',
                 1: '0.00 < *0* <= 0.50',
                 2: '0.50 < *0* <= 1.00',
-                3: '1.00 < *0*'},
-            1: {0: '*1* <= 0.07',
+                3: '1.00 < *0*'
+            },
+            1: {
+                0: '*1* <= 0.07',
                 1: '0.07 < *1* <= 0.22',
                 2: '0.22 < *1* <= 0.64',
-                3: '0.64 < *1*'},
-            2: {0: '*2* <= 0.34',
+                3: '0.64 < *1*'
+            },
+            2: {
+                0: '*2* <= 0.34',
                 1: '0.34 < *2* <= 0.58',
                 2: '0.58 < *2* <= 0.79',
-                3: '0.79 < *2*'}
+                3: '0.79 < *2*'
+            }
         }
         correct_feature_names_struct = {
-            'b': {0: '*b* <= 0.00',
-                  1: '0.00 < *b* <= 0.50',
-                  2: '0.50 < *b* <= 1.00',
-                  3: '1.00 < *b*'},
-            'c': {0: '*c* <= 0.07',
-                  1: '0.07 < *c* <= 0.22',
-                  2: '0.22 < *c* <= 0.64',
-                  3: '0.64 < *c*'},
-            'd': {0: '*d* <= 0.34',
-                  1: '0.34 < *d* <= 0.58',
-                  2: '0.58 < *d* <= 0.79',
-                  3: '0.79 < *d*'}
+            'b': {
+                0: '*b* <= 0.00',
+                1: '0.00 < *b* <= 0.50',
+                2: '0.50 < *b* <= 1.00',
+                3: '1.00 < *b*'
+            },
+            'c': {
+                0: '*c* <= 0.07',
+                1: '0.07 < *c* <= 0.22',
+                2: '0.22 < *c* <= 0.64',
+                3: '0.64 < *c*'
+            },
+            'd': {
+                0: '*d* <= 0.34',
+                1: '0.34 < *d* <= 0.58',
+                2: '0.58 < *d* <= 0.79',
+                3: '0.79 < *d*'
+            }
         }
         correct_feature_names_mixed = {
-            'a': {0: '*a* <= 0.00',
-                  1: '0.00 < *a* <= 0.50',
-                  2: '0.50 < *a* <= 1.00',
-                  3: '1.00 < *a*'},
-            'c': {0: '*c* <= 0.07',
-                  1: '0.07 < *c* <= 0.22',
-                  2: '0.22 < *c* <= 0.64',
-                  3: '0.64 < *c*'}
+            'a': {
+                0: '*a* <= 0.00',
+                1: '0.00 < *a* <= 0.50',
+                2: '0.50 < *a* <= 1.00',
+                3: '1.00 < *a*'
+            },
+            'c': {
+                0: '*c* <= 0.07',
+                1: '0.07 < *c* <= 0.22',
+                2: '0.22 < *c* <= 0.64',
+                3: '0.64 < *c*'
+            }
         }
-        bins = [np.array([0, 0.5, 1]),
-                np.array([0.07, 0.22, 0.64]),
-                np.array([0.34, 0.58, 0.79])]
+        bins = [
+            np.array([0, 0.5, 1]),
+            np.array([0.07, 0.22, 0.64]),
+            np.array([0.34, 0.58, 0.79])
+        ]
 
         # Test calculating numerical and categorical indices and overwriting
         # the dictionaries
         assert self.numerical_np_discretiser.categorical_indices == [0]
         assert self.numerical_np_discretiser.numerical_indices == [1, 2, 3]
         assert (self.numerical_np_discretiser.feature_value_names
-                == correct_feature_names)
+                == correct_feature_names)  # yapf: disable
         for i, key in enumerate(correct_feature_names):
             assert np.allclose(
                 self.numerical_np_discretiser.feature_bin_boundaries[key],
                 bins[i],
                 atol=1e-2)
         assert (self.numerical_np_discretiser.discretised_dtype
-                == np.dtype('float64'))
+                == np.dtype('float64'))  # yapf: disable
 
         assert self.numerical_struct_discretiser.categorical_indices == ['a']
         assert (self.numerical_struct_discretiser.numerical_indices
-                == ['b', 'c', 'd'])
+                == ['b', 'c', 'd'])  # yapf: disable
         assert (self.numerical_struct_discretiser.feature_value_names
-                == correct_feature_names_struct)
+                == correct_feature_names_struct)  # yapf: disable
         for i, key in enumerate(correct_feature_names_struct):
             assert np.allclose(
                 self.numerical_struct_discretiser.feature_bin_boundaries[key],
                 bins[i],
                 atol=1e-2)
-        assert (self.numerical_struct_discretiser.discretised_dtype
-                == np.dtype([('a', 'i'), ('b', 'i1'), ('c', 'i1'),
-                             ('d', 'i1')]))
+        assert (
+            self.numerical_struct_discretiser.discretised_dtype
+            == np.dtype([('a', 'i'), ('b', 'i1'), ('c', 'i1'), ('d', 'i1')])
+        )  # yapf: disable
 
         assert (self.categorical_np_discretiser.categorical_indices
-                == [0, 1, 2])
+                == [0, 1, 2])  # yapf: disable
         assert self.categorical_np_discretiser.numerical_indices == []
         assert self.categorical_np_discretiser.feature_value_names == {}
         assert self.categorical_np_discretiser.feature_bin_boundaries == {}
         assert (self.categorical_np_discretiser.discretised_dtype
-                == np.dtype('U1'))
+                == np.dtype('U1'))  # yapf: disable
 
         assert self.numerical_np_discretiser_full.categorical_indices == []
         assert (self.numerical_np_discretiser_full.numerical_indices
-                == [0, 1, 2])
+                == [0, 1, 2])  # yapf: disable
         assert (self.numerical_np_discretiser_full.feature_value_names
-                == correct_feature_names_full)
+                == correct_feature_names_full)  # yapf: disable
         for i, key in enumerate(correct_feature_names):
             fky = key - 1
             assert np.allclose(
@@ -477,28 +513,29 @@ class TestQuartileDiscretiser(object):
                 bins[i],
                 atol=1e-2)
         assert (self.numerical_np_discretiser_full.discretised_dtype
-                == np.dtype('int8'))
+                == np.dtype('int8'))  # yapf: disable
 
         assert (self.categorical_struct_discretiser.categorical_indices
-                == ['a', 'b', 'c'])
+                == ['a', 'b', 'c'])  # yapf: disable
         assert self.categorical_struct_discretiser.numerical_indices == []
         assert self.categorical_struct_discretiser.feature_value_names == {}
         assert self.categorical_struct_discretiser.feature_bin_boundaries == {}
-        assert (self.categorical_struct_discretiser.discretised_dtype
-                == np.dtype([('a', 'U1'), ('b', 'U1'), ('c', 'U1')]))
+        assert (
+            self.categorical_struct_discretiser.discretised_dtype
+            == np.dtype([('a', 'U1'), ('b', 'U1'), ('c', 'U1')])
+        )  # yapf: disable
 
         assert self.mixed_struct_discretiser.categorical_indices == ['b', 'd']
         assert self.mixed_struct_discretiser.numerical_indices == ['a', 'c']
         assert (self.mixed_struct_discretiser.feature_value_names
-                == correct_feature_names_mixed)
+                == correct_feature_names_mixed)  # yapf: disable
         for i, key in enumerate(correct_feature_names_mixed):
             assert np.allclose(
                 self.mixed_struct_discretiser.feature_bin_boundaries[key],
                 bins[i],
                 atol=1e-2)
-        assert (self.mixed_struct_discretiser.discretised_dtype
-                == np.dtype([('a', 'i1'), ('b', 'U1'), ('c', 'i1'),
-                             ('d', 'U2')]))
+        assert (self.mixed_struct_discretiser.discretised_dtype == np.dtype(
+            [('a', 'i1'), ('b', 'U1'), ('c', 'i1'), ('d', 'U2')]))
 
     def test_discretise(self):
         """
@@ -545,6 +582,5 @@ class TestQuartileDiscretiser(object):
         assert np.array_equal(discretised, CATEGORICAL_STRUCT_ARRAY[0])
         assert isinstance(discretised, np.void)
 
-        discretised = self.mixed_struct_discretiser.discretise(
-            MIXED_ARRAY)
+        discretised = self.mixed_struct_discretiser.discretise(MIXED_ARRAY)
         assert np.array_equal(discretised, MIXED_DISCRETISED)

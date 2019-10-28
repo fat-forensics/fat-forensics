@@ -1,5 +1,10 @@
 #!/bin/bash
-# Deploys documentation to GitHub repo to be served via GitHub Pages
+#title       :deploy-doc.sh
+#description :Deploys documentation to a GitHub repo (served via GitHub Pages)
+#author      :Kacper Sokol <k.sokol@bristol.ac.uk>
+#license     :new BSD
+#==============================================================================
+
 set -e
 
 PWD=`pwd`

@@ -28,7 +28,7 @@ Cite           |BibTeX|_ |DOI|_
 .. _Homepage: https://fat-forensics.org
 .. What about wiki?
 
-.. |Travis| image:: https://travis-ci.com/fat-forensics/fat-forensics.svg
+.. |Travis| image:: https://travis-ci.com/fat-forensics/fat-forensics.svg?branch=master
 .. _Travis: https://travis-ci.com/fat-forensics/fat-forensics
 
 .. .. |CircleCI| image:: https://circleci.com/gh/fat-forensics/fat-forensics/tree/master.svg?style=shield

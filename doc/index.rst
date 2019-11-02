@@ -40,7 +40,7 @@ Acknowledgement
 ===============
 
 The project has started as an academic collaboration between the
-`University of Bristol`_ and Thales_. You can find all of our contributors and
+`University of Bristol`_ and Thales. You can find all of our contributors and
 more information about the support we receive :ref:`here <contributors>`.
 
 ----
@@ -57,7 +57,6 @@ or its documentation.
 .. _slack: https://fat-forensics.slack.com
 .. _`mailing list`: https://groups.google.com/forum/#!forum/fat-forensics
 .. _`University of Bristol`: http://www.bristol.ac.uk
-.. _Thales: https://www.thalesgroup.com/en
 
 .. toctree::
    :maxdepth: 2

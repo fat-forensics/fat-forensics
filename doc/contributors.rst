@@ -36,7 +36,7 @@ Funding
 =======
 
 This project was originally funded by Thales, and has started as the result of
-a collaborative research agreement between Thales_ and the
+a collaborative research agreement between Thales and the
 `University of Bristol`_.
 
 .. image:: themes/fat-forensics/static/img/bristol.svg
@@ -51,7 +51,6 @@ a collaborative research agreement between Thales_ and the
 .. image:: themes/fat-forensics/static/img/thales.svg
    :width: 300pt
    :align: center
-   :target: https://www.thalesgroup.com/en
 
 Referencing the Package
 =======================
@@ -59,5 +58,4 @@ Referencing the Package
 Please see the :ref:`citing` page for instructions about referencing and citing
 the FAT Forensics package.
 
-.. _Thales: https://www.thalesgroup.com/en
 .. _`University of Bristol`: https://www.bristol.ac.uk/

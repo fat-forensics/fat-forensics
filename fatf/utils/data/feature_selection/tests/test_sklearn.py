@@ -235,8 +235,11 @@ def test_lasso_path(caplog):
 
     assert len(caplog.records) == 0
     fatf.setup_random_seed()
-    assert len(caplog.records) == 1
-    assert 'Seeding RNG' in caplog.records[0].getMessage()
+    assert len(caplog.records) == 2
+    assert caplog.records[0].levelname == 'INFO'
+    assert caplog.records[0].getMessage().startswith('Seeding RNGs ')
+    assert caplog.records[1].levelname == 'INFO'
+    assert caplog.records[1].getMessage() == 'Seeding RNGs with 42.'
 
     # Weights and no-weights
     weights = np.ones((NUMERICAL_NP_ARRAY.shape[0], ))
@@ -266,23 +269,23 @@ def test_lasso_path(caplog):
         NUMERICAL_NP_ARRAY, NUMERICAL_NP_ARRAY_TARGET, features_percentage=50)
     assert np.array_equal(features, np.array([0, 1]))
     # No features number -- just percentage -- too small no features selected
-    assert len(caplog.records) == 1
+    assert len(caplog.records) == 2
     features = fudfs.lasso_path(
         NUMERICAL_NP_ARRAY, NUMERICAL_NP_ARRAY_TARGET, features_percentage=24)
     assert np.array_equal(features, np.array([0]))
-    assert len(caplog.records) == 2
-    assert caplog.records[1].levelname == 'WARNING'
-    assert caplog.records[1].getMessage() == feature_percentage_log
+    assert len(caplog.records) == 3
+    assert caplog.records[2].levelname == 'WARNING'
+    assert caplog.records[2].getMessage() == feature_percentage_log
 
     # Weights too small so no path is found -- returns all features
     weights = np.array([1, 1, 100, 1, 1, 1]) * 1e-20
-    assert len(caplog.records) == 2
+    assert len(caplog.records) == 3
     features = fudfs.lasso_path(NUMERICAL_NP_ARRAY, NUMERICAL_NP_ARRAY_TARGET,
                                 weights, 2)
     assert np.array_equal(features, np.array([0, 1, 2, 3]))
-    assert len(caplog.records) == 3
-    assert caplog.records[2].levelname == 'WARNING'
-    assert caplog.records[2].getMessage() == no_lasso_log
+    assert len(caplog.records) == 4
+    assert caplog.records[3].levelname == 'WARNING'
+    assert caplog.records[3].getMessage() == no_lasso_log
 
     # Another selection
     weights = np.array([1, 1, 100, 1, 1, 1])
@@ -294,11 +297,11 @@ def test_lasso_path(caplog):
     assert np.array_equal(features, np.array(['a', 'c']))
 
     # Lasso with no possibility of reducing the number of features
-    assert len(caplog.records) == 3
+    assert len(caplog.records) == 4
     features = fudfs.lasso_path(
         np.array([[1, 2, 3], [2, 2, 3], [3, 2, 3], [4, 2, 3]]),
         np.array([1, 2, 3, 4]),
         features_number=2)
-    assert len(caplog.records) == 4
-    assert caplog.records[3].levelname == 'WARNING'
-    assert caplog.records[3].getMessage() == less_lasso_log.format(2, 1)
+    assert len(caplog.records) == 5
+    assert caplog.records[4].levelname == 'WARNING'
+    assert caplog.records[4].getMessage() == less_lasso_log.format(2, 1)

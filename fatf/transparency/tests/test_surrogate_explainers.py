@@ -1496,9 +1496,11 @@ TabularBlimeyTree.explain_instance` method.
             }
         }
 
-        assert len(caplog.records) == 1
+        assert len(caplog.records) == 2
         assert caplog.records[0].levelname == 'INFO'
-        assert caplog.records[0].getMessage() == 'Seeding RNGs with 42.'
+        assert caplog.records[0].getMessage().startswith('Seeding RNGs ')
+        assert caplog.records[1].levelname == 'INFO'
+        assert caplog.records[1].getMessage() == 'Seeding RNGs with 42.'
 
         # Probabilistic surrogates
         # ...correct
@@ -1583,7 +1585,7 @@ TabularBlimeyTree.explain_instance` method.
         assert futt.is_explanation_equal_dict(
             explanation_, explanation, atol=1e-3)
 
-        assert len(caplog.records) == 1
+        assert len(caplog.records) == 2
         # Non-probabilistic surrogates
         # ...multi-class
         # ...with selected class to be explained warning
@@ -1598,9 +1600,9 @@ TabularBlimeyTree.explain_instance` method.
         assert len(warning) == 1
         assert str(warning[0].message) == nonprobabilistic_user_warning
         #
-        assert len(caplog.records) == 2
-        assert caplog.records[1].levelname == 'DEBUG'
-        assert (caplog.records[1].getMessage()  # yapf: disable
+        assert len(caplog.records) == 3
+        assert caplog.records[2].levelname == 'DEBUG'
+        assert (caplog.records[2].getMessage()  # yapf: disable
                 == nonprobabilistic_debug_log_prediction)
         #
         exp_ = {
@@ -1629,10 +1631,10 @@ TabularBlimeyTree.explain_instance` method.
             maximum_depth=2,
             one_vs_rest=True,
             explained_class='class 2')
-        assert len(caplog.records) == 3
-        assert caplog.records[2].levelname == 'DEBUG'
+        assert len(caplog.records) == 4
+        assert caplog.records[3].levelname == 'DEBUG'
         assert (
-            caplog.records[2].getMessage() == nonprobabilistic_debug_log_class)
+            caplog.records[3].getMessage() == nonprobabilistic_debug_log_class)
         assert futt.is_explanation_equal_dict(exp_, exp, atol=1e-3)
 
         # ...one-vs-rest
@@ -1653,10 +1655,10 @@ TabularBlimeyTree.explain_instance` method.
             maximum_depth=2,
             one_vs_rest=True,
             explained_class=2)
-        assert len(caplog.records) == 4
-        assert caplog.records[3].levelname == 'DEBUG'
+        assert len(caplog.records) == 5
+        assert caplog.records[4].levelname == 'DEBUG'
         assert (
-            caplog.records[3].getMessage() == nonprobabilistic_debug_log_int)
+            caplog.records[4].getMessage() == nonprobabilistic_debug_log_int)
         assert futt.is_explanation_equal_dict(exp_, exp, atol=1e-3)
         # ...incorrect index
         with pytest.raises(ValueError) as exin:
@@ -1678,15 +1680,15 @@ TabularBlimeyTree.explain_instance` method.
         # ...multi-class (one_vs_rest=False)
         # ...selected_class is None -- all classes
         # ...multi-class info logged -- the same model for every class
-        assert len(caplog.records) == 4
+        assert len(caplog.records) == 5
         exp = self.numerical_np_tabular_blimey_noprob.explain_instance(
             futt.NUMERICAL_NP_ARRAY[0],
             samples_number=50,
             maximum_depth=2,
             one_vs_rest=False)
-        assert len(caplog.records) == 5
-        assert caplog.records[4].levelname == 'INFO'
-        assert caplog.records[4].getMessage() == nonprobabilistic_info_log
+        assert len(caplog.records) == 6
+        assert caplog.records[5].levelname == 'INFO'
+        assert caplog.records[5].getMessage() == nonprobabilistic_info_log
         #
         # Check whether all the explanations (i.e., models) are the same.
         exp_uni = {
@@ -1698,4 +1700,4 @@ TabularBlimeyTree.explain_instance` method.
         exp_ = {k: exp_uni for k in exp}
         assert futt.is_explanation_equal_dict(exp_, exp, atol=1e-3)
 
-        assert len(caplog.records) == 5
+        assert len(caplog.records) == 6

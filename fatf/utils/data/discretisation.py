@@ -251,8 +251,8 @@ class Discretiser(abc.ABC):
                 categorical_indices = cat_indices.union(  # type: ignore
                     categorical_indices)
             numerical_indices = all_indices.difference(categorical_indices)
-        self.categorical_indices = sorted(  # type: ignore
-            list(categorical_indices))
+        self.categorical_indices = sorted(
+            list(categorical_indices))  # type: ignore
         self.numerical_indices = sorted(list(numerical_indices))
 
         self.features_number = len(all_indices)

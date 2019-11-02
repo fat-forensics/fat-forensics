@@ -15,6 +15,14 @@ import fatf.utils.testing.warnings as testing_w
 PYTEST_WARNING_FILTERS = ['fatf.vis', 'fatf.transparency.sklearn']
 
 
+def test_logger_level():
+    """
+    Tests the correct level of the logger.
+    """
+    # 0 is "logger level not set"
+    assert fatf.logger.level == 0
+
+
 @pytest.mark.parametrize('error_type,error_class',
                          [('Import', ImportWarning),
                           ('Deprecation', DeprecationWarning),

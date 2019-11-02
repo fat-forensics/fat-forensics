@@ -99,6 +99,8 @@ def setup_random_seed(seed: Optional[int] = None) -> None:
     Parameters
     ----------
     seed : integer, optional (default=None)
+        .. versionadded:: 0.0.2
+
         An integer in 0--2147483647 range used to seed Python's and numpy's
         random number generator.
 

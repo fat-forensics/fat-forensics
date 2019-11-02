@@ -115,8 +115,8 @@ master_doc = 'index'
 # directories to ignore when looking for source files.
 # This pattern also affects html_static_path and html_extra_path .
 exclude_patterns = ['_build', 'themes', 'templates', 'resources',
-                    'Thumbs.db', '.DS_Store', 'linkcode_github.py',
-                    '__pycache__']
+                    'Thumbs.db', '.DS_Store', '__pycache__',
+                    'linkcode_github.py', 'JOSS_paper']
 
 # If true, '()' will be appended to :func: etc. cross-reference text.
 add_function_parentheses = False
@@ -174,7 +174,7 @@ html_theme_path = ['themes']
 html_static_path = []
 
 # Copy extra files to the target build directory.
-html_extra_path = ['Readme.md']
+html_extra_path = ['Readme.md', '.nojekyll']
 
 # Custom sidebar templates, must be a dictionary that maps document names
 # to template names.

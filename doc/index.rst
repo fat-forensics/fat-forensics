@@ -40,7 +40,7 @@ Acknowledgement
 ===============
 
 The project has started as an academic collaboration between the
-`University of Bristol`_ and Thales_. You can find all of our contributors and
+`University of Bristol`_ and Thales. You can find all of our contributors and
 more information about the support we receive :ref:`here <contributors>`.
 
 ----
@@ -49,7 +49,7 @@ Please remember to :ref:`cite us <citing>` if you use any part of the package
 or its documentation.
 
 .. _SciPy: https://www.scipy.org/
-.. _NumPy: https://www.numpy.org/
+.. _NumPy: https://numpy.org/
 .. _`FAT-Forensics organisation`: https://github.com/fat-forensics
 .. _`fat-forensics`: https://github.com/fat-forensics/fat-forensics
 .. _`GitHub issue tracker`: https://github.com/fat-forensics/fat-forensics/issues
@@ -57,7 +57,6 @@ or its documentation.
 .. _slack: https://fat-forensics.slack.com
 .. _`mailing list`: https://groups.google.com/forum/#!forum/fat-forensics
 .. _`University of Bristol`: http://www.bristol.ac.uk
-.. _Thales: https://www.thalesgroup.com/en
 
 .. toctree::
    :maxdepth: 2

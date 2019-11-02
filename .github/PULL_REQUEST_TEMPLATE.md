@@ -22,7 +22,9 @@ If there are any branches related to this work please provide the branch name an
 
 ## Checklist
 Please ensure you have done every task in this checklist.
-- [ ] Created any additional unit tests required
-- [ ] All tests pass
-- [ ] Code style is consistent with the project
-- [ ] No additional Python packages except NumPy and SciPy are required
+- [ ] Created any additional unit tests required.
+- [ ] All tests pass.
+- [ ] Code style is consistent with the project.
+- [ ] No additional Python packages except NumPy and SciPy are required.
+- [ ] The code is documented.
+- [ ] Appropriate API documentation, tutorials, how-to guides and user guide entries were created.

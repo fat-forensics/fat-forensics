@@ -1,5 +1,10 @@
 #!/bin/bash
-# Deploys documentation to GitHub repo to be served via GitHub Pages
+#title       :deploy-doc.sh
+#description :Deploys documentation to a GitHub repo (served via GitHub Pages)
+#author      :Kacper Sokol <k.sokol@bristol.ac.uk>
+#license     :new BSD
+#==============================================================================
+
 set -e
 
 PWD=`pwd`
@@ -11,7 +16,7 @@ fi
 KEY_ENC="build_tools/doc/fat-forensics-deploy-key.enc"
 KEY="build_tools/doc/fat-forensics-deploy-key"
 
-DOC_REPO="So-Cool/fat-forensics-doc"
+DOC_REPO="fat-forensics/fat-forensics-doc"
 DOC_SOURCE="doc/_build/html/*"
 DOC_TARGET="$HOME/fat-forensics-doc"
 
@@ -22,26 +27,16 @@ else
   DEPLOY_BRANCH="$1"
 fi
 
-openssl aes-256-cbc \
-  -K $encrypted_6e9d23dcb3fc_key \
-  -iv $encrypted_6e9d23dcb3fc_iv \
-  -in $KEY_ENC \
-  -out $KEY \
-  -d
-
-chmod 600 $KEY
-eval `ssh-agent -s`
-ssh-add $KEY
 git config user.name "Travis Deploy Bot"
 git config user.email "travis-deploy@fat-forensics.org"
 
-git clone git@github.com:$DOC_REPO.git --depth 1 $DOC_TARGET
+git clone https://fat-forensics-automator:$FAT_FORENSICS_AUTOMATOR_GITHUB_TOKEN@github.com/$DOC_REPO.git --depth 1 $DOC_TARGET
 
 echo "Pushing the Documentation to GitHub: $DOC_REPO"
 cp -r $DOC_SOURCE $DOC_TARGET
 cd $DOC_TARGET
 git add -f *
-if [ -f ".nojekyll" ]; then git add .nojekyll; fi
+if [ -f ".nojekyll" ]; then git add -f .nojekyll; fi
 
 # Check if anything has actually changed
 GIT_CHANGES=`git status --porcelain`

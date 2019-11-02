@@ -160,6 +160,6 @@ please consult the following parts of the documentation:
 * :ref:`transparency how to guides <how_to_transparency>` and
 * :mod:`fatf.transparency` module API documentation.
 
-.. _tested: https://travis-ci.com/So-Cool/fat-forensics
-.. _Binder: https://TODO.fat-forensics.bindr.url
+.. _tested: https://travis-ci.com/fat-forensics/fat-forensics
+.. _Binder: https://mybinder.org/v2/gh/fat-forensics/fat-forensics-doc/master?filepath=notebooks
 .. _`Plotly's Dash`: https://plot.ly/dash/

@@ -60,9 +60,11 @@ LINEAR_REGRESSORS = [
     sklearn.linear_model.Ridge,
     sklearn.linear_model.RidgeCV,
     #
-    sklearn.svm.LinearSVR,
     sklearn.linear_model.PassiveAggressiveRegressor,
     sklearn.linear_model.SGDRegressor
+]
+LINEAR_REGRESSORS_ = [
+    sklearn.svm.LinearSVR,
 ]
 LINEAR_MULTITASK_REGRESSORS = [
     sklearn.linear_model.MultiTaskLasso,
@@ -102,9 +104,11 @@ LINEAR_REG_COEF = [
     np.array([0.033, -0.003, 0.019, -0.005]),
     np.array([0.021, -0.003, 0.017, -0.006]),
     #
-    np.array([0.012, 0.007, 0.027, -0.016]),
     np.array([0.017, -0.003, 0.040, -0.005]),
     np.array([1.219, 10.356, -0.982, -19.025])  # / 1e+10
+]
+LINEAR_REG_COEF_ = [
+    np.array([0.012, 0.007, 0.027, -0.016]),
 ]
 LINEAR_CLF_COEF_36 = [
     np.array([[-28.064, -84.191, -65.482, -299.345]]),
@@ -182,7 +186,7 @@ def test_validate_classifier_list():
 
         assert hasattr(clf_instance, 'classes_')
 
-    for clf in LINEAR_REGRESSORS:
+    for clf in LINEAR_REGRESSORS + LINEAR_REGRESSORS_:
         name = clf.__name__
         kwargs = get_kwargs(name)
         clf_instance = clf(**kwargs)
@@ -223,7 +227,7 @@ def test_is_scikit_linear():
         assert ftsl._is_scikit_linear(clf_instance) is False
 
     mdl = (LINEAR_CLASSIFIERS + LINEAR_CLASSIFIERS_ + LINEAR_REGRESSORS
-           + LINEAR_MULTITASK_REGRESSORS)  # yapf: disable
+           + LINEAR_REGRESSORS_ + LINEAR_MULTITASK_REGRESSORS)  # yapf: disable
     for clf in mdl:
         clf_instance = clf()
         assert ftsl._is_scikit_linear(clf_instance) is True
@@ -236,7 +240,10 @@ def test_is_fitted_linear():
     unfit_error = ("This {} instance is not fitted yet. Call 'fit' with "
                    'appropriate arguments before using this method.')
 
-    for clf in LINEAR_CLASSIFIERS + LINEAR_CLASSIFIERS_ + LINEAR_REGRESSORS:
+    mdl = (LINEAR_CLASSIFIERS + LINEAR_CLASSIFIERS_ + LINEAR_REGRESSORS
+           + LINEAR_REGRESSORS_)  # yapf: disable
+
+    for clf in mdl:
         name = clf.__name__
         kwargs = get_kwargs(name)
         clf_instance = clf(**kwargs)

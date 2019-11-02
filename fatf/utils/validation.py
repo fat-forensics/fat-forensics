@@ -92,10 +92,16 @@ def check_object_functionality(
     message : string
         A message detailing the lacking functionality of ``an_object``.
     """
-    # pylint: disable=too-many-branches
+    # pylint: disable=too-many-branches,too-many-locals
     if isinstance(methods, dict):
         if methods:
-            for key, value in methods.items():
+            # The splitting is necessary for consistent error raising with
+            # Python 3.5 (and, possibly, below).
+            key_str = sorted([i for i in methods.keys() if isinstance(i, str)])
+            key_otr = [i for i in methods.keys() if i not in key_str]
+
+            for key in key_str + key_otr:
+                value = methods[key]
                 if not isinstance(key, str):
                     raise TypeError('All of the keys in the methods '
                                     "dictionary must be strings. The '{}' key "

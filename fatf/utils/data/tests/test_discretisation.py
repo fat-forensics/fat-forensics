@@ -470,7 +470,8 @@ class TestQuartileDiscretiser(object):
         assert self.numerical_np_discretiser.numerical_indices == [1, 2, 3]
         assert (self.numerical_np_discretiser.feature_value_names
                 == correct_feature_names)  # yapf: disable
-        for i, key in enumerate(correct_feature_names):
+        keys = sorted(correct_feature_names.keys())
+        for i, key in enumerate(keys):
             assert np.allclose(
                 self.numerical_np_discretiser.feature_bin_boundaries[key],
                 bins[i],
@@ -483,7 +484,8 @@ class TestQuartileDiscretiser(object):
                 == ['b', 'c', 'd'])  # yapf: disable
         assert (self.numerical_struct_discretiser.feature_value_names
                 == correct_feature_names_struct)  # yapf: disable
-        for i, key in enumerate(correct_feature_names_struct):
+        keys = sorted(correct_feature_names_struct.keys())
+        for i, key in enumerate(keys):
             assert np.allclose(
                 self.numerical_struct_discretiser.feature_bin_boundaries[key],
                 bins[i],
@@ -506,7 +508,8 @@ class TestQuartileDiscretiser(object):
                 == [0, 1, 2])  # yapf: disable
         assert (self.numerical_np_discretiser_full.feature_value_names
                 == correct_feature_names_full)  # yapf: disable
-        for i, key in enumerate(correct_feature_names):
+        keys = sorted(correct_feature_names.keys())
+        for i, key in enumerate(keys):
             fky = key - 1
             assert np.allclose(
                 self.numerical_np_discretiser_full.feature_bin_boundaries[fky],
@@ -529,7 +532,8 @@ class TestQuartileDiscretiser(object):
         assert self.mixed_struct_discretiser.numerical_indices == ['a', 'c']
         assert (self.mixed_struct_discretiser.feature_value_names
                 == correct_feature_names_mixed)  # yapf: disable
-        for i, key in enumerate(correct_feature_names_mixed):
+        keys = sorted(correct_feature_names_mixed.keys())
+        for i, key in enumerate(keys):
             assert np.allclose(
                 self.mixed_struct_discretiser.feature_bin_boundaries[key],
                 bins[i],

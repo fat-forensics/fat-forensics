@@ -5,8 +5,27 @@ Tests surrogate explainers.
 #         Kacper Sokol <K.Sokol@bristol.ac.uk>
 # License: new BSD
 
-import importlib
 import pytest
+
+try:
+    import sklearn
+except ImportError:  # pragma: no cover
+    _missing_sklearn_msg = (
+        'The TabularBlimeyLime and TabularBlimeyTree surrogate explainers '
+        'require scikit-learn to be installed. Since scikit-learn is missing, '
+        'this functionality will be disabled.')
+    with pytest.warns(UserWarning) as warning:
+        import fatf.transparency.surrogate_explainers as ftse
+    assert len(warning) > 0
+    assert str(warning[-1].message) == _missing_sklearn_msg
+
+    SKLEARN_MISSING = True
+else:
+    del sklearn
+    import fatf.transparency.surrogate_explainers as ftse
+    SKLEARN_MISSING = False
+
+import importlib
 import sys
 
 import numpy as np
@@ -15,7 +34,6 @@ from fatf.exceptions import IncompatibleModelError, IncorrectShapeError
 
 import fatf
 
-import fatf.transparency.surrogate_explainers as ftse
 import fatf.utils.array.tools as fuat
 import fatf.utils.data.augmentation as fuda
 import fatf.utils.data.datasets as fatf_datasets
@@ -27,6 +45,7 @@ import fatf.utils.testing.imports as futi
 IRIS_DATASET = fatf_datasets.load_iris()
 
 
+@pytest.mark.skipif(SKLEARN_MISSING, reason='scikit-learn is not installed.')
 def test_sklearn_imports(caplog):
     """
     Tests loading the package and using the explainers with sklearn missing.
@@ -734,37 +753,40 @@ SurrogateTabularExplainer._explain_instance_is_valid` method.
         assert str(exin.value) == incorrect_shape_features
 
 
-class TestTabularBlimeyLime():
+@pytest.mark.skipif(SKLEARN_MISSING, reason='scikit-learn is not installed.')
+class TestTabularBlimeyLime(object):
     """
     Tests :class:`fatf.transparency.surrogate_explainers.TabularBlimeyLime`.
     """
-    numerical_np_array_classifier = fum.KNN(k=3)
-    numerical_np_array_classifier.fit(futt.NUMERICAL_NP_ARRAY, futt.LABELS)
-    numerical_np_tabular_lime = ftse.TabularBlimeyLime(
-        futt.NUMERICAL_NP_ARRAY, numerical_np_array_classifier)
+    if not SKLEARN_MISSING:
+        numerical_np_array_classifier = fum.KNN(k=3)
+        numerical_np_array_classifier.fit(futt.NUMERICAL_NP_ARRAY, futt.LABELS)
+        numerical_np_tabular_lime = ftse.TabularBlimeyLime(
+            futt.NUMERICAL_NP_ARRAY, numerical_np_array_classifier)
 
-    numerical_struct_array_classifier = fum.KNN(k=3)
-    numerical_struct_array_classifier.fit(futt.NUMERICAL_STRUCT_ARRAY,
-                                          futt.LABELS)
-    numerical_struct_cat_tabular_lime = ftse.TabularBlimeyLime(
-        futt.NUMERICAL_STRUCT_ARRAY,
-        numerical_struct_array_classifier,
-        categorical_indices=['a', 'b'])
+        numerical_struct_array_classifier = fum.KNN(k=3)
+        numerical_struct_array_classifier.fit(futt.NUMERICAL_STRUCT_ARRAY,
+                                              futt.LABELS)
+        numerical_struct_cat_tabular_lime = ftse.TabularBlimeyLime(
+            futt.NUMERICAL_STRUCT_ARRAY,
+            numerical_struct_array_classifier,
+            categorical_indices=['a', 'b'])
 
-    categorical_array_classifier = fum.KNN(k=3)
-    categorical_array_classifier.fit(futt.CATEGORICAL_NP_ARRAY, futt.LABELS)
-    categorical_np_lime = ftse.TabularBlimeyLime(
-        futt.CATEGORICAL_NP_ARRAY,
-        categorical_array_classifier,
-        categorical_indices=[0, 1, 2])
+        categorical_array_classifier = fum.KNN(k=3)
+        categorical_array_classifier.fit(futt.CATEGORICAL_NP_ARRAY,
+                                         futt.LABELS)
+        categorical_np_lime = ftse.TabularBlimeyLime(
+            futt.CATEGORICAL_NP_ARRAY,
+            categorical_array_classifier,
+            categorical_indices=[0, 1, 2])
 
-    iris_classifier = fum.KNN(k=3)
-    iris_classifier.fit(IRIS_DATASET['data'], IRIS_DATASET['target'])
-    iris_lime = ftse.TabularBlimeyLime(
-        IRIS_DATASET['data'],
-        iris_classifier,
-        class_names=IRIS_DATASET['target_names'].tolist(),
-        feature_names=IRIS_DATASET['feature_names'].tolist())
+        iris_classifier = fum.KNN(k=3)
+        iris_classifier.fit(IRIS_DATASET['data'], IRIS_DATASET['target'])
+        iris_lime = ftse.TabularBlimeyLime(
+            IRIS_DATASET['data'],
+            iris_classifier,
+            class_names=IRIS_DATASET['target_names'].tolist(),
+            feature_names=IRIS_DATASET['feature_names'].tolist())
 
     def test_init(self):
         """
@@ -1162,41 +1184,43 @@ def map_target(target):
     return np.array(categorical_target)
 
 
+@pytest.mark.skipif(SKLEARN_MISSING, reason='scikit-learn is not installed.')
 class TestTabularBlimeyTree(object):
     """
     Tests :class:`fatf.transparency.surrogate_explainers.TabularBlimeyTree`.
     """
-    numerical_np_array_classifier = fum.KNN(k=3)
-    numerical_np_array_classifier.fit(futt.NUMERICAL_NP_ARRAY, futt.LABELS)
-    numerical_np_tabular_blimey = ftse.TabularBlimeyTree(
-        futt.NUMERICAL_NP_ARRAY, numerical_np_array_classifier)
+    if not SKLEARN_MISSING:
+        numerical_np_array_classifier = fum.KNN(k=3)
+        numerical_np_array_classifier.fit(futt.NUMERICAL_NP_ARRAY, futt.LABELS)
+        numerical_np_tabular_blimey = ftse.TabularBlimeyTree(
+            futt.NUMERICAL_NP_ARRAY, numerical_np_array_classifier)
 
-    numerical_np_array_classifier_noprob = fum.KNN(k=3)
-    numerical_np_array_classifier_noprob.fit(futt.NUMERICAL_NP_ARRAY,
-                                             map_target(futt.LABELS))
-    numerical_np_tabular_blimey_noprob = ftse.TabularBlimeyTree(
-        futt.NUMERICAL_NP_ARRAY,
-        numerical_np_array_classifier_noprob,
-        as_probabilistic=False,
-        classes_number=3,
-        unique_predictions=['a', 'b', 'c'],
-        class_names=['class 0', 'class 1', 'class 2'])
+        numerical_np_array_classifier_noprob = fum.KNN(k=3)
+        numerical_np_array_classifier_noprob.fit(futt.NUMERICAL_NP_ARRAY,
+                                                 map_target(futt.LABELS))
+        numerical_np_tabular_blimey_noprob = ftse.TabularBlimeyTree(
+            futt.NUMERICAL_NP_ARRAY,
+            numerical_np_array_classifier_noprob,
+            as_probabilistic=False,
+            classes_number=3,
+            unique_predictions=['a', 'b', 'c'],
+            class_names=['class 0', 'class 1', 'class 2'])
 
-    numerical_struct_array_classifier = fum.KNN(k=3)
-    numerical_struct_array_classifier.fit(futt.NUMERICAL_STRUCT_ARRAY,
-                                          futt.LABELS)
-    numerical_np_cat_tabular_blimey = ftse.TabularBlimeyTree(
-        futt.NUMERICAL_NP_ARRAY,
-        numerical_np_array_classifier,
-        categorical_indices=[0, 1])
+        numerical_struct_array_classifier = fum.KNN(k=3)
+        numerical_struct_array_classifier.fit(futt.NUMERICAL_STRUCT_ARRAY,
+                                              futt.LABELS)
+        numerical_np_cat_tabular_blimey = ftse.TabularBlimeyTree(
+            futt.NUMERICAL_NP_ARRAY,
+            numerical_np_array_classifier,
+            categorical_indices=[0, 1])
 
-    iris_classifier = fum.KNN(k=3)
-    iris_classifier.fit(IRIS_DATASET['data'], IRIS_DATASET['target'])
-    iris_blimey = ftse.TabularBlimeyTree(
-        IRIS_DATASET['data'],
-        iris_classifier,
-        class_names=IRIS_DATASET['target_names'].tolist(),
-        feature_names=IRIS_DATASET['feature_names'].tolist())
+        iris_classifier = fum.KNN(k=3)
+        iris_classifier.fit(IRIS_DATASET['data'], IRIS_DATASET['target'])
+        iris_blimey = ftse.TabularBlimeyTree(
+            IRIS_DATASET['data'],
+            iris_classifier,
+            class_names=IRIS_DATASET['target_names'].tolist(),
+            feature_names=IRIS_DATASET['feature_names'].tolist())
 
     def test_init(self):
         """

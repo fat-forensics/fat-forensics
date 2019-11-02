@@ -140,8 +140,8 @@ List[Tuple[string, Union[Iterable[float], float]]]
                 if val1_i[0] != val2[i][0]:
                     equal = False
                     break
-                is_close = np.isclose(
-                    val1_i[1], val2[i][1], atol=atol, equal_nan=True).all()
+                is_close = np.allclose(
+                    val1_i[1], val2[i][1], atol=atol, equal_nan=True)
                 if not is_close:
                     equal = False
                     break
@@ -195,9 +195,7 @@ Dictionary[Union[string, integer], Union[Iterable[float], float]]]
                     val1 = inner_dict1[inner_key]
                     val2 = inner_dict2[inner_key]
 
-                    is_close = np.isclose(
-                        val1, val2, atol=atol, equal_nan=True).all()
-                    if not is_close:
+                    if not np.allclose(val1, val2, atol=atol, equal_nan=True):
                         equal = False
                         break
             else:

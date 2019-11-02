@@ -5,8 +5,15 @@ Tests scikit-learn transparency tools.
 # License: new BSD
 
 import pytest
-import sklearn
-import sklearn.tree
+
+try:
+    import sklearn
+    import sklearn.tree
+except ImportError:  # pragma: no cover
+    pytest.skip(
+        'Skipping tests of scikit-learn transparency tools '
+        '-- scikit-learn is not installed.',
+        allow_module_level=True)
 
 import numpy as np
 

@@ -241,12 +241,19 @@ lime/lime_base.py#L116
             weighted_data, weighted_target, method='lasso', verbose=False)
         coefs = fitted_lars_path[2]
 
-        nonzero_count = np.count_nonzero(coefs, axis=0)
-        matching_paths = np.where(nonzero_count <= features_number)[0]
-        biggest_path = matching_paths[-1]
-        nonzero_indices = coefs[:, biggest_path].nonzero()[0]
+        # numpy.count_nonzero returns a scalar (despite specifying the axis)
+        # in early versions of numpy, hence the workaround of:
+        # np.count_nonzero(coefs, axis=0).
+        nonzero_count = (coefs != 0).sum(axis=0)
 
-        if nonzero_indices.size:
+        matching_paths_user = (nonzero_count <= features_number)
+        matching_paths_nonzero = (nonzero_count > 0)
+        matching_paths = np.where(
+            np.logical_and(matching_paths_user, matching_paths_nonzero))[0]
+
+        if matching_paths.size:
+            biggest_path = matching_paths[-1]
+            nonzero_indices = coefs[:, biggest_path].nonzero()[0]
             feature_indices = indices[nonzero_indices]
             if nonzero_indices.shape[0] != features_number:
                 logger.warning(

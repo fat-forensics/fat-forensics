@@ -61,8 +61,11 @@ except ImportError as exin:
         'require scikit-learn to be installed. Since scikit-learn is missing, '
         'this functionality will be disabled.', UserWarning)
     logger.error(str(exin))
+
+    ReturnTree = None  # pylint: disable=invalid-name
     SKLEARN_MISSING = True
 else:
+    ReturnTree = sklearn.tree.tree.BaseDecisionTree
     SKLEARN_MISSING = False
 
 BinSamplingValues = Dict[Union[str, int],
@@ -1492,11 +1495,10 @@ surrogate_explainers.TabularBlimeyTree.explain_instance` method.
         is_valid = True
         return is_valid
 
-    def _get_local_model(
-            self, sampled_data: np.ndarray,
-            sampled_data_predictions: np.ndarray, selected_class_index: int,
-            one_vs_rest: bool,
-            maximum_depth: int) -> sklearn.tree.tree.BaseDecisionTree:
+    def _get_local_model(self, sampled_data: np.ndarray,
+                         sampled_data_predictions: np.ndarray,
+                         selected_class_index: int, one_vs_rest: bool,
+                         maximum_depth: int) -> ReturnTree:  # type: ignore
         """
         Fits a local decision tree surrogate.
 
@@ -1821,7 +1823,7 @@ SurrogateTabularExplainer.explain_instance`.
 
             if one_vs_rest:
                 for class_i, class_name in enumerate(self.class_names):
-                    local_model = self._get_local_model(
+                    local_model = self._get_local_model(  # type: ignore
                         sampled_data, sampled_data_predictions, class_i,
                         one_vs_rest, maximum_depth)
 

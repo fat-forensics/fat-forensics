@@ -4,6 +4,18 @@ This module tests scikit-learn linear models explainers.
 # Author: Kacper Sokol <k.sokol@bristol.ac.uk>
 # License: new BSD
 
+import pytest
+
+try:
+    import sklearn
+except ImportError:  # pragma: no cover
+    pytest.skip(
+        'Skipping tests of scikit-learn linear models explainers '
+        '-- scikit-learn is not installed.',
+        allow_module_level=True)
+else:
+    del sklearn
+
 import sklearn.cluster
 import sklearn.discriminant_analysis
 import sklearn.dummy
@@ -13,8 +25,6 @@ import sklearn.naive_bayes
 import sklearn.neighbors
 import sklearn.svm
 import sklearn.tree
-
-import pytest
 
 import numpy as np
 
@@ -52,7 +62,6 @@ LINEAR_REGRESSORS = [
     sklearn.linear_model.LassoLarsIC,
     sklearn.linear_model.ARDRegression,
     sklearn.linear_model.HuberRegressor,
-    sklearn.linear_model.LinearRegression,
     sklearn.linear_model.TheilSenRegressor,
     sklearn.linear_model.OrthogonalMatchingPursuit,
     sklearn.linear_model.OrthogonalMatchingPursuitCV,
@@ -64,7 +73,8 @@ LINEAR_REGRESSORS = [
     sklearn.linear_model.SGDRegressor
 ]
 LINEAR_REGRESSORS_ = [
-    sklearn.svm.LinearSVR,
+    sklearn.linear_model.LinearRegression,
+    sklearn.svm.LinearSVR
 ]
 LINEAR_MULTITASK_REGRESSORS = [
     sklearn.linear_model.MultiTaskLasso,
@@ -73,7 +83,6 @@ LINEAR_MULTITASK_REGRESSORS = [
     sklearn.linear_model.MultiTaskElasticNetCV
 ]
 NON_LINEAR_MODELS = [
-    sklearn.linear_model.RANSACRegressor,
     sklearn.cluster.KMeans,
     sklearn.dummy.DummyClassifier,
     sklearn.dummy.DummyRegressor,
@@ -82,6 +91,9 @@ NON_LINEAR_MODELS = [
     sklearn.neighbors.KNeighborsRegressor,
     sklearn.tree.DecisionTreeClassifier,
     sklearn.tree.DecisionTreeRegressor
+]
+NON_LINEAR_MODELS_ = [
+    sklearn.linear_model.RANSACRegressor
 ]
 
 LINEAR_REG_COEF = [
@@ -97,7 +109,6 @@ LINEAR_REG_COEF = [
     np.array([0., 0., 0., -0.007]),
     np.array([0.104, 0.000, 0.028, 0.000]),
     np.array([0.029, -0.004, 0.018, -0.005]),
-    np.array([0.035, -0.004, 0.020, -0.005]),
     np.array([-0.028, -0.039, 0.028, -0.007]),
     np.array([0., 0., 0., -0.009]),
     np.array([0., 0., 0., -0.009]),
@@ -108,7 +119,8 @@ LINEAR_REG_COEF = [
     np.array([1.219, 10.356, -0.982, -19.025])  # / 1e+10
 ]
 LINEAR_REG_COEF_ = [
-    np.array([0.012, 0.007, 0.027, -0.016]),
+    np.array([0.035, -0.004, 0.020, -0.005]),
+    np.array([0.012, 0.007, 0.027, -0.016])
 ]
 LINEAR_CLF_COEF_36 = [
     np.array([[-28.064, -84.191, -65.482, -299.345]]),
@@ -167,8 +179,9 @@ def get_kwargs(clf_name):
     elif (clf_name.startswith('PassiveAggressive')
           or clf_name in ('Perceptron', 'SGDClassifier', 'SGDRegressor')):
         kwargs = dict(max_iter=40, tol=1e-1, random_state=42)
-    elif clf_name == 'LinearSVR':
-        kwargs = dict(max_iter=5, tol=1, random_state=42)
+    # This model is not currently tested.
+    # elif clf_name == 'LinearSVR':
+    #     kwargs = dict(max_iter=5, tol=1, random_state=42)
     else:
         kwargs = dict()
     return kwargs
@@ -186,7 +199,7 @@ def test_validate_classifier_list():
 
         assert hasattr(clf_instance, 'classes_')
 
-    for clf in LINEAR_REGRESSORS + LINEAR_REGRESSORS_:
+    for clf in LINEAR_REGRESSORS:
         name = clf.__name__
         kwargs = get_kwargs(name)
         clf_instance = clf(**kwargs)
@@ -222,7 +235,7 @@ def test_is_scikit_linear():
         ftsl._is_scikit_linear(clf_instance)
     assert str(excinfo.value) == assertion_error_clf
 
-    for clf in NON_LINEAR_MODELS:
+    for clf in NON_LINEAR_MODELS + NON_LINEAR_MODELS_:
         clf_instance = clf()
         assert ftsl._is_scikit_linear(clf_instance) is False
 
@@ -240,10 +253,7 @@ def test_is_fitted_linear():
     unfit_error = ("This {} instance is not fitted yet. Call 'fit' with "
                    'appropriate arguments before using this method.')
 
-    mdl = (LINEAR_CLASSIFIERS + LINEAR_CLASSIFIERS_ + LINEAR_REGRESSORS
-           + LINEAR_REGRESSORS_)  # yapf: disable
-
-    for clf in mdl:
+    for clf in LINEAR_CLASSIFIERS + LINEAR_CLASSIFIERS_ + LINEAR_REGRESSORS:
         name = clf.__name__
         kwargs = get_kwargs(name)
         clf_instance = clf(**kwargs)

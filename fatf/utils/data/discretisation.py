@@ -6,7 +6,8 @@ discretisation approaches.
 #         Kacper Sokol <k.sokol@bristol.ac.uk>
 # License: new BSD
 
-from typing import Dict, List, Optional, Union
+from typing import Dict  # pylint: disable=unused-import
+from typing import List, Optional, Union
 
 import abc
 import warnings

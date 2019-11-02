@@ -18,20 +18,27 @@ import pytest
 
 import numpy as np
 
+import fatf
+
 import fatf.transparency.sklearn.linear_model as ftsl
 
 # yapf: disable
 LINEAR_CLASSIFIERS = [
     sklearn.svm.LinearSVC,
-    sklearn.linear_model.SGDClassifier,
-    sklearn.linear_model.PassiveAggressiveClassifier,
     sklearn.linear_model.RidgeClassifier,
     sklearn.linear_model.RidgeClassifierCV,
-    sklearn.linear_model.Perceptron,
     sklearn.discriminant_analysis.LinearDiscriminantAnalysis,
     #
     sklearn.linear_model.LogisticRegression,
-    sklearn.linear_model.LogisticRegressionCV]
+    sklearn.linear_model.LogisticRegressionCV
+]
+# These three linear models get different results in different Python versions,
+# hence will not be tested for parameters.
+LINEAR_CLASSIFIERS_ = [
+    sklearn.linear_model.SGDClassifier,
+    sklearn.linear_model.PassiveAggressiveClassifier,
+    sklearn.linear_model.Perceptron
+]
 LINEAR_REGRESSORS = [
     sklearn.linear_model.BayesianRidge,
     sklearn.linear_model.ElasticNet,
@@ -55,12 +62,14 @@ LINEAR_REGRESSORS = [
     #
     sklearn.svm.LinearSVR,
     sklearn.linear_model.PassiveAggressiveRegressor,
-    sklearn.linear_model.SGDRegressor]
+    sklearn.linear_model.SGDRegressor
+]
 LINEAR_MULTITASK_REGRESSORS = [
     sklearn.linear_model.MultiTaskLasso,
     sklearn.linear_model.MultiTaskLassoCV,
     sklearn.linear_model.MultiTaskElasticNet,
-    sklearn.linear_model.MultiTaskElasticNetCV]
+    sklearn.linear_model.MultiTaskElasticNetCV
+]
 NON_LINEAR_MODELS = [
     sklearn.linear_model.RANSACRegressor,
     sklearn.cluster.KMeans,
@@ -70,7 +79,8 @@ NON_LINEAR_MODELS = [
     sklearn.neighbors.KNeighborsClassifier,
     sklearn.neighbors.KNeighborsRegressor,
     sklearn.tree.DecisionTreeClassifier,
-    sklearn.tree.DecisionTreeRegressor]
+    sklearn.tree.DecisionTreeRegressor
+]
 
 LINEAR_REG_COEF = [
     np.array([0.001, -0.003, 0.004, -0.008]),
@@ -96,13 +106,20 @@ LINEAR_REG_COEF = [
     np.array([0.017, -0.003, 0.040, -0.005]),
     np.array([1.219, 10.356, -0.982, -19.025])  # / 1e+10
 ]
-LINEAR_CLF_COEF = [
-    np.array([[0.004, -0.003, 0.013, -0.033]]),
+LINEAR_CLF_COEF_36 = [
     np.array([[-28.064, -84.191, -65.482, -299.345]]),
     np.array([[0.001, -0.007, 0.004, -0.042]]),
+    np.array([[-3., -9., -7., -32.]]),
+]
+LINEAR_CLF_COEF_37 = [
+    np.array([[84.191, 9.355, 130.964, -514.500]]),
+    np.array([[0.003, -0.003, 0.008, -0.038]]),
+    np.array([[9., 1., 14., -55.]])
+]
+LINEAR_CLF_COEF = [
+    np.array([[0.004, -0.003, 0.013, -0.033]]),
     np.array([[0.065, -0.007, 0.039, -0.011]]),
     np.array([[0.042, -0.007, 0.033, -0.012]]),
-    np.array([[-3., -9., -7., -32.]]),
     np.array([[2.220, -0.224, 1.261, -0.326]]),
     np.array([[0.021, -0.024, 0.063, -0.195]]),
     np.array([[0.001, -0.003, 0.001, -0.015]])
@@ -157,7 +174,7 @@ def test_validate_classifier_list():
     """
     Validates the list of all the scikit-learn models used for testing.
     """
-    for clf in LINEAR_CLASSIFIERS:
+    for clf in LINEAR_CLASSIFIERS + LINEAR_CLASSIFIERS_:
         name = clf.__name__
         kwargs = get_kwargs(name)
         clf_instance = clf(**kwargs)
@@ -205,7 +222,8 @@ def test_is_scikit_linear():
         clf_instance = clf()
         assert ftsl._is_scikit_linear(clf_instance) is False
 
-    mdl = LINEAR_CLASSIFIERS + LINEAR_REGRESSORS + LINEAR_MULTITASK_REGRESSORS
+    mdl = (LINEAR_CLASSIFIERS + LINEAR_CLASSIFIERS_ + LINEAR_REGRESSORS
+           + LINEAR_MULTITASK_REGRESSORS)  # yapf: disable
     for clf in mdl:
         clf_instance = clf()
         assert ftsl._is_scikit_linear(clf_instance) is True
@@ -218,7 +236,7 @@ def test_is_fitted_linear():
     unfit_error = ("This {} instance is not fitted yet. Call 'fit' with "
                    'appropriate arguments before using this method.')
 
-    for clf in LINEAR_CLASSIFIERS + LINEAR_REGRESSORS:
+    for clf in LINEAR_CLASSIFIERS + LINEAR_CLASSIFIERS_ + LINEAR_REGRESSORS:
         name = clf.__name__
         kwargs = get_kwargs(name)
         clf_instance = clf(**kwargs)
@@ -252,6 +270,8 @@ def test_linear_classifier_coefficients():
     Tests :func:`fatf.transparency.sklearn.linear_model.\
 linear_classifier_coefficients` function.
     """
+    fatf.setup_random_seed()
+
     type_error = ('This functionality is designated for linear-like '
                   'scikit-learn predictor instances only. Instead got: {}.')
     unfit_error = ("This {} instance is not fitted yet. Call 'fit' with "
@@ -331,6 +351,8 @@ class TestSKLearnLinearModelExplainer(object):
         """
         Tests ``SKLearnLinearModelExplainer`` with linear classifiers.
         """
+        fatf.setup_random_seed()
+
         for i, clf in enumerate(LINEAR_CLASSIFIERS):
             name = clf.__name__
             kwargs = get_kwargs(name)
@@ -354,6 +376,8 @@ class TestSKLearnLinearModelExplainer(object):
         """
         Tests ``SKLearnLinearModelExplainer`` with linear regressors.
         """
+        fatf.setup_random_seed()
+
         for i, clf in enumerate(LINEAR_REGRESSORS):
             name = clf.__name__
             kwargs = get_kwargs(name)
@@ -380,6 +404,8 @@ class TestSKLearnLinearModelExplainer(object):
         """
         Tests ``SKLearnLinearModelExplainer`` with linear multitask regressors.
         """
+        fatf.setup_random_seed()
+
         for i, clf in enumerate(LINEAR_MULTITASK_REGRESSORS):
             name = clf.__name__
             kwargs = get_kwargs(name)

@@ -1,4 +1,6 @@
 """
+.. versionadded:: 0.0.2
+
 The :mod:`fatf.utils.testing.transparency` module holds transparency testing
 assets.
 """
@@ -17,8 +19,8 @@ __all__ = ['LABELS',
            'MIXED_ARRAY',
            'InvalidModel',
            'NonProbabilisticModel',
-           'is_explanation_equal_list',
-           'is_explanation_equal_dict']  # yapf: disable
+           'is_explanation_equal_dict',
+           'is_explanation_equal_list']  # yapf: disable
 
 ExplanationList = Dict[str, List[Tuple[str, Union[Iterable[float], float]]]]
 ExplanationDict = Dict[str,
@@ -61,6 +63,8 @@ MIXED_ARRAY = np.array(
 class InvalidModel(object):
     """
     An invalid model class -- it does not implement a ``predict_proba`` method.
+
+    .. versionadded:: 0.0.2
     """
 
     # pylint: disable=useless-object-inheritance,too-few-public-methods
@@ -79,6 +83,8 @@ class InvalidModel(object):
 class NonProbabilisticModel(InvalidModel):
     """
     A model that is not probabilistic -- no ``predict_proba`` function.
+
+    .. versionadded:: 0.0.2
     """
 
     def __init__(self, prediction_function):
@@ -100,6 +106,8 @@ def is_explanation_equal_list(dict1: ExplanationList,
                               atol: float = 1e-1) -> bool:
     """
     Tests if the two dictionaries of a given structure are equal.
+
+    .. versionadded:: 0.0.2
 
     The both of the input parameters must be a dictionary with string keys and
     list values. The latter is composed of 2-tuples of strings and floats or
@@ -158,6 +166,8 @@ def is_explanation_equal_dict(dict1: ExplanationDict,
                               atol: float = 1e-3) -> bool:
     """
     Tests if the two dictionaries of a given structure are equal.
+
+    .. versionadded:: 0.0.2
 
     The both of the input parameters must be a dictionary with string keys and
     dictionary values. The latter one has strings or integers as its keys and

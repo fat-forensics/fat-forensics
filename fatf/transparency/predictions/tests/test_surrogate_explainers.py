@@ -15,14 +15,14 @@ except ImportError:  # pragma: no cover
         'require scikit-learn to be installed. Since scikit-learn is missing, '
         'this functionality will be disabled.')
     with pytest.warns(UserWarning) as warning:
-        import fatf.transparency.surrogate_explainers as ftse
+        import fatf.transparency.predictions.surrogate_explainers as ftps
     assert len(warning) > 0
     assert str(warning[-1].message) == _missing_sklearn_msg
 
     SKLEARN_MISSING = True
 else:
     del sklearn
-    import fatf.transparency.surrogate_explainers as ftse
+    import fatf.transparency.predictions.surrogate_explainers as ftps
     SKLEARN_MISSING = False
 
 import importlib
@@ -60,11 +60,11 @@ def test_sklearn_imports(caplog):
                          'the TabularBlimeyTree explainer.')
 
     assert len(caplog.records) == 0
-    assert 'fatf.transparency.surrogate_explainers' in sys.modules
+    assert 'fatf.transparency.predictions.surrogate_explainers' in sys.modules
 
     with futi.module_import_tester('sklearn', when_missing=True):
         with pytest.warns(UserWarning) as warning:
-            importlib.reload(ftse)
+            importlib.reload(ftps)
         assert len(warning) == 1
         assert str(warning[0].message) == missing_sklearn
         #
@@ -73,21 +73,25 @@ def test_sklearn_imports(caplog):
         assert caplog.records[0].getMessage() == "No module named 'sklearn'"
 
         with pytest.raises(ImportError) as exin:
-            ftse.TabularBlimeyLime(None, None)
+            ftps.TabularBlimeyLime(None, None)
         assert str(exin.value) == import_error_lime
 
         with pytest.raises(ImportError) as exin:
-            ftse.TabularBlimeyTree(None, None)
+            ftps.TabularBlimeyTree(None, None)
         assert str(exin.value) == import_error_tree
 
-    importlib.reload(ftse)
+    importlib.reload(ftps)
     assert len(caplog.records) == 1
-    assert 'fatf.transparency.surrogate_explainers' in sys.modules
+    assert 'fatf.transparency.predictions.surrogate_explainers' in sys.modules
 
 
 def test_input_is_valid():
     """
-    Tests :func:`fatf.transparency.surrogate_explainers._is_input_valid`.
+    Tests the ``_is_input_valid`` method.
+
+    Tests the
+    :func:`fatf.transparency.predictions.surrogate_explainers._is_input_valid`
+    method.
     """
     dataset_incorrect_shape = ('The input dataset must be a 2-dimensional '
                                'numpy array.')
@@ -146,113 +150,113 @@ def test_input_is_valid():
                                         'string nor an integer.')
 
     with pytest.raises(IncorrectShapeError) as exin:
-        ftse._input_is_valid(futt.LABELS, None, None, None, None, None, None,
+        ftps._input_is_valid(futt.LABELS, None, None, None, None, None, None,
                              None)
     assert str(exin.value) == dataset_incorrect_shape
     with pytest.raises(TypeError) as exin:
         array = np.array([[0, None], [0, 8]])
-        ftse._input_is_valid(array, None, None, None, None, None, None, None)
+        ftps._input_is_valid(array, None, None, None, None, None, None, None)
     assert str(exin.value) == dataset_type_error
 
     with pytest.raises(TypeError) as exin:
-        ftse._input_is_valid(futt.NUMERICAL_NP_ARRAY, None, None, None, None,
+        ftps._input_is_valid(futt.NUMERICAL_NP_ARRAY, None, None, None, None,
                              None, None, None)
     assert str(exin.value) == as_probabilistic_type_error
 
     model = futt.InvalidModel()
     with pytest.raises(IncompatibleModelError) as exin:
-        ftse._input_is_valid(futt.NUMERICAL_NP_ARRAY, model, False, None, None,
+        ftps._input_is_valid(futt.NUMERICAL_NP_ARRAY, model, False, None, None,
                              None, None, None)
     assert str(exin.value) == model_incompatible_model_np
     with pytest.raises(IncompatibleModelError) as exin:
-        ftse._input_is_valid(futt.NUMERICAL_NP_ARRAY, model, True, None, None,
+        ftps._input_is_valid(futt.NUMERICAL_NP_ARRAY, model, True, None, None,
                              None, None, None)
     assert str(exin.value) == model_incompatible_model_p
     model = futt.NonProbabilisticModel(None)
     with pytest.raises(IncompatibleModelError) as exin:
-        ftse._input_is_valid(futt.NUMERICAL_NP_ARRAY, model, True, None, None,
+        ftps._input_is_valid(futt.NUMERICAL_NP_ARRAY, model, True, None, None,
                              None, None, None)
     assert str(exin.value) == model_incompatible_model_p
 
     with pytest.raises(TypeError) as exin:
-        ftse._input_is_valid(futt.NUMERICAL_NP_ARRAY, model, False, 'a', None,
+        ftps._input_is_valid(futt.NUMERICAL_NP_ARRAY, model, False, 'a', None,
                              None, None, None)
     assert str(exin.value) == categorical_indices_type_error
     with pytest.raises(IndexError) as exin:
-        ftse._input_is_valid(futt.NUMERICAL_NP_ARRAY, model, False, ['a'],
+        ftps._input_is_valid(futt.NUMERICAL_NP_ARRAY, model, False, ['a'],
                              None, None, None, None)
     assert str(exin.value) == categorical_indices_index_error.format(
         np.array(['a']))
     with pytest.raises(ValueError) as exin:
-        ftse._input_is_valid(futt.NUMERICAL_NP_ARRAY, model, False,
+        ftps._input_is_valid(futt.NUMERICAL_NP_ARRAY, model, False,
                              ['a', 'b', 'a', 'c'], None, None, None, None)
     assert str(exin.value) == categorical_indices_value_error
 
     with pytest.raises(TypeError) as exin:
-        ftse._input_is_valid(futt.NUMERICAL_NP_ARRAY, model, False, None, 'a',
+        ftps._input_is_valid(futt.NUMERICAL_NP_ARRAY, model, False, None, 'a',
                              None, None, None)
     assert str(exin.value) == class_names_type_error_out
     with pytest.raises(ValueError) as exin:
-        ftse._input_is_valid(futt.NUMERICAL_NP_ARRAY, model, False, None, [],
+        ftps._input_is_valid(futt.NUMERICAL_NP_ARRAY, model, False, None, [],
                              None, None, None)
     assert str(exin.value) == class_names_value_error_empty
     with pytest.raises(ValueError) as exin:
-        ftse._input_is_valid(futt.NUMERICAL_NP_ARRAY, model, False, None,
+        ftps._input_is_valid(futt.NUMERICAL_NP_ARRAY, model, False, None,
                              ['a', 'b', 'a', 'c'], None, None, None)
     assert str(exin.value) == class_names_value_error_dup
     with pytest.raises(TypeError) as exin:
-        ftse._input_is_valid(futt.NUMERICAL_NP_ARRAY, model, False, None,
+        ftps._input_is_valid(futt.NUMERICAL_NP_ARRAY, model, False, None,
                              ['a', 0, 'b'], None, None, None)
     assert str(exin.value) == class_names_type_error_in.format(0)
 
     with pytest.raises(TypeError) as exin:
-        ftse._input_is_valid(futt.NUMERICAL_NP_ARRAY, model, False, None, None,
+        ftps._input_is_valid(futt.NUMERICAL_NP_ARRAY, model, False, None, None,
                              'a', None, None)
     assert str(exin.value) == class_number_type_error
     with pytest.raises(ValueError) as exin:
-        ftse._input_is_valid(futt.NUMERICAL_NP_ARRAY, model, False, None, None,
+        ftps._input_is_valid(futt.NUMERICAL_NP_ARRAY, model, False, None, None,
                              1, None, None)
     assert str(exin.value) == class_number_value_error
 
     with pytest.raises(TypeError) as exin:
-        ftse._input_is_valid(futt.NUMERICAL_NP_ARRAY, model, False, None, None,
+        ftps._input_is_valid(futt.NUMERICAL_NP_ARRAY, model, False, None, None,
                              None, 'a', None)
     assert str(exin.value) == feature_names_type_error_out
     with pytest.raises(ValueError) as exin:
-        ftse._input_is_valid(futt.NUMERICAL_NP_ARRAY, model, False, None, None,
+        ftps._input_is_valid(futt.NUMERICAL_NP_ARRAY, model, False, None, None,
                              None, ['a'], None)
     assert str(exin.value) == feature_names_value_error_count.format(4)
     with pytest.raises(ValueError) as exin:
-        ftse._input_is_valid(futt.NUMERICAL_NP_ARRAY, model, False, None, None,
+        ftps._input_is_valid(futt.NUMERICAL_NP_ARRAY, model, False, None, None,
                              None, ['a', 'b', 'a', 'c'], None)
     assert str(exin.value) == feature_names_value_error_dup
     with pytest.raises(TypeError) as exin:
-        ftse._input_is_valid(futt.NUMERICAL_NP_ARRAY, model, False, None, None,
+        ftps._input_is_valid(futt.NUMERICAL_NP_ARRAY, model, False, None, None,
                              None, ['0', '1', 2, '3'], None)
     assert str(exin.value) == feature_names_type_error_in.format(2)
 
     with pytest.raises(TypeError) as exin:
-        ftse._input_is_valid(futt.NUMERICAL_NP_ARRAY, model, False, None, None,
+        ftps._input_is_valid(futt.NUMERICAL_NP_ARRAY, model, False, None, None,
                              None, None, 'list')
     assert str(exin.value) == unique_predictions_type_error_out
     with pytest.raises(TypeError) as exin:
-        ftse._input_is_valid(futt.NUMERICAL_NP_ARRAY, model, False, None, None,
+        ftps._input_is_valid(futt.NUMERICAL_NP_ARRAY, model, False, None, None,
                              None, None, [None, 's', 't'])
     assert str(exin.value) == unique_predictions_type_error_in
     with pytest.raises(TypeError) as exin:
-        ftse._input_is_valid(futt.NUMERICAL_NP_ARRAY, model, False, None, None,
+        ftps._input_is_valid(futt.NUMERICAL_NP_ARRAY, model, False, None, None,
                              None, None, ['s', 't', 'r', 1, 'n', 'g'])
     assert str(exin.value) == unique_predictions_type_error_in
     with pytest.raises(ValueError) as exin:
-        ftse._input_is_valid(futt.NUMERICAL_NP_ARRAY, model, False, None, None,
+        ftps._input_is_valid(futt.NUMERICAL_NP_ARRAY, model, False, None, None,
                              None, None, [])
     assert str(exin.value) == unique_predictions_value_error_empty
     with pytest.raises(ValueError) as exin:
-        ftse._input_is_valid(futt.NUMERICAL_NP_ARRAY, model, False, None, None,
+        ftps._input_is_valid(futt.NUMERICAL_NP_ARRAY, model, False, None, None,
                              None, None, ['a', 'b', 'b', 'a'])
     assert str(exin.value) == unique_predictions_value_error_dup
 
-    assert ftse._input_is_valid(futt.NUMERICAL_NP_ARRAY, model, False, None,
+    assert ftps._input_is_valid(futt.NUMERICAL_NP_ARRAY, model, False, None,
                                 None, None, None, None)
 
 
@@ -260,19 +264,18 @@ class TestSurrogateTabularExplainer(object):
     """
     Tests the ``SurrogateTabularExplainer`` abstract class.
 
-    Tests the
-    :class:`fatf.transparency.surrogate_explainers.SurrogateTabularExplainer`
-    abstract class.
+    Tests the :class:`fatf.transparency.predictions.surrogate_explainers.\
+SurrogateTabularExplainer` abstract class.
     """
 
-    class BrokenSurrogateTabularExplainer(ftse.SurrogateTabularExplainer):
+    class BrokenSurrogateTabularExplainer(ftps.SurrogateTabularExplainer):
         """
         A broken surrogate tabular explainer implementation.
 
         This class does not overwrite the ``explain_instance`` method.
         """
 
-    class BaseSurrogateTabularExplainer(ftse.SurrogateTabularExplainer):
+    class BaseSurrogateTabularExplainer(ftps.SurrogateTabularExplainer):
         """
         A dummy surrogate tabular explainer implementation.
         """
@@ -351,7 +354,7 @@ class TestSurrogateTabularExplainer(object):
         """
         Tests initialisation of ``SurrogateTabularExplainer`` class children.
 
-        Tests the :func:`fatf.transparency.surrogate_explainers.\
+        Tests the :func:`fatf.transparency.predictions.surrogate_explainers.\
 SurrogateTabularExplainer.__init__` initialisation method.
         """
         abstract_method_error = ("Can't instantiate abstract class "
@@ -413,7 +416,7 @@ SurrogateTabularExplainer.__init__` initialisation method.
 
         # Missing explain_instance method.
         with pytest.raises(TypeError) as exin:
-            ftse.SurrogateTabularExplainer(futt.NUMERICAL_NP_ARRAY,
+            ftps.SurrogateTabularExplainer(futt.NUMERICAL_NP_ARRAY,
                                            self.numerical_np_array_classifier)
         assert str(exin.value) == abstract_method_error.format(
             'SurrogateTabularExplainer')
@@ -700,7 +703,7 @@ SurrogateTabularExplainer.__init__` initialisation method.
         """
         Tests the ``_explain_instance_is_valid`` method.
 
-        Tests the :func:`fatf.transparency.surrogate_explainers. \
+        Tests the :func:`fatf.transparency.predictions.surrogate_explainers.\
 SurrogateTabularExplainer._explain_instance_is_valid` method.
         """
         incorrect_shape_data_row = ('The data_row must either be a '
@@ -756,18 +759,21 @@ SurrogateTabularExplainer._explain_instance_is_valid` method.
 @pytest.mark.skipif(SKLEARN_MISSING, reason='scikit-learn is not installed.')
 class TestTabularBlimeyLime(object):
     """
-    Tests :class:`fatf.transparency.surrogate_explainers.TabularBlimeyLime`.
+    Tests the ``TabularBlimeyLime`` class.
+
+    Tests the :class:`fatf.transparency.predictions.surrogate_explainers.\
+TabularBlimeyLime` class.
     """
     if not SKLEARN_MISSING:
         numerical_np_array_classifier = fum.KNN(k=3)
         numerical_np_array_classifier.fit(futt.NUMERICAL_NP_ARRAY, futt.LABELS)
-        numerical_np_tabular_lime = ftse.TabularBlimeyLime(
+        numerical_np_tabular_lime = ftps.TabularBlimeyLime(
             futt.NUMERICAL_NP_ARRAY, numerical_np_array_classifier)
 
         numerical_struct_array_classifier = fum.KNN(k=3)
         numerical_struct_array_classifier.fit(futt.NUMERICAL_STRUCT_ARRAY,
                                               futt.LABELS)
-        numerical_struct_cat_tabular_lime = ftse.TabularBlimeyLime(
+        numerical_struct_cat_tabular_lime = ftps.TabularBlimeyLime(
             futt.NUMERICAL_STRUCT_ARRAY,
             numerical_struct_array_classifier,
             categorical_indices=['a', 'b'])
@@ -775,14 +781,14 @@ class TestTabularBlimeyLime(object):
         categorical_array_classifier = fum.KNN(k=3)
         categorical_array_classifier.fit(futt.CATEGORICAL_NP_ARRAY,
                                          futt.LABELS)
-        categorical_np_lime = ftse.TabularBlimeyLime(
+        categorical_np_lime = ftps.TabularBlimeyLime(
             futt.CATEGORICAL_NP_ARRAY,
             categorical_array_classifier,
             categorical_indices=[0, 1, 2])
 
         iris_classifier = fum.KNN(k=3)
         iris_classifier.fit(IRIS_DATASET['data'], IRIS_DATASET['target'])
-        iris_lime = ftse.TabularBlimeyLime(
+        iris_lime = ftps.TabularBlimeyLime(
             IRIS_DATASET['data'],
             iris_classifier,
             class_names=IRIS_DATASET['target_names'].tolist(),
@@ -792,9 +798,8 @@ class TestTabularBlimeyLime(object):
         """
         Tests the ``TabularBlimeyLime`` initialisation.
 
-        Tests the initialisation of the
-        :class:`fatf.transparency.surrogate_explainers.TabularBlimeyLime`
-        class.
+        Tests the initialisation of the :class:`fatf.transparency.predictions.\
+surrogate_explainers.TabularBlimeyLime` class.
         """
         # Test class inheritance
         # yapf: disable
@@ -907,8 +912,8 @@ class TestTabularBlimeyLime(object):
         """
         Tests the ``_explain_instance_input_is_valid`` method.
 
-        Tests :func:`fatf.transparency.surrogate_explainers.TabularBlimeyLime.\
-_explain_instance_input_is_valid` method.
+        Tests :func:`fatf.transparency.predictions.surrogate_explainers.\
+TabularBlimeyLime._explain_instance_input_is_valid` method.
         """
         explained_class_type = ('The explained_class parameter must be either '
                                 'None, a string or an integer.')
@@ -977,8 +982,8 @@ _explain_instance_input_is_valid` method.
         """
         Tests the ``_undiscretise_data`` method.
 
-        Tests :func:`fatf.transparency.surrogate_explainers.TabularBlimeyLime.\
-_undiscretise_data` method.
+        Tests :func:`fatf.transparency.predictions.surrogate_explainers.\
+TabularBlimeyLime._undiscretise_data` method.
         """
         fatf.setup_random_seed()
 
@@ -1016,7 +1021,7 @@ _undiscretise_data` method.
         Tests errors and exceptions in the ``explain_instance`` method.
 
         Tests errors and exceptions in the :func:`fatf.transparency.\
-surrogate_explainers.TabularBlimeyLime.explain_instance` method.
+predictions.surrogate_explainers.TabularBlimeyLime.explain_instance` method.
         """
         explain_class_value_error1 = ('The *{}* explained class name was not '
                                       'recognised. The following class names '
@@ -1040,8 +1045,8 @@ surrogate_explainers.TabularBlimeyLime.explain_instance` method.
         """
         Tests the ``explain_instance`` method.
 
-        Tests :func:`fatf.transparency.surrogate_explainers.TabularBlimeyLime.\
-explain_instance`.
+        Tests :func:`fatf.transparency.predictions.surrogate_explainers.\
+TabularBlimeyLime.explain_instance` method.
         """
         fatf.setup_random_seed()
 
@@ -1187,18 +1192,21 @@ def map_target(target):
 @pytest.mark.skipif(SKLEARN_MISSING, reason='scikit-learn is not installed.')
 class TestTabularBlimeyTree(object):
     """
-    Tests :class:`fatf.transparency.surrogate_explainers.TabularBlimeyTree`.
+    Tests the ``TabularBlimeyTree`` class.
+
+    Tests the :class:`fatf.transparency.predictions.surrogate_explainers.\
+TabularBlimeyTree` class.
     """
     if not SKLEARN_MISSING:
         numerical_np_array_classifier = fum.KNN(k=3)
         numerical_np_array_classifier.fit(futt.NUMERICAL_NP_ARRAY, futt.LABELS)
-        numerical_np_tabular_blimey = ftse.TabularBlimeyTree(
+        numerical_np_tabular_blimey = ftps.TabularBlimeyTree(
             futt.NUMERICAL_NP_ARRAY, numerical_np_array_classifier)
 
         numerical_np_array_classifier_noprob = fum.KNN(k=3)
         numerical_np_array_classifier_noprob.fit(futt.NUMERICAL_NP_ARRAY,
                                                  map_target(futt.LABELS))
-        numerical_np_tabular_blimey_noprob = ftse.TabularBlimeyTree(
+        numerical_np_tabular_blimey_noprob = ftps.TabularBlimeyTree(
             futt.NUMERICAL_NP_ARRAY,
             numerical_np_array_classifier_noprob,
             as_probabilistic=False,
@@ -1209,14 +1217,14 @@ class TestTabularBlimeyTree(object):
         numerical_struct_array_classifier = fum.KNN(k=3)
         numerical_struct_array_classifier.fit(futt.NUMERICAL_STRUCT_ARRAY,
                                               futt.LABELS)
-        numerical_np_cat_tabular_blimey = ftse.TabularBlimeyTree(
+        numerical_np_cat_tabular_blimey = ftps.TabularBlimeyTree(
             futt.NUMERICAL_NP_ARRAY,
             numerical_np_array_classifier,
             categorical_indices=[0, 1])
 
         iris_classifier = fum.KNN(k=3)
         iris_classifier.fit(IRIS_DATASET['data'], IRIS_DATASET['target'])
-        iris_blimey = ftse.TabularBlimeyTree(
+        iris_blimey = ftps.TabularBlimeyTree(
             IRIS_DATASET['data'],
             iris_classifier,
             class_names=IRIS_DATASET['target_names'].tolist(),
@@ -1226,9 +1234,8 @@ class TestTabularBlimeyTree(object):
         """
         Tests the initialisation of the ``TabularBlimeyTree`` class.
 
-        Tests the initialisation of the
-        :class:`fatf.transparency.surrogate_explainers.TabularBlimeyTree`
-        class.
+        Tests the initialisation of the :class:`fatf.transparency.predictions.\
+surrogate_explainers.TabularBlimeyTree` class.
         """
         # Test class inheritance
         # yapf: disable
@@ -1248,7 +1255,7 @@ class TestTabularBlimeyTree(object):
                                   'trees.')
 
         with pytest.raises(TypeError) as exin:
-            ftse.TabularBlimeyTree(futt.NUMERICAL_STRUCT_ARRAY,
+            ftps.TabularBlimeyTree(futt.NUMERICAL_STRUCT_ARRAY,
                                    self.numerical_struct_array_classifier)
         assert str(exin.value) == structured_array_error
 
@@ -1256,7 +1263,7 @@ class TestTabularBlimeyTree(object):
         categorical_array_classifier.fit(futt.CATEGORICAL_NP_ARRAY,
                                          futt.LABELS)
         with pytest.raises(TypeError) as exin:
-            ftse.TabularBlimeyTree(futt.CATEGORICAL_NP_ARRAY,
+            ftps.TabularBlimeyTree(futt.CATEGORICAL_NP_ARRAY,
                                    categorical_array_classifier)
         assert str(exin.value) == string_array_error
 
@@ -1278,7 +1285,7 @@ class TestTabularBlimeyTree(object):
         """
         Tests the ``_explain_instance_input_is_valid`` method.
 
-        Tests the :func:`fatf.transparency.surrogate_explainers.\
+        Tests the :func:`fatf.transparency.predictions.surrogate_explainers.\
 TabularBlimeyTree._explain_instance_input_is_valid` method.
         """
         explained_class_type = ('The explained_class parameter must be either '
@@ -1351,7 +1358,7 @@ TabularBlimeyTree._explain_instance_input_is_valid` method.
         """
         Tests the ``_get_local_model`` method.
 
-        Tests the :func:`fatf.transparency.surrogate_explainers.\
+        Tests the :func:`fatf.transparency.predictions.surrogate_explainers.\
 TabularBlimeyTree._get_local_model` method.
         """
         fatf.setup_random_seed()
@@ -1405,7 +1412,7 @@ TabularBlimeyTree._get_local_model` method.
         """
         Tests the ``explain_instance`` method.
 
-        Tests the :func:`fatf.transparency.surrogate_explainers.\
+        Tests the :func:`fatf.transparency.predictions.surrogate_explainers.\
 TabularBlimeyTree.explain_instance` method.
         """
         fatf.setup_random_seed()

@@ -31,9 +31,13 @@ def check_model_functionality(model_object: Union[object, type],
 
     Parameters
     ----------
-    model_object : object
+    model_object : Union[object, type]
         A Python object (either instantiated or just an object reference) that
         represents a predictive model.
+
+        .. versionchanged:: 0.0.2
+           Added the possibility of checking functionality of non-initialised
+           objects.
     require_probabilities : boolean, optional (default=False)
         A boolean parameter that indicates whether the model object should
         contain a ``predict_proba`` method. Defaults to False.

@@ -1,4 +1,6 @@
 """
+.. versionadded:: 0.0.2
+
 The :mod:`fatf.utils.kernels` module holds distance transformation kernels.
 
 The kernel functions implemented by this module are mainly used to transform a
@@ -67,6 +69,8 @@ def exponential_kernel(distances: np.ndarray, width: float = 1) -> np.ndarray:
     """
     Applies an exponential kernel to an array of distances.
 
+    .. versionadded:: 0.0.2
+
     The exponential kernel is computed as:
 
     .. math::
@@ -119,6 +123,8 @@ def check_kernel_functionality(kernel_function: Callable[..., np.ndarray],
                                suppress_warning: bool = False) -> bool:
     """
     Checks whether a kernel function has exactly one required parameter.
+
+    .. versionadded:: 0.0.2
 
     Parameters
     ----------

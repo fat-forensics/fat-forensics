@@ -28,7 +28,8 @@ import fatf.utils.array.validation as fuav
 import fatf.utils.distances as fud
 import fatf.utils.validation as fuv
 
-__all__ = ['NormalSampling',
+__all__ = ['Augmentation',
+           'NormalSampling',
            'TruncatedNormalSampling',
            'Mixup',
            'NormalClassDiscovery',
@@ -500,6 +501,8 @@ Tuple[numpy.ndarray, numpy.ndarray]]
 class TruncatedNormalSampling(Augmentation):
     """
     Sampling data from a truncated normal distribution.
+
+    .. versionadded:: 0.0.2
 
     This class allows to sample data according to the
     `truncated normal distribution`_. The sampling can be performed either
@@ -1260,6 +1263,8 @@ class NormalClassDiscovery(Augmentation):
     """
     Sampling data to discover instances spanning all the possible classes.
 
+    .. versionadded:: 0.0.2
+
     This augmenter ensures that the generated sample has at least a predefined
     proportion (cf. ``class_proportion_threshold`` parameter) of every possible
     class. For a specific data point, it samples with a normal distribution
@@ -1747,6 +1752,8 @@ class DecisionBoundarySphere(Augmentation):
     """
     Sampling data in a hyper-sphere around the closest decision boundary.
 
+    .. versionadded:: 0.0.2
+
     ``DecisionBoundarySphere`` implements an adapted version of the local
     surrogate sampling introduced by [LAUGEL2018DEFINING]_. A hyper-sphere is
     grown around the specified data point until a decision boundary is found,
@@ -2061,6 +2068,8 @@ class DecisionBoundarySphere(Augmentation):
 class LocalSphere(Augmentation):
     """
     Sampling data in a hyper-sphere around the selected data point.
+
+    .. versionadded:: 0.0.2
 
     ``LocalSphere`` implements an adapted version of the local fidelity
     sampling method introduced by [LAUGEL2018DEFINING]_. For a specific data

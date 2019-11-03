@@ -1,4 +1,6 @@
 """
+.. versionadded:: 0.0.2
+
 The :mod:`fatf.utils.data.feature_selection` module holds feature selection
 tools.
 """

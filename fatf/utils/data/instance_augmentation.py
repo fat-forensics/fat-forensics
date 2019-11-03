@@ -1,4 +1,6 @@
 """
+.. versionadded:: 0.0.2
+
 The :mod:`fatf.utils.data.instance_augmentation` module implements various
 augmentation function for 1-dimensional numpy array-like objects.
 """
@@ -55,6 +57,8 @@ def binary_sampler(data_row: Union[np.ndarray, np.void],
                    samples_number: int = 50) -> np.ndarray:
     """
     Samples non-zero elements of the binary ``data_row`` array uniformly.
+
+    .. versionadded:: 0.0.2
 
     Uniformly samples all of the features that have non-zero (i.e., 1) value in
     the input ``data_row`` from a {0, 1} set. For example, for a

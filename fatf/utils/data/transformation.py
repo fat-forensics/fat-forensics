@@ -1,4 +1,6 @@
 """
+.. versionadded:: 0.0.2
+
 The :mod:`fatf.utils.data.transformation` module holds data transformation
 functions.
 """
@@ -73,6 +75,8 @@ def dataset_row_masking(dataset: np.ndarray,
                         data_row: Union[np.ndarray, np.void]) -> np.ndarray:
     """
     Creates a binary representation of the ``dataset`` by masking its rows.
+
+    .. versionadded:: 0.0.2
 
     The rows of the ``dataset`` array are compared against specified
     ``data_row`` to determine which features values are the same and which are

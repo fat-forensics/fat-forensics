@@ -27,6 +27,8 @@ class IncompatibleExplainerError(FATFException):
     """
     Exception raised when an explainer lacks desired functionality.
 
+    .. versionadded:: 0.0.2
+
     For example, is can be raised when an explainer object does not have an
     ``explain_instance`` method or if the ``explain_instance`` method does not
     have at least one required parameter (an array with a data point to be

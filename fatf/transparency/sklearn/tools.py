@@ -1,4 +1,6 @@
 """
+.. versionadded:: 0.0.2
+
 The :mod:`fatf.transparency.sklearn.tools` module implements a base
 scikit-learn explainer.
 """
@@ -18,7 +20,9 @@ import numpy as np
 import fatf.utils.array.validation as fuav
 import fatf.utils.transparency.explainers as fute
 
-__all__ = []  # type: List[str]
+__all__ = ['is_sklearn_model',
+           'is_sklearn_model_instance',
+           'SKLearnExplainer']
 
 logger = logging.getLogger(__name__)  # pylint: disable=invalid-name
 
@@ -26,6 +30,8 @@ logger = logging.getLogger(__name__)  # pylint: disable=invalid-name
 def is_sklearn_model(clf: Union[object, type]) -> bool:
     """
     Checks whether a class instance or a class is a scikit-learn predictor.
+
+    .. versionadded:: 0.0.2
 
     This is achieved by checking inheritance from
     ``sklearn.base.BaseEstimator``.
@@ -51,6 +57,8 @@ def is_sklearn_model(clf: Union[object, type]) -> bool:
 def is_sklearn_model_instance(clf: object) -> bool:
     """
     Checks whether a class instance (object) is a scikit-learn predictor.
+
+    .. versionadded:: 0.0.2
 
     This function is similar to
     :func:`fatf.transparency.sklearn.tools.is_sklearn_model` but it enforces
@@ -146,6 +154,8 @@ def _validate_input(clf: sklearn.base.BaseEstimator,
 class SKLearnExplainer(fute.Explainer):
     """
     Implements a base scikit-learn model explainer class.
+
+    .. versionadded:: 0.0.2
 
     Every scikit-learn model explainer class should inherit from this class.
     It should also overwrite the following four private methods:

@@ -1,4 +1,6 @@
 """
+.. versionadded:: 0.0.2
+
 The :mod:`fatf.transparency.sklearn.linear_model` module implements linear
 scikit-learn model explainers.
 """
@@ -106,6 +108,8 @@ def linear_classifier_coefficients(
     """
     Extracts coefficients (feature importances) of a linear scikit-learn model.
 
+    .. versionadded:: 0.0.2
+
     .. note::
        Please note that for the coefficients (feature importances) to be
        comparable the values of all features had to be normalised to the same
@@ -150,6 +154,8 @@ def linear_classifier_coefficients(
 class SKLearnLinearModelExplainer(ftst.SKLearnExplainer):
     """
     A scikit-learn linear model explainer class.
+
+    .. versionadded:: 0.0.2
 
     This class implements a ``feature_importance`` method that returns
     coefficients of the linear ``clf`` model. This coefficients can be

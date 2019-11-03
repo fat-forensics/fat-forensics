@@ -1,4 +1,6 @@
 """
+.. versionadded:: 0.0.2
+
 The :mod:`fatf.utils.validation` module validates functions and objects.
 
 This module holds functions responsible for validating generic functions and
@@ -18,6 +20,8 @@ __all__ = ['get_required_parameters_number', 'check_object_functionality']
 def get_required_parameters_number(callable_object: Callable) -> int:
     """
     Checks if a callable object has the correct number of required parameters.
+
+    .. versionadded:: 0.0.2
 
     A callable object can be a function or a method.
 
@@ -57,6 +61,8 @@ def check_object_functionality(
         object_reference_name: Optional[str] = None) -> Tuple[bool, str]:
     """
     Checks if an object has specified methods with given number of parameters.
+
+    .. versionadded:: 0.0.2
 
     The object to be checked can either be an uninitialised object reference or
     an initialised object instance.

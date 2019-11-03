@@ -1,4 +1,6 @@
 """
+.. versionadded:: 0.0.2
+
 The :mod:`fatf.utils.data.feature_selection.sklearn` module implements
 scikit-learn-based feature selection approaches.
 """
@@ -110,6 +112,8 @@ def lasso_path(dataset: np.ndarray,
                features_percentage: int = 100) -> List[Index]:
     """
     Selects the specified number of features based on Lasso path coefficients.
+
+    .. versionadded:: 0.0.2
 
     It may be the case that the specified number of features cannot be selected
     as a lasso path does not give enough non-zero coefficients, in which case

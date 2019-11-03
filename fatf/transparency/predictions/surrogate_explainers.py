@@ -1,6 +1,8 @@
 """
-The :mod:`fatf.transparency.surrogate_explainers` module implements example
-surrogate explainers.
+.. versionadded:: 0.0.2
+
+The :mod:`fatf.transparency.predictions.surrogate_explainers` module implements
+example surrogate explainers.
 
 Guidelines and tips for building custom surrogate explainers for various
 types of data (tabular, image and text) can be found in the how_to_guide_
@@ -44,7 +46,9 @@ import fatf.utils.kernels as fatf_kernels
 import fatf.utils.models.validation as fumv
 import fatf.utils.models.models as fumm
 
-__all__ = ['TabularBlimeyLime', 'TabularBlimeyTree']
+__all__ = ['SurrogateTabularExplainer',
+           'TabularBlimeyLime',
+           'TabularBlimeyTree']  # yapf: disable
 
 logger = logging.getLogger(__name__)  # pylint: disable=invalid-name
 
@@ -86,9 +90,8 @@ def _input_is_valid(
     Validates the input parameters of the ``SurrogateTabularExplainer`` class.
 
     For the input parameters description, warnings and exceptions please see
-    the documentation of the
-    :class:`fatf.transparency.surrogate_explainers.SurrogateTabularExplainer`
-    class.
+    the documentation of the :class:`fatf.transparency.predictions.\
+surrogate_explainers.SurrogateTabularExplainer` class.
 
     Returns
     -------
@@ -224,12 +227,15 @@ class SurrogateTabularExplainer(abc.ABC):
     """
     An abstract parent class for implementing surrogate explainers.
 
+    .. versionadded:: 0.0.2
+
     An abstract class that all surrogate explainer classes should inherit from.
     It contains an ``__init__`` method and an input validator --
     ``_explain_instance_input_is_valid`` -- for the abstract
     ``explain_instance`` method. The validation of the input parameters passed
     to the ``__init__`` method is done via the
-    ``fatf.transparency.surrogate_explainers._input_is_valid`` function.
+    ``fatf.transparency.predictions.surrogate_explainers._input_is_valid``
+    function.
 
     If the ``predictive_model`` is a non-probabilistic classifier
     (``as_probabilistic=False``), it is advised to specify both
@@ -631,7 +637,7 @@ class SurrogateTabularExplainer(abc.ABC):
         This function checks the validity of the ``data_row``.
 
         For the description of exceptions raised by this method please see
-        the documentation of the :func:`fatf.transparency.\
+        the documentation of the :func:`fatf.transparency.predictions.\
 surrogate_explainers.SurrogateTabularExplainer.explain_instance` method.
 
         Parameters
@@ -721,6 +727,8 @@ class TabularBlimeyLime(SurrogateTabularExplainer):
     """
     A tabular LIME explainer -- a surrogate explainer based on a linear model.
 
+    .. versionadded:: 0.0.2
+
     This class implements Local Interpretable Model-agnostic Explanations
     (LIME_) introduced by [RIBEIRO2016WHY]_. This implementation mirrors the
     one in the `official LIME package`_, which is available under the
@@ -799,8 +807,8 @@ class TabularBlimeyLime(SurrogateTabularExplainer):
     how_to_tabular_surrogates_ *how-to guide*.
 
     For additional parameters, warnings and errors description please see the
-    documentation of the parent class
-    :class:`fatf.transparency.surrogate_explainers.SurrogateTabularExplainer`.
+    documentation of the parent class :class:`fatf.transparency.predictions.\
+surrogate_explainers.SurrogateTabularExplainer`.
 
     .. _LIME: https://github.com/marcotcr/lime
     .. _`official LIME package`: https://github.com/marcotcr/lime
@@ -995,7 +1003,7 @@ Dictionary[discretised bin id, Tuple(float, float, float, float)]]
 
         For additional documentation of the input parameters, warnings and
         errors please see the description of :func:`fatf.transparency.\
-surrogate_explainers.TabularBlimeyLime.explain_instance` method.
+predictions.surrogate_explainers.TabularBlimeyLime.explain_instance` method.
 
         Returns
         -------
@@ -1155,12 +1163,12 @@ surrogate_explainers.TabularBlimeyLime.explain_instance` method.
         .. note::
 
            The exact description of the explanation generation procedure can
-           be found in the documentation of this class
-           (:class:`fatf.transparency.surrogate_explainers.TabularBlimeyLime`).
+           be found in the documentation of this class (:class:`fatf.\
+transparency.predictions.surrogate_explainers.TabularBlimeyLime`).
 
         For additional parameters, warnings and errors please see the parent
-        class method :func:`fatf.transparency.surrogate_explainers.\
-SurrogateTabularExplainer.explain_instance`.
+        class method :func:`fatf.transparency.predictions.\
+surrogate_explainers.SurrogateTabularExplainer.explain_instance`.
 
         Parameters
         ----------
@@ -1352,6 +1360,8 @@ class TabularBlimeyTree(SurrogateTabularExplainer):
     """
     A surrogate explainer based on a decision tree.
 
+    .. versionadded:: 0.0.2
+
     This explainer does not use an interpretable data representation (as one
     is learnt by the tree). The data augmentation is done with *Mixup*
     (:class:`fatf.utils.data.augmentation.Mixup`) around the data point
@@ -1375,8 +1385,8 @@ class TabularBlimeyTree(SurrogateTabularExplainer):
     features.
 
     For additional parameters, warnings and errors please see the documentation
-    of the parent class:
-    :class:`fatf.transparency.surrogate_explainers.SurrogateTabularExplainer`.
+    of the parent class: :class:`fatf.transparency.predictions.\
+surrogate_explainers.SurrogateTabularExplainer`.
 
     Raises
     ------
@@ -1454,7 +1464,7 @@ class TabularBlimeyTree(SurrogateTabularExplainer):
 
         For additional documentation of the input parameters, warnings and
         errors please see the description of :func:`fatf.transparency.\
-surrogate_explainers.TabularBlimeyTree.explain_instance` method.
+predictions.surrogate_explainers.TabularBlimeyTree.explain_instance` method.
 
         Returns
         -------
@@ -1508,7 +1518,7 @@ surrogate_explainers.TabularBlimeyTree.explain_instance` method.
 
         For additional documentation of the input parameters, warnings and
         errors please see the description of :func:`fatf.transparency.\
-surrogate_explainers.TabularBlimeyTree.explain_instance` method.
+predictions.surrogate_explainers.TabularBlimeyTree.explain_instance` method.
 
         Parameters
         ----------
@@ -1627,8 +1637,8 @@ surrogate_explainers.TabularBlimeyTree.explain_instance` method.
         this method.
 
         For additional parameters, warnings and errors please see the parent
-        class method :func:`fatf.transparency.surrogate_explainers.\
-SurrogateTabularExplainer.explain_instance`.
+        class method :func:`fatf.transparency.predictions.\
+surrogate_explainers.SurrogateTabularExplainer.explain_instance`.
 
         Parameters
         ----------

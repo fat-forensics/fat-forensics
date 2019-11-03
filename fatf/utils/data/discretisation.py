@@ -1,4 +1,6 @@
 """
+.. versionadded:: 0.0.2
+
 The :mod:`fatf.utils.data.discretisation` module implements data
 discretisation approaches.
 """
@@ -19,7 +21,7 @@ import fatf.utils.array.validation as fuav
 
 from fatf.exceptions import IncorrectShapeError
 
-__all__ = ['QuartileDiscretiser']
+__all__ = ['Discretiser', 'QuartileDiscretiser']
 
 Index = Union[int, str]
 
@@ -109,6 +111,8 @@ def _validate_input_discretiser(
 class Discretiser(abc.ABC):
     """
     An abstract class that all discretiser implementations should inherit from.
+
+    .. versionadded:: 0.0.2
 
     The validation of the initialiser input parameters is done via the
     :func:`fatf.utils.data.discretise._validate_input_discretiser` function.
@@ -382,6 +386,8 @@ class Discretiser(abc.ABC):
 class QuartileDiscretiser(Discretiser):
     """
     Discretises selected numerical features of the ``dataset`` into quartiles.
+
+    .. versionadded:: 0.0.2
 
     This class discretises numerical columns (features) of the ``dataset`` by
     mapping their values onto quartile ids to which they belong. The quartile

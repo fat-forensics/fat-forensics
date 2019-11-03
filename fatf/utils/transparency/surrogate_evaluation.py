@@ -1,4 +1,6 @@
 """
+.. versionadded:: 0.0.2
+
 The :mod:`fatf.utils.transparency.surrogate_evaluation` module implements
 various surrogate model evaluation measures.
 """
@@ -175,6 +177,8 @@ def local_fidelity_score(
     """
     Computes local fidelity between a global and a local (surrogate) model.
 
+    .. versionadded:: 0.0.2
+
     For a selected data point (``data_row``), it samples uniformly around it
     within a hypersphere, which radius corresponds to a percentage -- defined
     with ``fidelity_radius_percentage`` parameter -- of the maximum l-2
@@ -219,7 +223,7 @@ def local_fidelity_score(
     * The local model is **probabilistic** as well:
 
       + a native probabilistic evaluation metric, such as the
-      `Kullback–Leibler divergence`_, can be used; or
+        `Kullback–Leibler divergence`_, can be used; or
       + a thresholding can be applied or a top prediction can be chosen for
         both the local and the global probabilistic prediction and a classic
         classification performance metric can be used.
@@ -227,7 +231,6 @@ def local_fidelity_score(
     * The local model is a **classifier** -- the probabilistic output of the
       global model has to be thresholded or the top prediction needs to be
       selected and a classic classification performance metric can be used.
-
     * The local model is a **regressor** -- this is only possible if the
       regressor is fitted for the probabilistic output of one of the classes.
       In this case any of the standard regression evaluation measures can be
@@ -245,8 +248,7 @@ def local_fidelity_score(
 
     * The local model is a **classifier** as well -- any standard (multi-class)
       classification performance metric can be used.
-
-    * Having a local **regressor* is not possible in this case.
+    * Having a local **regressor** is not possible in this case.
 
     Finally, if the ``global_predictive_function`` is a **regressor**, the
     local model can **only** be a regressor as well, in which case any standard

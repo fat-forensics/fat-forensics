@@ -1,4 +1,6 @@
 """
+.. versionadded:: 0.0.2
+
 The :mod:`fatf.utils.transparency.explainers` module holds utilities for
 building custom explainer objects.
 """
@@ -20,6 +22,8 @@ __all__ = ['check_instance_explainer_functionality', 'Explainer']
 class Explainer(abc.ABC):
     """
     A base class for any explainer object implemented in the package.
+
+    .. versionadded:: 0.0.2
     """
 
     def feature_importance(self) -> np.ndarray:
@@ -51,6 +55,8 @@ def check_instance_explainer_functionality(
         suppress_warning: bool = False) -> bool:
     """
     Checks whether an explainer object can explain a data point (instance).
+
+    .. versionadded:: 0.0.2
 
     The explainer object to be checked can either be an uninitialised object
     reference or an initialised object instance.

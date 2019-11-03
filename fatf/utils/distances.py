@@ -811,6 +811,8 @@ def check_distance_functionality(distance_function: Callable[..., np.ndarray],
     """
     Checks whether a distance function takes exactly 2 required parameters.
 
+    .. versionadded:: 0.0.2
+
     The distance function to be checked should calculate a distance matrix
     (2-dimensional numpy array) between all of the rows of the two
     2-dimensional numpy arrays passed as input to the ``distance_function``.

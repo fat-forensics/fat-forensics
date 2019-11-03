@@ -254,8 +254,6 @@ def local_fidelity_score(
     local model can **only** be a regressor as well, in which case any standard
     regression evaluation metric can be used.
 
-    ----
-
     If the problem being modelled is multi-class (for probabilistic models and
     classifiers), the local model can either be fitted to the original
     multi-class problem or as one-vs-the-rest for a selected class. In the
@@ -304,8 +302,6 @@ def local_fidelity_score(
        multi-class and the other one-vs-the-rest is relatively complex and
        should be done with caution (the former local model has a more difficult
        task to solve).
-
-    ----
 
     Examples of how to define the ``metric_function`` can be found in the
     *Examples* section down below. This local fidelity evaluation is inspired

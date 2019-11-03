@@ -314,7 +314,7 @@ uses.
 
 .. autosummary::
    :toctree: generated/
-   :template: class.rst
+   :template: class_with_private_inherit.rst
    :nosignatures:
 
    tools.SKLearnExplainer

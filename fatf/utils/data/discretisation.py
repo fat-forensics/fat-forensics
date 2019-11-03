@@ -115,7 +115,7 @@ class Discretiser(abc.ABC):
     .. versionadded:: 0.0.2
 
     The validation of the initialiser input parameters is done via the
-    :func:`fatf.utils.data.discretise._validate_input_discretiser` function.
+    ``fatf.utils.data.discretise._validate_input_discretiser`` function.
     This abstract class also contains an abstract ``discretise`` method and its
     input validator ``_validate_input_discretise``. The ``discretise`` method
     should be overwritten in the children classes and the

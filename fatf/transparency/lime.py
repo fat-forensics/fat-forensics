@@ -1,4 +1,11 @@
 """
+.. deprecated:: 0.0.3
+   This module will be deprecated in FAT Forensics version 0.0.3.
+   Instead of wrapping the lime package a full (modular) version of the
+   LIME surrogate explainer has been implemented -- see the :class:`fatf.\
+transparency.predictions.surrogate_explainers.TabularBlimeyLime` class and the
+   :ref:`how_to_tabular_surrogates` how-to guide for more details.
+
 The :mod:`fatf.transparency.lime` module wraps the LIME_ explainer.
 
 This module implements a generic tabular data LIME explainer that can be
@@ -117,6 +124,8 @@ class Lime(object):
 
     Warns
     -----
+    FutureWarning
+        This class will be deprecated in FAT Forensics version 0.0.3.
     UserWarning
         The user is warned when both a ``model`` and a ``predict_fn`` are
         provided. In such a case the ``predict_fn`` takes the precedence.
@@ -184,6 +193,16 @@ class Lime(object):
         Initialises a tabular LIME wrapper.
         """
         # pylint: disable=too-many-branches,too-many-statements
+
+        warnings.warn(
+            'The LIME wrapper will be deprecated in FAT Forensics version '
+            '0.0.3. Please consider using the TabularBlimeyLime explainer '
+            'class implemented in the fatf.transparency.predictions.'
+            'surrogate_explainers module instead. Alternatively, you may '
+            'consider building a custom surrogate explainer using the '
+            'functionality implemented in FAT Forensics -- see the *Tabular '
+            'Surrogates* how-to guide for more details.', FutureWarning)
+
         valid_params = self._INIT_PARAMS.union(self._EXPLAIN_INSTANCE_PARAMS)
         invalid_params = set(kwargs.keys()).difference(valid_params)
         if invalid_params:

@@ -1,13 +1,14 @@
 """
-====================
-Using LIME Explainer
-====================
+================================
+Using a Surrogate Tree Explainer
+================================
 
-This example illustrates how to use the LIME tabular explainer to explain a
-prediction.
+This example illustrates how to use a tabular surrogate tree-based explainer
+to explain a prediction.
 
-This example shows how to use the tabular LIME implementation --
-:class:`fatf.transparency.predictions.surrogate_explainers.TabularBlimeyLime`
+This example shows how to use the tabular surrogate tree-based explainer
+implementation --
+:class:`fatf.transparency.predictions.surrogate_explainers.TabularBlimeyTree`
 -- to explain a prediction of a black-box probabilistic model.
 """
 # Author: Kacper Sokol <k.sokol@bristol.ac.uk>
@@ -41,7 +42,7 @@ clf = fatf_models.KNN()
 clf.fit(iris_X, iris_y)
 
 # Create a LIME explainer
-lime = fatf_surrogates.TabularBlimeyLime(
+tree = fatf_surrogates.TabularBlimeyTree(
     iris_X,
     clf,
     feature_names=iris_feature_names,
@@ -51,11 +52,11 @@ lime = fatf_surrogates.TabularBlimeyLime(
 index_to_explain = 42
 
 # Explain an instance
-lime_explanation = lime.explain_instance(
+tree_explanation = tree.explain_instance(
     iris_X[index_to_explain, :], samples_number=500)
 
 # Display the textual explanation
-pprint(lime_explanation)
+pprint(tree_explanation)
 
 # Plot the explanation
-fatf_vis_lime.plot_lime(lime_explanation)
+fatf_vis_lime.plot_lime(tree_explanation)

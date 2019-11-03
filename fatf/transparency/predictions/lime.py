@@ -1,4 +1,11 @@
 """
+.. deprecated:: 0.0.3
+   This module will be deprecated in FAT Forensics version 0.0.3.
+   Instead of wrapping the lime package a full (modular) version of the
+   LIME surrogate explainer has been implemented -- see the :class:`fatf.\
+transparency.predictions.surrogate_explainers.TabularBlimeyLime` class and the
+   :ref:`how_to_tabular_surrogates` how-to guide for more details.
+
 The :mod:`fatf.transparency.predictions.lime` module prepares the LIME
 explainer for explaining predictions.
 

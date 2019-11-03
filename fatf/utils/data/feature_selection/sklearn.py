@@ -138,8 +138,8 @@ def lasso_path(dataset: np.ndarray,
     `official LIME package`_.
 
     .. _LIME: https://github.com/marcotcr/lime
-    .. _`official LIME package`: https://github.com/marcotcr/lime/tree/master/\
-lime/lime_base.py#L116
+    .. _`official LIME package`: https://github.com/marcotcr/lime/blob/master/
+       lime/lime_base.py#L116
 
     Parameters
     ----------

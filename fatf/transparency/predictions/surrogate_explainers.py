@@ -5,10 +5,10 @@ The :mod:`fatf.transparency.predictions.surrogate_explainers` module implements
 example surrogate explainers.
 
 Guidelines and tips for building custom surrogate explainers for various
-types of data (tabular, image and text) can be found in the how_to_guide_
+types of data (tabular, image and text) can be found in the :ref:`how_to_guide`
 part of the documentation:
 
-* how_to_tabular_surrogates_.
+* :ref:`how_to_tabular_surrogates`.
 
 The ``scikit-learn`` package is required for the surrogate tree and linear
 model (LIME) explainers to work. When importing this module with
@@ -244,7 +244,7 @@ class SurrogateTabularExplainer(abc.ABC):
     descriptions for more details.
 
     For detailed instruction how to build your own surrogate please see the
-    how_to_tabular_surrogates_ *how-to guide*.
+    :ref:`how_to_tabular_surrogates` *how-to guide*.
 
     .. warning::
 
@@ -789,8 +789,6 @@ class TabularBlimeyLime(SurrogateTabularExplainer):
            different value (for categorical feature), how would that influence
            the probability of this point belonging to the explained class?"
 
-    ----
-
     This LIME implementation is limited to black-box **probabilistic** models
     (similarly to the `official implementation`_), i.e., the
     ``predictive_model`` must have a ``predict_proba`` method.
@@ -804,7 +802,7 @@ class TabularBlimeyLime(SurrogateTabularExplainer):
 
     For detailed instructions on how to build a custom surrogate explainer
     (to avoid tinkering with this class) please see the
-    how_to_tabular_surrogates_ *how-to guide*.
+    :ref:`how_to_tabular_surrogates` *how-to guide*.
 
     For additional parameters, warnings and errors description please see the
     documentation of the parent class :class:`fatf.transparency.predictions.\

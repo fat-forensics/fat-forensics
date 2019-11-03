@@ -20,9 +20,7 @@ import numpy as np
 import fatf.utils.array.validation as fuav
 import fatf.utils.transparency.explainers as fute
 
-__all__ = ['is_sklearn_model',
-           'is_sklearn_model_instance',
-           'SKLearnExplainer']
+__all__ = ['is_sklearn_model', 'is_sklearn_model_instance', 'SKLearnExplainer']
 
 logger = logging.getLogger(__name__)  # pylint: disable=invalid-name
 
@@ -178,6 +176,8 @@ class SKLearnExplainer(fute.Explainer):
     - :func:`~Explainer.feature_importance`,
     - :func:`~Explainer.explain_model`, and/or
     - :func:`~Explainer.explain_instance`.
+
+    .. currentmodule:: fatf.transparency.sklearn.tools
 
     Alternatively, a new method that explains an aspect of the model or its
     predictions can be introduced.

@@ -598,7 +598,7 @@ feature_influence.partial_dependence_ice` functions to minimise the
 
     .. [FRIEDMAN2001GREEDY] J. H. Friedman. Greedy function approximation: A
        gradient boosting machine. The Annals of Statistics, 29:1189–1232, 2001.
-       URL https://doi.org/10.1214/aos/1013203451. [p421, 428]
+       URL https://projecteuclid.org/euclid.aos/1013203451. [p421, 428]
 
     Returns
     -------

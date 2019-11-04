@@ -1898,3 +1898,85 @@ def test_get_point_distance():
 
     distance = fud.get_point_distance(mixed_array, mixed_array[0], mix_dist)
     assert np.allclose(distance, true_distances[0], atol=1e-3)
+
+
+def test_check_distance_functionality():
+    """
+    Tests :func:`fatf.utils.distances.check_distance_functionality` function.
+    """
+    distance_type_error = ('The distance_function parameter should be a '
+                           'Python callable.')
+    suppress_type_error = 'The suppress_warning parameter should be a boolean.'
+
+    error_msg = ("The '{}' distance function has incorrect number "
+                 '({}) of the required parameters. It needs to have '
+                 'exactly 2 required parameters. Try using optional '
+                 'parameters if you require more functionality.')
+
+    def function1():
+        pass  # pragma: no cover
+
+    def function2(x):
+        pass  # pragma: no cover
+
+    def function3(x, y):
+        pass  # pragma: no cover
+
+    def function4(x, y, z=3):
+        pass  # pragma: no cover
+
+    def function5(x=3, y=3):
+        pass  # pragma: no cover
+
+    def function6(x, y, **kwargs):
+        pass  # pragma: no cover
+
+    with pytest.raises(TypeError) as exin:
+        fud.check_distance_functionality('callable')
+    assert str(exin.value) == distance_type_error
+    with pytest.raises(TypeError) as exin:
+        fud.check_distance_functionality('callable', 'True')
+    assert str(exin.value) == distance_type_error
+    with pytest.raises(TypeError) as exin:
+        fud.check_distance_functionality(function1, 'True')
+    assert str(exin.value) == suppress_type_error
+
+    with pytest.warns(UserWarning) as warning:
+        assert fud.check_distance_functionality(function1) is False
+    assert len(warning) == 1
+    assert str(warning[0].message) == error_msg.format('function1', 0)
+    #
+    with pytest.warns(UserWarning) as warning:
+        assert fud.check_distance_functionality(function1, False) is False
+    assert len(warning) == 1
+    assert str(warning[0].message) == error_msg.format('function1', 0)
+    #
+    assert fud.check_distance_functionality(function1, True) is False
+
+    with pytest.warns(UserWarning) as warning:
+        assert fud.check_distance_functionality(function5) is False
+    assert len(warning) == 1
+    assert str(warning[0].message) == error_msg.format('function5', 0)
+    #
+    with pytest.warns(UserWarning) as warning:
+        assert fud.check_distance_functionality(function5, False) is False
+    assert len(warning) == 1
+    assert str(warning[0].message) == error_msg.format('function5', 0)
+    #
+    assert fud.check_distance_functionality(function5, True) is False
+
+    with pytest.warns(UserWarning) as warning:
+        assert fud.check_distance_functionality(function2) is False
+    assert len(warning) == 1
+    assert str(warning[0].message) == error_msg.format('function2', 1)
+    #
+    with pytest.warns(UserWarning) as warning:
+        assert fud.check_distance_functionality(function2, False) is False
+    assert len(warning) == 1
+    assert str(warning[0].message) == error_msg.format('function2', 1)
+    #
+    assert fud.check_distance_functionality(function2, True) is False
+
+    assert fud.check_distance_functionality(function3) is True
+    assert fud.check_distance_functionality(function4, True) is True
+    assert fud.check_distance_functionality(function6, False) is True

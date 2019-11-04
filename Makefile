@@ -32,7 +32,7 @@ endif
 	test-doc test-notebooks test code-coverage test-with-code-coverage \
 	deploy-code-coverage linting-pylint linting-flake8 linting-yapf check-types \
 	build readme-gen readme-preview validate-travis validate-sphinx-conf \
-	find-flags deploy-pypi
+	find-flags clean doc-clean test-docstrings deploy-pypi
 
 all: \
 	test-with-code-coverage \
@@ -136,6 +136,7 @@ doc-clean:
 # starting with `test_` and classes starting with `Test` will be found.)
 test-doc:
 	mkdir -p doc/tutorials/img
+	mkdir -p doc/how_to/img
 	PYTHONPATH=./ PYTEST_IN_PROGRESS='true' pytest \
 		-W default::UserWarning \
 		--doctest-glob='*.txt' \
@@ -145,6 +146,15 @@ test-doc:
 		--ignore=doc/sphinx_gallery_auto/ \
 		-k 'not test_ and not Test' \
 		doc/ \
+		fatf/
+
+test-docstrings:
+	PYTHONPATH=./ PYTEST_IN_PROGRESS='true' pytest \
+		-W default::UserWarning \
+		--doctest-modules \
+		--ignore=doc/_build/ \
+		--ignore=doc/sphinx_gallery_auto/ \
+		-k 'not test_ and not Test' \
 		fatf/
 
 test-notebooks:
@@ -203,6 +213,12 @@ build:
 
 deploy-pypi:
 	python -m twine upload dist/*
+
+clean:
+	find ./fatf -name '*.pyc' -delete
+	rm -fr FAT_forensics.egg-info
+	rm -fr build
+	rm -fr dist
 
 readme-gen:
 	pandoc -t html README.rst -o temp/README.html

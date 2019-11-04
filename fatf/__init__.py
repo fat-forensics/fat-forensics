@@ -24,7 +24,7 @@ __email__ = 'k.sokol@bristol.ac.uk'
 __license__ = 'new BSD'
 
 # The current package version
-__version__ = '0.0.2-dev'
+__version__ = '0.0.2'
 
 __all__ = ['setup_warning_filters', 'setup_random_seed']
 
@@ -36,7 +36,10 @@ _logger_formatter = logging.Formatter(  # pylint: disable=invalid-name
     datefmt='%y-%b-%d %H:%M:%S')
 _logger_handler.setFormatter(_logger_formatter)
 logger.addHandler(_logger_handler)
-logger.setLevel(logging.INFO)
+if os.environ.get('PYTEST_IN_PROGRESS', None) is None:
+    logger.setLevel(logging.INFO)  # pragma: nocover
+else:
+    logger.setLevel(logging.NOTSET)
 
 # Redirect warnings to the logger module
 # logging.captureWarnings(True)

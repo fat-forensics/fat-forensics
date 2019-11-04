@@ -19,39 +19,31 @@ else:
 import importlib
 import sys
 
-from typing import Dict, List, Tuple
-
 import numpy as np
 
 import fatf.transparency.lime as ftl
 import fatf.utils.models as fum
 import fatf.utils.testing.imports as futi
+import fatf.utils.testing.transparency as futt
 
 from fatf.exceptions import IncompatibleModelError, IncorrectShapeError
 
 # yapf: disable
-NUMERICAL_NP_ARRAY = np.array([
-    [0, 0, 0.08, 0.69],
-    [1, 0, 0.03, 0.29],
-    [0, 1, 0.99, 0.82],
-    [2, 1, 0.73, 0.48],
-    [1, 0, 0.36, 0.89],
-    [0, 1, 0.07, 0.21]])
-NUMERICAL_STRUCT_ARRAY = np.array(
-    [(0, 0, 0.08, 0.69),
-     (1, 0, 0.03, 0.29),
-     (0, 1, 0.99, 0.82),
-     (2, 1, 0.73, 0.48),
-     (1, 0, 0.36, 0.89),
-     (0, 1, 0.07, 0.21)],
-    dtype=[('a', int), ('b', int), ('c', float), ('d', float)])
-LABELS = np.array([2, 0, 1, 1, 0, 2])
+FUTURE_WARNING = (
+    'The LIME wrapper will be deprecated in FAT Forensics version '
+    '0.0.3. Please consider using the TabularBlimeyLime explainer '
+    'class implemented in the fatf.transparency.predictions.'
+    'surrogate_explainers module instead. Alternatively, you may '
+    'consider building a custom surrogate explainer using the '
+    'functionality implemented in FAT Forensics -- see the *Tabular '
+    'Surrogates* how-to guide for more details.')
+
 SAMPLE = np.array([0, 1, 0.08, 0.54])
 SAMPLE_STRUCT = np.array(
     [(0, 1, 0.08, 0.54)],
     dtype=[('a', 'i'), ('b', 'i'), ('c', 'f'), ('d', 'f')])[0]
 CLF = fum.KNN()
-CLF.fit(NUMERICAL_NP_ARRAY, LABELS)
+CLF.fit(futt.NUMERICAL_NP_ARRAY, futt.LABELS)
 CLASS_NAMES = ['class0', 'class1', 'class2']
 FEATURE_NAMES = ['feat0', 'feat1', 'feat2', 'feat3']
 
@@ -95,43 +87,7 @@ USER_WARNING_MODEL_PRED = ('Since both, a model and a predictive function, '
                            'are provided only the latter will be used.')
 LOG_WARNING = 'The model can only be used for LIME in a regressor mode.'
 
-
-class InvalidModel(object):
-    """
-    An invalid model class -- it does not implement a ``predict_proba`` method.
-    """
-
-    def __init__(self):
-        """
-        Invalid initialisation.
-        """
-
-    def fit(self, X, y):
-        """
-        Invalid fit.
-        """
-
-
-class NonProbabilisticModel(InvalidModel):
-    """
-    A model that is not probabilistic -- no ``predict_proba`` function.
-    """
-
-    def __init__(self, prediction_function):
-        """
-        Non-probabilistic initialisation.
-        """
-        super().__init__()
-        self.prediction_function = prediction_function
-
-    def predict(self, X):
-        """
-        Non-probabilistic predict.
-        """
-        return self.prediction_function(X)
-
-
-CLF_NON_PROBA = NonProbabilisticModel(CLF.predict)
+CLF_NON_PROBA = futt.NonProbabilisticModel(CLF.predict)
 
 
 def test_import_when_missing():
@@ -149,124 +105,6 @@ def test_import_when_missing():
         assert len(w) == 1
         assert str(w[0].message) == warning_msg
     assert 'fatf.transparency.lime' in sys.modules
-
-
-def _is_explanation_equal(dict1: Dict[str, List[Tuple[str, float]]],
-                          dict2: Dict[str, List[Tuple[str, float]]]) -> bool:
-    """
-    Tests if the two dictionaries of a given structure are equal.
-
-    The both of the input parameters must be a dictionary with string keys and
-    list values. The latter is composed of 2-tuples of strings and floats.
-
-    The keys in the dictionary and the tuples must match exactly, while the
-    floats only need to be approximately equal. The ordering of the tuples in
-    the list does not need to be the same.
-
-    Parameters
-    ----------
-    dict1 : Dictionary[string, List[Tuple[string, float]]]
-        The first dictionary to be compared.
-    dict2 : Dictionary[string, List[Tuple[string, float]]]
-        The second dictionary to be compared.
-
-    Returns
-    -------
-    equal : boolean
-        ``True`` if the dictionaries are the same, ``False`` otherwise.
-    """
-    if set(dict1.keys()) == set(dict2.keys()):
-        equal = True
-        for key in dict1:
-            val1 = sorted(dict1[key])
-            val2 = sorted(dict2[key])
-
-            if len(val1) != len(val2):
-                equal = False
-                break
-
-            for i in range(len(val1)):
-                if val1[i][0] != val2[i][0]:
-                    equal = False
-                    break
-                if abs(val1[i][1] - val2[i][1]) > 1e-1:
-                    equal = False
-                    break
-
-            if not equal:
-                break
-    else:
-        equal = False
-    return equal
-
-
-def test_is_explanation_equal():
-    """
-    Tests ``_is_explanation_equal`` function included above in this test suite.
-    """
-    # yapf: disable
-    dict1 = {'a': [('a1', 0.1), ('a2', 0.9)],
-             'b': [('b1', 0.55), ('b2', 0.2222)],
-             'c': [('c', 7)]}
-    dict2 = {'a': [('a2', 0.8), ('a1', 0.0)],
-             'b': [('b1', 0.5), ('b2', 0.2)],
-             'c': [('c', 6.9)]}
-    dict3 = {'a': [('a3', 0.8), ('a1', 0.0)],
-             'b': [('b1', 0.5), ('b2', 0.2)],
-             'c': [('c', 6.9)]}
-    dict4 = {'a': [('a1', 0.05), ('a2', 0.88)],
-             'b': [('b1', 0.5), ('b2', 0.2), ('b3', 0)],
-             'c': [('c', 6.95)]}
-    dict5 = {'a': [('a1', 0.1), ('a2', 0.9)],
-             'b': [('b1', 0.5), ('b2', 0.2)],
-             'c': [('c', 6.95)],
-             'd': [('d1', 6)]}
-    dict6 = {'a': [('a1', 0.1), ('a2', 0.9)],
-             'b': [('b1', 0.5), ('b2', 0.2)],
-             'c': [('c', 6.899999999)]}
-    # yapf: enable
-
-    assert _is_explanation_equal(dict1, dict1)
-    assert _is_explanation_equal(dict1, dict2)
-    assert not _is_explanation_equal(dict1, dict3)
-    assert not _is_explanation_equal(dict1, dict4)
-    assert not _is_explanation_equal(dict1, dict5)
-    assert not _is_explanation_equal(dict1, dict6)
-
-    assert _is_explanation_equal(dict2, dict1)
-    assert _is_explanation_equal(dict2, dict2)
-    assert not _is_explanation_equal(dict2, dict3)
-    assert not _is_explanation_equal(dict2, dict4)
-    assert not _is_explanation_equal(dict2, dict5)
-    assert _is_explanation_equal(dict2, dict6)
-
-    assert not _is_explanation_equal(dict3, dict1)
-    assert not _is_explanation_equal(dict3, dict2)
-    assert _is_explanation_equal(dict3, dict3)
-    assert not _is_explanation_equal(dict3, dict4)
-    assert not _is_explanation_equal(dict3, dict5)
-    assert not _is_explanation_equal(dict3, dict6)
-
-    assert not _is_explanation_equal(dict4, dict1)
-    assert not _is_explanation_equal(dict4, dict2)
-    assert not _is_explanation_equal(dict4, dict3)
-    assert _is_explanation_equal(dict4, dict4)
-    assert not _is_explanation_equal(dict4, dict5)
-    assert not _is_explanation_equal(dict4, dict6)
-
-    assert not _is_explanation_equal(dict5, dict1)
-    assert not _is_explanation_equal(dict5, dict2)
-    assert not _is_explanation_equal(dict5, dict3)
-    assert not _is_explanation_equal(dict5, dict4)
-    assert _is_explanation_equal(dict5, dict5)
-    assert not _is_explanation_equal(dict5, dict6)
-
-    assert not _is_explanation_equal(dict6, dict1)
-    assert _is_explanation_equal(dict6, dict2)
-    assert not _is_explanation_equal(dict6, dict3)
-    assert not _is_explanation_equal(dict6, dict4)
-    assert not _is_explanation_equal(dict6, dict5)
-    assert _is_explanation_equal(dict6, dict6)
 
 
 def test_lime_init():
@@ -306,63 +144,106 @@ def test_lime_init():
                            'features.')
 
     # Wrong named parameter
-    with pytest.raises(AttributeError) as exin:
-        ftl.Lime(NUMERICAL_NP_ARRAY, model=CLF, lorem='ipsum')
-    assert str(exin.value) == attribute_error.format("{'lorem'}")
+    with pytest.warns(FutureWarning) as warning:
+        with pytest.raises(AttributeError) as exin:
+            ftl.Lime(futt.NUMERICAL_NP_ARRAY, model=CLF, lorem='ipsum')
+        assert str(exin.value) == attribute_error.format("{'lorem'}")
+    assert len(warning) == 1
+    assert str(warning[0].message) == FUTURE_WARNING
 
     # Not a 2-dimensional array
-    with pytest.raises(IncorrectShapeError) as exin:
-        ftl.Lime(np.ones((6, 4, 4)))
-    assert str(exin.value) == shape_error_data
+    with pytest.warns(FutureWarning) as warning:
+        with pytest.raises(IncorrectShapeError) as exin:
+            ftl.Lime(np.ones((6, 4, 4)))
+        assert str(exin.value) == shape_error_data
+    assert len(warning) == 1
+    assert str(warning[0].message) == FUTURE_WARNING
 
     # Not a numerical array
-    with pytest.raises(ValueError) as exin:
-        lime = ftl.Lime(np.ones((6, 4), dtype='U1'))
-    assert str(exin.value) == value_error_cat
+    with pytest.warns(FutureWarning) as warning:
+        with pytest.raises(ValueError) as exin:
+            lime = ftl.Lime(np.ones((6, 4), dtype='U1'))
+        assert str(exin.value) == value_error_cat
+    assert len(warning) == 1
+    assert str(warning[0].message) == FUTURE_WARNING
 
     # A structured data array with weird categorical indices type
-    with pytest.raises(TypeError) as exin:
-        ftl.Lime(NUMERICAL_STRUCT_ARRAY, categorical_features='')
-    assert str(exin.value) == type_error_struct_indices
+    with pytest.warns(FutureWarning) as warning:
+        with pytest.raises(TypeError) as exin:
+            ftl.Lime(futt.NUMERICAL_STRUCT_ARRAY, categorical_features='')
+        assert str(exin.value) == type_error_struct_indices
+    assert len(warning) == 1
+    assert str(warning[0].message) == FUTURE_WARNING
 
     # A structured data array with weird categorical indices shape
-    with pytest.raises(IncorrectShapeError) as exin:
-        ftl.Lime(NUMERICAL_STRUCT_ARRAY, categorical_features=[['a']])
-    assert str(exin.value) == incorrect_shape_struct_indices
+    with pytest.warns(FutureWarning) as warning:
+        with pytest.raises(IncorrectShapeError) as exin:
+            ftl.Lime(futt.NUMERICAL_STRUCT_ARRAY, categorical_features=[['a']])
+        assert str(exin.value) == incorrect_shape_struct_indices
+    assert len(warning) == 1
+    assert str(warning[0].message) == FUTURE_WARNING
 
     # A structured data array with non-textual categorical indices
-    with pytest.raises(ValueError) as exin:
-        ftl.Lime(NUMERICAL_STRUCT_ARRAY, categorical_features=np.array([3, 2]))
-    assert str(exin.value) == value_error_struct_indices
+    with pytest.warns(FutureWarning) as warning:
+        with pytest.raises(ValueError) as exin:
+            ftl.Lime(
+                futt.NUMERICAL_STRUCT_ARRAY,
+                categorical_features=np.array([3, 2]))
+        assert str(exin.value) == value_error_struct_indices
+    assert len(warning) == 1
+    assert str(warning[0].message) == FUTURE_WARNING
 
     # A structured data array with incorrect categorical indices
-    with pytest.raises(ValueError) as exin:
-        ftl.Lime(NUMERICAL_STRUCT_ARRAY, categorical_features=['a', 'e', 'b'])
-    assert str(exin.value) == value_error_struct_incorrect_indices
+    with pytest.warns(FutureWarning) as warning:
+        with pytest.raises(ValueError) as exin:
+            ftl.Lime(
+                futt.NUMERICAL_STRUCT_ARRAY,
+                categorical_features=['a', 'e', 'b'])
+        assert str(exin.value) == value_error_struct_incorrect_indices
+    assert len(warning) == 1
+    assert str(warning[0].message) == FUTURE_WARNING
 
     # Wrong operation mode
-    with pytest.raises(ValueError) as exin:
-        ftl.Lime(NUMERICAL_NP_ARRAY, mode='c')
-    assert str(exin.value) == value_error.format('c')
+    with pytest.warns(FutureWarning) as warning:
+        with pytest.raises(ValueError) as exin:
+            ftl.Lime(futt.NUMERICAL_NP_ARRAY, mode='c')
+        assert str(exin.value) == value_error.format('c')
+    assert len(warning) == 1
+    assert str(warning[0].message) == FUTURE_WARNING
 
     # Invalid model
-    invalid_model = InvalidModel()
-    with pytest.raises(IncompatibleModelError) as exin:
-        ftl.Lime(
-            NUMERICAL_NP_ARRAY, model=invalid_model, mode='classification')
-    assert str(exin.value) == incompatible_model_error
-    with pytest.raises(IncompatibleModelError) as exin:
-        ftl.Lime(NUMERICAL_NP_ARRAY, model='a', mode='classification')
-    assert str(exin.value) == incompatible_model_error
+    invalid_model = futt.InvalidModel()
+    with pytest.warns(FutureWarning) as warning:
+        with pytest.raises(IncompatibleModelError) as exin:
+            ftl.Lime(
+                futt.NUMERICAL_NP_ARRAY,
+                model=invalid_model,
+                mode='classification')
+        assert str(exin.value) == incompatible_model_error
+    assert len(warning) == 1
+    assert str(warning[0].message) == FUTURE_WARNING
+    with pytest.warns(FutureWarning) as warning:
+        with pytest.raises(IncompatibleModelError) as exin:
+            ftl.Lime(futt.NUMERICAL_NP_ARRAY, model='a', mode='classification')
+        assert str(exin.value) == incompatible_model_error
+    assert len(warning) == 1
+    assert str(warning[0].message) == FUTURE_WARNING
 
     # Invalid predictive function
-    with pytest.raises(TypeError) as exin:
-        ftl.Lime(NUMERICAL_NP_ARRAY, predict_fn='a', mode='regression')
-    assert str(exin.value) == type_error_predictor
+    with pytest.warns(FutureWarning) as warning:
+        with pytest.raises(TypeError) as exin:
+            ftl.Lime(
+                futt.NUMERICAL_NP_ARRAY, predict_fn='a', mode='regression')
+        assert str(exin.value) == type_error_predictor
+    assert len(warning) == 1
+    assert str(warning[0].message) == FUTURE_WARNING
 
     ###########################################################################
     # Test explain_instance for exceptions and errors
-    lime = ftl.Lime(NUMERICAL_NP_ARRAY)
+    with pytest.warns(FutureWarning) as warning:
+        lime = ftl.Lime(futt.NUMERICAL_NP_ARRAY)
+    assert len(warning) == 1
+    assert str(warning[0].message) == FUTURE_WARNING
 
     # Incorrect parameter
     with pytest.raises(AttributeError) as exin:
@@ -372,7 +253,7 @@ def test_lime_init():
 
     # Incorrect shape
     with pytest.raises(IncorrectShapeError) as exin:
-        lime.explain_instance(NUMERICAL_STRUCT_ARRAY)
+        lime.explain_instance(futt.NUMERICAL_STRUCT_ARRAY)
     assert str(exin.value) == incorrect_shape_error_explain
 
     # Not numerical
@@ -395,43 +276,51 @@ def test_explain_instance_classification(caplog):
     assert len(caplog.records) == 0
 
     # Non-probabilistic model -- function -- probabilistic function
-    with pytest.warns(UserWarning) as warning:
+    with pytest.warns(None) as warning:
         lime = ftl.Lime(
-            NUMERICAL_NP_ARRAY,
+            futt.NUMERICAL_NP_ARRAY,
             model=CLF_NON_PROBA,
             predict_fn=CLF.predict_proba,
             class_names=CLASS_NAMES,
             feature_names=FEATURE_NAMES)
-    assert len(warning) == 1
-    assert str(warning[0].message) == USER_WARNING_MODEL_PRED
+    assert len(warning) == 2
+    assert str(warning[0].message) == FUTURE_WARNING
+    assert str(warning[1].message) == USER_WARNING_MODEL_PRED
     explained = lime.explain_instance(SAMPLE, predict_fn=CLF.predict_proba)
-    assert _is_explanation_equal(explained, NUMERICAL_RESULTS)
+    assert futt.is_explanation_equal_list(explained, NUMERICAL_RESULTS)
     # Non-probabilistic model -- function -- no function
-    with pytest.warns(UserWarning) as warning:
+    with pytest.warns(None) as warning:
         lime = ftl.Lime(
-            NUMERICAL_NP_ARRAY,
+            futt.NUMERICAL_NP_ARRAY,
             model=CLF_NON_PROBA,
             predict_fn=CLF.predict_proba,
             class_names=CLASS_NAMES,
             feature_names=FEATURE_NAMES)
-    assert len(warning) == 1
-    assert str(warning[0].message) == USER_WARNING_MODEL_PRED
+    assert len(warning) == 2
+    assert str(warning[0].message) == FUTURE_WARNING
+    assert str(warning[1].message) == USER_WARNING_MODEL_PRED
     explained = lime.explain_instance(SAMPLE)
-    assert _is_explanation_equal(explained, NUMERICAL_RESULTS)
+    assert futt.is_explanation_equal_list(explained, NUMERICAL_RESULTS)
     # Non-probabilistic model -- no function -- probabilistic function
-    lime = ftl.Lime(
-        NUMERICAL_NP_ARRAY,
-        model=CLF_NON_PROBA,
-        class_names=CLASS_NAMES,
-        feature_names=FEATURE_NAMES)
+    with pytest.warns(FutureWarning) as warning:
+        lime = ftl.Lime(
+            futt.NUMERICAL_NP_ARRAY,
+            model=CLF_NON_PROBA,
+            class_names=CLASS_NAMES,
+            feature_names=FEATURE_NAMES)
+    assert len(warning) == 1
+    assert str(warning[0].message) == FUTURE_WARNING
     explained = lime.explain_instance(SAMPLE, predict_fn=CLF.predict_proba)
-    assert _is_explanation_equal(explained, NUMERICAL_RESULTS)
+    assert futt.is_explanation_equal_list(explained, NUMERICAL_RESULTS)
     # Non-probabilistic model -- no function -- no function
-    lime = ftl.Lime(
-        NUMERICAL_NP_ARRAY,
-        model=CLF_NON_PROBA,
-        class_names=CLASS_NAMES,
-        feature_names=FEATURE_NAMES)
+    with pytest.warns(FutureWarning) as warning:
+        lime = ftl.Lime(
+            futt.NUMERICAL_NP_ARRAY,
+            model=CLF_NON_PROBA,
+            class_names=CLASS_NAMES,
+            feature_names=FEATURE_NAMES)
+    assert len(warning) == 1
+    assert str(warning[0].message) == FUTURE_WARNING
     with pytest.raises(RuntimeError) as exin:
         lime.explain_instance(SAMPLE_STRUCT)
     assert str(exin.value) == runtime_error_non_prob
@@ -443,33 +332,45 @@ def test_explain_instance_classification(caplog):
         assert caplog.records[i].getMessage() == LOG_WARNING
 
     # No model -- function -- probabilistic function
-    lime = ftl.Lime(
-        NUMERICAL_STRUCT_ARRAY,
-        predict_fn=CLF.predict_proba,
-        class_names=CLASS_NAMES,
-        feature_names=FEATURE_NAMES)
+    with pytest.warns(FutureWarning) as warning:
+        lime = ftl.Lime(
+            futt.NUMERICAL_STRUCT_ARRAY,
+            predict_fn=CLF.predict_proba,
+            class_names=CLASS_NAMES,
+            feature_names=FEATURE_NAMES)
+    assert len(warning) == 1
+    assert str(warning[0].message) == FUTURE_WARNING
     explained = lime.explain_instance(SAMPLE, predict_fn=CLF.predict_proba)
-    assert _is_explanation_equal(explained, NUMERICAL_RESULTS)
+    assert futt.is_explanation_equal_list(explained, NUMERICAL_RESULTS)
     # No model -- function -- no function
-    lime = ftl.Lime(
-        NUMERICAL_STRUCT_ARRAY,
-        predict_fn=CLF.predict_proba,
-        class_names=CLASS_NAMES,
-        feature_names=FEATURE_NAMES)
+    with pytest.warns(FutureWarning) as warning:
+        lime = ftl.Lime(
+            futt.NUMERICAL_STRUCT_ARRAY,
+            predict_fn=CLF.predict_proba,
+            class_names=CLASS_NAMES,
+            feature_names=FEATURE_NAMES)
+    assert len(warning) == 1
+    assert str(warning[0].message) == FUTURE_WARNING
     explained = lime.explain_instance(SAMPLE)
-    assert _is_explanation_equal(explained, NUMERICAL_RESULTS)
+    assert futt.is_explanation_equal_list(explained, NUMERICAL_RESULTS)
     # No model -- no function -- probabilistic function
-    lime = ftl.Lime(
-        NUMERICAL_NP_ARRAY,
-        class_names=CLASS_NAMES,
-        feature_names=FEATURE_NAMES)
+    with pytest.warns(FutureWarning) as warning:
+        lime = ftl.Lime(
+            futt.NUMERICAL_NP_ARRAY,
+            class_names=CLASS_NAMES,
+            feature_names=FEATURE_NAMES)
+    assert len(warning) == 1
+    assert str(warning[0].message) == FUTURE_WARNING
     explained = lime.explain_instance(SAMPLE, predict_fn=CLF.predict_proba)
-    assert _is_explanation_equal(explained, NUMERICAL_RESULTS)
+    assert futt.is_explanation_equal_list(explained, NUMERICAL_RESULTS)
     # No model -- no function -- no function
-    lime = ftl.Lime(
-        NUMERICAL_NP_ARRAY,
-        class_names=CLASS_NAMES,
-        feature_names=FEATURE_NAMES)
+    with pytest.warns(FutureWarning) as warning:
+        lime = ftl.Lime(
+            futt.NUMERICAL_NP_ARRAY,
+            class_names=CLASS_NAMES,
+            feature_names=FEATURE_NAMES)
+    assert len(warning) == 1
+    assert str(warning[0].message) == FUTURE_WARNING
     with pytest.raises(RuntimeError) as exin:
         lime.explain_instance(SAMPLE)
     assert str(exin.value) == runtime_error_no_predictor
@@ -478,49 +379,57 @@ def test_explain_instance_classification(caplog):
     assert len(caplog.records) == 4
 
     # Probabilistic model -- probabilistic function -- empty call
-    with pytest.warns(UserWarning) as warning:
+    with pytest.warns(None) as warning:
         lime = ftl.Lime(
-            NUMERICAL_NP_ARRAY,
+            futt.NUMERICAL_NP_ARRAY,
             model=CLF,
             predict_fn=CLF.predict_proba,
             class_names=CLASS_NAMES,
             feature_names=FEATURE_NAMES)
-    assert len(warning) == 1
-    assert str(warning[0].message) == USER_WARNING_MODEL_PRED
+    assert len(warning) == 2
+    assert str(warning[0].message) == FUTURE_WARNING
+    assert str(warning[1].message) == USER_WARNING_MODEL_PRED
     explained = lime.explain_instance(SAMPLE_STRUCT)
-    assert _is_explanation_equal(explained, NUMERICAL_RESULTS)
+    assert futt.is_explanation_equal_list(explained, NUMERICAL_RESULTS)
     #
     # Probabilistic model -- probabilistic function -- non-empty call
-    with pytest.warns(UserWarning) as warning:
+    with pytest.warns(None) as warning:
         lime = ftl.Lime(
-            NUMERICAL_NP_ARRAY,
+            futt.NUMERICAL_NP_ARRAY,
             model=CLF,
             predict_fn=CLF.predict_proba,
             class_names=CLASS_NAMES,
             feature_names=FEATURE_NAMES)
-    assert len(warning) == 1
-    assert str(warning[0].message) == USER_WARNING_MODEL_PRED
+    assert len(warning) == 2
+    assert str(warning[0].message) == FUTURE_WARNING
+    assert str(warning[1].message) == USER_WARNING_MODEL_PRED
     explained = lime.explain_instance(SAMPLE, predict_fn=CLF.predict_proba)
-    assert _is_explanation_equal(explained, NUMERICAL_RESULTS)
+    assert futt.is_explanation_equal_list(explained, NUMERICAL_RESULTS)
     #
     # Probabilistic model -- no function -- empty call
-    lime = ftl.Lime(
-        NUMERICAL_STRUCT_ARRAY,
-        model=CLF,
-        class_names=CLASS_NAMES,
-        feature_names=FEATURE_NAMES)
+    with pytest.warns(FutureWarning) as warning:
+        lime = ftl.Lime(
+            futt.NUMERICAL_STRUCT_ARRAY,
+            model=CLF,
+            class_names=CLASS_NAMES,
+            feature_names=FEATURE_NAMES)
+    assert len(warning) == 1
+    assert str(warning[0].message) == FUTURE_WARNING
     explained = lime.explain_instance(SAMPLE)
-    assert _is_explanation_equal(explained, NUMERICAL_RESULTS)
+    assert futt.is_explanation_equal_list(explained, NUMERICAL_RESULTS)
     #
     # Probabilistic model -- no function -- non-empty call
-    lime = ftl.Lime(
-        NUMERICAL_STRUCT_ARRAY,
-        model=CLF,
-        class_names=CLASS_NAMES,
-        feature_names=FEATURE_NAMES)
+    with pytest.warns(FutureWarning) as warning:
+        lime = ftl.Lime(
+            futt.NUMERICAL_STRUCT_ARRAY,
+            model=CLF,
+            class_names=CLASS_NAMES,
+            feature_names=FEATURE_NAMES)
+    assert len(warning) == 1
+    assert str(warning[0].message) == FUTURE_WARNING
     explained = lime.explain_instance(
         SAMPLE_STRUCT, predict_fn=CLF.predict_proba)
-    assert _is_explanation_equal(explained, NUMERICAL_RESULTS)
+    assert futt.is_explanation_equal_list(explained, NUMERICAL_RESULTS)
 
     # Check logging
     assert len(caplog.records) == 4
@@ -529,24 +438,30 @@ def test_explain_instance_classification(caplog):
     # Test with categorical features: feat0 and feat1
 
     cat_feat = [0, 1]
-    lime = ftl.Lime(
-        NUMERICAL_NP_ARRAY,
-        model=CLF,
-        class_names=CLASS_NAMES,
-        feature_names=FEATURE_NAMES,
-        categorical_features=cat_feat)
+    with pytest.warns(FutureWarning) as warning:
+        lime = ftl.Lime(
+            futt.NUMERICAL_NP_ARRAY,
+            model=CLF,
+            class_names=CLASS_NAMES,
+            feature_names=FEATURE_NAMES,
+            categorical_features=cat_feat)
+    assert len(warning) == 1
+    assert str(warning[0].message) == FUTURE_WARNING
     explained = lime.explain_instance(SAMPLE_STRUCT)
-    assert _is_explanation_equal(CATEGORICAL_RESULTS, explained)
+    assert futt.is_explanation_equal_list(CATEGORICAL_RESULTS, explained)
 
     cat_feat = ['a', 'b']
-    lime = ftl.Lime(
-        NUMERICAL_STRUCT_ARRAY,
-        model=CLF,
-        class_names=CLASS_NAMES,
-        feature_names=FEATURE_NAMES,
-        categorical_features=cat_feat)
+    with pytest.warns(FutureWarning) as warning:
+        lime = ftl.Lime(
+            futt.NUMERICAL_STRUCT_ARRAY,
+            model=CLF,
+            class_names=CLASS_NAMES,
+            feature_names=FEATURE_NAMES,
+            categorical_features=cat_feat)
+    assert len(warning) == 1
+    assert str(warning[0].message) == FUTURE_WARNING
     explained = lime.explain_instance(SAMPLE)
-    assert _is_explanation_equal(CATEGORICAL_RESULTS, explained)
+    assert futt.is_explanation_equal_list(CATEGORICAL_RESULTS, explained)
 
     # Check logging
     assert len(caplog.records) == 4
@@ -562,14 +477,18 @@ def test_explain_instance_regression(caplog):
     assert len(caplog.records) == 0
 
     # Regression a non-probabilistic model
-    lime = ftl.Lime(
-        NUMERICAL_STRUCT_ARRAY,
-        mode='regression',
-        model=CLF_NON_PROBA,
-        class_names=CLASS_NAMES,
-        feature_names=FEATURE_NAMES)
+    with pytest.warns(FutureWarning) as warning:
+        lime = ftl.Lime(
+            futt.NUMERICAL_STRUCT_ARRAY,
+            mode='regression',
+            model=CLF_NON_PROBA,
+            class_names=CLASS_NAMES,
+            feature_names=FEATURE_NAMES)
+    assert len(warning) == 1
+    assert str(warning[0].message) == FUTURE_WARNING
     explained = lime.explain_instance(SAMPLE)
-    assert _is_explanation_equal({'a': explained}, {'a': REGRESSION_RESULTS})
+    assert futt.is_explanation_equal_list({'a': explained},
+                                          {'a': REGRESSION_RESULTS})
 
     # Check logging
     assert len(caplog.records) == 1
@@ -577,37 +496,47 @@ def test_explain_instance_regression(caplog):
     assert caplog.records[0].getMessage() == LOG_WARNING
 
     # Regression a probabilistic model
-    lime = ftl.Lime(
-        NUMERICAL_NP_ARRAY,
-        mode='regression',
-        model=CLF,
-        class_names=CLASS_NAMES,
-        feature_names=FEATURE_NAMES)
+    with pytest.warns(FutureWarning) as warning:
+        lime = ftl.Lime(
+            futt.NUMERICAL_NP_ARRAY,
+            mode='regression',
+            model=CLF,
+            class_names=CLASS_NAMES,
+            feature_names=FEATURE_NAMES)
+    assert len(warning) == 1
+    assert str(warning[0].message) == FUTURE_WARNING
     explained = lime.explain_instance(SAMPLE_STRUCT)
-    assert _is_explanation_equal({'a': explained}, {'a': REGRESSION_RESULTS})
+    assert futt.is_explanation_equal_list({'a': explained},
+                                          {'a': REGRESSION_RESULTS})
 
     # Regression with a model and function
-    with pytest.warns(UserWarning) as warning:
+    with pytest.warns(None) as warning:
         lime = ftl.Lime(
-            NUMERICAL_STRUCT_ARRAY,
+            futt.NUMERICAL_STRUCT_ARRAY,
             mode='regression',
             model=CLF,
             predict_fn=CLF_NON_PROBA.predict,
             class_names=CLASS_NAMES,
             feature_names=FEATURE_NAMES)
-    assert len(warning) == 1
-    assert str(warning[0].message) == USER_WARNING_MODEL_PRED
+    assert len(warning) == 2
+    assert str(warning[0].message) == FUTURE_WARNING
+    assert str(warning[1].message) == USER_WARNING_MODEL_PRED
     explained = lime.explain_instance(SAMPLE_STRUCT)
-    assert _is_explanation_equal({'a': explained}, {'a': REGRESSION_RESULTS})
+    assert futt.is_explanation_equal_list({'a': explained},
+                                          {'a': REGRESSION_RESULTS})
 
     # Regression without a model
-    lime = ftl.Lime(
-        NUMERICAL_NP_ARRAY,
-        mode='regression',
-        class_names=CLASS_NAMES,
-        feature_names=FEATURE_NAMES)
+    with pytest.warns(FutureWarning) as warning:
+        lime = ftl.Lime(
+            futt.NUMERICAL_NP_ARRAY,
+            mode='regression',
+            class_names=CLASS_NAMES,
+            feature_names=FEATURE_NAMES)
+    assert len(warning) == 1
+    assert str(warning[0].message) == FUTURE_WARNING
     explained = lime.explain_instance(SAMPLE, predict_fn=CLF_NON_PROBA.predict)
-    assert _is_explanation_equal({'a': explained}, {'a': REGRESSION_RESULTS})
+    assert futt.is_explanation_equal_list({'a': explained},
+                                          {'a': REGRESSION_RESULTS})
 
     # Check logging
     assert len(caplog.records) == 1

@@ -246,6 +246,24 @@ uses.
 
    counterfactuals.textualise_counterfactuals
 
+:mod:`fatf.transparency.predictions.surrogate_explainers`: Surrogate Explainers
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. automodule:: fatf.transparency.predictions.surrogate_explainers
+    :no-members:
+    :no-inherited-members:
+
+.. currentmodule:: fatf.transparency.predictions
+
+.. autosummary::
+   :toctree: generated/
+   :template: class.rst
+   :nosignatures:
+
+   surrogate_explainers.SurrogateTabularExplainer
+   surrogate_explainers.TabularBlimeyLime
+   surrogate_explainers.TabularBlimeyTree
+
 :mod:`fatf.transparency.predictions.lime`: LIME for Predictions
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -284,6 +302,53 @@ uses.
 .. automodule:: fatf.transparency.sklearn
     :no-members:
     :no-inherited-members:
+
+:mod:`fatf.transparency.sklearn.tools`: Scikit-learn Explainer Tools
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. automodule:: fatf.transparency.sklearn.tools
+    :no-members:
+    :no-inherited-members:
+
+.. currentmodule:: fatf.transparency.sklearn
+
+.. autosummary::
+   :toctree: generated/
+   :template: class_with_private_inherit.rst
+   :nosignatures:
+
+   tools.SKLearnExplainer
+
+.. autosummary::
+   :toctree: generated/
+   :template: function.rst
+   :nosignatures:
+
+   tools.is_sklearn_model
+   tools.is_sklearn_model_instance
+
+:mod:`fatf.transparency.sklearn.linear_model`: Linear Model Explainers
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. automodule:: fatf.transparency.sklearn.linear_model
+    :no-members:
+    :no-inherited-members:
+
+.. currentmodule:: fatf.transparency.sklearn
+
+.. autosummary::
+   :toctree: generated/
+   :template: class.rst
+   :nosignatures:
+
+   linear_model.SKLearnLinearModelExplainer
+
+.. autosummary::
+   :toctree: generated/
+   :template: function.rst
+   :nosignatures:
+
+   linear_model.linear_classifier_coefficients
 
 .. _vis_ref:
 
@@ -326,6 +391,7 @@ uses.
 
    FATFException
    IncorrectShapeError
+   IncompatibleExplainerError
    IncompatibleModelError
    UnfittedModelError
    PrefittedModelError
@@ -449,8 +515,45 @@ Base classes
    :template: class.rst
    :nosignatures:
 
+   augmentation.Augmentation
    augmentation.NormalSampling
+   augmentation.TruncatedNormalSampling
    augmentation.Mixup
+   augmentation.NormalClassDiscovery
+   augmentation.DecisionBoundarySphere
+   augmentation.LocalSphere
+
+:mod:`fatf.utils.data.instance_augmentation`: Data Point Augmentation
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. automodule:: fatf.utils.data.instance_augmentation
+    :no-members:
+    :no-inherited-members:
+
+.. currentmodule:: fatf.utils.data
+
+.. autosummary::
+   :toctree: generated/
+   :template: function.rst
+   :nosignatures:
+
+   instance_augmentation.binary_sampler
+
+:mod:`fatf.utils.data.transformation`: Data Set Transformation
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. automodule:: fatf.utils.data.transformation
+    :no-members:
+    :no-inherited-members:
+
+.. currentmodule:: fatf.utils.data
+
+.. autosummary::
+   :toctree: generated/
+   :template: function.rst
+   :nosignatures:
+
+   transformation.dataset_row_masking
 
 :mod:`fatf.utils.data.density`: Data Set Density Checking and Estimation
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -467,6 +570,46 @@ Base classes
    :nosignatures:
 
    density.DensityCheck
+
+:mod:`fatf.utils.data.discretisation`: Data Set Discretisation
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. automodule:: fatf.utils.data.discretisation
+    :no-members:
+    :no-inherited-members:
+
+.. currentmodule:: fatf.utils.data
+
+.. autosummary::
+   :toctree: generated/
+   :template: class.rst
+   :nosignatures:
+
+   discretisation.Discretiser
+   discretisation.QuartileDiscretiser
+
+:mod:`fatf.utils.data.feature_selection`: Data Set Feature Selection
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. automodule:: fatf.utils.data.feature_selection
+    :no-members:
+    :no-inherited-members:
+
+:mod:`fatf.utils.data.feature_selection.sklearn`: sklearn Feature Selection
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. automodule:: fatf.utils.data.feature_selection.sklearn
+    :no-members:
+    :no-inherited-members:
+
+.. currentmodule:: fatf.utils.data.feature_selection
+
+.. autosummary::
+   :toctree: generated/
+   :template: function.rst
+   :nosignatures:
+
+   sklearn.lasso_path
 
 :mod:`fatf.utils.models`: Models Utilities
 ------------------------------------------
@@ -533,6 +676,24 @@ Base classes
    binary_distance
    binary_point_distance
    binary_array_distance
+   check_distance_functionality
+
+:mod:`fatf.utils.kernels`: Kernel Functions and Kernel Utilities
+----------------------------------------------------------------
+
+.. automodule:: fatf.utils.kernels
+    :no-members:
+    :no-inherited-members:
+
+.. currentmodule:: fatf.utils.kernels
+
+.. autosummary::
+   :toctree: generated/
+   :template: function.rst
+   :nosignatures:
+
+   exponential_kernel
+   check_kernel_functionality
 
 :mod:`fatf.utils.metrics`: Performance Metrics and Utilities
 ------------------------------------------------------------
@@ -610,6 +771,52 @@ Base classes
    tools.validate_confusion_matrix
    tools.validate_confusion_matrix_size
 
+:mod:`fatf.utils.transparency`: Transparency Utilities
+------------------------------------------------------
+
+.. automodule:: fatf.utils.transparency
+    :no-members:
+    :no-inherited-members:
+
+:mod:`fatf.utils.transparency.explainers`: Explainer Utilities
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. automodule:: fatf.utils.transparency.explainers
+    :no-members:
+    :no-inherited-members:
+
+.. currentmodule:: fatf.utils.transparency
+
+.. autosummary::
+   :toctree: generated/
+   :template: class.rst
+   :nosignatures:
+
+   explainers.Explainer
+
+.. autosummary::
+   :toctree: generated/
+   :template: function.rst
+   :nosignatures:
+
+   explainers.check_instance_explainer_functionality
+
+:mod:`fatf.utils.transparency.surrogate_evaluation`: Surrogates Evaluation
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. automodule:: fatf.utils.transparency.surrogate_evaluation
+    :no-members:
+    :no-inherited-members:
+
+.. currentmodule:: fatf.utils.transparency
+
+.. autosummary::
+   :toctree: generated/
+   :template: function.rst
+   :nosignatures:
+
+   surrogate_evaluation.local_fidelity_score
+
 :mod:`fatf.utils.tools`: FAT-Forensics Tools
 --------------------------------------------
 
@@ -626,6 +833,23 @@ Base classes
 
    at_least_verion
 
+:mod:`fatf.utils.validation`: FAT-Forensics Validation Functions
+----------------------------------------------------------------
+
+.. automodule:: fatf.utils.validation
+    :no-members:
+    :no-inherited-members:
+
+.. currentmodule:: fatf.utils.validation
+
+.. autosummary::
+   :toctree: generated/
+   :template: function.rst
+   :nosignatures:
+
+   get_required_parameters_number
+   check_object_functionality
+
 :mod:`fatf.utils.testing`: Testing Utilities
 --------------------------------------------
 
@@ -633,11 +857,14 @@ Base classes
     :no-members:
     :no-inherited-members:
 
+.. module:: fatf.utils.testing.arrays
+.. module:: fatf.utils.testing.imports
+.. module:: fatf.utils.testing.transparency
+.. module:: fatf.utils.testing.vis
+.. module:: fatf.utils.testing.warnings
+
 Constants
 ~~~~~~~~~
-
-.. module:: fatf.utils.testing.arrays
-.. module:: fatf.utils.testing.warnings
 
 .. currentmodule:: fatf.utils.testing
 
@@ -655,15 +882,31 @@ Constants
    arrays.NOT_BASE_NP_ARRAY
    arrays.BASE_STRUCTURED_ARRAY
    arrays.NOT_BASE_STRUCTURED_ARRAY
+   transparency.LABELS
+   transparency.NUMERICAL_NP_ARRAY
+   transparency.NUMERICAL_STRUCT_ARRAY
+   transparency.CATEGORICAL_NP_ARRAY
+   transparency.CATEGORICAL_STRUCT_ARRAY
+   transparency.MIXED_ARRAY
    warnings.DEFAULT_WARNINGS
    warnings.EMPTY_RE
    warnings.EMPTY_RE_I
 
+Classes
+~~~~~~~
+
+.. currentmodule:: fatf.utils.testing
+
+.. autosummary::
+   :toctree: generated/
+   :template: class.rst
+   :nosignatures:
+
+   transparency.InvalidModel
+   transparency.NonProbabilisticModel
+
 Functions
 ~~~~~~~~~
-
-.. module:: fatf.utils.testing.imports
-.. module:: fatf.utils.testing.vis
 
 .. currentmodule:: fatf.utils.testing
 
@@ -673,6 +916,8 @@ Functions
    :nosignatures:
 
    imports.module_import_tester
+   transparency.is_explanation_equal_dict
+   transparency.is_explanation_equal_list
    vis.get_plot_data
    vis.get_line_data
    vis.get_bar_data

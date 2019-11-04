@@ -17,33 +17,38 @@ use of the method, available implementations in a variety of programming
 languages, best practices, advised usage and caveats, among many other listed
 properties.
 
-Fairness
-========
+.. _user_guide_fairness:
 
-The :ref:`user_guide_fairness` discusses techniques used for *detecting*,
+Fairness User Guide
+===================
+
+The *Fairness User Guide* discusses techniques used for *detecting*,
 *measuring* and *mitigating* *bias* and *unfairness* in data and predictive
 algorithms.
 
-Accountability
-==============
+.. note:: Comming Soon.
 
-The :ref:`user_guide_accountability` discusses *safety*, *security*,
+.. _user_guide_accountability:
+
+Accountability User Guide
+=========================
+
+The *Accountability User Guide* discusses *safety*, *security*,
 *robustness* and *privacy* aspects of data sets and predictive algorithms.
 
-Transparency
-============
+.. note:: Comming Soon.
 
-The :ref:`user_guide_transparency` tackles *interpretability* and
+.. _user_guide_transparency:
+
+Transparency User Guide
+=======================
+
+The *Transparency User Guide* tackles *interpretability* and
 *explainability* of data sets, predictive models and their predictions.
 
-User Guide Contents
-===================
-
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
    :titlesonly:
-   :name: userguidetoc
+   :name: user-guide-transparency
 
-   fairness/index
-   accountability/index
-   transparency/index
+   transparency/surrogates

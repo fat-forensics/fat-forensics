@@ -53,6 +53,28 @@ def test_incorrectshapeerror():
     assert str(exin.value) == custom_message
 
 
+def test_incompatibleexplainererror():
+    """
+    Tests :class:`fatf.exceptions.IncompatibleExplainerError`.
+    """
+    default_message = ''
+    # Custom exception without a message
+    with pytest.raises(fatf.exceptions.IncompatibleExplainerError) as exin:
+        raise fatf.exceptions.IncompatibleExplainerError()
+    assert str(exin.value) == default_message
+
+    # Custom exception without a message
+    with pytest.raises(fatf.exceptions.IncompatibleExplainerError) as exin:
+        raise fatf.exceptions.IncompatibleExplainerError
+    assert str(exin.value) == default_message
+
+    # Custom exception with a message
+    custom_message = 'Custom message.'
+    with pytest.raises(fatf.exceptions.IncompatibleExplainerError) as exin:
+        raise fatf.exceptions.IncompatibleExplainerError(custom_message)
+    assert str(exin.value) == custom_message
+
+
 def test_incompatiblemodelerror():
     """
     Tests :class:`fatf.exceptions.IncompatibleModelError`.

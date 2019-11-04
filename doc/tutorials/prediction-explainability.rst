@@ -28,6 +28,8 @@ set, which we will use for this tutorial::
 
    >>> from pprint import pprint
 
+   >>> import fatf
+
    >>> import fatf.utils.data.datasets as fatf_datasets
    >>> iris_data_dict = fatf_datasets.load_iris()
    >>> iris_data = iris_data_dict['data']
@@ -491,32 +493,33 @@ the Local Interpretable Model-agnostic Explanations (LIME). Let us see what
 LIME can tell us about our predictive model's behaviour in the neighbourhood
 of our setosa data point::
 
-   >>> import fatf.transparency.lime as fatf_lime
+   >>> fatf.setup_random_seed(42)
+   >>> import fatf.transparency.predictions.surrogate_explainers as surrogates
 
-   >>> iris_lime = fatf_lime.Lime(
+   >>> iris_lime = surrogates.TabularBlimeyLime(
    ...     iris_data,
-   ...     model=clf,
-   ...     feature_names=iris_feature_names,
-   ...     class_names=iris_target_names)
+   ...     clf,
+   ...     feature_names=iris_feature_names.tolist(),
+   ...     class_names=iris_target_names.tolist())
    >>> lime_explanation = iris_lime.explain_instance(
-   ...     x_setosa, num_samples=500)
+   ...     x_setosa, samples_number=500)
 
 Let us first have a look at the text version of our LIME explanation for the
 setosa data point::
 
-   >>> pprint(lime_explanation)  # doctest: +SKIP
-   {'setosa': [('1.60 < petal length (cm) <= 4.35', -0.25827784290282646),
-               ('sepal length (cm) <= 5.10', -0.06820460513339331),
-               ('petal width (cm) <= 0.30', 0.012534253152155934),
-               ('sepal width (cm) > 3.30', 0.008103961265902194)],
-    'versicolor': [('1.60 < petal length (cm) <= 4.35', 0.5153316006185029),
-                   ('petal width (cm) <= 0.30', 0.14167072386007803),
-                   ('sepal width (cm) > 3.30', 0.09194042744562049),
-                   ('sepal length (cm) <= 5.10', 0.03129418556543736)],
-    'virginica': [('1.60 < petal length (cm) <= 4.35', -0.2570537577156765),
-                  ('petal width (cm) <= 0.30', -0.15420497701223396),
-                  ('sepal width (cm) > 3.30', -0.10004438871152276),
-                  ('sepal length (cm) <= 5.10', 0.03691041956795597)]}
+   >>> pprint(lime_explanation)
+   {'setosa': {'*petal width (cm)* <= 0.30': 0.03698295125607895,
+               '*sepal length (cm)* <= 5.10': 0.013734230852263654,
+               '1.60 < *petal length (cm)* <= 4.35': -0.18301541432210996,
+               '3.30 < *sepal width (cm)*': 0.08821105886209096},
+    'versicolor': {'*petal width (cm)* <= 0.30': 0.05771468585613034,
+                   '*sepal length (cm)* <= 5.10': 0.025733500528816115,
+                   '1.60 < *petal length (cm)* <= 4.35': 0.4694710470975027,
+                   '3.30 < *sepal width (cm)*': -0.00246315406456463},
+    'virginica': {'*petal width (cm)* <= 0.30': -0.09469763711220923,
+                  '*sepal length (cm)* <= 5.10': -0.03946773138107974,
+                  '1.60 < *petal length (cm)* <= 4.35': -0.28645563277539254,
+                  '3.30 < *sepal width (cm)*': -0.08574790479752634}}
 
 With all these numbers it may actually be easier to interpret their
 visualisation, which we can generate using the built-in
@@ -533,17 +536,6 @@ visualisation, which we can generate using the built-in
 .. image:: /tutorials/img/lime.png
    :align: center
    :scale: 75
-
-.. note:: LIME Randomness
-
-   Due to a radomness inherent to the LIME algorithm, you may get different
-   results when executing the code responsible for producing the LIME
-   explanation. Therefore, your numerical values and the plot may look slightly
-   different, nevertheless the feature boundaries (bins) produced by LIME
-   should be exactly the same in most of the cases. You may also notice that
-   the textualisation of the LIME explanation is different (in values) to the
-   one presented in the above figure. This is also due to LIME randomness and
-   the limitations of sphinx's doctest module.
 
 .. image:: /tutorials/img/cf_density_32.png
    :align: center

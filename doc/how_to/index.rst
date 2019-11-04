@@ -1,29 +1,40 @@
-.. title:: How-To Guides
+.. title:: How-to Guides
 
 .. _how_to_guide:
 
-How-To Guides
+How-to Guides
 +++++++++++++
 
-The *How To* guides are coming soon.
+This part of the documentation holds a collection of *How-to* guides that
+illustrate how to solve a certain problem or achieve a desired result with
+FAT Forensics. The *How-to* guides are split into three parts: *fairness*,
+*transparency_* and *accountability*.
 
 .. _how_to_fairness:
 
-Fairness How-To
+Fairness How-to
 ===============
 
-The *How To Fairness* guides are coming soon.
+The *How to Fairness* guides are coming soon.
 
 .. _how_to_accountability:
 
-Accountability How-To
+Accountability How-to
 =====================
 
-The *How To Accountability* guides are coming soon.
+The *How to Accountability* guides are coming soon.
 
 .. _how_to_transparency:
 
-Transparency How-To
+Transparency How-to
 ===================
 
-The *How To Transparency* guides are coming soon.
+The following *How-to* guides discuss how to solve certain problems and build
+custom solutions using FAT Forensics.
+
+.. toctree::
+   :maxdepth: 1
+   :titlesonly:
+   :name: how-to-transparency
+
+   transparency/tabular-surrogates

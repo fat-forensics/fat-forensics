@@ -416,6 +416,7 @@ Transparency
 .. autosummary::
 
    fatf.transparency
+   fatf.transparency.lime
    fatf.transparency.data
    fatf.transparency.models
    fatf.transparency.predictions
@@ -437,11 +438,15 @@ Utilities
    fatf.utils.data
    fatf.utils.models
 
+   fatf.utils.transparency
+
    fatf.utils.array
    fatf.utils.distances
+   fatf.utils.kernels
    fatf.utils.metrics
    fatf.utils.tools
    fatf.utils.testing
+   fatf.utils.validation
 
 Package Resources
 =================

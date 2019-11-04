@@ -49,20 +49,23 @@ Some parts (modules) of FAT Forensics depend on other packages. These are not
 installed by default. The following table shows soft dependencies of ``fatf``
 modules:
 
-+-------------------------------------------+------------------+
-| ``fatf`` module                           | Required package |
-+===========================================+==================+
-| :mod:`fatf.transparency.lime`             |                  |
-+-------------------------------------------+                  |
-| :mod:`fatf.transparency.models.lime`      | |lime|_          |
-+-------------------------------------------+                  |
-| :mod:`fatf.transparency.predictions.lime` |                  |
-+-------------------------------------------+------------------+
-| :mod:`fatf.transparency.sklearn`          | |scikit-learn|_  |
-+-------------------------------------------+------------------+
-| :mod:`fatf.vis`                           | |matplotlib|_    |
-+-------------------------------------------+------------------+
-
++-----------------------------------------------------------+------------------+
+| ``fatf`` module                                           | Required package |
++===========================================================+==================+
+| :mod:`fatf.transparency.lime`                             |                  |
++-----------------------------------------------------------+                  |
+| :mod:`fatf.transparency.models.lime`                      | |lime|_          |
++-----------------------------------------------------------+                  |
+| :mod:`fatf.transparency.predictions.lime`                 |                  |
++-----------------------------------------------------------+------------------+
+| :mod:`fatf.transparency.predictions.surrogate_explainers` |                  |
++-----------------------------------------------------------+                  |
+| :mod:`fatf.transparency.sklearn`                          | |scikit-learn|_  |
++-----------------------------------------------------------+                  |
+| :mod:`fatf.utils.data.feature_selection.sklearn`          |                  |
++-----------------------------------------------------------+------------------+
+| :mod:`fatf.vis`                                           | |matplotlib|_    |
++-----------------------------------------------------------+------------------+
 
 These dependencies can either be installed manually or alongside
 ``fat-forensics`` via ``pip``:

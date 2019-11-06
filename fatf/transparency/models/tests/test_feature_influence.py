@@ -195,8 +195,8 @@ def test_is_valid_input():
                                   None)
         assert str(exin.value) == msg
     assert len(warning) == 1
-    assert str(warning[0].message) == ('The model class is missing '
-                                       "'predict_proba' method.")
+    assert str(warning[0].message) == ('The *InvalidModel* (model) class is '
+                                       "missing 'predict_proba' method.")
 
     # Feature index
     msg = 'Provided feature index is not valid for the input dataset.'

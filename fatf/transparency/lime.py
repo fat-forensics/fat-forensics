@@ -1,5 +1,22 @@
 """
-Wraps the LIME_ tabular data explainer.
+.. deprecated:: 0.0.3
+   This module will be deprecated in FAT Forensics version 0.0.3.
+   Instead of wrapping the lime package a full (modular) version of the
+   LIME surrogate explainer has been implemented -- see the :class:`fatf.\
+transparency.predictions.surrogate_explainers.TabularBlimeyLime` class and the
+   :ref:`how_to_tabular_surrogates` how-to guide for more details.
+
+The :mod:`fatf.transparency.lime` module wraps the LIME_ explainer.
+
+This module implements a generic tabular data LIME explainer that can be
+customised to either explain models (:mod:`fatf.transparency.models.lime`
+module) or predictions (:mod:`fatf.transparency.predictions.lime` module).
+
+**This module requires the lime package to be installed.**
+
+(At the moment, only the tabular data explainer is wrapped. Since LIME is
+slowly being reimplemented withing this package, wrapping anything else
+would be a waste of time.)
 
 .. _LIME: https://github.com/marcotcr/lime
 """
@@ -36,16 +53,16 @@ logger = logging.getLogger(__name__)  # pylint: disable=invalid-name
 
 class Lime(object):
     """
-    Wraps `LIME package's`__ ``lime.lime_tabular.LimeTabularExplainer`` class_.
+    Wraps LIME package's ``lime.lime_tabular.LimeTabularExplainer`` class.
 
     .. warning::
-        Contrarily to the LIME tabular explainer this wrapper sets the
+        Contrarily to the `LIME tabular explainer`__ this wrapper sets the
         ``sample_around_instance`` parameter to ``True`` meaning that by
         default it provides a local rather than a global explanation. This can
         be changed by either providing a ``sample_around_instance`` or a
         ``local_explanation`` parameter with the first one taking precedence.
 
-    This LIME wrapper can be initialised with any of the
+    This LIME_ wrapper can be initialised with any of the
     ``lime.lime_tabular.LimeTabularExplainer`` named parameters. Additionally,
     one can also pass in any of the
     ``lime.lime_tabular.LimeTabularExplainer.explain_instance`` method named
@@ -72,9 +89,12 @@ class Lime(object):
         :func:`fatf.utils.array.tools.as_unstructured` function first to
         convert it to an unstructured array before training a model.
 
-    .. _class: https://lime-ml.readthedocs.io/en/latest/lime.html
-       #lime.lime_tabular.LimeTabularExplainer`
-    __ https://github.com/marcotcr/lime
+    This function loggs a warning if the model does not have a
+    ``predict_proba`` method.
+
+    .. _LIME: https://github.com/marcotcr/lime
+    __ https://lime-ml.readthedocs.io/en/latest/lime.html
+       #lime.lime_tabular.LimeTabularExplainer
     __ https://lime-ml.readthedocs.io/en/latest/lime.html
 
     Parameters
@@ -104,14 +124,11 @@ class Lime(object):
 
     Warns
     -----
+    FutureWarning
+        This class will be deprecated in FAT Forensics version 0.0.3.
     UserWarning
         The user is warned when both a ``model`` and a ``predict_fn`` are
         provided. In such a case the ``predict_fn`` takes the precedence.
-
-    Loggs
-    -----
-    Warning
-        The model does not have ``predict_proba`` method.
 
     Raises
     ------
@@ -143,7 +160,7 @@ class Lime(object):
         An initialised ``LimeTabularExplainer`` object.
     mode : string
         LIME mode of operation; ``'classification'`` or ``'regression'``.
-    model : object (default=None)
+    model : object
         A model to be used for LIME explanations.
     model_is_probabilistic : boolean
         An indicator whether the model is a probabilistic model, i.e. has a
@@ -176,6 +193,16 @@ class Lime(object):
         Initialises a tabular LIME wrapper.
         """
         # pylint: disable=too-many-branches,too-many-statements
+
+        warnings.warn(
+            'The LIME wrapper will be deprecated in FAT Forensics version '
+            '0.0.3. Please consider using the TabularBlimeyLime explainer '
+            'class implemented in the fatf.transparency.predictions.'
+            'surrogate_explainers module instead. Alternatively, you may '
+            'consider building a custom surrogate explainer using the '
+            'functionality implemented in FAT Forensics -- see the *Tabular '
+            'Surrogates* how-to guide for more details.', FutureWarning)
+
         valid_params = self._INIT_PARAMS.union(self._EXPLAIN_INSTANCE_PARAMS)
         invalid_params = set(kwargs.keys()).difference(valid_params)
         if invalid_params:
@@ -344,8 +371,8 @@ class Lime(object):
 
         Returns
         -------
-        explanation : Dictionary[string, Tuple[string, float]] or
-                      List[Tuple[string, float]]
+        explanation : Dictionary[string, Tuple[string, float]] or \
+List[Tuple[string, float]]
             For classification a dictionary where the keys correspond to class
             names and the values are tuples (string and float), which represent
             an explanation in terms of one of the features and the importance

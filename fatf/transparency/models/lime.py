@@ -1,5 +1,17 @@
 """
-Wraps the fatf.transparency.lime.Lime explainer for a whole model.
+.. deprecated:: 0.0.3
+   This module will be deprecated in FAT Forensics version 0.0.3.
+   Instead of wrapping the lime package a full (modular) version of the
+   LIME surrogate explainer has been implemented -- see the :class:`fatf.\
+transparency.predictions.surrogate_explainers.TabularBlimeyLime` class and the
+   :ref:`how_to_tabular_surrogates` how-to guide for more details.
+
+The :mod:`fatf.transparency.models.lime` module prepares the LIME explainer for
+explaining models.
+
+This module instantiates :class:`fatf.transparency.lime.Lime` class with
+selected arguments to create a :class:`.Lime` class explainer for a whole
+model.
 """
 # Author: Kacper Sokol <k.sokol@bristol.ac.uk>
 # License: new BSD

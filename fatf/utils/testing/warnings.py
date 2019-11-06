@@ -1,5 +1,21 @@
 """
-Defines functions to help test the code against warning generation.
+The :mod:`fatf.utils.testing.warnings` module holds warnings testing functions.
+
+Functions implemented in this module help to test the code against warning
+generation and warning filter settings.
+
+In addition the :mod:`fatf.utils.testing.warnings` module implements three
+global variables:
+
+``DEFAULT_WARNINGS``
+  A list of default warning filters as of Python 3.7.
+
+``EMPTY_RE``
+  A compiled regular expression based on an empty string (``''``).
+
+``EMPTY_RE_I``
+  A compiled, case insensitive regular expression based on an empty string
+  (``''``).
 """
 # Author: Kacper Sokol <k.sokol@bristol.ac.uk>
 # License: new BSD
@@ -17,7 +33,7 @@ __all__ = ['DEFAULT_WARNINGS',
            'is_warning_class_displayed']  # yapf: disable
 
 # The default list (reversed, since they are appended) of warning filters as of
-# Puthon 3.7
+# Python 3.7
 DEFAULT_WARNINGS = [('ignore', None, ResourceWarning, '', 0),
                     ('ignore', None, ImportWarning, '', 0),
                     ('ignore', '', PendingDeprecationWarning, '', 0),
@@ -32,12 +48,18 @@ def handle_warnings_filter_pattern(
         warning_filter_pattern: Union[None, str, Pattern],
         ignore_case: bool = False) -> Pattern:
     """
-    Converts a warning filter module pattern into a regular expression pattern.
+    Converts a patter within a warning filter into a regex pattern.
+
+    If the input pattern is ``None`` an empty (string) regex pattern is
+    returned. A string pattern is complied directly into a regex pattern. If
+    the input pattern is already a regex pattern it is returned without any
+    modifications.
 
     Parameters
     ----------
     warning_filter_pattern : Union[None, str, Pattern]
-        A warning class to be checked.
+        A pattern (``None``, string or a regex pattern) extracted from a
+        warning filter.
     ignore_case : boolean, optional (default=False)
         Should ``re.IGNORECASE`` flag be compiled into the module pattern?
         Defaults to ``False``.

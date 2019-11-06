@@ -16,8 +16,12 @@ dist/*
 .ipynb_checkpoints
 #*.ipynb
 
-docs/_build
-docs/_resources
+doc/_build
+doc/resources
+doc/generated
+doc/sphinx_gallery_auto
+doc/tutorials/img
+doc/how_to/img
 
 temp/*
 .coverage.*

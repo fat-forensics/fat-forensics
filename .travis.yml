@@ -1,4 +1,5 @@
-# Use container on EC2, other options available (venvs)[https://docs.travis-ci.com/user/reference/overview/]
+# Use container on EC2, other options available
+# (venvs)[https://docs.travis-ci.com/user/reference/overview/]
 dist: xenial
 
 notifications:
@@ -12,7 +13,8 @@ language: python
 
 cache:
   - pip
-#  - directories:
+  - directories:
+    - doc/sphinx_gallery_auto
 #    - $HOME/.cache/pip
 before_cache:
   - rm -f $HOME/.cache/pip/log/debug.log
@@ -27,40 +29,45 @@ env:
   global:
     - MAKEFLAGS='-j 2'  # This allows to parallelise make, e.g. make t1 t2
   matrix:
-    - FATF_TEST_SCIPY=1.1.0   FATF_TEST_NUMPY=1.15.4
-    - FATF_TEST_SCIPY=1.0.1   FATF_TEST_NUMPY=1.14.6
-    - FATF_TEST_SCIPY=0.19.1  FATF_TEST_NUMPY=1.13.3
-    - FATF_TEST_SCIPY=0.18.1  FATF_TEST_NUMPY=1.12.1
-    - FATF_TEST_SCIPY=0.18.1  FATF_TEST_NUMPY=1.10.1
-    - FATF_TEST_SCIPY=latest  FATF_TEST_NUMPY=latest
+    - FATF_TEST_SCIPY=1.3.0  FATF_TEST_NUMPY=1.16.3
+    - FATF_TEST_SCIPY=1.2.0  FATF_TEST_NUMPY=1.16.0
+    - FATF_TEST_SCIPY=1.1.0  FATF_TEST_NUMPY=1.15.4
+    - FATF_TEST_SCIPY=1.0.1  FATF_TEST_NUMPY=1.14.6
+    - FATF_TEST_SCIPY=0.19.1 FATF_TEST_NUMPY=1.13.3
+    - FATF_TEST_SCIPY=0.18.1 FATF_TEST_NUMPY=1.12.1
+    # The matplotlib version is fixed to 3.0.0 because since version 3.1 it
+    # requires at least 1.11 numpy and we support numpy 1.10
+    - FATF_TEST_SCIPY=0.18.1 FATF_TEST_NUMPY=1.10.1 FATF_TEST_MATPLOTLIB=3.0.0
+    - FATF_TEST_SCIPY=latest FATF_TEST_NUMPY=latest
 
 matrix:
   fast_finish: true
   exclude:
     - python: '3.7'
-      env: FATF_TEST_SCIPY=1.0.1   FATF_TEST_NUMPY=1.14.6
+      env: FATF_TEST_SCIPY=1.0.1  FATF_TEST_NUMPY=1.14.6
     - python: '3.7'
-      env: FATF_TEST_SCIPY=0.19.1  FATF_TEST_NUMPY=1.13.3
+      env: FATF_TEST_SCIPY=0.19.1 FATF_TEST_NUMPY=1.13.3
     - python: '3.7'
-      env: FATF_TEST_SCIPY=0.18.1  FATF_TEST_NUMPY=1.12.1
+      env: FATF_TEST_SCIPY=0.18.1 FATF_TEST_NUMPY=1.12.1
     - python: '3.7'
-      env: FATF_TEST_SCIPY=0.18.1  FATF_TEST_NUMPY=1.10.1
+      env: FATF_TEST_SCIPY=0.18.1 FATF_TEST_NUMPY=1.10.1 FATF_TEST_MATPLOTLIB=3.0.0
     - python: '3.8-dev'
-      env: FATF_TEST_SCIPY=1.0.1   FATF_TEST_NUMPY=1.14.6
+      env: FATF_TEST_SCIPY=1.0.1  FATF_TEST_NUMPY=1.14.6
     - python: '3.8-dev'
-      env: FATF_TEST_SCIPY=0.19.1  FATF_TEST_NUMPY=1.13.3
+      env: FATF_TEST_SCIPY=0.19.1 FATF_TEST_NUMPY=1.13.3
     - python: '3.8-dev'
-      env: FATF_TEST_SCIPY=0.18.1  FATF_TEST_NUMPY=1.12.1
+      env: FATF_TEST_SCIPY=0.18.1 FATF_TEST_NUMPY=1.12.1
     - python: '3.8-dev'
-      env: FATF_TEST_SCIPY=0.18.1  FATF_TEST_NUMPY=1.10.1
+      env: FATF_TEST_SCIPY=0.18.1 FATF_TEST_NUMPY=1.10.1 FATF_TEST_MATPLOTLIB=3.0.0
   allow_failures:
     - python: '3.8-dev'
-    - env: FATF_TEST_SCIPY=latest  FATF_TEST_NUMPY=latest
+    - env: FATF_TEST_SCIPY=latest FATF_TEST_NUMPY=latest
 
 install:
+  # lime has to be installed before anything else since we overwrite its deps
+  - make install-lime
+  - make install-matplotlib
   - make dependencies-dev  # Install python development dependencies
-  - pip install lime
-  - pip install 'matplotlib>=3.0.0'
 #  - pip install scikit-learn
 #  - make install-sans-dep
 
@@ -69,9 +76,84 @@ script:
   - make linting-flake8
   - make linting-yapf
   - make check-types
-  - make test-with-code-coverage 
+  - make test-with-code-coverage
 #  - make test-notebooks
-  - make test-docs
-  - make docs-linkcheck
-  - make docs-coverage
-  - make docs-html
+
+jobs:
+  include:
+    - stage: Documentation Testing and Deployment
+      python: 3.6
+      if: |
+        env(FATF_TEST_SCIPY) = 1.3.0 AND \
+        env(FATF_TEST_NUMPY) = 1.16.3
+      script:
+        - make test-doc
+        - make doc-linkcheck
+        - make doc-coverage
+      before_deploy:
+        - make doc-html
+      deploy:
+        provider: script
+        script: bash build_tools/doc/deploy-doc.sh ${TRAVIS_BRANCH}
+        skip_cleanup: true
+        on: &deploy-conditions
+          repo: fat-forensics/fat-forensics
+          branch: master
+    - stage: Deploy Code Coverage
+      python: 3.6
+      if: |
+        env(FATF_TEST_SCIPY) = 1.3.0 AND \
+        env(FATF_TEST_NUMPY) = 1.16.3
+      script: make test-with-code-coverage
+      deploy:
+        provider: script
+        script: make deploy-code-coverage
+        skip_cleanup: true
+        on:
+          <<: *deploy-conditions
+          all_branches: true
+    - stage: Release on PyPi
+      python: 3.6
+      if: |
+        env(FATF_TEST_SCIPY) = 1.3.0 AND \
+        env(FATF_TEST_NUMPY) = 1.16.3
+      install: make install-sans-dep
+      script: skip
+      before_deploy: bash build_tools/pypi/version-validation.sh
+      deploy:
+        provider: pypi
+        user: "__token__"
+        password:
+          secure: "OC0Z4KEyI27x9p2PeohulMh9SWWBGwX2EgK5+rIkjM8Crr/IVZC2UmJnwi4CC2xQHYbB5qRLEQo4lzHXPKiNgEoHubUZo1ZKnlqJI+feyDSvlPRoBrm5aTdWj7sI30kTXYbAYFN1roE+PA1ZVhJ9206stq+BF5MvGoVloy+DuGP3xEMI3iB/AQd4Fu5OKrM0z5mTJMSd2m+mo47gQ+NoyGXNWJmAkMOKA5p9zqpcS9SgSuBUgIY9vAg+huC4Kn56cJRKe8aZlpTyLEYnggvY63MAlaNF2lY006/clwRUYgNh56fejecJFMdcdCqwPTSJiPfJDQsnwqqQ3QW8NlPFne2Ct7nKFWrpmC9NkbkLRSapcADmeTBpucXZt2F78wS1yagCLcCVYRRhs0bWswmbNVSERuaNo/nZ3kiOrSwFV3/foHqBwVYUKgmyCxPObf+iYWslPLpam/RuHdeoWaOhvKdl/xgvJw/qUCJoTBC2W/Z+OVjNPYmk/PtzcQ8CZ3jRfYg0pyr9zFSjMfGCVRpVU7or4muOC9MtVH8eeGsZyVj3CgWc85/JF/G6MHF0OuJDbBsWHsSekLKSjCJy3aCpJSyuOw+VHyUDyTslCLAc5Lh5PQkVK23lYjrDWVjSPD3Y6pFxQLq+SI3hLfvMoZvtfx9QHFPq++Gh9FQMixFtYX0="
+        distributions: "sdist bdist_wheel"
+        skip_existing: true
+        skip_cleanup: true
+        on:
+          <<: *deploy-conditions
+          tags: true
+          condition: "$TRAVIS_TAG =~ ^[0-9]+\\.[0-9]+\\.[0-9]+(-rev[0-9]+)?$"
+    - stage: Release on GitHub
+      python: 3.6
+      if: |
+        env(FATF_TEST_SCIPY) = 1.3.0 AND \
+        env(FATF_TEST_NUMPY) = 1.16.3
+      install:
+        - pip install --upgrade setuptools wheel
+        - make install-sans-dep
+      script: skip
+      before_deploy:
+        - bash build_tools/pypi/version-validation.sh
+        - make build
+      deploy:
+        provider: releases
+        api_key:
+          secure: "VriMfSzh4qwm8XmGg4o09x9UO/y0k3JAjQal1hU3qrp25r4/9nM0NDUBsHWTFJeUH35KNkhk/R53Sd1a+aXZa/67eFufkv37JBuST0ZT4w5/c1rX5eJ3t3Kcgl/6zVn7sIwCzVZUyiLMyrQ2+L/cFWJ0kveUNXqyoV69TbRlnyfVOe45jqi89+a7s9Y8QiPqD80cy8S3qXYWhGzj+44ATPvCYslm3kiWxITzQd3vXxi9v+QNngSfzfeVSIEBgOP6Hc5uh7Tdt0iaacyRv9OOcPh8J2ABazoKuDVa3I2kVutbtrdjeHwJdglifmfYm4ARwupvb42kPq798F9Kv7OhdEoXPdvyiAAC0ByYVj05ZZUmGQTRWBW4rjhc9RTedwF8tZCbVVq7Vcay2uEqPcl6EWVlvi4kUsCMD389vQWtbtT+o6SfmS5lju/sO3jvb8HOmaJ/vqx8PAI1vWqhezbrwhEyfirtMhCWOnJRvBgYI8eFLmK8rMWjiwmxT4Aass9F6Axjn2AM/GfWBZsOxjXsJop6CP2dvh6VqmzaUgZD7hsTeXhnCFYol3e79m37hKsq1M/WynTigfdaOkbfAcmXzzZTSJ+qUVopJD5VymSpB3G7zK0R41EWQ/nFPtN8KpI0WsMpa2ZqJry5bULBQLmHx7qNjmUyNmO34jQqxNHX4+A="
+        file_glob: true
+        file: dist/*
+        name: FAT-Forensics ${TRAVIS_TAG}
+        body: "See change log at: https://fat-forensics.org/changelog.html"
+        skip_cleanup: true
+        on:
+          <<: *deploy-conditions
+          tags: true
+          condition: "$TRAVIS_TAG =~ ^[0-9]+\\.[0-9]+\\.[0-9]+(-rev[0-9]+)?$"

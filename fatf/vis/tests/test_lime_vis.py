@@ -7,6 +7,17 @@ Tests LIME plotting functions.
 
 import pytest
 
+try:
+    import lime
+    import matplotlib
+except ImportError:  # pragma: no cover
+    pytest.skip(
+        'Skipping visualisation tests -- matplotlib or lime missing.',
+        allow_module_level=True)
+else:
+    del lime
+    del matplotlib
+
 import fatf.utils.testing.vis as futv
 import fatf.vis.lime as fvl
 
@@ -20,7 +31,8 @@ def test_plot_lime_validation():
     """
     type_error_global = ('The LIME explanation has to be either a dictionary '
                          '(for classification) or a list (for regression).')
-    type_error_val = 'One of the explanations is not a list.'
+    type_error_val = ('One of the explanations is neither a dictionary '
+                      'nor a list.')
     type_error_tup1 = ('One of the explanation keys is neither an integer nor '
                        'a string.')
     type_error_tup2 = 'One of the explanation values is not a number.'
@@ -60,6 +72,7 @@ def test_plot_lime_classification():
                    ('0.07 < feat2 <= 0.22', 0.0392),
                    ('0.34 < feat3 <= 0.58', 0.025)]
     }  # yapf: disable
+    data_dict = {key: dict(value) for key, value in data.items()}
     classes = sorted(list(data.keys()))
     x_range = [-0.45, 0.43]  # min/max + 0.035 from the data above
 
@@ -70,7 +83,20 @@ def test_plot_lime_classification():
               [0.395, 0.0775, 0.0392, 0.025]]
     colours = [[RED, RED, GREEN, RED], [GREEN, GREEN, RED, RED],
                [GREEN, GREEN, GREEN, GREEN]]
+    y_labels_dict = sorted(data_dict['class0'].keys())
+    widths_dict = []
+    colours_dict = []
+    for i, _ in enumerate(classes):
+        widths_dict_ = []
+        colours_dict_ = []
+        for label in y_labels_dict:
+            y_labels_index = y_labels.index(label)
+            widths_dict_.append(widths[i][y_labels_index])
+            colours_dict_.append(colours[i][y_labels_index])
+        widths_dict.append(widths_dict_)
+        colours_dict.append(colours_dict_)
 
+    # Test for a list
     fig = fvl.plot_lime(data)
     assert len(fig.axes) == len(classes)
 
@@ -108,6 +134,45 @@ def test_plot_lime_classification():
             assert len(colour[j]) == len(colours[i][j])
             for k in range(len(colour[j])):
                 assert abs(colours[i][j][k] - colour[j][k]) < 0.001
+
+    # Test for a dictionary
+    fig = fvl.plot_lime(data_dict)
+    assert len(fig.axes) == len(classes)
+
+    for axis_index in range(len(fig.axes)):
+        bar_data = futv.get_bar_data(fig.axes[axis_index])
+        title, x_ticks, x_rng, y_ticks, y_rng, width, colour = bar_data
+
+        # In case the axes are not returned in the right order figure it out.
+        # This is needed for Python 3.5
+        i = classes.index(title)
+        #
+        assert title == classes[i]
+        #
+        for j in x_ticks:
+            assert j == ''
+        assert len(x_range) == 2
+        assert len(x_rng) == 2
+        assert abs((x_range[1] - x_range[0]) - (x_rng[1] - x_rng[0])) < 0.02
+        #
+        if axis_index == 0:
+            assert len(y_labels_dict) == len(y_ticks)
+            for j in range(len(y_ticks)):
+                assert y_labels_dict[j] == y_ticks[j]
+        else:
+            assert not y_ticks
+        assert len(y_rng) == 2
+        assert abs(len(data_dict[classes[i]]) - (y_rng[1] - y_rng[0])) < 0.2
+        #
+        assert len(width) == len(widths_dict[i])
+        for j in range(len(width)):
+            assert widths_dict[i][j] == width[j]
+        #
+        assert len(colour) == len(colours_dict[i])
+        for j in range(len(colour)):
+            assert len(colour[j]) == len(colours_dict[i][j])
+            for k in range(len(colour[j])):
+                assert abs(colours_dict[i][j][k] - colour[j][k]) < 0.001
 
     # Test when sharey is False and the yticklabels are unique for each axis
     del data['class1'][2]

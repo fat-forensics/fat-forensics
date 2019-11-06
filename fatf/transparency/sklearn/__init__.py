@@ -1,5 +1,7 @@
 """
-This package is responsible for explaining scikit-learn algorithms.
+The :mod:`fatf.transparency.sklearn` module implements scikit-learn explainers.
+
+**This module requires the scikit-learn package to be installed.**
 """
 # Author: Kacper Sokol <k.sokol@bristol.ac.uk>
 # License: new BSD

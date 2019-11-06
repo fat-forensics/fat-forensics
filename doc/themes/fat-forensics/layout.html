@@ -1,0 +1,262 @@
+{#
+    fat-forensics/layout.html
+    ~~~~~~~~~~~~~~~~~
+
+    Layout for FAT-Forensics
+
+    :copyright: Kacper Sokol
+    :license: new BSD
+#}
+{% extends "basic/layout.html" %}
+
+{% block htmltitle %}
+  {{ super() }}
+  <!-- html title is before nature.css - we use this hack to load bootstrap first -->
+  <!-- Required meta tags -->
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+  <!-- Bootstrap CSS -->
+  <link rel="stylesheet" href="{{ pathto('_static/css/bootstrap.min.css', 1) }}">
+{% endblock %}
+
+{% block extrahead %}
+  <!-- jQuery first, then Bootstrap JS -->
+  <!-- jQuery is distributed with Sphinx already -->
+  <!-- <script src="{{ pathto('_static/jquery.min.js', 1)}}"></script> -->
+  <script src="{{ pathto('_static/js/bootstrap.min.js', 1)}}"></script>
+{% endblock %}
+
+{% block header %}
+<div class="container">
+  <nav class="navbar navbar-expand-md navbar-light bg-light">
+    <a class="navbar-brand align-text-middle" href="{{ pathto(master_doc) }}">
+      {%- if logo %}
+      <img src="{{ pathto('_static/' + logo, 1) }}"
+       alt="Logo"
+       width="35" height="35"
+       class="d-inline-block align-middle">
+      {%- endif %}
+      FAT-Forensics
+    </a>
+
+    <button class="navbar-toggler"
+            type="button"
+            data-toggle="collapse"
+            data-target="#navbarCollapsedContent">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+
+    <div class="collapse navbar-collapse"
+         id="navbarCollapsedContent">
+      <ul class="navbar-nav mr-auto">
+        <li class="nav-item">
+          <a class="nav-link" href="{{ pathto(master_doc) }}">Home</a>
+        </li>
+
+        <li class="nav-item dropdown">
+          <a class="nav-link dropdown-toggle" href="#" role="button" data-toggle="dropdown">
+            Documentation
+          </a>
+          <div class="dropdown-menu">
+            <div class="dropdown-header">FAT-Forensics</div>
+            <div class="dropdown-divider"></div>
+            <a class="dropdown-item" href="{{ pathto('getting_started/index') }}">Getting Started</a>
+            <a class="dropdown-item" href="{{ pathto('tutorials/index') }}">Tutorials</a>
+            <a class="dropdown-item" href="{{ pathto('sphinx_gallery_auto/index') }}">Examples</a>
+            <a class="dropdown-item" href="{{ pathto('api') }}">API Reference</a>
+            <a class="dropdown-item" href="{{ pathto('how_to/index') }}">How-To Guides</a>
+            <div class="dropdown-divider"></div>
+            <a class="dropdown-item" href="{{ pathto('news') }}">News</a>
+            <a class="dropdown-item" href="{{ pathto('development') }}">Developers Guide</a>
+            <a class="dropdown-item" href="{{ pathto('contributors') }}">Contributors</a>
+            <a class="dropdown-item" href="{{ pathto('changelog') }}">Changelog</a>
+            <a class="dropdown-item" href="{{ pathto('roadmap') }}">Roadmap</a>
+          </div>
+        </li>
+
+        <li class="nav-item">
+          <a class="nav-link" href="{{ pathto('user_guide/index') }}">
+            FAT User Guide
+          </a>
+        </li>
+      </ul>
+
+      <div class="search_form form-inline">
+          <div class="gcse-search" id="cse" style="width: 100%;"></div>
+      </div>
+    </div>
+  </nav>
+</div>
+{% endblock %}
+
+{% block content %}
+<!-- GitHub "fork me" ribbon -->
+<!--
+<a href="https://github.com/fat-forensics/fat-forensics">
+  <img class="fork-me"
+       style="position: absolute; top: 0; right: 0; border: 0;"
+       src="{{ pathto('_static/img/forkme.png', 1) }}"
+       alt="Fork me on GitHub" />
+</a>
+-->
+<span id="forkongithub">
+  <a href="https://github.com/fat-forensics/fat-forensics">
+    Fork me on GitHub
+  </a>
+</span>
+
+{%- block document %}
+<div class="container">
+  <div class="row">
+    {%- if pagename != 'index' %}
+    <div class="col-sm-2">
+      <div class="container sidebar">
+        <!--{{ sidebar() }}-->
+
+        {%- if rellinks %}
+        <!-- Add a link to the 'up' page -->
+
+        {%- if parents %}
+        <div class="row rel">
+          <div class="col rellink pad-b-1">
+            <a class="btn btn-primary btn-sm"
+               href="{{ parents[-1].link|e }}"
+               role="button">
+              Up
+              <br/>
+              <span class="smallrellink">
+                {{ parents[-1].title|striptags|truncate(16, killwords=True) }}
+              </span>
+
+              {%- if parents[-1].title|striptags != '<no title>' %}
+              <span class="hiddenrellink left-button">
+                {{ parents[-1].title|striptags }}
+              </span>
+              {% endif %}
+            </a>
+          </div>
+        </div>
+        {%- endif %}
+
+        <!-- Add a links to the 'relative' pages -->
+
+        <div class="row rel">
+        {%- for rellink in rellinks|reverse %}
+          <div class="col-6 rellink
+                      {% if loop.first %}pad-r-1
+                      {% elif loop.last %}pad-l-1
+                      {% else %}pad-l-1 pad-r-1{% endif %}">
+            <a class="btn btn-primary btn-sm"
+               href="{{ pathto(rellink[0]) }}"
+               {{ accesskey(rellink[2]) }}
+               role="button">
+              {{ rellink[3]|capitalize }}
+              <br/>
+              <span class="smallrellink">
+                {{ rellink[1]|striptags|truncate(16, killwords=True) }}
+              </span>
+
+              {%- if rellink[1]|striptags %}
+                  <span class="hiddenrellink
+                               {% if loop.first %}left-button
+                               {% elif loop.last %}right-button
+                               {% else %}middle-button{% endif %}"
+                        data-container="body">
+                  {{ rellink[1]|striptags}}
+                  </span>
+              {%- endif %}
+            </a>
+          </div>
+        {%- endfor %}
+        </div>
+
+        {% endif %}
+
+        <!-- Add a citation banner -->
+        <div class="alert alert-info" role="alert" style="font-size: 89%; margin-top: 16px;">
+          Please <a href="{{ pathto('getting_started/cite') }}"><b>cite us</b></a> if you use the software.
+        </div>
+
+        <!-- Add a page map -->
+
+        <div class="row toc">
+          {{ toc }}
+        </div>
+
+      </div>
+    </div>
+    {% endif %}
+
+    <div class="col col-sm-{% if pagename != 'index' %}10{% else %}12{% endif %}">
+      <div class="container">
+        <div class="row">
+        {{ super() }}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{%- endblock %}
+{% endblock %}
+
+{% block relbar1 %}{% endblock %}
+{% block relbar2 %}{% endblock %}
+
+{%- block footer %}
+  <div class="container cusotm-footer">
+    <div class="row">
+      <div class="col-3">
+      {%- if show_copyright %}
+      {%- if hasdoc('copyright') %}
+        {% trans path=pathto('copyright'), copyright=copyright|e %}&copy; {{ copyright }}{% endtrans %}
+      {%- else %}
+        {% trans copyright=copyright|e %}&copy; {{ copyright }}{% endtrans %}
+      {%- endif %}
+      {%- endif %}
+      </div>
+      <div class="col-6">
+        <a class="footer-img-link" href="contributors.html#funding">
+          <img src="{{ pathto('_static/img/bristol.svg', 1) }}" title="Univeristy of Bristol" style="max-height: 30px">
+          &nbsp;
+          <img src="{{ pathto('_static/img/thales.svg', 1) }}" title="Thales" style="max-height: 20px">
+        </a>
+        <br>
+        <a href="contributors.html#funding" style="top: 4px; position: relative;">
+          More information on our contributors
+        </a>
+      </div>
+      <div class="col-3">
+      {%- if show_source and has_source and sourcename %}
+        <a href="{{ pathto('_sources/' + sourcename, true)|e }}" rel="nofollow">
+          {{ _('Show this page source') }}
+        </a>
+      {%- endif %}
+      </div>
+    </div>
+  </div>
+
+  {% if theme_google_analytics|tobool %}
+  <script>
+    window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)};ga.l=+new Date;
+    ga('create', 'UA-142154492-1', 'auto');
+    ga('set', 'anonymizeIp', true);
+    ga('send', 'pageview');
+  </script>
+  <script async src='https://www.google-analytics.com/analytics.js'></script>
+  {% endif %}
+
+  {% if theme_google_custom_search|tobool %}
+  <script>
+    (function() {
+      var cx = '014039732624725851926:mpducezglrq';
+      var gcse = document.createElement('script');
+      gcse.type = 'text/javascript';
+      gcse.async = true;
+      gcse.src = 'https://cse.google.com/cse.js?cx=' + cx;
+      var s = document.getElementsByTagName('script')[0];
+      s.parentNode.insertBefore(gcse, s);
+    })();
+  </script>
+  {% endif %}
+{%- endblock %}

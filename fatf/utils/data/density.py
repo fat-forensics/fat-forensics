@@ -612,3 +612,21 @@ optional (default=None)
                     score = max(min(1, score), 0)
 
         return score
+
+
+class DensityEstimator(abc.Abstract):
+    def __init__(self):
+        pass
+
+    def fit(self, X):
+        pass
+
+    def score(self, X):
+        pass
+
+
+class SVMDensityEstimator(DensityEstimator):
+    pass
+
+class GMMDensityEstimator(DensityEstimator):
+    pass

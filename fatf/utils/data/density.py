@@ -614,7 +614,8 @@ optional (default=None)
         return score
 
 
-class DensityEstimator(abc.Abstract):
+# TODO Change object to abc.Abstract
+class DensityEstimator(object):
     def __init__(self):
         pass
 

@@ -31,7 +31,6 @@ class BackgroundCheck(object):
         '''
         self._clf = clf
         self._rde = rde
-        return self
 
 
     def predict_proba(self, X, mu0=1.0, mu1=0.0):

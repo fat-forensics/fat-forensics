@@ -5,6 +5,7 @@ The :mod:`fatf.utils.data.density` module implements data density estimators.
 #         Rafael Poyiadzi <rp13102@bristol.ac.uk>
 # License: new BSD
 
+import abc
 import inspect
 import warnings
 
@@ -12,6 +13,8 @@ from numbers import Number
 from typing import Callable, List, Optional, Union
 
 import numpy as np
+
+from scipy.stats import multivariate_normal
 
 from fatf.exceptions import IncorrectShapeError
 
@@ -614,8 +617,7 @@ optional (default=None)
         return score
 
 
-# TODO Change object to abc.Abstract
-class DensityEstimator(object):
+class DensityEstimator(abc.ABC):
     def __init__(self):
         pass
 
@@ -626,8 +628,15 @@ class DensityEstimator(object):
         pass
 
 
-class SVMDensityEstimator(DensityEstimator):
-    pass
+class GaussianRelativeDensityEstimator(DensityEstimator):
+	def __init__(self):
+		pass
 
-class GMMDensityEstimator(DensityEstimator):
-    pass
+	def fit(self, X):
+		self.mean = np.mean(X, axis=0)
+		self.cov = np.cov(X, rowvar=False)
+		self.rde = multivariate_normal(mean=self.mean, cov=self.cov)
+		self.max_density = self.rde.pdf(self.mean)
+
+	def score(self, X):
+		return self.rde.pdf(X) / self.max_density

@@ -1,13 +1,20 @@
 import numpy as np
 
 
-def background_posterior(relative_densities, mu0, mu1, density_range=[0., 1.]):
-	# TODO We could change the clipping for an assert
-    q = np.clip(relative_densities, density_range[0], density_range[1])
-    p_x_and_b = q * mu1 + (1.0 - q) * mu0
+def background_posterior(relative_densities, mu0, mu1, density_range=(0., 1.)):
 
-    bg_fg_posteriors = np.zeros((len(relative_densities), 2))
-    bg_fg_posteriors[:, 0] = p_x_and_b / (p_x_and_b + q)
+    if density_range is None:
+        density_range = (0, 1)
+
+    # assuming that the `relative_densities` is a numpy array
+    if ((relative_densities < density_range[0]).any() or
+        (relative_densities > density_range[1]).any()):
+        raise ValueError('please specify the correct range {}'.format(denisty_range))
+
+    p_x_and_b = relative_densities * mu1 + (1.0 - relative_densities) * mu0
+
+    bg_fg_posteriors = np.zeros((relative_densities.shape[0], 2))
+    bg_fg_posteriors[:, 0] = p_x_and_b / (p_x_and_b + relative_densities)
     bg_fg_posteriors[:, 1] = 1.0 - bg_fg_posteriors[:, 0]
 
     return bg_fg_posteriors
@@ -15,8 +22,9 @@ def background_posterior(relative_densities, mu0, mu1, density_range=[0., 1.]):
 
 def update_posterior(bg_fg_posteriors, class_posteriors):
     class_posteriors = class_posteriors * bg_fg_posteriors[:, 1].reshape(-1, 1)
-
-    return np.hstack((class_posteriors, bg_fg_posteriors[:, 0].reshape(-1, 1)))
+    updated_posteriors = np.hstack((class_posteriors,
+                                    bg_fg_posteriors[:, 0].reshape(-1, 1)))
+    return updated_posteriors
 
 
 class BackgroundCheck(object):

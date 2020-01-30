@@ -53,7 +53,7 @@ class BackgroundCheck(object):
             probabilities for background (column 0) and foreground (column 1).
 
         """
-        relative_densities = self._rde.score(X)
+        relative_densities = self.relative_density(X)
 
         bg_fg_posteriors = background_posterior(relative_densities, mu0, mu1)
 
@@ -62,3 +62,6 @@ class BackgroundCheck(object):
         class_bg_posteriors = update_posterior(bg_fg_posteriors,
                                                class_posteriors)
         return class_bg_posteriors
+
+    def relative_density(self, X):
+        return self._rde.score(X)

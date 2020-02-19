@@ -79,11 +79,11 @@ be a two-dimensional NumPy array: either a classic or a structured array. The
 latter is a welcome addition given that some of the features may be categorical
 (string-based). A predictive model is assumed to be a plain Python object that
 has `fit`, `predict` and, optionally, `predict_proba` methods. This flexibility
-makes our package compatible with scikit-learn -- the most popular Python
-machine learning toolbox -- without introducing additional dependencies.
-Moreover, this approach makes *FAT Forensics* compatible with other packages
-for predictive modelling since their predictive functions can be easily wrapped
-inside a Python object with all the required methods.
+makes our package compatible with scikit-learn [@scikit-learn] -- the most
+popular Python machine learning toolbox -- without introducing additional
+dependencies. Moreover, this approach makes *FAT Forensics* compatible with
+other packages for predictive modelling since their predictive functions can be
+easily wrapped inside a Python object with all the required methods.
 
 Our package improves over existing solutions as it collates algorithms across
 the FAT domains, taking advantage of their shared functional building blocks.

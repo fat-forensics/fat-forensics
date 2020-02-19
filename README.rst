@@ -6,7 +6,7 @@ Docs           |Homepage|_
 CI             |Travis|_ |Codecov|_
 Try it         |Binder|_
 Contact        |MailingList|_ |Gitter|_
-Cite           |BibTeX|_ |DOI|_
+Cite           |BibTeX|_ |JOSS|_
 =============  ================================================================
 
 .. |Licence| image:: https://img.shields.io/github/license/fat-forensics/fat-forensics.svg
@@ -51,10 +51,13 @@ Cite           |BibTeX|_ |DOI|_
 .. _MailingList: https://groups.google.com/forum/#!forum/fat-forensics
 
 .. |Gitter| image:: https://img.shields.io/gitter/room/fat-forensics/FAT-Forensics.svg
-.. _Gitter: https://gitter.im/fat-forensics/fat-forensics
+.. _Gitter: https://gitter.im/fat-forensics
 
 .. |BibTeX| image:: https://img.shields.io/badge/cite-BibTeX-blue.svg
 .. _BibTeX: https://fat-forensics.org/getting_started/cite.html
+
+.. |JOSS| image:: https://joss.theoj.org/papers/070c8b6b705bb47d1432673a1eb03f0c/status.svg
+.. _JOSS: https://joss.theoj.org/papers/070c8b6b705bb47d1432673a1eb03f0c
 
 .. |DOI| image:: https://zenodo.org/badge/DOI/xx.xxxx/zenodo.xxxxxxx.svg
 .. _DOI: https://doi.org/xx.xxxx/zenodo.xxxxxxx
@@ -255,5 +258,5 @@ and the University of Bristol with the initial funding provided by Thales.
 .. _dev_testing: https://fat-forensics.org/development.html#testing
 .. _dev_testing_env: https://fat-forensics.org/development.html#testing-environment
 .. _getting_started: https://fat-forensics.org/getting_started/index.html
-.. _gitter: https://gitter.im/fat-forensics/fat-forensics
+.. _gitter: https://gitter.im/fat-forensics
 .. _`mailing list`: https://groups.google.com/forum/#!forum/fat-forensics

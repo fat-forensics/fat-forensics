@@ -21,7 +21,7 @@ We use a range of platforms for communication in the project:
   development happens on our `slack channel`_ and `mailing list`_.
 
 .. _`GitHub issue tracker`: https://github.com/fat-forensics/fat-forensics/issues
-.. _`gitter channel`: https://gitter.im/fat-forensics/fat-forensics
+.. _`gitter channel`: https://gitter.im/fat-forensics
 .. _`slack channel`: https://fat-forensics.slack.com
 .. _`mailing list`: https://groups.google.com/forum/#!forum/fat-forensics
 
@@ -127,6 +127,8 @@ Our Continuous Integration (CI) is run on Travis_ with the configuration file
 .. _Makefile: https://github.com/fat-forensics/fat-forensics/blob/master/Makefile
 .. _Travis: https://travis-ci.com/fat-forensics/fat-forensics
 .. _`.travis.yml`: https://github.com/fat-forensics/fat-forensics/blob/master/.travis.yml
+
+.. _developers_guide_code_formatting:
 
 Code Formatting
 ---------------

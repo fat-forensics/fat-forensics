@@ -88,7 +88,7 @@ Dictionary[string, Dictionary[string, float]] or List[Tuple[string, float]]
         for explanation in lime_explanation.values():
             assert validate_explanation(explanation), 'Invalid input.'
 
-        explanation = list(lime_explanation.values())[0]
+        explanation = list(lime_explanation.values())[0]  # type: ignore
         # Convert the dictionary format to the tuples format
         if isinstance(explanation, dict):
             converted = {}

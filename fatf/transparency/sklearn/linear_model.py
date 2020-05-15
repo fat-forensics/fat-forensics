@@ -15,31 +15,55 @@ import sklearn.utils.validation
 import numpy as np
 
 import fatf.transparency.sklearn.tools as ftst
+import fatf.utils.tools as fut
 
 __all__ = ['linear_classifier_coefficients', 'SKLearnLinearModelExplainer']
 
-_LINEAR = (sklearn.linear_model.base.LinearModel,
-           sklearn.linear_model.coordinate_descent.LinearModelCV)
-_LINEAR_CLASSIFIER = (sklearn.linear_model.base.LinearClassifierMixin, )
+_SKLEARN_VERSION = [int(i) for i in sklearn.__version__.split('.')]
+_SKLEARN_0_22 = fut.at_least_verion([0, 22], _SKLEARN_VERSION)
+
+if _SKLEARN_0_22:  # pragma: nocover
+    # pylint: disable=invalid-name,protected-access
+    _linear_base = sklearn.linear_model._base
+    _linear_coordinate_descent = sklearn.linear_model._coordinate_descent
+    _lienar_stochastic_gradient = sklearn.linear_model._stochastic_gradient
+    _linear_bayes = sklearn.linear_model._bayes
+    _linear_theil = sklearn.linear_model._theil_sen
+    _linear_omp = sklearn.linear_model._omp
+    _linear_ridge = sklearn.linear_model._ridge
+    _linear_angles = sklearn.linear_model._least_angle
+else:  # pragma: nocover
+    _linear_base = sklearn.linear_model.base  # pylint: disable=invalid-name
+    # pylint: disable=invalid-name
+    _linear_coordinate_descent = sklearn.linear_model.coordinate_descent
+    _lienar_stochastic_gradient = sklearn.linear_model.stochastic_gradient
+    _linear_bayes = sklearn.linear_model.bayes
+    _linear_theil = sklearn.linear_model.theil_sen
+    _linear_omp = sklearn.linear_model.omp
+    _linear_ridge = sklearn.linear_model.ridge
+    _linear_angles = sklearn.linear_model.least_angle
+
+_LINEAR = (_linear_base.LinearModel, _linear_coordinate_descent.LinearModelCV)
+_LINEAR_CLASSIFIER = (_linear_base.LinearClassifierMixin, )
 _LINEAR_REGRESSOR = (
-    sklearn.linear_model.base.LinearRegression,
-    sklearn.linear_model.stochastic_gradient.BaseSGDRegressor,
-    sklearn.linear_model.bayes.BayesianRidge,
-    sklearn.linear_model.bayes.ARDRegression,
-    sklearn.linear_model.coordinate_descent.ElasticNet,
-    sklearn.linear_model.coordinate_descent.ElasticNetCV,
-    sklearn.linear_model.coordinate_descent.LassoCV,
-    sklearn.linear_model.theil_sen.TheilSenRegressor,
-    sklearn.linear_model.omp.OrthogonalMatchingPursuit,
-    sklearn.linear_model.omp.OrthogonalMatchingPursuitCV,
-    sklearn.linear_model.ridge.Ridge,
-    sklearn.linear_model.ridge.RidgeCV,
+    _linear_base.LinearRegression,
+    _lienar_stochastic_gradient.BaseSGDRegressor,
+    _linear_bayes.BayesianRidge,
+    _linear_bayes.ARDRegression,
+    _linear_coordinate_descent.ElasticNet,
+    _linear_coordinate_descent.ElasticNetCV,
+    _linear_coordinate_descent.LassoCV,
+    _linear_theil.TheilSenRegressor,
+    _linear_omp.OrthogonalMatchingPursuit,
+    _linear_omp.OrthogonalMatchingPursuitCV,
+    _linear_ridge.Ridge,
+    _linear_ridge.RidgeCV,
     sklearn.linear_model.HuberRegressor,
-    sklearn.linear_model.least_angle.Lars,
+    _linear_angles.Lars,
     sklearn.svm.LinearSVR,
     #
-    sklearn.linear_model.coordinate_descent.MultiTaskLassoCV,
-    sklearn.linear_model.coordinate_descent.MultiTaskElasticNetCV)
+    _linear_coordinate_descent.MultiTaskLassoCV,
+    _linear_coordinate_descent.MultiTaskElasticNetCV)
 
 
 def _is_scikit_linear(clf: sklearn.base.BaseEstimator) -> bool:
@@ -97,7 +121,10 @@ def _is_fitted_linear(clf: sklearn.base.BaseEstimator) -> bool:
     is_fitted_linear = False
 
     # (clf, ['coef_', 'intercept_'], all_or_any=any)
-    sklearn.utils.validation.check_is_fitted(clf, 'coef_', all_or_any=all)
+    if _SKLEARN_0_22:  # pragma: nocover
+        sklearn.utils.validation.check_is_fitted(clf)
+    else:  # pragma: nocover
+        sklearn.utils.validation.check_is_fitted(clf, 'coef_', all_or_any=all)
 
     is_fitted_linear = True
     return is_fitted_linear

@@ -45,6 +45,7 @@ import fatf.utils.distances as fud
 import fatf.utils.kernels as fatf_kernels
 import fatf.utils.models.validation as fumv
 import fatf.utils.models.models as fumm
+import fatf.utils.tools as fut
 
 __all__ = ['SurrogateTabularExplainer',
            'TabularBlimeyLime',
@@ -54,11 +55,15 @@ logger = logging.getLogger(__name__)  # pylint: disable=invalid-name
 
 try:
     # pylint: disable=ungrouped-imports
+    import sklearn
     import sklearn.linear_model
     import sklearn.tree
 
     import fatf.transparency.sklearn.linear_model as ftslm
     import fatf.utils.data.feature_selection.sklearn as fudfs
+
+    _SKLEARN_VERSION = [int(i) for i in sklearn.__version__.split('.')]
+    _SKLEARN_0_22 = fut.at_least_verion([0, 22], _SKLEARN_VERSION)
 except ImportError as exin:
     warnings.warn(
         'The TabularBlimeyLime and TabularBlimeyTree surrogate explainers '
@@ -69,7 +74,12 @@ except ImportError as exin:
     ReturnTree = None  # pylint: disable=invalid-name
     SKLEARN_MISSING = True
 else:
-    ReturnTree = sklearn.tree.tree.BaseDecisionTree
+    if _SKLEARN_0_22:  # pragma: nocover
+        # pylint: disable=invalid-name,protected-access
+        ReturnTree = sklearn.tree._classes.BaseDecisionTree
+    else:  # pragma: nocover
+        ReturnTree = (  # pylint: disable=invalid-name
+            sklearn.tree.tree.BaseDecisionTree)
     SKLEARN_MISSING = False
 
 BinSamplingValues = Dict[Union[str, int],
@@ -1547,8 +1557,7 @@ predictions.surrogate_explainers.TabularBlimeyTree.explain_instance` method.
         """
         # pylint: disable=too-many-arguments
         assert (isinstance(selected_class_index, int)
-                and selected_class_index >= 0
-                and selected_class_index < self.classes_number
+                and self.classes_number > selected_class_index >= 0
                 ), 'Must be a correct class index.'
 
         if self.as_probabilistic:
@@ -1809,11 +1818,10 @@ surrogate_explainers.SurrogateTabularExplainer.explain_instance`.
                                      'altogether).'.format(
                                          self.classes_number - 1,
                                          self.classes_number))
-                else:
-                    logger.debug('Using the explained_class parameter as a '
-                                 'class index for a classifier.')
-                    explained_class_index = explained_class
-                    explained_class_name = self.class_names[explained_class]
+                logger.debug('Using the explained_class parameter as a '
+                             'class index for a classifier.')
+                explained_class_index = explained_class
+                explained_class_name = self.class_names[explained_class]
             else:
                 raise ValueError('The explained_class was not recognised. The '
                                  'following predictions: {}; and class names '
@@ -1838,7 +1846,7 @@ surrogate_explainers.SurrogateTabularExplainer.explain_instance`.
                     models[class_name] = local_model
                     explanations[class_name] = dict(
                         zip(self.feature_names,
-                            local_model.feature_importances_))
+                            local_model.feature_importances_))  # type: ignore
             else:
                 assert not self.as_probabilistic, (
                     'Multi-class local model requires a global classifier.')
@@ -1858,7 +1866,7 @@ surrogate_explainers.SurrogateTabularExplainer.explain_instance`.
                     models[class_name] = local_model
                     explanations[class_name] = dict(
                         zip(self.feature_names,
-                            local_model.feature_importances_))
+                            local_model.feature_importances_))  # type: ignore
         else:
             assert explained_class_index, 'Explain a single class.'
             assert explained_class_name, 'Explain a single class.'
@@ -1869,7 +1877,8 @@ surrogate_explainers.SurrogateTabularExplainer.explain_instance`.
 
             models[explained_class_name] = local_model
             explanations[explained_class_name] = dict(
-                zip(self.feature_names, local_model.feature_importances_))
+                zip(self.feature_names,
+                    local_model.feature_importances_))  # type: ignore
 
         if return_models:
             return_ = (explanations, models)  # type: ExplanationTuple

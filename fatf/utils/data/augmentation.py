@@ -1453,8 +1453,7 @@ Tuple[numpy.ndarray, numpy.ndarray]]
                                        'target class. To use this augmenter '
                                        'please initialise it with the '
                                        'classes_number parameter.')
-                else:
-                    classes_number = unique_predictions.shape[0]
+                classes_number = unique_predictions.shape[0]
                 logger.info(
                     'The number of classes was not specified by the user. '
                     'Based on *classification* of the input dataset %d '

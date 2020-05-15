@@ -225,8 +225,7 @@ def _filter_rows(include_rows: Union[None, int, List[int]],
             raise ValueError('{} rows element {} is out of bounds. There are '
                              'only {} rows in the input dataset.'.format(
                                  error_type, row_index, rows_number))
-        else:
-            return True
+        return True
 
     assert isinstance(rows_number, int) and rows_number > 0, \
         'Rows number must be a positive integer.'

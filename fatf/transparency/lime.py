@@ -40,11 +40,11 @@ from fatf.exceptions import IncompatibleModelError, IncorrectShapeError
 try:
     import lime.lime_tabular
 except ImportError:
-    _warning_msg = (  # pylint: disable=invalid-name
+    raise ImportError(
         'Lime package is not installed on your system. You must install it in '
         'order to use the fatf.transparency.lime module. One possibility is '
-        'to install LIME alongside this package with: pip install fatf[lime].')
-    warnings.warn(_warning_msg, ImportWarning)
+        'to install LIME alongside this package with: pip install '
+        'fat-forensics[lime].')
 
 __all__ = ['Lime']
 

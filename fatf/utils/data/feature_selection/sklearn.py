@@ -16,13 +16,13 @@ import warnings
 try:
     import sklearn.linear_model
 except ImportError:
-    _warning_msg = (  # pylint: disable=invalid-name
+    raise ImportError(
         'scikit-learn (sklearn) Python module is not installed on your '
         'system. You must install it in order to use '
         'fatf.utils.data.feature_selection.sklearn functionality. '
         'One possibility is to install scikit-learn alongside this package '
-        'via machine learning dependencies with: pip install fatf[ml].')
-    warnings.warn(_warning_msg, ImportWarning)
+        'via machine learning dependencies with: pip install '
+        'fat-forensics[ml].')
 
 import numpy as np
 

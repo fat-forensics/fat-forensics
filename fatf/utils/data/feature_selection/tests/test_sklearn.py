@@ -71,17 +71,17 @@ def test_sklearn_import():
 
     # When missing
     assert 'fatf.utils.data.feature_selection.sklearn' in sys.modules
-    warning_msg = (
+    exception_msg = (
         'scikit-learn (sklearn) Python module is not installed on your '
         'system. You must install it in order to use '
         'fatf.utils.data.feature_selection.sklearn functionality. '
         'One possibility is to install scikit-learn alongside this package '
-        'via machine learning dependencies with: pip install fatf[ml].')
+        'via machine learning dependencies with: pip install '
+        'fat-forensics[ml].')
     with futi.module_import_tester('sklearn', when_missing=True):
-        with pytest.warns(ImportWarning) as warning:
+        with pytest.raises(ImportError) as exin:
             importlib.reload(fatf.utils.data.feature_selection.sklearn)
-        assert len(warning) == 1
-        assert str(warning[0].message) == warning_msg
+        assert str(exin.value) == exception_msg
     assert 'fatf.utils.data.feature_selection.sklearn' in sys.modules
 
 

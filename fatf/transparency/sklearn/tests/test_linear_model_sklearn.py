@@ -122,8 +122,7 @@ LINEAR_REG_COEF = [
     np.array([0.017, -0.003, 0.040, -0.005]),
     np.array([1.219, 10.356, -0.982, -19.025])  # / 1e+10
 ]
-if not _SKLEARN_0_20:
-    # pragma: nocover
+if not _SKLEARN_0_20:  # pragma: nocover
     LINEAR_REG_COEF[17] = np.array([0.013, 0.001, 0.033, -0.008])
     LINEAR_REG_COEF[18] = np.array([-2.663, -1.089, -14.857, 23.487])
 LINEAR_REG_COEF_ = [
@@ -148,8 +147,7 @@ LINEAR_CLF_COEF = [
     np.array([[0.021, -0.024, 0.063, -0.195]]),
     np.array([[0.001, -0.003, 0.001, -0.015]])
 ]
-if _SKLEARN_0_23:
-    # pragma: nocover
+if _SKLEARN_0_23:  # pragma: nocover
     LINEAR_CLF_COEF[2] = np.array([0.069, -0.007, 0.039, -0.010])
 LINEAR_MUL_REG_COEF = [
     np.array([[0., -0.001, 0., -0.009], [0., -0.001, 0., -0.009]]),

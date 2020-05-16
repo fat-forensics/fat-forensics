@@ -92,7 +92,8 @@ def systemic_bias(dataset: np.ndarray, ground_truth: np.ndarray,
         # Needed for numpy<1.18
         if unprotected_features_array is None:
             unprotected_features_array = np.ones(  # pragma: nocover
-                (dataset.shape[0], ), dtype=[('ones', int)])
+                (dataset.shape[0], ),
+                dtype=[('ones', int)])
     else:
         unprotected_features_array = np.delete(
             dataset, protected_features, axis=1)

@@ -95,15 +95,15 @@ def test_import_when_missing():
     Tests importing :mod:`fatf.transparency.lime` module when LIME is missing.
     """
     assert 'fatf.transparency.lime' in sys.modules
-    warning_msg = (
+    exception_msg = (
         'Lime package is not installed on your system. You must install it in '
         'order to use the fatf.transparency.lime module. One possibility is '
-        'to install LIME alongside this package with: pip install fatf[lime].')
+        'to install LIME alongside this package with: pip install '
+        'fat-forensics[lime].')
     with futi.module_import_tester('lime', when_missing=True):
-        with pytest.warns(ImportWarning) as w:
+        with pytest.raises(ImportError) as exin:
             importlib.reload(ftl)
-        assert len(w) == 1
-        assert str(w[0].message) == warning_msg
+        assert str(exin.value) == exception_msg
     assert 'fatf.transparency.lime' in sys.modules
 
 

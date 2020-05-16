@@ -5,40 +5,49 @@ The :mod:`fatf.vis.lime` module visualises tabular LIME explanations.
 #         Kacper Sokol <k.sokol@bristol.ac.uk>
 # License: new BSD
 
+import logging
+
 from numbers import Number
-from typing import Dict, List, Tuple, Union
+from typing import Any, Dict, Set, Union
 
 import matplotlib.pyplot as plt
 
 __all__ = ['plot_lime']
 
-LimeExplanation = List[Tuple[str, float]]
+logger = logging.getLogger(__name__)  # pylint: disable=invalid-name
+
 BlimeyExplanation = Dict[str, float]
 
 
-def plot_lime(
-        lime_explanation: Union[LimeExplanation, Dict[str, LimeExplanation],
-                                Dict[str, BlimeyExplanation]]) -> plt.Figure:
+def plot_lime(surrogate_explanation: Union[BlimeyExplanation,
+                                           Dict[str, BlimeyExplanation]]
+              ) -> plt.Figure:
     """
-    Plots a LIME explanation.
+    Plots an importance-based surrogate explanation, e.g., LIME.
 
-    This plotting function is intended for the
-    :class:`fatf.transparency.lime.Lime`, :class:`fatf.transparency.\
+    This plotting function is intended for the :class:`fatf.transparency.\
 predictions.surrogate_explainers.TabularBlimeyLime` and :class:`fatf.\
-transparency.predictions.surrogate_explainers.TabularBlimeyTree`  explainers.
+transparency.predictions.surrogate_explainers.TabularBlimeyTree` explainers.
+    When multiple explanations are provided, they will share a common y-axis
+    if they use the same set of interpretable features.
 
     Parameters
     ----------
-    lime_explanation : Dictionary[string, List[Tuple[string, float]]] or \
-Dictionary[string, Dictionary[string, float]] or List[Tuple[string, float]]
-        An explanation returned by the ``explain_instance`` method of the LIME
-        explainer or one of the surrogate explainers. For a classifier this
-        will be a dictionary where the keys are class names and the values are
-        either lists of 2-tuples or dictionaries where the first element (key)
-        is an explanatory feature name and the second element (value) is the
-        importance of this explanatory feature. For regressor explanations this
-        will be simply a list of 2-tuples of the same structure as for the
-        classifier.
+    surrogate_explanation : Dictionary[string, float] or \
+Dictionary[string, Dictionary[string, float]]
+        An explanation returned by the ``explain_instance`` method of a
+        surrogate explainer. For a classifier this will be a dictionary where
+        the keys are class names and the values are dictionaries where the key
+        is an interpretable feature name and the value is the importance of
+        this interpretable feature. For regressor explanations this will be
+        a dictionary where the key is an interpretable feature name and the
+        value is the importance of this interpretable feature.
+
+        .. versionchanged:: 0.1.0
+           Dropped support for LIME explanation format:
+           ``List[Tuple[string, float]]`` for regressors and
+           ``Dictionary[string, List[Tuple[string, float]]]`` for probabilistic
+           classifiers.
 
         .. versionchanged:: 0.0.2
            Support for surrogate explainer explanations of the form:
@@ -47,65 +56,61 @@ Dictionary[string, Dictionary[string, float]] or List[Tuple[string, float]]
     Raises
     ------
     TypeError
-        The ``lime_explanation`` parameter is not a list (regression) or a
-        dictionary (classification). One of the class names is not a string.
-        One of the explanatory features is not a string. One of the explanatory
-        values is not a number.
+        The ``surrogate_explanation`` parameter is not a dictionary. One of the
+        class names is not a string. One of the interpretable feature names is
+        not a string. One of the importance values is not a number.
+    ValueError
+        One of the explanations is an empty dictionary.
 
     Returns
     -------
     figure : matplotlib.pyplot.Figure
-        A matplotlib figure with subplots explaining every label in LIME
+        A matplotlib figure with subplots explaining every label in a surrogate
         explanation.
     """
 
     # pylint: disable=too-many-locals,too-many-branches,too-many-statements
 
-    def validate_explanation(explanation):
+    def validate(explanation):
         is_valid = False
-        if isinstance(explanation, (dict, list)):
-            if isinstance(explanation, list):
-                iterator = explanation
-            elif isinstance(explanation, dict):
-                iterator = explanation.items()
-            else:
-                assert False, 'List or dictionary only.'  # pragma: nocover
-
-            for key, value in iterator:
+        if isinstance(explanation, dict):
+            if not explanation:
+                raise ValueError('One of the explanations is an empty '
+                                 'dictionary.')
+            for key, value in explanation.items():
                 if not isinstance(key, str):
-                    raise TypeError('One of the explanation keys is neither '
-                                    'an integer nor a string.')
+                    raise TypeError('One of the explanation keys is not a '
+                                    'string.')
                 if not isinstance(value, Number):
                     raise TypeError('One of the explanation values is not a '
                                     'number.')
         else:
-            raise TypeError('One of the explanations is neither a dictionary '
-                            'nor a list.')
+            raise TypeError('One of the explanations is not a dictionary.')
         is_valid = True
         return is_valid
 
-    if isinstance(lime_explanation, dict):
-        for explanation in lime_explanation.values():
-            assert validate_explanation(explanation), 'Invalid input.'
+    if isinstance(surrogate_explanation, dict):
+        if not surrogate_explanation:
+            raise ValueError('The surrogate explanation is an empty '
+                             'dictionary.')
 
-        explanation = list(lime_explanation.values())[0]  # type: ignore
-        # Convert the dictionary format to the tuples format
-        if isinstance(explanation, dict):
-            converted = {}
-            for key, dict_ in lime_explanation.items():
-                assert isinstance(dict_, dict)
-                converted[key] = [(i, dict_[i]) for i in sorted(dict_.keys())]
-            plot_explanation = converted
+        explanation_example = list(surrogate_explanation.values())[0]
+        # Nested dictionary for classification
+        if isinstance(explanation_example, dict):
+            for class_name, explanation in surrogate_explanation.items():
+                if not isinstance(class_name, str):
+                    raise TypeError('One of the class names is not a string.')
+                assert validate(explanation), 'Invalid input.'
+            plot_explanation = surrogate_explanation  # type: Any
+        # Plain dictionary for regression
+        elif isinstance(explanation_example, Number):
+            assert validate(surrogate_explanation), 'Invalid input.'
+            plot_explanation = {'': surrogate_explanation}
         else:
-            assert isinstance(explanation, list)
-            plot_explanation = lime_explanation  # type: ignore
-    elif isinstance(lime_explanation, list):
-        assert validate_explanation(lime_explanation), 'Invalid input.'
-        # In case the explanation is for a regressor
-        plot_explanation = dict(regressor=lime_explanation)
+            raise TypeError('Each value of the surrogate explanation must '
+                            'either be a dictionary or a number.')
     else:
-        raise TypeError('The LIME explanation has to be either a dictionary '
-                        '(for classification) or a list (for regression).')
+        raise TypeError('The surrogate explanation has to be a dictionary.')
 
     # Collect all of the class names and their number
     class_names = sorted(plot_explanation.keys())
@@ -115,44 +120,37 @@ Dictionary[string, Dictionary[string, float]] or List[Tuple[string, float]]
     share_y = True
     fig_shape = (1, class_n)
     #
-    explanation_label_set_old = None
+    explanation_label_set_old = set()  # type: Set[str]
     for class_explanation in plot_explanation.values():
-        if explanation_label_set_old is None:
-            explanation_label_set_old = {expl[0] for expl in class_explanation}
+        if not explanation_label_set_old:
+            explanation_label_set_old = set(class_explanation.keys())
         else:
-            explanation_labels_set = {expl[0] for expl in class_explanation}
+            explanation_labels_set = set(class_explanation.keys())
             if explanation_label_set_old != explanation_labels_set:
                 share_y = False
                 fig_shape = (class_n, 1)
+                logger.info('The explanations cannot share the y-axis as they '
+                            'use different sets of interpretable features.')
                 break
 
-    # If sharing y-axis get a common ordering of the explantions
+    # If sharing y-axis get a common ordering of the explanations
     if share_y:
-        name_ordering = [exp[0] for exp in plot_explanation[class_names[0]]]
+        name_ordering = sorted(plot_explanation[class_names[0]].keys())
 
     figure, axes = plt.subplots(*fig_shape, sharey=share_y, sharex=True)
-    figure.suptitle('LIME Explanation')
+    figure.suptitle('Surrogate Explanation')
 
     # Do the plotting
     for i in range(class_n):
         class_name = class_names[i]
         class_explanation = plot_explanation[class_name]
 
-        # Split a list of pairs into two lists
-        exp_names, exp_values = [], []
-        for name, value in class_explanation:
-            exp_names.append(name)
-            exp_values.append(value)
-
         # Make sure that all bar plots are in the same order if sharing
         if share_y:
-            # Get indices of names with respect to the common name ordering
-            indices = [exp_names.index(name) for name in name_ordering]
-            exp_values = [exp_values[index] for index in indices]
-
-            # Get common name ordering -- this has to be below because of
-            # overwriting exp_names, which is used atop
             exp_names = name_ordering
+        else:
+            exp_names = sorted(class_explanation.keys())
+        exp_values = [class_explanation[name] for name in exp_names]
 
         positions = [i + 0.5 for i in range(len(class_explanation))]
         colours = ['green' if val > 0 else 'red' for val in exp_values]

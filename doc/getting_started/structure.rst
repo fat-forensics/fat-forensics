@@ -163,4 +163,4 @@ please consult the following parts of the documentation:
 
 .. _tested: https://travis-ci.com/fat-forensics/fat-forensics
 .. _Binder: https://mybinder.org/v2/gh/fat-forensics/fat-forensics-doc/master?filepath=notebooks
-.. _`Plotly's Dash`: https://plot.ly/dash/
+.. _`Plotly's Dash`: https://plotly.com/dash

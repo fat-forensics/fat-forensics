@@ -531,7 +531,8 @@ visualisation, which we can generate using the built-in
 
 .. testsetup:: *
 
-   >>> lime_fig_setosa.savefig(fig_loc('lime.png'), dpi=100)
+   >>> lime_fig_setosa.savefig(
+   ...     fig_loc('lime.png'), dpi=100, bbox_inches='tight')
 
 .. image:: /tutorials/img/lime.png
    :align: center

@@ -81,12 +81,9 @@ matrix:
     - env: FATF_TEST_SCIPY=latest FATF_TEST_NUMPY=latest
 
 install:
-  # lime has to be installed before anything else since we overwrite its deps
-  - make install-lime
   - make install-matplotlib
+  - make install-scikit-learn
   - make dependencies-dev  # Install python development dependencies
-#  - pip install scikit-learn
-#  - make install-sans-dep
 
 script:
   - make linting-pylint

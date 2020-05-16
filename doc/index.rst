@@ -56,7 +56,7 @@ or its documentation.
 .. _gitter: https://gitter.im/fat-forensics
 .. _slack: https://fat-forensics.slack.com
 .. _`mailing list`: https://groups.google.com/forum/#!forum/fat-forensics
-.. _`University of Bristol`: http://www.bristol.ac.uk
+.. _`University of Bristol`: https://www.bristol.ac.uk
 
 .. toctree::
    :maxdepth: 2

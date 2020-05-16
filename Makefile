@@ -18,6 +18,13 @@ else
 	MATPLOTLIB_VERSION := ==$(FATF_TEST_MATPLOTLIB)
 endif
 
+ifndef FATF_TEST_SKLEARN
+	SKLEARN_VERSION := $(shell sed -n 's/scikit-learn\(.*\)/\1/p' \
+		requirements-aux.txt)
+else
+	SKLEARN_VERSION := ==$(FATF_TEST_SKLEARN)
+endif
+
 # Get environment variables if _envar.sh exists
 -include _envar.sh
 
@@ -53,6 +60,9 @@ install-dev:
 
 install-matplotlib:
 	pip install "matplotlib$(MATPLOTLIB_VERSION)"
+
+install-scikit-learn:
+	pip install "scikit-learn$(SKLEARN_VERSION)"
 
 dependencies:
 	pip install -r requirements.txt

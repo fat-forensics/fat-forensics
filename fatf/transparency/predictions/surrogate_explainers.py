@@ -62,7 +62,7 @@ try:
     import fatf.transparency.sklearn.linear_model as ftslm
     import fatf.utils.data.feature_selection.sklearn as fudfs
 
-    _SKLEARN_VERSION = [int(i) for i in sklearn.__version__.split('.')]
+    _SKLEARN_VERSION = [int(i) for i in sklearn.__version__.split('.')[:2]]
     _SKLEARN_0_22 = fut.at_least_verion([0, 22], _SKLEARN_VERSION)
 except ImportError as exin:
     warnings.warn(

@@ -31,7 +31,7 @@ import fatf
 import fatf.transparency.sklearn.linear_model as ftsl
 import fatf.utils.tools as fut
 
-_SKLEARN_VERSION = [int(i) for i in sklearn.__version__.split('.')]
+_SKLEARN_VERSION = [int(i) for i in sklearn.__version__.split('.')[:2]]
 _SKLEARN_0_20 = fut.at_least_verion([0, 20], _SKLEARN_VERSION)
 _SKLEARN_0_22 = fut.at_least_verion([0, 22], _SKLEARN_VERSION)
 _SKLEARN_0_23 = fut.at_least_verion([0, 23], _SKLEARN_VERSION)

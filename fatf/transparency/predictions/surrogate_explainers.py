@@ -75,7 +75,7 @@ except ImportError as exin:
     SKLEARN_MISSING = True
 else:
     if _SKLEARN_0_22:  # pragma: nocover
-        # pylint: disable=invalid-name,protected-access
+        # pylint: disable=invalid-name,protected-access,no-member
         ReturnTree = sklearn.tree._classes.BaseDecisionTree
     else:  # pragma: nocover
         ReturnTree = (  # pylint: disable=invalid-name

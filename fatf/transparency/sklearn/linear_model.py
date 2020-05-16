@@ -23,7 +23,7 @@ _SKLEARN_VERSION = [int(i) for i in sklearn.__version__.split('.')[:2]]
 _SKLEARN_0_22 = fut.at_least_verion([0, 22], _SKLEARN_VERSION)
 
 if _SKLEARN_0_22:  # pragma: nocover
-    # pylint: disable=invalid-name,protected-access
+    # pylint: disable=invalid-name,protected-access,no-member
     _linear_base = sklearn.linear_model._base
     _linear_coordinate_descent = sklearn.linear_model._coordinate_descent
     _lienar_stochastic_gradient = sklearn.linear_model._stochastic_gradient
@@ -122,6 +122,7 @@ def _is_fitted_linear(clf: sklearn.base.BaseEstimator) -> bool:
 
     # (clf, ['coef_', 'intercept_'], all_or_any=any)
     if _SKLEARN_0_22:  # pragma: nocover
+        # pylint: disable=no-value-for-parameter
         sklearn.utils.validation.check_is_fitted(clf)
     else:  # pragma: nocover
         sklearn.utils.validation.check_is_fitted(clf, 'coef_', all_or_any=all)

@@ -34,6 +34,7 @@ import fatf.utils.tools as fut
 _SKLEARN_VERSION = [int(i) for i in sklearn.__version__.split('.')]
 _SKLEARN_0_20 = fut.at_least_verion([0, 20], _SKLEARN_VERSION)
 _SKLEARN_0_22 = fut.at_least_verion([0, 22], _SKLEARN_VERSION)
+_SKLEARN_0_23 = fut.at_least_verion([0, 23], _SKLEARN_VERSION)
 
 # yapf: disable
 LINEAR_CLASSIFIERS = [
@@ -123,10 +124,8 @@ LINEAR_REG_COEF = [
 ]
 if not _SKLEARN_0_20:
     # pragma: nocover
-    LINEAR_REG_COEF[17] = np.array(
-        [0.013, 0.001, 0.033, -0.008])  # pragma: nocover
-    LINEAR_REG_COEF[18] = np.array(
-        [-2.663, -1.089, -14.857, 23.487])  # pragma: nocover
+    LINEAR_REG_COEF[17] = np.array([0.013, 0.001, 0.033, -0.008])
+    LINEAR_REG_COEF[18] = np.array([-2.663, -1.089, -14.857, 23.487])
 LINEAR_REG_COEF_ = [
     np.array([0.035, -0.004, 0.020, -0.005]),
     np.array([0.012, 0.007, 0.027, -0.016])
@@ -149,6 +148,9 @@ LINEAR_CLF_COEF = [
     np.array([[0.021, -0.024, 0.063, -0.195]]),
     np.array([[0.001, -0.003, 0.001, -0.015]])
 ]
+if _SKLEARN_0_23:
+    # pragma: nocover
+    LINEAR_CLF_COEF[2] = np.array([0.069, -0.007, 0.039, -0.010])
 LINEAR_MUL_REG_COEF = [
     np.array([[0., -0.001, 0., -0.009], [0., -0.001, 0., -0.009]]),
     np.array([[0., -0.002, 0., -0.009], [0., -0.002, 0., -0.009]]),

@@ -103,12 +103,6 @@ In addition, some of the modules require *optional* dependencies:
 +--------------------------------------------------------+------------------+------------+
 | ``fatf`` module                                        | Package          | Version    |
 +========================================================+==================+============+
-| ``fatf.transparency.lime``                             |                  |            |
-+--------------------------------------------------------+                  |            |
-| ``fatf.transparency.models.lime``                      | LIME_            | >=0.0.0.0  |
-+--------------------------------------------------------+                  |            |
-| ``fatf.transparency.predictions.lime``                 |                  |            |
-+--------------------------------------------------------+------------------+------------+
 | ``fatf.transparency.predictions.surrogate_explainers`` |                  |            |
 +--------------------------------------------------------+                  |            |
 | ``fatf.transparency.sklearn``                          | `scikit-learn`_  | >=0.19.2   |
@@ -244,7 +238,6 @@ and the University of Bristol with the initial funding provided by Thales.
 
 .. _SciPy: https://www.scipy.org/
 .. _NumPy: https://www.numpy.org/
-.. _LIME: https://github.com/marcotcr/lime
 .. _scikit-learn: https://scikit-learn.org/stable/
 .. _matplotlib: https://matplotlib.org/
 .. _`https://fat-forensics.org`: https://fat-forensics.org

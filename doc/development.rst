@@ -418,7 +418,6 @@ Transparency
 .. autosummary::
 
    fatf.transparency
-   fatf.transparency.lime
    fatf.transparency.data
    fatf.transparency.models
    fatf.transparency.predictions

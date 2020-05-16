@@ -90,8 +90,8 @@ names the main techniques implemented by FAT Forensics for each intersection.
 |             |                           |                          |   expectation            |
 +-------------+---------------------------+--------------------------+--------------------------+
 | Predictions | * Counterfactual fairness |                          | * Counterfactuals        |
-|             |   (disparate treatment)   |                          | * Tabular LIME (wrapper) |
-|             |                           |                          | * Tabular bLIMEy         |
+|             |   (disparate treatment)   |                          | * Tabular bLIMEy (LIME   |
+|             |                           |                          |   alternative)           |
 +-------------+---------------------------+--------------------------+--------------------------+
 
 Fairness

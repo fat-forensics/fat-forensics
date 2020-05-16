@@ -18,12 +18,6 @@ else
 	MATPLOTLIB_VERSION := ==$(FATF_TEST_MATPLOTLIB)
 endif
 
-ifndef FATF_TEST_LIME
-	LIME_VERSION := $(shell sed -n 's/lime\(.*\)/\1/p' requirements-aux.txt)
-else
-	LIME_VERSION := ==$(FATF_TEST_LIME)
-endif
-
 # Get environment variables if _envar.sh exists
 -include _envar.sh
 
@@ -59,9 +53,6 @@ install-dev:
 
 install-matplotlib:
 	pip install "matplotlib$(MATPLOTLIB_VERSION)"
-
-install-lime:
-	pip install "lime$(LIME_VERSION)"
 
 dependencies:
 	pip install -r requirements.txt

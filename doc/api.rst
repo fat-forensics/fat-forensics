@@ -200,22 +200,6 @@ uses.
    feature_influence.partial_dependence_ice
    feature_influence.partial_dependence
 
-:mod:`fatf.transparency.models.lime`: LIME for Models
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-.. automodule:: fatf.transparency.models.lime
-    :no-members:
-    :no-inherited-members:
-
-.. currentmodule:: fatf.transparency.models
-
-.. autosummary::
-   :toctree: generated/
-   :template: class.rst
-   :nosignatures:
-
-   lime.Lime
-
 :mod:`fatf.transparency.predictions`: Transparency for Predictions
 ------------------------------------------------------------------
 
@@ -263,38 +247,6 @@ uses.
    surrogate_explainers.SurrogateTabularExplainer
    surrogate_explainers.TabularBlimeyLime
    surrogate_explainers.TabularBlimeyTree
-
-:mod:`fatf.transparency.predictions.lime`: LIME for Predictions
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-.. automodule:: fatf.transparency.predictions.lime
-    :no-members:
-    :no-inherited-members:
-
-.. currentmodule:: fatf.transparency.predictions
-
-.. autosummary::
-   :toctree: generated/
-   :template: class.rst
-   :nosignatures:
-
-   lime.Lime
-
-:mod:`fatf.transparency.lime`: LIME Wrapper
--------------------------------------------
-
-.. automodule:: fatf.transparency.lime
-    :no-members:
-    :no-inherited-members:
-
-.. currentmodule:: fatf.transparency
-
-.. autosummary::
-   :toctree: generated/
-   :template: class.rst
-   :nosignatures:
-
-   lime.Lime
 
 :mod:`fatf.transparency.sklearn`: Scikit-learn Explainers
 ---------------------------------------------------------

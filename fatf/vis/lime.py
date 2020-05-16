@@ -94,16 +94,17 @@ Dictionary[string, Dictionary[string, float]]
             raise ValueError('The surrogate explanation is an empty '
                              'dictionary.')
 
-        explanation_example = list(surrogate_explanation.values())[0]
+        example_key = sorted(surrogate_explanation.keys())[0]
+        example_explanation = surrogate_explanation[example_key]
         # Nested dictionary for classification
-        if isinstance(explanation_example, dict):
+        if isinstance(example_explanation, dict):
             for class_name, explanation in surrogate_explanation.items():
                 if not isinstance(class_name, str):
                     raise TypeError('One of the class names is not a string.')
                 assert validate(explanation), 'Invalid input.'
             plot_explanation = surrogate_explanation  # type: Any
         # Plain dictionary for regression
-        elif isinstance(explanation_example, Number):
+        elif isinstance(example_explanation, Number):
             assert validate(surrogate_explanation), 'Invalid input.'
             plot_explanation = {'': surrogate_explanation}
         else:

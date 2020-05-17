@@ -316,7 +316,7 @@ class SKLearnExplainer(fute.Explainer):
         if self.class_names is None:
             if self.classes_array is not None:
                 logger.info('Generating missing class names from the array of '
-                            'classes outputted by the classifier using '
+                            'classes output by the classifier using '
                             '"class %s" pattern.')
                 self.class_names = [
                     'class {}'.format(i) for i in self.classes_array
@@ -335,7 +335,7 @@ class SKLearnExplainer(fute.Explainer):
 
     def map_class(self, clf_class: Union[int, str]) -> str:
         """
-        Maps a class id outputted by the classifier to a class name.
+        Maps a class id output by the classifier to a class name.
 
         A mapping will only be provided if the class was initialised with class
         names or an array of possible predictions was extracted form the
@@ -344,7 +344,7 @@ class SKLearnExplainer(fute.Explainer):
         Parameters
         ----------
         clf_class : Union[integer, string]
-            A class id outputted by the classifier.
+            A class id output by the classifier.
 
         Raises
         ------

@@ -1319,7 +1319,7 @@ class NormalClassDiscovery(Augmentation):
         The number of classes (target values) modelled by the
         ``predictive_function``. If the ``predictive_function`` is
         probabilistic, the number of classes is inferred from the width of the
-        probabilities outputted by the ``predictive_function``. If the
+        probabilities output by the ``predictive_function``. If the
         ``predictive_function`` is a classifier, it is applied to the input
         ``dataset`` and the number of classes is computed based on the unique
         number of elements in this predictions array. **Since the latter case**
@@ -1380,7 +1380,7 @@ class NormalClassDiscovery(Augmentation):
     is_probabilistic : boolean
         ``True`` if the ``predictive_function`` is probabilistic, ``False``
         otherwise. This attribute is set based on the shape of the numpy array
-        outputted by the ``predictive_function``: if it is a 2-dimensional
+        output by the ``predictive_function``: if it is a 2-dimensional
         array, the ``predictive_function`` is assumed to be probabilistic, if
         it is a 1-dimensional array, the ``predictive_function`` is assumed to
         be a classifier.
@@ -1814,7 +1814,7 @@ class DecisionBoundarySphere(Augmentation):
         The predictive function used to initialise this class.
     is_probabilistic : boolean
         ``True`` if the ``predictive_function`` is probabilistic, ``False``
-        otherwise. This is set based on the shape of the numpy array outputted
+        otherwise. This is set based on the shape of the numpy array output
         by the ``predictive_function``: if it is a 2-dimensional array, the
         ``predictive_function`` is assumed to be probabilistic, if it is a
         1-dimensional array, the ``predictive_function`` is assumed to be a

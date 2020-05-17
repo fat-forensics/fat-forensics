@@ -117,7 +117,7 @@ def _validate_input_local_fidelity(
                         or explained_class_index < 0):
                     raise ValueError('The explained_class_index parameter is '
                                      'negative or larger than the number of '
-                                     'classes outputted by the global '
+                                     'classes output by the global '
                                      'probabilistic model.')
             else:
                 raise TypeError('For probabilistic global models, i.e., '
@@ -487,7 +487,7 @@ def local_fidelity_score(
         ``samples_number`` is not an integer.
     ValueError
         The ``explained_class_index`` is a negative integer or out of bounds
-        for the number of classes outputted by the global probabilistic model
+        for the number of classes output by the global probabilistic model
         (``global_predictive_function``). The ``fidelity_radius_percentage``
         is smaller than 1 or larger than 100. The ``samples_number`` is smaller
         than 1.

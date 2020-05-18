@@ -562,6 +562,8 @@ Base classes
    :nosignatures:
 
    sklearn.lasso_path
+   sklearn.forward_selection
+   sklearn.highest_weights
 
 :mod:`fatf.utils.models`: Models Utilities
 ------------------------------------------

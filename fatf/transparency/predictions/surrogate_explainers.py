@@ -251,11 +251,10 @@ class SurrogateTabularExplainer(abc.ABC):
     """
     An abstract parent class for implementing surrogate explainers.
 
-    .. versionadded:: 0.0.2
-
     .. versionchanged:: 0.1.0
-
        Added support for regression models.
+
+    .. versionadded:: 0.0.2
 
     An abstract class that all surrogate explainer classes should inherit from.
     It contains an ``__init__`` method and an input validator --
@@ -802,16 +801,15 @@ class TabularBlimeyLime(SurrogateTabularExplainer):
     """
     A tabular LIME explainer -- a surrogate explainer based on a linear model.
 
-    .. versionadded:: 0.0.2
-
     .. versionchanged:: 0.1.0
+       (1) Added support for regression models.
+       (2) Changed the feature selection mechanism from k-LASSO to
+       :func:`~fatf.utils.data.feature_selection.sklearn.forward_selection`
+       when the number of selected features is less than 7, and
+       :func:`~fatf.utils.data.feature_selection.sklearn.highest_weights`
+       otherwise -- the default LIME behaviour.
 
-       * Added support for regression models.
-       * Changed the feature selection mechanism from k-LASSO to
-         :func:`~fatf.utils.data.feature_selection.sklearn.forward_selection`
-         when the number of selected features is less than 7, and
-         :func:`~fatf.utils.data.feature_selection.sklearn.highest_weights`
-         otherwise -- the default LIME behaviour.
+    .. versionadded:: 0.0.2
 
     This class implements Local Interpretable Model-agnostic Explanations
     (LIME_) introduced by [RIBEIRO2016WHY]_. This implementation mirrors the
@@ -1245,7 +1243,6 @@ predictions.surrogate_explainers.TabularBlimeyLime.explain_instance` method.
         Explains the ``data_row`` with linear regression feature importance.
 
         .. versionchanged:: 0.1.0
-
            Changed the feature selection mechanism from k-LASSO to
            :func:`~fatf.utils.data.feature_selection.sklearn.forward_selection`
            when the number of selected features is less than 7, and
@@ -1510,11 +1507,10 @@ class TabularBlimeyTree(SurrogateTabularExplainer):
     """
     A surrogate explainer based on a decision tree.
 
-    .. versionadded:: 0.0.2
-
     .. versionchanged:: 0.1.0
-
        Added support for regression models.
+
+    .. versionadded:: 0.0.2
 
     This explainer does not use an interpretable data representation (as one
     is learnt by the tree). The data augmentation is done with *Mixup*

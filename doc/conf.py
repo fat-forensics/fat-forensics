@@ -6,7 +6,7 @@
 # full list see the documentation:
 # https://www.sphinx-doc.org/en/master/config
 """
-Sphinx configuration for FAT-Forensics.
+Sphinx configuration for FAT Forensics.
 """
 
 import datetime

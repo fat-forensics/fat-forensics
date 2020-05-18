@@ -5,6 +5,48 @@
 Changelog
 +++++++++
 
+.. _changelog_0_1_0:
+
+0.1.0 (18/05/2020)
+==================
+
+The following functionality is made available with this release:
+
++-------------+----------+----------------+------------------+
+|             | Fairness | Accountability | Transparency     |
++-------------+----------+----------------+------------------+
+| Data/       |          |                |                  |
+| Features    |          |                |                  |
++-------------+----------+----------------+------------------+
+| Models      |          |                |                  |
++-------------+----------+----------------+------------------+
+| Predictions |          |                | * Tabular bLIMEy |
+|             |          |                |   for regression |
++-------------+----------+----------------+------------------+
+
+This is an incremental update focused on surrogate explainers for black-box
+regression:
+
+* Surrogate explainers -- :class:`~fatf.transparency.predictions.\
+  surrogate_explainers.SurrogateTabularExplainer`, :class:`~fatf.transparency.\
+  predictions.surrogate_explainers.TabularBlimeyLime` and :class:`~fatf.\
+  transparency.predictions.surrogate_explainers.TabularBlimeyTree` -- now
+  support black-box regression.
+* :class:`~fatf.transparency.predictions.surrogate_explainers.\
+  TabularBlimeyLime` now uses the correct feature selection approach.
+* The surrogate explanation plotting function --
+  :func:`~fatf.vis.lime.plot_lime` -- has been cleaned.
+* 2 new feature selection approaches have been implemented:
+  :func:`~fatf.utils.data.feature_selection.sklearn.highest_weights` and
+  :func:`~fatf.utils.data.feature_selection.sklearn.forward_selection`.
+* LIME wrapper has been removed.
+* Compatibility with `scikit-learn` newer than `0.21.x` has been added.
+
+This release coincides with publication of a `paper <JOSS_paper_>`_
+describing FAT Forensic in The Journal of Open Source Software (JOSS).
+
+.. _JOSS_paper: https://joss.theoj.org/papers/070c8b6b705bb47d1432673a1eb03f0c
+
 .. _changelog_0_0_2:
 
 0.0.2 (04/11/2019)
@@ -27,7 +69,7 @@ Included tutorials:
 
 * :ref:`tutorials_prediction_explainability` (updated to use
   :class:`fatf.transparency.predictions.surrogate_explainers.TabularBlimeyLime`
-  instead of :``fatf.transparency.predictions.lime.Lime``).
+  instead of ``fatf.transparency.predictions.lime.Lime``).
 
 Included how-to guides:
 

@@ -5,7 +5,7 @@
 API Reference (|version|)
 +++++++++++++++++++++++++
 
-This is the class and function reference of fat-forensics. Please refer to
+This is the class and function reference of FAT Forensics. Please refer to
 the :ref:`full user guide <user_guide>` for further details, as the class and
 function raw specifications may not be enough to give full guidelines on their
 uses.
@@ -771,7 +771,7 @@ Base classes
 
    surrogate_evaluation.local_fidelity_score
 
-:mod:`fatf.utils.tools`: FAT-Forensics Tools
+:mod:`fatf.utils.tools`: FAT Forensics Tools
 --------------------------------------------
 
 .. automodule:: fatf.utils.tools
@@ -787,7 +787,7 @@ Base classes
 
    at_least_verion
 
-:mod:`fatf.utils.validation`: FAT-Forensics Validation Functions
+:mod:`fatf.utils.validation`: FAT Forensics Validation Functions
 ----------------------------------------------------------------
 
 .. automodule:: fatf.utils.validation

@@ -1,5 +1,5 @@
 """
-Holds custom distance functions used for FAT-Forensics examples and testing.
+Holds custom distance functions used for FAT Forensics examples and testing.
 """
 # Author: Kacper Sokol <k.sokol@bristol.ac.uk>
 # License: new BSD

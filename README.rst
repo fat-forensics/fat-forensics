@@ -66,7 +66,7 @@ Cite           |BibTeX|_ |JOSS|_
 FAT Forensics: Algorithmic Fairness, Accountability and Transparency Toolbox
 ============================================================================
 
-FAT-Forensics (``fatf``) is a Python toolbox for evaluating fairness,
+FAT Forensics (``fatf``) is a Python toolbox for evaluating fairness,
 accountability and transparency of predictive systems. It is built on top of
 SciPy_ and NumPy_, and is distributed under the 3-Clause BSD license (new BSD).
 
@@ -198,8 +198,8 @@ more information.
 Submitting a Pull Request
 -------------------------
 
-Before opening a Pull Request, please have a look at the whole content of the
-`Contributing page <contrib_guide_>`_ to make sure that your code complies with
+Before opening a Pull Request, please have a look at the
+`Contributing <contrib_guide_>`_ page to make sure that your code complies with
 our guidelines.
 
 Help and Support

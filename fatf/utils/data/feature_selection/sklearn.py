@@ -527,7 +527,7 @@ def highest_weights(dataset: np.ndarray,
         clf = sklearn.linear_model.Ridge(alpha=0.01, fit_intercept=True)
         clf.fit(dataset_array, target, sample_weight=weights_)
 
-        importance_ordering = np.flip(np.argsort(np.abs(clf.coef_)), axis=0)
+        importance_ordering = np.flipud(np.argsort(np.abs(clf.coef_)))
         selected_indices = importance_ordering[:features_number]
         selected_indices_sorted = np.sort(selected_indices)
         feature_indices = indices[selected_indices_sorted]

@@ -5,7 +5,7 @@
 Welcome to FAT Forensics!
 +++++++++++++++++++++++++
 
-FAT-Forensics is a Python toolkit for evaluating Fairness, Accountability and
+FAT Forensics is a Python toolkit for evaluating Fairness, Accountability and
 Transparency of Artificial Intelligence systems. It is built on top of SciPy_
 and NumPy_, and distributed under the 3-Clause BSD license (new BSD).
 
@@ -56,7 +56,7 @@ or its documentation.
 .. _gitter: https://gitter.im/fat-forensics
 .. _slack: https://fat-forensics.slack.com
 .. _`mailing list`: https://groups.google.com/forum/#!forum/fat-forensics
-.. _`University of Bristol`: http://www.bristol.ac.uk
+.. _`University of Bristol`: https://www.bristol.ac.uk
 
 .. toctree::
    :maxdepth: 2

@@ -460,8 +460,7 @@ class QuartileDiscretiser(Discretiser):
         arrays holding quartile bin boundaries (with the upper boundary
         inclusive) for each feature.
     discretised_dtype : numpy.dtype
-        The dtype of the discretised arrays outputted by the ``discrete``
-        method.
+        The dtype of the discretised arrays output by the ``discrete`` method.
     """
 
     # pylint: disable=too-few-public-methods

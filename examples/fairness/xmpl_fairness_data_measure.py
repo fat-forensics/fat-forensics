@@ -48,7 +48,7 @@ hr_class_names = hr_data_dict['target_names']
 # the features.
 #
 # The example presented below is rather naive as we do not have access to a
-# more complicated dataset within the FAT-Forensics package. To demonstrate the
+# more complicated dataset within the FAT Forensics package. To demonstrate the
 # functionality of the we indicate all but one feature to be protected, hence
 # we are guaranteed to find quite a few unfair rows in the health records data
 # set. This means that "unfair" data rows are the ones that have the same value

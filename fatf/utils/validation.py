@@ -4,7 +4,7 @@
 The :mod:`fatf.utils.validation` module validates functions and objects.
 
 This module holds functions responsible for validating generic functions and
-objects implemented across the FAT-Forensics package.
+objects implemented across the FAT Forensics package.
 """
 # Author: Kacper Sokol <k.sokol@bristol.ac.uk>
 #         Alex Hepburn <ah13558@bristol.ac.uk>

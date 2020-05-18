@@ -231,7 +231,7 @@ accountability functionality will be implemented as well.
 .. _forestspy: https://github.com/jvns/forestspy
 .. _`Skater feature importance`: https://oracle.github.io/Skater/reference/interpretation.html#feature-importance
 .. _`eli5 implementation`: https://eli5.readthedocs.io/en/latest/autodocs/sklearn.html#module-eli5.sklearn.permutation_importance
-.. _`PhD thesis`: http://ftp.cs.wisc.edu/machine-learning/shavlik-group/craven.thesis.pdf
+.. _`PhD thesis`: https://ftp.cs.wisc.edu/machine-learning/shavlik-group/craven.thesis.pdf
 .. _`NIPS paper`: https://papers.nips.cc/paper/1152-extracting-tree-structured-representations-of-trained-networks.pdf
 .. _report: https://pdfs.semanticscholar.org/025b/8c109c38dc115024e97eb0ede5ea873fffdb.pdf
 .. _`TREPAN implementation`: https://oracle.github.io/Skater/reference/interpretation.html#tree-surrogates-using-decision-trees

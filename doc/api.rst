@@ -5,7 +5,7 @@
 API Reference (|version|)
 +++++++++++++++++++++++++
 
-This is the class and function reference of fat-forensics. Please refer to
+This is the class and function reference of FAT Forensics. Please refer to
 the :ref:`full user guide <user_guide>` for further details, as the class and
 function raw specifications may not be enough to give full guidelines on their
 uses.
@@ -200,22 +200,6 @@ uses.
    feature_influence.partial_dependence_ice
    feature_influence.partial_dependence
 
-:mod:`fatf.transparency.models.lime`: LIME for Models
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-.. automodule:: fatf.transparency.models.lime
-    :no-members:
-    :no-inherited-members:
-
-.. currentmodule:: fatf.transparency.models
-
-.. autosummary::
-   :toctree: generated/
-   :template: class.rst
-   :nosignatures:
-
-   lime.Lime
-
 :mod:`fatf.transparency.predictions`: Transparency for Predictions
 ------------------------------------------------------------------
 
@@ -263,38 +247,6 @@ uses.
    surrogate_explainers.SurrogateTabularExplainer
    surrogate_explainers.TabularBlimeyLime
    surrogate_explainers.TabularBlimeyTree
-
-:mod:`fatf.transparency.predictions.lime`: LIME for Predictions
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-.. automodule:: fatf.transparency.predictions.lime
-    :no-members:
-    :no-inherited-members:
-
-.. currentmodule:: fatf.transparency.predictions
-
-.. autosummary::
-   :toctree: generated/
-   :template: class.rst
-   :nosignatures:
-
-   lime.Lime
-
-:mod:`fatf.transparency.lime`: LIME Wrapper
--------------------------------------------
-
-.. automodule:: fatf.transparency.lime
-    :no-members:
-    :no-inherited-members:
-
-.. currentmodule:: fatf.transparency
-
-.. autosummary::
-   :toctree: generated/
-   :template: class.rst
-   :nosignatures:
-
-   lime.Lime
 
 :mod:`fatf.transparency.sklearn`: Scikit-learn Explainers
 ---------------------------------------------------------
@@ -610,6 +562,8 @@ Base classes
    :nosignatures:
 
    sklearn.lasso_path
+   sklearn.forward_selection
+   sklearn.highest_weights
 
 :mod:`fatf.utils.models`: Models Utilities
 ------------------------------------------
@@ -817,7 +771,7 @@ Base classes
 
    surrogate_evaluation.local_fidelity_score
 
-:mod:`fatf.utils.tools`: FAT-Forensics Tools
+:mod:`fatf.utils.tools`: FAT Forensics Tools
 --------------------------------------------
 
 .. automodule:: fatf.utils.tools
@@ -833,7 +787,7 @@ Base classes
 
    at_least_verion
 
-:mod:`fatf.utils.validation`: FAT-Forensics Validation Functions
+:mod:`fatf.utils.validation`: FAT Forensics Validation Functions
 ----------------------------------------------------------------
 
 .. automodule:: fatf.utils.validation

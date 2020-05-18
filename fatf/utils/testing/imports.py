@@ -1,7 +1,7 @@
 """
 The :mod:`fatf.utils.testing.imports` module holds import testing functions.
 
-This module implements functions that help to test the FAT-Forensics code that
+This module implements functions that help to test the FAT Forensics code that
 imports other modules.
 """
 # Author: Kacper Sokol <k.sokol@bristol.ac.uk>

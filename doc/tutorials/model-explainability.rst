@@ -101,7 +101,7 @@ function::
    >>> ice_array.shape
    (30, 100, 3)
 
-To make sense of the ICE array -- which holds probabilities outputted by the
+To make sense of the ICE array -- which holds probabilities output by the
 model for ``3`` classes of the ``30`` selected data points with the selected
 feature varied between its minimum and maximum over a ``100`` uniform steps --
 we can visualise it with a plotting function built into FAT Forensics::

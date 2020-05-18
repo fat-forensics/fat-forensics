@@ -3,7 +3,7 @@
 Examples
 ========
 
-Here you can find various examples of using FAT-Forensics.
+Here you can find various examples of using FAT Forensics.
 
 .. note::
    Please note that all of the examples using the

@@ -13,7 +13,7 @@ __all__ = ['FATFException',
 
 class FATFException(Exception):
     """
-    Base class for FAT-Forensics exceptions (inherits from :class:`Exception`).
+    Base class for FAT Forensics exceptions (inherits from :class:`Exception`).
     """
 
 

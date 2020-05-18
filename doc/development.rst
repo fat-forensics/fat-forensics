@@ -168,7 +168,7 @@ directory of the package.
 .. _YAPF: https://github.com/google/yapf
 .. _`.style.yapf`: https://github.com/fat-forensics/fat-forensics/blob/master/.style.yapf
 .. _Pylint: https://www.pylint.org/
-.. _Flake8: http://flake8.pycqa.org/en/latest/
+.. _Flake8: https://flake8.pycqa.org/en/latest/
 .. _`.pylintrc`: https://github.com/fat-forensics/fat-forensics/blob/master/.pylintrc
 .. _`.flake8`: https://github.com/fat-forensics/fat-forensics/blob/master/.flake8
 .. _EditorConfig: https://editorconfig.org
@@ -361,7 +361,7 @@ placed in the :ref:`user_guide`:
 - Is it *Model Dependent* (what are the applicable models) or *Model Agnostic*.
 - Is it *Post-Hoc* or *Ante-Hoc*.
 
-.. _Sphinx: http://www.sphinx-doc.org/en/master/
+.. _Sphinx: https://www.sphinx-doc.org/en/master/
 .. _`custom theme`: https://github.com/fat-forensics/fat-forensics/tree/master/doc/themes/fat-forensics
 .. _numpydoc: https://numpydoc.readthedocs.io/en/latest/
 .. _sphinx-gallery: https://sphinx-gallery.github.io/
@@ -418,7 +418,6 @@ Transparency
 .. autosummary::
 
    fatf.transparency
-   fatf.transparency.lime
    fatf.transparency.data
    fatf.transparency.models
    fatf.transparency.predictions

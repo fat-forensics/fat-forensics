@@ -366,8 +366,7 @@ Last but not least, we train a local weighted ridge regression::
    ...     sampled_data_binarised_2f,
    ...     sampled_data_predictions_setosa,
    ...     sample_weight=weights)
-   Ridge(alpha=1.0, copy_X=True, fit_intercept=True, max_iter=None,
-         normalize=False, random_state=None, solver='auto', tol=0.001)
+   Ridge()
 
 and explain the ``data_point`` with its coefficients::
 
@@ -424,12 +423,7 @@ multi-class classification tree::
    >>> blimey_tree = sklearn.tree.DecisionTreeClassifier(max_depth=3)
    >>> blimey_tree.fit(
    ...     sampled_data, sampled_data_predictions, sample_weight=weights)
-   DecisionTreeClassifier(class_weight=None, criterion='gini', max_depth=3,
-                          max_features=None, max_leaf_nodes=None,
-                          min_impurity_decrease=0.0, min_impurity_split=None,
-                          min_samples_leaf=1, min_samples_split=2,
-                          min_weight_fraction_leaf=0.0, presort=False,
-                          random_state=None, splitter='best')
+   DecisionTreeClassifier(max_depth=3)
 
 Once possible explanation that we can extract from the tree is feature
 importance::
@@ -445,7 +439,7 @@ importance::
 This explanation agrees with LIME but is not as informative as the one derived
 with LIME. A better explanation is the tree structure itself::
 
-   >>> blimey_tree_text = sklearn.tree.export.export_text(
+   >>> blimey_tree_text = sklearn.tree.export_text(
    ...     blimey_tree, feature_names=iris_feature_names)
    >>> print(blimey_tree_text)
    |--- petal width (cm) <= 0.71

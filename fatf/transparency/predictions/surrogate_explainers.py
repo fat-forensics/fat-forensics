@@ -45,6 +45,7 @@ import fatf.utils.distances as fud
 import fatf.utils.kernels as fatf_kernels
 import fatf.utils.models.validation as fumv
 import fatf.utils.models.models as fumm
+import fatf.utils.tools as fut
 
 __all__ = ['SurrogateTabularExplainer',
            'TabularBlimeyLime',
@@ -54,11 +55,15 @@ logger = logging.getLogger(__name__)  # pylint: disable=invalid-name
 
 try:
     # pylint: disable=ungrouped-imports
+    import sklearn
     import sklearn.linear_model
     import sklearn.tree
 
     import fatf.transparency.sklearn.linear_model as ftslm
     import fatf.utils.data.feature_selection.sklearn as fudfs
+
+    _SKLEARN_VERSION = [int(i) for i in sklearn.__version__.split('.')[:2]]
+    _SKLEARN_0_22 = fut.at_least_verion([0, 22], _SKLEARN_VERSION)
 except ImportError as exin:
     warnings.warn(
         'The TabularBlimeyLime and TabularBlimeyTree surrogate explainers '
@@ -69,20 +74,26 @@ except ImportError as exin:
     ReturnTree = None  # pylint: disable=invalid-name
     SKLEARN_MISSING = True
 else:
-    ReturnTree = sklearn.tree.tree.BaseDecisionTree
+    if _SKLEARN_0_22:  # pragma: nocover
+        # pylint: disable=invalid-name,protected-access,no-member
+        ReturnTree = sklearn.tree._classes.BaseDecisionTree
+    else:  # pragma: nocover
+        ReturnTree = (  # pylint: disable=invalid-name
+            sklearn.tree.tree.BaseDecisionTree)
     SKLEARN_MISSING = False
 
 BinSamplingValues = Dict[Union[str, int],
                          Dict[int, Tuple[float, float, float, float]]]
 Explanation = Dict[str, Dict[str, float]]
+ExplanationSurrogate = Union[Dict[str, fumm.Model], fumm.Model]
 ExplanationTuple = Union[Explanation,  # yapf: disable
-                         Tuple[Explanation, Dict[str, fumm.Model]]]
+                         Tuple[Explanation, ExplanationSurrogate]]
 Index = Union[int, str]
 
 
 def _input_is_valid(
         dataset: np.ndarray, predictive_model: object, as_probabilistic: bool,
-        categorical_indices: Union[None, List[Index]],
+        as_regressor: bool, categorical_indices: Union[None, List[Index]],
         class_names: Union[None, List[str]], classes_number: Union[None, int],
         feature_names: Union[None, List[str]],
         unique_predictions: Union[None, List[Union[str, int]]]) -> bool:
@@ -111,27 +122,40 @@ surrogate_explainers.SurrogateTabularExplainer` class.
 
     if not isinstance(as_probabilistic, bool):
         raise TypeError('The as_probabilistic parameter has to be a boolean.')
+    if not isinstance(as_regressor, bool):
+        raise TypeError('The as_regressor parameter has to be a boolean.')
 
-    if as_probabilistic:
-        is_functional = fumv.check_model_functionality(predictive_model, True,
-                                                       True)
-        if not is_functional:
-            raise IncompatibleModelError(
-                'With as_predictive set to True the predictive model '
-                'needs to be capable of outputting probabilities via '
-                'a *predict_proba* method, which takes exactly one '
-                'required parameter -- data to be predicted -- and '
-                'outputs a 2-dimensional array with probabilities.')
-    else:
+    if as_regressor:
         is_functional = fumv.check_model_functionality(predictive_model, False,
                                                        True)
         if not is_functional:
             raise IncompatibleModelError(
-                'With as_predictive set to False the predictive model '
-                'needs to be capable of outputting (class) predictions '
+                'With as_regressor set to True the predictive model '
+                'needs to be capable of outputting numerical predictions '
                 'via a *predict* method, which takes exactly one required '
                 'parameter -- data to be predicted -- and outputs a '
-                '1-dimensional array with (class) predictions.')
+                '1-dimensional array with numerical predictions.')
+    else:
+        if as_probabilistic:
+            is_functional = fumv.check_model_functionality(
+                predictive_model, True, True)
+            if not is_functional:
+                raise IncompatibleModelError(
+                    'With as_predictive set to True the predictive model '
+                    'needs to be capable of outputting probabilities via '
+                    'a *predict_proba* method, which takes exactly one '
+                    'required parameter -- data to be predicted -- and '
+                    'outputs a 2-dimensional array with probabilities.')
+        else:
+            is_functional = fumv.check_model_functionality(
+                predictive_model, False, True)
+            if not is_functional:
+                raise IncompatibleModelError(
+                    'With as_predictive set to False the predictive model '
+                    'needs to be capable of outputting (class) predictions '
+                    'via a *predict* method, which takes exactly one required '
+                    'parameter -- data to be predicted -- and outputs a '
+                    '1-dimensional array with (class) predictions.')
 
     if categorical_indices is not None:
         if isinstance(categorical_indices, list):
@@ -227,6 +251,9 @@ class SurrogateTabularExplainer(abc.ABC):
     """
     An abstract parent class for implementing surrogate explainers.
 
+    .. versionchanged:: 0.1.0
+       Added support for regression models.
+
     .. versionadded:: 0.0.2
 
     An abstract class that all surrogate explainer classes should inherit from.
@@ -238,10 +265,10 @@ class SurrogateTabularExplainer(abc.ABC):
     function.
 
     If the ``predictive_model`` is a non-probabilistic classifier
-    (``as_probabilistic=False``), it is advised to specify both
-    ``classes_number`` and ``unique_predictions`` parameters to ensure proper
-    functionality of the explainer. Please see the respective parameter
-    descriptions for more details.
+    (``as_probabilistic=False`` and ``as_regressor=False``), it is advised to
+    specify both ``classes_number`` and ``unique_predictions`` parameters to
+    ensure proper functionality of the explainer. Please see the respective
+    parameter descriptions for more details.
 
     For detailed instruction how to build your own surrogate please see the
     :ref:`how_to_tabular_surrogates` *how-to guide*.
@@ -271,18 +298,27 @@ class SurrogateTabularExplainer(abc.ABC):
         A boolean indicating whether the global model is probabilistic. If
         ``True``, the ``predictive_model`` must have a ``predict_proba``
         method. If ``False``, the ``predictive_model`` must have a ``predict``
-        method.
+        method. This parameter is disregarded when ``as_regressor=True``.
+    as_regressor : boolean, optional (default=False)
+        .. versionadded:: 0.1.0
+
+        A boolean indicating whether the global model is regression. If
+        ``True``, the ``predictive_model`` must have a ``predict``
+        method; the ``as_probabilistic`` parameter is disregarded. If
+        ``False``, the model is treated as a classifier -- see
+        ``as_probabilistic`` parameter.
     categorical_indices : List[column indices], optional (default=None)
         A list of column indices in the input ``dataset`` that should be
         treated as categorical features.
     class_names : List[string], optional (default=None)
         A list of strings defining the names of classes. If the predictive
         model is probabilistic, the order of the class names should correspond
-        to the order of columns outputted by the model. For other models the
+        to the order of columns output by the model. For other models the
         order should correspond to lexicographical ordering of all the possible
         outputs of this model. For example, if the model outputs
         ``['a', 'c', '0']`` the class names should be given for
-        ``['0', 'a', 'c']`` ordering.
+        ``['0', 'a', 'c']`` ordering. This parameter is disregarded when
+        ``as_regressor=True``.
     classes_number : integer, optional (default=None)
         The unique number of classes modelled by the ``predictive_model``.
         If the model is probabilistic, setting this parameter is not required
@@ -295,6 +331,7 @@ class SurrogateTabularExplainer(abc.ABC):
         predictions, a ``UserWarning`` will be emitted encouraging the user to
         specify the number of classes via the ``classes_number`` parameter.
         For non-probabilistic models it is advised to specify this parameter.
+        This parameter is disregarded when ``as_regressor=True``.
     feature_names : List[string], optional (default=None)
         A list of strings defining the names of the ``dataset`` features. The
         order of the names should correspond to the order of features in the
@@ -303,6 +340,7 @@ class SurrogateTabularExplainer(abc.ABC):
         A complete list of unique predictions that the ``predictive_model`` can
         output. This parameter is only used when the ``predictive_model`` is a
         non-probabilistic classifier (``as_probabilistic=False``).
+        This parameter is disregarded when ``as_regressor=True``.
 
     Warns
     -----
@@ -320,7 +358,7 @@ class SurrogateTabularExplainer(abc.ABC):
         The user has provided unique predictions via the ``unique_predictions``
         parameter for a probabilistic model (``as_probabilistic=True``),
         which are not needed and will be disregarded. The unique predictions
-        had to be inferred from the predictions outputted by the
+        had to be inferred from the predictions output by the
         (non-probabilistic) ``predictive_model``, therefore may be incomplete.
         It is advised to provide this list via the ``unique_predictions``
         parameter to ensure proper functionality of the explainer.
@@ -330,17 +368,17 @@ class SurrogateTabularExplainer(abc.ABC):
     IncompatibleModelError
         The ``predictive_model`` does not have the required functionality:
         ``predict_proba`` method for probabilistic models and ``predict``
-        method for all other predictive models.
+        method for regressors and non-probabilistic classifiers.
     IncorrectShapeError
         The input ``dataset`` is not a 2-dimensional numpy array.
     IndexError
         Some of the column indices given in the ``categorical_indices``
         parameter are not valid for the input ``dataset``.
     RuntimeError
-        The number of columns in the probabilistic matrix outputted by the
+        The number of columns in the probabilistic matrix output by the
         ``predictive_model`` (when ``as_probabilistic=True``) is different
         to the number of features specified by the user via the
-        ``features_number`` parameter. The ``predictive_model`` has outputted
+        ``features_number`` parameter. The ``predictive_model`` has output
         different unique classes to the ones specified by the user via the
         ``unique_predictions`` parameter (checked only for non-probabilistic
         models, i.e., ``as_probabilistic=False``). Either the user-specified
@@ -349,6 +387,7 @@ class SurrogateTabularExplainer(abc.ABC):
     TypeError
         The input ``dataset`` is not of a base (numerical and/or string)
         type. The ``as_probabilistic`` parameter is not a boolean.
+        The ``as_regressor`` parameter is not a boolean.
         The ``categorical_indices`` parameter is neither a list nor ``None``.
         The ``class_names`` parameter is neither a list nor ``None`` or one of
         the elements in this list is not a string.
@@ -383,6 +422,10 @@ class SurrogateTabularExplainer(abc.ABC):
     as_probabilistic : boolean
         ``True`` if the ``predictive_model`` should be treated as
         probabilistic and ``False`` if it should be treated as a classifier.
+    as_regressor : boolean
+        ``True`` if the ``predictive_model`` should be treated as
+        regression and ``False`` if it should be treated as a (probabilistic)
+        classifier.
     predictive_model : object
         A pre-trained (black-box) predictive model to be explained.
     predictive_function : Callable[[np.ndarray], np.ndarray]
@@ -399,7 +442,7 @@ class SurrogateTabularExplainer(abc.ABC):
         following pattern: 'class %d'. If the ``predictive_model`` is a
         classifier (``as_probabilistic=False``) and the number of unique
         predictions is equal to the number of classes, the ``class_names`` will
-        be lexicographically sorted list of the unique values outputted by the
+        be lexicographically sorted list of the unique values output by the
         ``predictive_model``.
     feature_names : List[string]
         A list of strings defining the names of the features. If this was not
@@ -407,7 +450,7 @@ class SurrogateTabularExplainer(abc.ABC):
         following pattern: 'feature %d'.
     unique_predictions : List[strings or integers] or None
         ``None`` for probabilistic ``predictive_model``
-        (``as_probabilistic=True``) and a list of unique classes outputted by
+        (``as_probabilistic=True``) and a list of unique classes output by
         the ``predictive_model`` if it is non-probabilistic.
     """
 
@@ -418,6 +461,7 @@ class SurrogateTabularExplainer(abc.ABC):
                  dataset: np.ndarray,
                  predictive_model: object,
                  as_probabilistic: bool = True,
+                 as_regressor: bool = False,
                  categorical_indices: Optional[List[Index]] = None,
                  class_names: Optional[List[str]] = None,
                  classes_number: Optional[int] = None,
@@ -430,7 +474,7 @@ class SurrogateTabularExplainer(abc.ABC):
         # pylint: disable=too-many-arguments,too-many-locals,too-many-branches
         # pylint: disable=too-many-statements
         assert _input_is_valid(dataset, predictive_model, as_probabilistic,
-                               categorical_indices, class_names,
+                               as_regressor, categorical_indices, class_names,
                                classes_number, feature_names,
                                unique_predictions), 'Invalid input.'
 
@@ -471,153 +515,183 @@ class SurrogateTabularExplainer(abc.ABC):
         self.numerical_indices = sorted(numerical_indices)
 
         self.as_probabilistic = as_probabilistic
+        self.as_regressor = as_regressor
         self.predictive_model = predictive_model
 
-        if self.as_probabilistic:
-            predictive_function = (
-                self.predictive_model.predict_proba)  # type: ignore
-        else:
+        if self.as_regressor:
             predictive_function = (
                 self.predictive_model.predict)  # type: ignore
+        else:
+            if self.as_probabilistic:
+                predictive_function = (
+                    self.predictive_model.predict_proba)  # type: ignore
+            else:
+                predictive_function = (
+                    self.predictive_model.predict)  # type: ignore
         self.predictive_function = predictive_function
 
         if self.is_structured:
             row = dataset[0].reshape(-1)
         else:
             row = dataset[0].reshape(1, -1)
-        if self.as_probabilistic:
-            _unique_predictions = None
-            _classes_number = (
-                self.predictive_model.predict_proba(  # type: ignore
-                    row).shape[1])
-        else:
-            _unique_predictions = np.unique(
-                self.predictive_model.predict(self.dataset))  # type: ignore
-            _classes_number = _unique_predictions.shape[0]
-            _unique_predictions = _unique_predictions.tolist()
 
-        if self.as_probabilistic:
-            if classes_number is None:
-                classes_number = _classes_number
-            else:
-                if classes_number != _classes_number:
-                    raise RuntimeError('The user specified number of classes '
-                                       '({}) for the provided probabilistic '
-                                       'model is different than the number of '
-                                       'columns ({}) in the probabilistic '
-                                       'matrix outputted by the model.'.format(
-                                           classes_number, _classes_number))
+        if self.as_regressor:
+            _unique_predictions = None
+            _classes_number = None
         else:
-            if classes_number is None:
-                if unique_predictions is not None:
-                    logger.debug('The classes number was taken from the '
-                                 'length of the unique_predictions list.')
-                    classes_number = len(unique_predictions)
-                elif class_names is not None:
-                    logger.debug('The classes number was taken from the '
-                                 'length of the class_names list.')
-                    classes_number = len(class_names)
-                else:
-                    msg = ('The number of classes ({}) was inferred from '
-                           'predicting the input dataset. Since this may not '
-                           'be accurate please consider specifying the number '
-                           'of unique classes via the classes_number '
-                           'parameter.'.format(_classes_number))
-                    warnings.warn(msg, UserWarning)
+            if self.as_probabilistic:
+                _unique_predictions = None
+                _classes_number = (
+                    self.predictive_model.predict_proba(  # type: ignore
+                        row).shape[1])
+            else:
+                _unique_predictions = np.unique(
+                    self.predictive_model.predict(  # type: ignore
+                        self.dataset))
+                _classes_number = _unique_predictions.shape[0]
+                _unique_predictions = _unique_predictions.tolist()
+
+        if self.as_regressor:
+            assert _classes_number is None
+            classes_number = _classes_number
+        else:
+            if self.as_probabilistic:
+                if classes_number is None:
                     classes_number = _classes_number
+                else:
+                    if classes_number != _classes_number:
+                        raise RuntimeError(
+                            'The user specified number of classes ({}) for '
+                            'the provided probabilistic model is different '
+                            'than the number of columns ({}) in the '
+                            'probabilistic matrix output by the '
+                            'model.'.format(classes_number, _classes_number))
+            else:
+                if classes_number is None:
+                    if unique_predictions is not None:
+                        logger.debug('The classes number was taken from the '
+                                     'length of the unique_predictions list.')
+                        classes_number = len(unique_predictions)
+                    elif class_names is not None:
+                        logger.debug('The classes number was taken from the '
+                                     'length of the class_names list.')
+                        classes_number = len(class_names)
+                    else:
+                        msg = ('The number of classes ({}) was inferred from '
+                               'predicting the input dataset. Since this may '
+                               'not be accurate please consider specifying '
+                               'the number of unique classes via the '
+                               'classes_number parameter.'.format(
+                                   _classes_number))
+                        warnings.warn(msg, UserWarning)
+                        classes_number = _classes_number
         self.classes_number = classes_number
 
-        if self.as_probabilistic:
-            if unique_predictions is not None:
-                warnings.warn('The unique_predictions provided by the user '
-                              'will be disregarded as the predictive_model '
-                              'is probabilistic (as_probabilistic=True).')
-                set_unique_predictions = None
-            else:
-                set_unique_predictions = unique_predictions
+        if self.as_regressor:
+            assert _unique_predictions is None
+            set_unique_predictions = _unique_predictions
         else:
-            # The self.classes_number can come from the length of the
-            # classes_names list, the unique_predictions list, the
-            # number of predictions taken from the model or it can be
-            # user-defined, hence we need to verify whether it agrees with
-            # the length of the unique_predictions list for consistency.
-            if unique_predictions is None:
-                up_num = len(_unique_predictions)  # type: ignore
-                if up_num != self.classes_number:
-                    raise RuntimeError('The inferred number of unique '
-                                       'predictions ({}) does not agree with '
-                                       'the internal number of '
-                                       'classes. Try providing the '
-                                       'unique_predictions parameter to fix '
-                                       'this issue.'.format(up_num))
-
-                msg = ('The unique predictions ({}) were inferred from '
-                       'predicting the input dataset. Since this may not '
-                       'be accurate please consider specifying the list '
-                       'of unique predictions via the unique_predictions '
-                       'parameter.'.format(_unique_predictions))
-                warnings.warn(msg, UserWarning)
-                set_unique_predictions = _unique_predictions
+            if self.as_probabilistic:
+                if unique_predictions is not None:
+                    warnings.warn('The unique_predictions provided by the '
+                                  'user will be disregarded as the '
+                                  'predictive_model is probabilistic '
+                                  '(as_probabilistic=True).')
+                    set_unique_predictions = None
+                else:
+                    set_unique_predictions = unique_predictions
             else:
-                if len(unique_predictions) != self.classes_number:
-                    raise RuntimeError('The user-specified number of unique '
-                                       'predictions ({}) does not agree with '
-                                       'the internal number of '
-                                       'classes. (The length of the '
-                                       'unique_predictions list is different '
-                                       'than the classes_number '
-                                       'parameter.)'.format(
-                                           len(unique_predictions)))
+                # The self.classes_number can come from the length of the
+                # classes_names list, the unique_predictions list, the
+                # number of predictions taken from the model or it can be
+                # user-defined, hence we need to verify whether it agrees with
+                # the length of the unique_predictions list for consistency.
+                if unique_predictions is None:
+                    up_num = len(_unique_predictions)  # type: ignore
+                    if up_num != self.classes_number:
+                        raise RuntimeError('The inferred number of unique '
+                                           'predictions ({}) does not agree '
+                                           'with the internal number of '
+                                           'classes. Try providing the '
+                                           'unique_predictions parameter to '
+                                           'fix this issue.'.format(up_num))
 
-                # Check whether the model does not output more classes than
-                # specified by the user via the unique_predictions parameter.
-                extra = set(_unique_predictions).difference(  # type: ignore
-                    unique_predictions)
-                if extra:
-                    raise RuntimeError('The predictive_model has outputted '
-                                       'different classes ({} extra) than '
-                                       'were specified by the '
-                                       'unique_predictions parameter.'.format(
-                                           sorted(list(extra))))
-                set_unique_predictions = unique_predictions
+                    msg = ('The unique predictions ({}) were inferred from '
+                           'predicting the input dataset. Since this may not '
+                           'be accurate please consider specifying the list '
+                           'of unique predictions via the unique_predictions '
+                           'parameter.'.format(_unique_predictions))
+                    warnings.warn(msg, UserWarning)
+                    set_unique_predictions = _unique_predictions
+                else:
+                    if len(unique_predictions) != self.classes_number:
+                        raise RuntimeError('The user-specified number of '
+                                           'unique predictions ({}) does not '
+                                           'agree with the internal number of '
+                                           'classes. (The length of the '
+                                           'unique_predictions list is '
+                                           'different than the classes_number '
+                                           'parameter.)'.format(
+                                               len(unique_predictions)))
+
+                    # Check whether the model does not output more
+                    # classes than specified by the user via the
+                    # unique_predictions parameter.
+                    extra = set(
+                        _unique_predictions).difference(  # type: ignore
+                            unique_predictions)
+                    if extra:
+                        raise RuntimeError('The predictive_model has '
+                                           'output different classes ({} '
+                                           'extra) than were specified by the '
+                                           'unique_predictions '
+                                           'parameter.'.format(
+                                               sorted(list(extra))))
+                    set_unique_predictions = unique_predictions
+
         if set_unique_predictions is None:
             self.unique_predictions = set_unique_predictions
         else:
             self.unique_predictions = sorted(set_unique_predictions)
 
-        if class_names is None:
-            if self.as_probabilistic:
-                assert self.unique_predictions is None, (
-                    'Probabilities, hence no classes.')
-                class_names = [
-                    'class {}'.format(i) for i in range(self.classes_number)
-                ]
-            else:
-                # If unique predictions were provided by the user...
-                if unique_predictions is not None:
-                    class_names = [
-                        'class {}'.format(i) for i in unique_predictions
-                    ]
-                # If the unique predictions were computed and the computed
-                # classes number agrees...
-                elif (unique_predictions is None
-                      and _classes_number == self.classes_number):
+        if self.as_regressor:
+            class_names = None
+        else:
+            if class_names is None:
+                if self.as_probabilistic:
+                    assert (self.unique_predictions is None
+                            and self.classes_number is not None), (
+                                'Probabilities, hence no classes.')
                     class_names = [
                         'class {}'.format(i)
-                        for i in _unique_predictions  # type: ignore
+                        for i in range(self.classes_number)
                     ]
                 else:
-                    assert False, (  # pragma: nocover
-                        'If class_names is None and the number of classes '
-                        'does not agree with the detected classes '
-                        '(unique_predictions is None) it means that it had '
-                        'to be provided by the user, hence a RuntimeError '
-                        'should have been raised.')
-        else:
-            if len(class_names) != self.classes_number:
-                raise ValueError('The length of the class_names list does '
-                                 'not agree with the number of classes '
-                                 '({}).'.format(self.classes_number))
+                    # If unique predictions were provided by the user...
+                    if unique_predictions is not None:
+                        class_names = [
+                            'class {}'.format(i) for i in unique_predictions
+                        ]
+                    # If the unique predictions were computed and the computed
+                    # classes number agrees...
+                    elif (unique_predictions is None
+                          and _classes_number == self.classes_number):
+                        class_names = [
+                            'class {}'.format(i)
+                            for i in _unique_predictions  # type: ignore
+                        ]
+                    else:
+                        assert False, (  # pragma: nocover
+                            'If class_names is None and the number of classes '
+                            'does not agree with the detected classes '
+                            '(unique_predictions is None) it means that it '
+                            'had to be provided by the user, hence a '
+                            'RuntimeError should have been raised.')
+            else:
+                if len(class_names) != self.classes_number:
+                    raise ValueError('The length of the class_names list does '
+                                     'not agree with the number of classes '
+                                     '({}).'.format(self.classes_number))
         self.class_names = class_names
 
         if feature_names is None:
@@ -727,6 +801,14 @@ class TabularBlimeyLime(SurrogateTabularExplainer):
     """
     A tabular LIME explainer -- a surrogate explainer based on a linear model.
 
+    .. versionchanged:: 0.1.0
+       (1) Added support for regression models.
+       (2) Changed the feature selection mechanism from k-LASSO to
+       :func:`~fatf.utils.data.feature_selection.sklearn.forward_selection`
+       when the number of selected features is less than 7, and
+       :func:`~fatf.utils.data.feature_selection.sklearn.highest_weights`
+       otherwise -- the default LIME behaviour.
+
     .. versionadded:: 0.0.2
 
     This class implements Local Interpretable Model-agnostic Explanations
@@ -765,17 +847,24 @@ class TabularBlimeyLime(SurrogateTabularExplainer):
       ``data_row`` is computed and passed through an exponential kernel
       (:func:`fatf.utils.kernels.exponential_kernel`) to get similarity scores,
       which will be used as data point weights when reducing the number of
-      features with k-LASSO (see below) and training the linear regression.
-    * K-LASSO is used to limit the number of features in the explanation if
-      enabled by the user. (This is controlled by the ``features_number``
-      parameter in the ``explain_instance`` method and by default --
-      ``features_number=None`` -- the feature selection is not performed.)
+      features (see below) and training the linear regression.
+    * To limit the number of features in the explanation (if enabled by the
+      user) we either use *forward selection* when the number of selected
+      features is less than 7 or *highest weights* otherwise. (This is
+      controlled by the ``features_number`` parameter in the
+      ``explain_instance`` method and by default -- ``features_number=None`` --
+      all of the feature are used.)
     * A local (weighted) ridge regression (``sklearn.linear_model.Ridge``) is
-      fitted to the sampled and binarised data with the target being a
-      vector of probabilities outputted by the black-box model for the selected
-      class (one-vs-rest). By default, one model is trained for all of the
-      classes (``explained_class=None`` in the ``explain_instance`` method),
-      however the class to be explained can be specified by the user.
+      fitted to the sampled and binarised data with the target being:
+
+      - The numerical predictions of the black-box model when the underlying
+        model is a regression.
+      - A vector of probabilities output by the black-box model for the
+        selected class (one-vs-rest) when the underlying model is a
+        probabilistic classifier. By default, one model is trained for all of
+        the classes (``explained_class=None`` in the ``explain_instance``
+        method), however the class to be explained can be specified by the
+        user.
 
     .. note:: How to interpret the results?
 
@@ -787,18 +876,21 @@ class TabularBlimeyLime(SurrogateTabularExplainer):
            "Had this particular feature value of the explained data point
            been outside of this range (for numerical features) or had a
            different value (for categorical feature), how would that influence
-           the probability of this point belonging to the explained class?"
+           the *probability of this point belonging to the explained class*
+           (probabilistic classification) / *predicted numerical value*
+           (regression)?"
 
-    This LIME implementation is limited to black-box **probabilistic** models
-    (similarly to the `official implementation`_), i.e., the
-    ``predictive_model`` must have a ``predict_proba`` method.
-    In all cases the local model will be trained using the **one-vs-rest**
-    approach since the output of the global model is an array with
-    probabilities of each class (the classes to be explained can be selected
-    using the ``explained_class`` parameter in the ``explain_instance``
-    method).
-    The column indices indicated as categorical features (via the
-    ``categorical_indices`` parameter) will not be discretised.
+    This LIME implementation is limited to black-box
+    **probabilistic classifiers** and **regressors** (similarly to the
+    `official implementation`_). Therefore, the ``predictive_model`` must have
+    a ``predict_proba`` method for probabilistic models and ``predict`` method
+    for regressors. When the surrogate is built for a probabilistic classifier,
+    the local model will be trained using the **one-vs-rest** approach since
+    the output of the global model is an array with probabilities of each class
+    (the classes to be explained can be selected using the ``explained_class``
+    parameter in the ``explain_instance`` method). The column indices indicated
+    as categorical features (via the ``categorical_indices`` parameter) will
+    not be discretised.
 
     For detailed instructions on how to build a custom surrogate explainer
     (to avoid tinkering with this class) please see the
@@ -832,13 +924,18 @@ surrogate_explainers.SurrogateTabularExplainer`.
         ``as_probabilistic`` is set to ``False``, the ``predictive_model`` must
         have a ``predict`` method that outputs a 1-dimensional array with
         (class) predictions.
+    as_regressor : boolean, optional (default=False)
+        .. versionadded:: 0.1.0
+
+        A boolean indicating whether the global model should be treated as
+        regression (``True``) or probabilistic classification (``False``).
     categorical_indices : List[column indices], optional (default=None)
         A list of column indices in the input ``dataset`` that should be
         treated as categorical features.
     class_names : List[string], optional (default=None)
         A list of strings defining the names of classes. If the predictive
         model is probabilistic, the order of the class names should correspond
-        to the order of columns outputted by the model. For other models the
+        to the order of columns output by the model. For other models the
         order should correspond to lexicographical ordering of all the possible
         outputs of this model. For example, if the model outputs
         ``['a', 'c', '0']`` the class names should be given for
@@ -891,6 +988,7 @@ Dictionary[discretised bin id, Tuple(float, float, float, float)]]
     def __init__(self,
                  dataset: np.ndarray,
                  predictive_model: object,
+                 as_regressor: bool = False,
                  categorical_indices: Optional[List[Index]] = None,
                  class_names: Optional[List[str]] = None,
                  feature_names: Optional[List[str]] = None) -> None:
@@ -904,11 +1002,12 @@ Dictionary[discretised bin id, Tuple(float, float, float, float)]]
                               'the TabularBlimeyLime explainer.')
 
         # The implementation of the tabular LIME explainer only supports
-        # probabilistic models, hence does not require unique prediction
-        # values and the number of classes. (as_probabilistic=True, ...,
-        # classes_number=None, ..., unique_predictions=None)
-        super().__init__(dataset, predictive_model, True, categorical_indices,
-                         class_names, None, feature_names, None)
+        # probabilistic classifiers and regressors, hence does not require
+        # unique prediction values and the number of classes.
+        # (as_probabilistic=True; classes_number=None; unique_predictions=None)
+        super().__init__(dataset, predictive_model, True, as_regressor,
+                         categorical_indices, class_names, None, feature_names,
+                         None)
 
         self.discretiser = fudd.QuartileDiscretiser(
             dataset,
@@ -1143,15 +1242,23 @@ predictions.surrogate_explainers.TabularBlimeyLime.explain_instance` method.
         """
         Explains the ``data_row`` with linear regression feature importance.
 
-        By default the explanations will be produced for all of the classes,
-        what can be limited by selecting a specific class with the
-        ``explained_class`` parameter. The default ``kernel_width`` is computed
-        as the square root of the number of features multiplied by 0.75.
-        Also, by default, all of the (interpretable) features will be used
-        to create an explanation, what can be limited by setting the
-        ``features_number`` parameter. The data sampling around the
-        ``data_row`` can be customised by specifying the number of points to be
-        generated (``samples_number``).
+        .. versionchanged:: 0.1.0
+           Changed the feature selection mechanism from k-LASSO to
+           :func:`~fatf.utils.data.feature_selection.sklearn.forward_selection`
+           when the number of selected features is less than 7, and
+           :func:`~fatf.utils.data.feature_selection.sklearn.highest_weights`
+           otherwise -- the default LIME behaviour.
+
+        For probabilistic classifiers the explanations will be produced for all
+        of the classes by default. This can be changed by selecting a specific
+        class with the ``explained_class`` parameter.
+
+        The default ``kernel_width`` is computed as the square root of the
+        number of features multiplied by 0.75. Also, by default, all of the
+        (interpretable) features will be used to create an explanation, which
+        can be limited by setting the ``features_number`` parameter. The data
+        sampling around the ``data_row`` can be customised by specifying the
+        number of points to be generated (``samples_number``).
 
         By default, this method only returns feature importance, however
         by setting ``return_models`` to ``True``, it will also return the local
@@ -1173,7 +1280,8 @@ surrogate_explainers.SurrogateTabularExplainer.explain_instance`.
         data_row : Union[numpy.ndarray, numpy.void]
             A data point to be explained (1-dimensional numpy array).
         explained_class : Union[integer, string], optional (default=None)
-            The class to be explained. If ``None``, all of the classes will be
+            The class to be explained -- only applicable to probabilistic
+            classifiers. If ``None``, all of the classes will be
             explained. This can either be the index of the class (the column
             index of the probabilistic vector) or the class name (taken from
             ``self.class_names``).
@@ -1182,9 +1290,10 @@ surrogate_explainers.SurrogateTabularExplainer.explain_instance`.
             will be used to fit the local surrogate model.
         features_number : integer, optional (default=None)
             The maximum number of (interpretable) features -- found with
-            K-LASSO -- to be used in the explanation (the local surrogate
-            model is trained with this feature subset). By default (``None``),
-            all of the (interpretable) features will be used.
+            *forward selection* or *highest weights* -- to be used in the
+            explanation (the local surrogate model is trained with this feature
+            subset). By default (``None``), all of the (interpretable) features
+            are used.
         kernel_width : float, optional (default=None)
             The width of the exponential kernel used when computing weights of
             the sampled data based on the distances between the sampled data
@@ -1281,71 +1390,111 @@ surrogate_explainers.SurrogateTabularExplainer.explain_instance`.
                     self.feature_names[i], feature_value))
 
         # Get classes to be explained
-        if explained_class is None:
-            classes_to_explain = list(range(self.classes_number))
-        elif isinstance(explained_class, str):
-            if explained_class not in self.class_names:
-                raise ValueError('The *{}* explained class name was not '
-                                 'recognised. The following class names '
-                                 'are allowed: {}.'.format(
-                                     explained_class, self.class_names))
-            # Translate the class name into a probability index
-            classes_to_explain = [self.class_names.index(explained_class)]
-        elif isinstance(explained_class, int):
-            if (explained_class < 0  # yapf: disable
-                    or explained_class >= self.classes_number):
-                raise ValueError('The explained class index is out of the '
-                                 'allowed range: 0 to {} (there are {} '
-                                 'classes altogether).'.format(
-                                     self.classes_number - 1,
-                                     self.classes_number))
-            classes_to_explain = [explained_class]
+        if self.as_regressor:
+            classes_to_explain = [None]  # type: List[Union[None, int]]
         else:
-            assert False, (  # pragma: nocover
-                'Cannot be anything else but None, string or int.')
+            assert (self.classes_number is not None
+                    and self.class_names is not None)
+            if explained_class is None:
+                classes_to_explain = list(range(self.classes_number))
+            elif isinstance(explained_class, str):
+                if explained_class not in self.class_names:
+                    raise ValueError('The *{}* explained class name was not '
+                                     'recognised. The following class names '
+                                     'are allowed: {}.'.format(
+                                         explained_class, self.class_names))
+                # Translate the class name into a probability index
+                classes_to_explain = [self.class_names.index(explained_class)]
+            elif isinstance(explained_class, int):
+                if (explained_class < 0  # yapf: disable
+                        or explained_class >= self.classes_number):
+                    raise ValueError('The explained class index is out of the '
+                                     'allowed range: 0 to {} (there are {} '
+                                     'classes altogether).'.format(
+                                         self.classes_number - 1,
+                                         self.classes_number))
+                classes_to_explain = [explained_class]
+            else:
+                assert False, (  # pragma: nocover
+                    'Cannot be anything else but None, string or int.')
+
+        # Filter features
+        if features_number is None:
+            features_number = len(self.column_indices)
+        if features_number < 7:
+            _feature_selection_algo = 'forward selection'
+        else:
+            _feature_selection_algo = 'highest weights'
+        logger.info('Selecting %d features with %s.', features_number,
+                    _feature_selection_algo)
 
         # Generate the explanations
-        assert self.as_probabilistic, (
-            'The loop below assumes the sampled_data_predictions array to be '
-            'a vector of probabilities since the self.predictive_function has '
-            'to be probabilistic -- this implementation of LIME does not '
-            'support non-probabilistic classifiers.')
+        if self.as_regressor:
+            assert len(classes_to_explain) == 1
+            assert classes_to_explain[0] is None
+        else:
+            assert self.as_probabilistic, (
+                'The loop below assumes the sampled_data_predictions array to '
+                'be a vector of probabilities since the '
+                'self.predictive_function has to be probabilistic -- this '
+                'implementation of LIME does not support non-probabilistic '
+                'classifiers.')
         explanations = {}
         models = {}
         for class_index in classes_to_explain:
-            class_name = self.class_names[class_index]
+            if self.as_regressor:
+                assert class_index is None
+                class_name = None
+                predictions = sampled_data_predictions
+            else:
+                assert self.class_names is not None and class_index is not None
+                class_name = self.class_names[class_index]
+                # Select the predictions of the class to be explained
+                predictions = sampled_data_predictions[:, class_index]
 
-            # Select the predictions of the class to be explained
-            predictions = sampled_data_predictions[:, class_index]
-
-            # Filter features using K-LASSO
-            lasso_indices = fudfs.lasso_path(binarised_data, predictions,
-                                             weights, features_number)
-            lasso_training_data = binarised_data[:, lasso_indices]
+            # Filter features
+            if features_number < 7:
+                selected_indices = fudfs.forward_selection(
+                    binarised_data, predictions, weights, features_number)
+            else:
+                selected_indices = fudfs.highest_weights(
+                    binarised_data, predictions, weights, features_number)
+            selected_training_data = binarised_data[:, selected_indices]
             # The returned indices can either be strings (structured) or
             # integers (classic). In this case they have to be integers because
             # the discretised data set is classic.
-            assert isinstance(lasso_indices[0], np.integer), 'Classic array.'
-            lasso_feature_names = [
+            assert isinstance(selected_indices[0],
+                              np.integer), 'Classic array.'
+            selected_feature_names = [
                 binarised_data_feature_names[i]  # type: ignore
-                for i in lasso_indices
+                for i in selected_indices
             ]
 
             # Train the local (weighted) ridge regression and use our
             # linear model explainer to generate explanations.
             local_model = sklearn.linear_model.Ridge()
             local_model.fit(
-                lasso_training_data, predictions, sample_weight=weights)
+                selected_training_data, predictions, sample_weight=weights)
 
             # Get a linear model explainer
             explainer = ftslm.SKLearnLinearModelExplainer(
-                local_model, feature_names=lasso_feature_names)
+                local_model, feature_names=selected_feature_names)
 
             # Extract feature importance explanations from the linear model
             assert explainer.feature_names is not None, 'Defined above.'
-            explanations[class_name] = dict(
-                zip(explainer.feature_names, explainer.feature_importance()))
-            models[class_name] = local_model
+
+            if self.as_regressor:
+                assert class_index is None and class_name is None
+                explanations = dict(
+                    zip(explainer.feature_names,
+                        explainer.feature_importance()))
+                models = local_model
+            else:
+                assert class_name is not None
+                explanations[class_name] = dict(
+                    zip(explainer.feature_names,
+                        explainer.feature_importance()))
+                models[class_name] = local_model
 
         if return_models:
             return_ = (explanations, models)  # type: ExplanationTuple
@@ -1358,6 +1507,9 @@ class TabularBlimeyTree(SurrogateTabularExplainer):
     """
     A surrogate explainer based on a decision tree.
 
+    .. versionchanged:: 0.1.0
+       Added support for regression models.
+
     .. versionadded:: 0.0.2
 
     This explainer does not use an interpretable data representation (as one
@@ -1366,15 +1518,17 @@ class TabularBlimeyTree(SurrogateTabularExplainer):
     specified in the ``explain_instance`` method. No data weighting procedure
     is used when fitting the local surrogate model.
 
-    When the underlying predictive model is probabilistic
-    (``as_probabilistic=True``), the local decision tree is trained as a
-    regressor of probabilities outputted by the black-box ``predictive_model``.
-    When the ``predictive_model`` is a non-probabilistic classifier, the local
-    decision tree is a classifier that is either fitted as one-vs-rest for a
-    selected class or mimics the classification problem by fitting a
-    multi-class classifier.
+    When ``as_regressor`` is set to ``True``, a surrogate regression tree is
+    fitted to a black-box regression. When it is set to ``False``,
+    ``predictive_model`` is treated as a classifier. When the underlying
+    predictive model is probabilistic (``as_probabilistic=True``), the local
+    decision tree is trained as a regressor of probabilities output by the
+    black-box ``predictive_model``. When the ``predictive_model`` is a
+    non-probabilistic classifier, the local decision tree is a classifier that
+    is either fitted as one-vs-rest for a selected class or mimics the
+    classification problem by fitting a multi-class classifier.
 
-    The explanation outputted by the ``explain_instance`` method is a simple
+    The explanation output by the ``explain_instance`` method is a simple
     feature importance measure extracted from the local tree. Alternatively,
     the local tree model can be returned for further processing or visualising.
 
@@ -1407,6 +1561,7 @@ surrogate_explainers.SurrogateTabularExplainer`.
                  dataset: np.ndarray,
                  predictive_model: object,
                  as_probabilistic: bool = True,
+                 as_regressor: bool = False,
                  categorical_indices: Optional[List[Index]] = None,
                  class_names: Optional[List[str]] = None,
                  classes_number: Optional[int] = None,
@@ -1423,8 +1578,8 @@ surrogate_explainers.SurrogateTabularExplainer`.
                               'the TabularBlimeyTree explainer.')
 
         super().__init__(dataset, predictive_model, as_probabilistic,
-                         categorical_indices, class_names, classes_number,
-                         feature_names, unique_predictions)
+                         as_regressor, categorical_indices, class_names,
+                         classes_number, feature_names, unique_predictions)
 
         if self.is_structured:
             raise TypeError('The TabularBlimeyTree explainer does not support '
@@ -1440,9 +1595,12 @@ surrogate_explainers.SurrogateTabularExplainer`.
                             'trees.')
 
         # Get predictions for the input data set to initialise Mixup
-        dataset_predictions = self.predictive_function(self.dataset)
-        if self.as_probabilistic:
-            dataset_predictions = dataset_predictions.argmax(axis=1)
+        if self.as_regressor:
+            dataset_predictions = None
+        else:
+            dataset_predictions = self.predictive_function(self.dataset)
+            if self.as_probabilistic:
+                dataset_predictions = dataset_predictions.argmax(axis=1)
 
         # Initialise the Mixup augmenter
         self.augmenter = fuda.Mixup(
@@ -1508,11 +1666,11 @@ predictions.surrogate_explainers.TabularBlimeyTree.explain_instance` method.
                          selected_class_index: int, one_vs_rest: bool,
                          maximum_depth: int) -> ReturnTree:  # type: ignore
         """
-        Fits a local decision tree surrogate.
+        Fits a local tree surrogate.
 
-        The decision tree is a classifier if the ``self.predictive_model`` is
-        non-probabilistic (``self.as_probabilistic=False``). Otherwise, it is
-        a regressor.
+        The tree is a classifier if the ``self.predictive_model`` is
+        non-probabilistic (``self.as_probabilistic=False`` and
+        ``self.as_regressor=False``). Otherwise, it is a regressor.
 
         For additional documentation of the input parameters, warnings and
         errors please see the description of :func:`fatf.transparency.\
@@ -1546,62 +1704,78 @@ predictions.surrogate_explainers.TabularBlimeyTree.explain_instance` method.
             A locally fitted decision tree classifier or regressor.
         """
         # pylint: disable=too-many-arguments
-        assert (isinstance(selected_class_index, int)
-                and selected_class_index >= 0
-                and selected_class_index < self.classes_number
-                ), 'Must be a correct class index.'
 
-        if self.as_probabilistic:
-            assert one_vs_rest is True, 'Probabilistic must be one-vs-rest.'
-            assert fuav.is_2d_array(sampled_data_predictions), 'Probabilities.'
-
-            predictions = sampled_data_predictions[:, selected_class_index]
+        if self.as_regressor:
+            assert self.classes_number is None
+            assert fuav.is_1d_array(sampled_data_predictions), 'Numbers.'
 
             local_model = sklearn.tree.DecisionTreeRegressor(
                 max_depth=maximum_depth)
-            local_model.fit(sampled_data, predictions)
+            local_model.fit(sampled_data, sampled_data_predictions)
         else:
-            assert fuav.is_1d_array(sampled_data_predictions), 'Classes.'
-            if one_vs_rest:
-                assert self.unique_predictions is not None, (
-                    'Unique predictions list is needed for one-vs-rest '
-                    'surrogate fitted for a non-probabilistic black-box '
-                    'model.')
+            assert (isinstance(selected_class_index, int)
+                    and self.classes_number is not None
+                    and self.classes_number > selected_class_index >= 0
+                    ), 'Must be a correct class index.'
+            assert self.class_names is not None
 
-                one_class = self.unique_predictions[selected_class_index]
-                one_index = (sampled_data_predictions == one_class)
-                if not one_index.any():
-                    one_class_name = self.class_names[selected_class_index]
-                    raise RuntimeError('A surrogate for the *{}* class '
-                                       '(class index: {}; class name: {}) '
-                                       'could not be fitted as none of the '
-                                       'sampled data points were predicted '
-                                       '(by the black-box model) as this '
-                                       'particular class.'.format(
-                                           one_class, selected_class_index,
-                                           one_class_name))
+            if self.as_probabilistic:
+                assert one_vs_rest is True, ('Probabilistic must be '
+                                             'one-vs-rest.')
+                assert fuav.is_2d_array(sampled_data_predictions), (
+                    'Probabilities.')
 
-                predictions = np.zeros_like(
-                    sampled_data_predictions, dtype=np.int16)
-                # Disable pylint's unsupported-assignment-operation (E1137)
-                predictions[one_index] = 1  # pylint: disable=E1137
+                predictions = (
+                    sampled_data_predictions[:, selected_class_index])
+
+                local_model = sklearn.tree.DecisionTreeRegressor(
+                    max_depth=maximum_depth)
+                local_model.fit(sampled_data, predictions)
             else:
-                predictions = sampled_data_predictions
+                assert fuav.is_1d_array(sampled_data_predictions), 'Classes.'
+                if one_vs_rest:
+                    assert self.unique_predictions is not None, (
+                        'Unique predictions list is needed for one-vs-rest '
+                        'surrogate fitted for a non-probabilistic black-box '
+                        'model.')
 
-                # If all of the data points were predicted as a single class
-                # the local model will not be meaningful.
-                assert fuav.is_1d_array(predictions), '1-D class predictions.'
-                unique_predictions = np.unique(predictions)
-                if unique_predictions.shape[0] < 2:
-                    raise RuntimeError('A surrogate model (classifier) could '
-                                       'not be fitted as the (black-box) '
-                                       'predictions for the sampled data '
-                                       'are of a single class: *{}*.'.format(
-                                           unique_predictions[0]))
+                    one_class = self.unique_predictions[selected_class_index]
+                    one_index = (sampled_data_predictions == one_class)
+                    if not one_index.any():
+                        one_class_name = self.class_names[selected_class_index]
+                        raise RuntimeError('A surrogate for the *{}* class '
+                                           '(class index: {}; class name: '
+                                           '{}) could not be fitted as none '
+                                           'of the sampled data points were '
+                                           'predicted (by the black-box '
+                                           'model) as this particular '
+                                           'class.'.format(
+                                               one_class, selected_class_index,
+                                               one_class_name))
 
-            local_model = sklearn.tree.DecisionTreeClassifier(
-                max_depth=maximum_depth)
-            local_model.fit(sampled_data, predictions)
+                    predictions = np.zeros_like(
+                        sampled_data_predictions, dtype=np.int16)
+                    # Disable pylint's unsupported-assignment-operation (E1137)
+                    predictions[one_index] = 1  # pylint: disable=E1137
+                else:
+                    predictions = sampled_data_predictions
+
+                    # If all of the data points were predicted as a single
+                    # class the local model will not be meaningful.
+                    assert fuav.is_1d_array(predictions), ('1-D class '
+                                                           'predictions.')
+                    unique_predictions = np.unique(predictions)
+                    if unique_predictions.shape[0] < 2:
+                        raise RuntimeError('A surrogate model (classifier) '
+                                           'could not be fitted as the '
+                                           '(black-box) predictions for the '
+                                           'sampled data are of a single '
+                                           'class: *{}*.'.format(
+                                               unique_predictions[0]))
+
+                local_model = sklearn.tree.DecisionTreeClassifier(
+                    max_depth=maximum_depth)
+                local_model.fit(sampled_data, predictions)
 
         return local_model
 
@@ -1615,15 +1789,16 @@ predictions.surrogate_explainers.TabularBlimeyTree.explain_instance` method.
         """
         Explains the ``data_row`` with decision tree feature importance.
 
-        By default the explanations will be produced for all of the classes,
-        what can be limited by selecting a specific class with the
-        ``explained_class`` parameter. By default the local tree is learnt as
+        If the black-box model is a classifier, the explanations will be
+        produced for all of the classes by default. This behaviour can be
+        changed by selecting a specific class with the ``explained_class``
+        parameter. For black-box classifiers, the local tree is learnt as
         a one-vs-rest (for one class at a time or only for the selected class)
-        model. This is a requirement for probabilistic black-box models as
-        the local model has to be a regression (tree) of probabilities for a
-        selected class. However, when the black-box model is a
-        non-probabilistic classifier, the local tree can either be learnt as
-        one-vs-rest or multi-class (chosen by setting the ``one_vs_rest``
+        model by default. This is a requirement for probabilistic black-box
+        models as the local model has to be a regression (tree) of
+        probabilities for a selected class. However, when the black-box model
+        is a non-probabilistic classifier, the local tree can either be learnt
+        as one-vs-rest or multi-class (chosen by setting the ``one_vs_rest``
         parameter). The depth of the local tree can also be limited to improve
         its comprehensiveness by setting the ``maximum_depth`` parameter.
 
@@ -1643,19 +1818,22 @@ surrogate_explainers.SurrogateTabularExplainer.explain_instance`.
         data_row : Union[numpy.ndarray, numpy.void]
             A data point to be explained (1-dimensional numpy array).
         explained_class : Union[integer, string], optional (default=None)
-            The class to be explained. If ``None``, all of the classes will be
-            explained. For probabilistic (black-box) models this can either be
-            the index of the class (the column index of the probabilistic
-            vector) or the class name (taken from ``self.class_names``).
-            For non-probabilistic (black-box) models this can either be the
-            name of the class (taken from ``self.class_names``), the prediction
-            value (taken from ``self.unique_predictions``) or the index of any
-            of these two (given the lexicographical ordering of the unique
-            predictions outputted by the model).
+            The class to be explained. This parameter is ignored when the
+            black-box model is a regressor. If ``None``, all of the classes
+            will be explained. For probabilistic (black-box) models this can
+            either be the index of the class (the column index of the
+            probabilistic vector) or the class name (taken from
+            ``self.class_names``). For non-probabilistic (black-box) models
+            this can either be the name of the class (taken from
+            ``self.class_names``), the prediction value (taken from
+            ``self.unique_predictions``) or the index of any of these two
+            (assuming the lexicographical ordering of the unique predictions
+            output by the model).
         one_vs_rest : boolean, optional (default=True)
             A boolean indicating whether the local model should be fitted as
             one-vs-rest (required for probabilistic models) or as a multi-class
-            classifier.
+            classifier. This parameter is ignored when the black-box model is
+            a regressor.
         samples_number : integer, optional (default=50)
             The number of data points sampled from the Mixup augmenter, which
             will be used to fit the local surrogate model.
@@ -1687,8 +1865,8 @@ surrogate_explainers.SurrogateTabularExplainer.explain_instance`.
             A surrogate cannot be fitted as the (black-box) predictions for
             the sampled data are of a single class or do not have the requested
             class in case of the one-vs-rest local model (only applies to
-            black-box models that are non-probabilistic
-            (``self.as_probabilistic=False``).
+            black-box models that are non-probabilistic classifiers
+            (``self.as_probabilistic=False`` and ``self.as_regressor=False``).
         TypeError
             The ``explained_class`` parameter is neither ``None``, a string or
             an integer. The ``one_vs_rest`` parameter is not a boolean.
@@ -1732,144 +1910,173 @@ surrogate_explainers.SurrogateTabularExplainer.explain_instance`.
             data_row, samples_number=samples_number)
         sampled_data_predictions = self.predictive_function(sampled_data)
 
-        if self.as_probabilistic:
-            if one_vs_rest is False:
-                warnings.warn(
-                    'The one_vs_rest parameter cannot be set to False for '
-                    'probabilistic models, since a regression tree is fitted '
-                    'to the probabilities of each (or just the selected) '
-                    'class. This parameter setting will be ignored. Please '
-                    'see the documentation of the TabularBlimeyTree class for '
-                    'more details.', UserWarning)
-                one_vs_rest = True
-
-            # Validate the explained_class parameter
-            if isinstance(explained_class, str):
-                if explained_class not in self.class_names:
-                    raise ValueError('The *{}* explained class name was not '
-                                     'recognised. The following class names '
-                                     'are allowed: {}.'.format(
-                                         explained_class, self.class_names))
-                # Translate the class name into a probability index
-                explained_class_name = (
-                    explained_class)  # type: Union[None, str]
-                explained_class_index = self.class_names.index(
-                    explained_class)  # type: Union[None, int]
-            elif isinstance(explained_class, int):
-                if (explained_class < 0
-                        or explained_class >= self.classes_number):
-                    raise ValueError('The explained class index is out of the '
-                                     'allowed range: 0 to {} (there are {} '
-                                     'classes altogether).'.format(
-                                         self.classes_number - 1,
-                                         self.classes_number))
-                # Translate the probability index into a class name
-                explained_class_index = explained_class
-                explained_class_name = self.class_names[explained_class]
-            elif explained_class is None:
-                explained_class_index = None
-                explained_class_name = None
-            else:
-                assert False, (  # pragma: nocover
-                    'Can only be None, a string or an int.')
+        if self.as_regressor:
+            explained_class_index = None  # type: Union[None, int]
+            explained_class_name = None  # type: Union[None, str]
         else:
-            assert self.unique_predictions is not None, 'Not probabilistic.'
-            if one_vs_rest is False and explained_class is not None:
-                warnings.warn(
-                    'Choosing a class to explain (via the explained_class '
-                    'parameter) when the one_vs_rest parameter is set to '
-                    'False is not required as a single multi-class '
-                    'classification tree will be learnt regardless of the '
-                    'explained_class parameter setting.', UserWarning)
+            assert (self.class_names is not None
+                    and self.classes_number is not None)
+            if self.as_probabilistic:
+                if one_vs_rest is False:
+                    warnings.warn(
+                        'The one_vs_rest parameter cannot be set to False for '
+                        'probabilistic models, since a regression tree is '
+                        'fitted to the probabilities of each (or just the '
+                        'selected) class. This parameter setting will be '
+                        'ignored. Please see the documentation of the '
+                        'TabularBlimeyTree class for more details.',
+                        UserWarning)
+                    one_vs_rest = True
 
-            # Validate the explained_class parameter
-            if explained_class is None:
-                explained_class_index = None
-                explained_class_name = None
-            elif explained_class in self.unique_predictions:
-                logger.debug('Using the explained_class parameter as a '
-                             '*unique prediction* name for a classifier.')
-                explained_class_index = self.unique_predictions.index(
-                    explained_class)
-                explained_class_name = self.class_names[explained_class_index]
-            elif explained_class in self.class_names:
-                assert isinstance(explained_class, str), 'Class names are str.'
-                logger.debug('Using the explained_class parameter as a *class '
-                             'name* for a classifier.')
-                explained_class_index = self.class_names.index(explained_class)
-                explained_class_name = explained_class
-            elif isinstance(explained_class, int):
-                if (explained_class < 0
-                        or explained_class >= self.classes_number):
-                    raise ValueError('The explained_class parameter was not '
-                                     'recognised as one of the possible class '
-                                     'names and when treated as a class name '
-                                     'index, it is outside of the allowed '
-                                     'range: 0 to {} (there are {} classes '
-                                     'altogether).'.format(
-                                         self.classes_number - 1,
-                                         self.classes_number))
+                # Validate the explained_class parameter
+                if isinstance(explained_class, str):
+                    if explained_class not in self.class_names:
+                        raise ValueError('The *{}* explained class name was '
+                                         'not recognised. The following class '
+                                         'names are allowed: {}.'.format(
+                                             explained_class,
+                                             self.class_names))
+                    # Translate the class name into a probability index
+                    explained_class_name = explained_class
+                    explained_class_index = self.class_names.index(
+                        explained_class)
+                elif isinstance(explained_class, int):
+                    if (explained_class < 0
+                            or explained_class >= self.classes_number):
+                        raise ValueError('The explained class index is out of '
+                                         'the allowed range: 0 to {} (there '
+                                         'are {} classes altogether).'.format(
+                                             self.classes_number - 1,
+                                             self.classes_number))
+                    # Translate the probability index into a class name
+                    explained_class_index = explained_class
+                    explained_class_name = self.class_names[explained_class]
+                elif explained_class is None:
+                    explained_class_index = None
+                    explained_class_name = None
                 else:
+                    assert False, (  # pragma: nocover
+                        'Can only be None, a string or an int.')
+            else:
+                assert self.unique_predictions is not None, (
+                    'Not probabilistic.')
+                if one_vs_rest is False and explained_class is not None:
+                    warnings.warn(
+                        'Choosing a class to explain (via the explained_class '
+                        'parameter) when the one_vs_rest parameter is set to '
+                        'False is not required as a single multi-class '
+                        'classification tree will be learnt regardless of the '
+                        'explained_class parameter setting.', UserWarning)
+
+                # Validate the explained_class parameter
+                if explained_class is None:
+                    explained_class_index = None
+                    explained_class_name = None
+                elif explained_class in self.unique_predictions:
+                    logger.debug('Using the explained_class parameter as a '
+                                 '*unique prediction* name for a classifier.')
+                    explained_class_index = self.unique_predictions.index(
+                        explained_class)
+                    explained_class_name = (
+                        self.class_names[explained_class_index])
+                elif explained_class in self.class_names:
+                    assert isinstance(explained_class, str), ('Class names '
+                                                              'are str.')
+                    logger.debug('Using the explained_class parameter as a '
+                                 '*class name* for a classifier.')
+                    explained_class_index = self.class_names.index(
+                        explained_class)
+                    explained_class_name = explained_class
+                elif isinstance(explained_class, int):
+                    if (explained_class < 0
+                            or explained_class >= self.classes_number):
+                        raise ValueError('The explained_class parameter was '
+                                         'not recognised as one of the '
+                                         'possible class names and when '
+                                         'treated as a class name index, it '
+                                         'is outside of the allowed range: 0 '
+                                         'to {} (there are {} classes '
+                                         'altogether).'.format(
+                                             self.classes_number - 1,
+                                             self.classes_number))
                     logger.debug('Using the explained_class parameter as a '
                                  'class index for a classifier.')
                     explained_class_index = explained_class
                     explained_class_name = self.class_names[explained_class]
-            else:
-                raise ValueError('The explained_class was not recognised. The '
-                                 'following predictions: {}; and class names '
-                                 'are allowed: {}. Alternatively, this '
-                                 'parameter can be used to indicate the index '
-                                 'of the class (from the list above) to be '
-                                 'explained.'.format(self.unique_predictions,
-                                                     self.class_names))
+                else:
+                    raise ValueError('The explained_class was not recognised. '
+                                     'The following predictions: {}; and '
+                                     'class names are allowed: {}. '
+                                     'Alternatively, this parameter can be '
+                                     'used to indicate the index of the class '
+                                     '(from the list above) to be '
+                                     'explained.'.format(
+                                         self.unique_predictions,
+                                         self.class_names))
 
         explanations = {}
-        models = {}
-        if explained_class is None:
-            assert explained_class_index is None, 'Explain all classes.'
-            assert explained_class_name is None, 'Explain all classes.'
+        models = {}  # type: ExplanationSurrogate
+        if self.as_regressor:
+            assert (explained_class_index is None
+                    and explained_class_name is None)
+            local_model = self._get_local_model(
+                sampled_data, sampled_data_predictions, 0, True, maximum_depth)
+            models = local_model
+            explanations = dict(
+                zip(self.feature_names,
+                    local_model.feature_importances_))  # type: ignore
+        else:
+            assert self.class_names is not None and isinstance(models, dict)
+            if explained_class is None:
+                assert (explained_class_index is None
+                        and explained_class_name is None), ('Explain all '
+                                                            'classes.')
 
-            if one_vs_rest:
-                for class_i, class_name in enumerate(self.class_names):
-                    local_model = self._get_local_model(  # type: ignore
-                        sampled_data, sampled_data_predictions, class_i,
-                        one_vs_rest, maximum_depth)
+                if one_vs_rest:
+                    for class_i, class_name in enumerate(self.class_names):
+                        local_model = self._get_local_model(
+                            sampled_data, sampled_data_predictions, class_i,
+                            one_vs_rest, maximum_depth)
 
-                    models[class_name] = local_model
-                    explanations[class_name] = dict(
-                        zip(self.feature_names,
-                            local_model.feature_importances_))
+                        models[class_name] = local_model
+                        exp = zip(
+                            self.feature_names,
+                            local_model.feature_importances_)  # type: ignore
+                        explanations[class_name] = dict(exp)
+                else:
+                    assert not self.as_probabilistic, ('Multi-class local '
+                                                       'model requires a '
+                                                       'global classifier.')
+
+                    local_model = self._get_local_model(
+                        sampled_data, sampled_data_predictions, 0, one_vs_rest,
+                        maximum_depth)
+
+                    logger.info('A multi-class surrogate for a '
+                                'non-probabilistic black-box model is the '
+                                'same for all the possible classes, therefore '
+                                'a single model will be trained and used for '
+                                'explaining all of the classes.')
+
+                    # The same multi-class local model is used for every class
+                    for class_i, class_name in enumerate(self.class_names):
+                        models[class_name] = local_model
+                        exp = zip(
+                            self.feature_names,
+                            local_model.feature_importances_)  # type: ignore
+                        explanations[class_name] = dict(exp)
             else:
-                assert not self.as_probabilistic, (
-                    'Multi-class local model requires a global classifier.')
+                assert explained_class_index, 'Explain a single class.'
+                assert explained_class_name, 'Explain a single class.'
 
                 local_model = self._get_local_model(
-                    sampled_data, sampled_data_predictions, 0, one_vs_rest,
-                    maximum_depth)
+                    sampled_data, sampled_data_predictions,
+                    explained_class_index, one_vs_rest, maximum_depth)
 
-                logger.info('A multi-class surrogate for a non-probabilistic '
-                            'black-box model is the same for all the possible '
-                            'classes, therefore a single model will be '
-                            'trained and used for explaining all of the '
-                            'classes.')
-
-                # The same multi-class local model is used for every class
-                for class_i, class_name in enumerate(self.class_names):
-                    models[class_name] = local_model
-                    explanations[class_name] = dict(
-                        zip(self.feature_names,
-                            local_model.feature_importances_))
-        else:
-            assert explained_class_index, 'Explain a single class.'
-            assert explained_class_name, 'Explain a single class.'
-
-            local_model = self._get_local_model(
-                sampled_data, sampled_data_predictions, explained_class_index,
-                one_vs_rest, maximum_depth)
-
-            models[explained_class_name] = local_model
-            explanations[explained_class_name] = dict(
-                zip(self.feature_names, local_model.feature_importances_))
+                models[explained_class_name] = local_model
+                explanations[explained_class_name] = dict(
+                    zip(self.feature_names,
+                        local_model.feature_importances_))  # type: ignore
 
         if return_models:
             return_ = (explanations, models)  # type: ExplanationTuple

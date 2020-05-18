@@ -9,8 +9,6 @@ implemented in :mod:`fatf.vis` module. **This module requires the
 #         Alex Hepburn <ah13558@bristol.ac.uk>
 # License: new BSD
 
-import warnings
-
 from typing import List, Tuple, Union
 
 import numpy as np
@@ -19,11 +17,9 @@ try:
     import matplotlib.lines
     import matplotlib.pyplot as plt
 except ImportError:
-    warnings.warn(
-        'Visualisation testing helper functions require matplotlib Python '
-        'module, which is not installed on your system.', ImportWarning)
-finally:
-    del warnings
+    raise ImportError('Visualisation testing helper functions require '
+                      'matplotlib Python module, which is not installed '
+                      'on your system.')
 
 __all__ = ['get_plot_data', 'get_line_data', 'get_bar_data']
 

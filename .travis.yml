@@ -1,5 +1,6 @@
 # Use container on EC2, other options available
 # (venvs)[https://docs.travis-ci.com/user/reference/overview/]
+os: linux
 dist: xenial
 
 notifications:
@@ -29,7 +30,7 @@ python:
 env:
   global:
     - MAKEFLAGS='-j 2'  # This allows to parallelise make, e.g. make t1 t2
-  matrix:
+  jobs:
     - FATF_TEST_SCIPY=1.4.1  FATF_TEST_NUMPY=1.18.4
     - FATF_TEST_SCIPY=1.3.3  FATF_TEST_NUMPY=1.17.5
     - FATF_TEST_SCIPY=1.3.0  FATF_TEST_NUMPY=1.16.3
@@ -43,7 +44,20 @@ env:
     - FATF_TEST_SCIPY=0.18.1 FATF_TEST_NUMPY=1.10.1 FATF_TEST_SKLEARN=0.20.4 FATF_TEST_MATPLOTLIB=3.0.0
     - FATF_TEST_SCIPY=latest FATF_TEST_NUMPY=latest
 
-matrix:
+install:
+  - make install-matplotlib
+  - make install-scikit-learn
+  - make dependencies-dev  # Install python development dependencies
+
+script:
+  - make linting-pylint
+  - make linting-flake8
+  - make linting-yapf
+  - make check-types
+  - make test-with-code-coverage
+#  - make test-notebooks
+
+jobs:
   fast_finish: true
   exclude:
     - python: '3.7'
@@ -79,21 +93,6 @@ matrix:
   allow_failures:
     - python: '3.9-dev'
     - env: FATF_TEST_SCIPY=latest FATF_TEST_NUMPY=latest
-
-install:
-  - make install-matplotlib
-  - make install-scikit-learn
-  - make dependencies-dev  # Install python development dependencies
-
-script:
-  - make linting-pylint
-  - make linting-flake8
-  - make linting-yapf
-  - make check-types
-  - make test-with-code-coverage
-#  - make test-notebooks
-
-jobs:
   include:
     - stage: Documentation Testing and Deployment
       python: 3.6
@@ -109,7 +108,7 @@ jobs:
       deploy:
         provider: script
         script: bash build_tools/doc/deploy-doc.sh ${TRAVIS_BRANCH}
-        skip_cleanup: true
+        cleanup: false
         on: &deploy-conditions
           repo: fat-forensics/fat-forensics
           branch: master
@@ -122,7 +121,7 @@ jobs:
       deploy:
         provider: script
         script: make deploy-code-coverage
-        skip_cleanup: true
+        cleanup: false
         on:
           <<: *deploy-conditions
           all_branches: true
@@ -141,7 +140,7 @@ jobs:
           secure: "OC0Z4KEyI27x9p2PeohulMh9SWWBGwX2EgK5+rIkjM8Crr/IVZC2UmJnwi4CC2xQHYbB5qRLEQo4lzHXPKiNgEoHubUZo1ZKnlqJI+feyDSvlPRoBrm5aTdWj7sI30kTXYbAYFN1roE+PA1ZVhJ9206stq+BF5MvGoVloy+DuGP3xEMI3iB/AQd4Fu5OKrM0z5mTJMSd2m+mo47gQ+NoyGXNWJmAkMOKA5p9zqpcS9SgSuBUgIY9vAg+huC4Kn56cJRKe8aZlpTyLEYnggvY63MAlaNF2lY006/clwRUYgNh56fejecJFMdcdCqwPTSJiPfJDQsnwqqQ3QW8NlPFne2Ct7nKFWrpmC9NkbkLRSapcADmeTBpucXZt2F78wS1yagCLcCVYRRhs0bWswmbNVSERuaNo/nZ3kiOrSwFV3/foHqBwVYUKgmyCxPObf+iYWslPLpam/RuHdeoWaOhvKdl/xgvJw/qUCJoTBC2W/Z+OVjNPYmk/PtzcQ8CZ3jRfYg0pyr9zFSjMfGCVRpVU7or4muOC9MtVH8eeGsZyVj3CgWc85/JF/G6MHF0OuJDbBsWHsSekLKSjCJy3aCpJSyuOw+VHyUDyTslCLAc5Lh5PQkVK23lYjrDWVjSPD3Y6pFxQLq+SI3hLfvMoZvtfx9QHFPq++Gh9FQMixFtYX0="
         distributions: "sdist bdist_wheel"
         skip_existing: true
-        skip_cleanup: true
+        cleanup: false
         on:
           <<: *deploy-conditions
           tags: true
@@ -166,7 +165,7 @@ jobs:
         file: dist/*
         name: FAT-Forensics ${TRAVIS_TAG}
         body: "See change log at: https://fat-forensics.org/changelog.html"
-        skip_cleanup: true
+        cleanup: false
         on:
           <<: *deploy-conditions
           tags: true

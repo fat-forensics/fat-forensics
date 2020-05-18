@@ -860,6 +860,12 @@ TabularBlimeyLime` class.
             numerical_np_array_classifier,
             as_regressor=True)
 
+        wide_data = np.concatenate(2 * [futt.NUMERICAL_NP_ARRAY], axis=1)
+        numerical_np_array_classifier_wide = fum.KNN(k=3)
+        numerical_np_array_classifier_wide.fit(wide_data, futt.LABELS)
+        numerical_np_tabular_lime_wide_reg = ftps.TabularBlimeyLime(
+            wide_data, numerical_np_array_classifier_wide, as_regressor=True)
+
         numerical_struct_array_classifier = fum.KNN(k=3)
         numerical_struct_array_classifier.fit(futt.NUMERICAL_STRUCT_ARRAY,
                                               futt.LABELS)
@@ -1131,14 +1137,26 @@ predictions.surrogate_explainers.TabularBlimeyLime.explain_instance` method.
                 futt.NUMERICAL_NP_ARRAY[0], explained_class=3)
         assert str(exin.value) == explain_class_value_error2.format(2, 3)
 
-    def test_explain_instance(self):
+    def test_explain_instance(self, caplog):
         """
         Tests the ``explain_instance`` method.
 
         Tests :func:`fatf.transparency.predictions.surrogate_explainers.\
 TabularBlimeyLime.explain_instance` method.
         """
+        assert len(caplog.records) == 0
         fatf.setup_random_seed()
+        assert len(caplog.records) == 2
+        assert caplog.records[0].levelname == 'INFO'
+        assert caplog.records[0].getMessage() == ('Seeding RNGs using the '
+                                                  'system variable.')
+        assert caplog.records[1].levelname == 'INFO'
+        assert caplog.records[1].getMessage() == 'Seeding RNGs with 42.'
+
+        log_info_forward_selection = ('Selecting {} features with forward '
+                                      'selection.')
+        log_info_highest_weights = ('Selecting {} features with highest '
+                                    'weights.')
 
         numerical_np_explanation = {
             'class 0': {
@@ -1165,6 +1183,25 @@ TabularBlimeyLime.explain_instance` method.
             '*feature 1* <= 0.00': -0.659,
             '0.07 < *feature 2* <= 0.22': -0.065,
             '0.58 < *feature 3* <= 0.79': -0.015
+        }
+        numerical_np_explanation_wide_reg = {
+            '*feature 0* <= 0.00': 0.571,
+            '*feature 1* <= 0.00': -0.626,
+            '0.07 < *feature 2* <= 0.22': -0.328,
+            '*feature 4* <= 0.00': 0.442,
+            '*feature 5* <= 0.00': -0.265,
+            '0.07 < *feature 6* <= 0.22': 0.371,
+            '0.58 < *feature 7* <= 0.79': 0.230
+        }
+        numerical_np_explanation_wide_reg_all = {
+            '*feature 0* <= 0.00': 0.752,
+            '*feature 1* <= 0.00': -0.260,
+            '0.07 < *feature 2* <= 0.22': 0.246,
+            '0.58 < *feature 3* <= 0.79': -0.464,
+            '*feature 4* <= 0.00': 0.811,
+            '*feature 5* <= 0.00': -0.305,
+            '0.07 < *feature 6* <= 0.22': -0.036,
+            '0.58 < *feature 7* <= 0.79': 0.096
         }
         numerical_struct_explanation = {
             'class 0': {
@@ -1209,6 +1246,7 @@ TabularBlimeyLime.explain_instance` method.
             }
         }
 
+        assert len(caplog.records) == 2
         # Probabilistic
         explanation = self.numerical_np_tabular_lime.explain_instance(
             futt.NUMERICAL_NP_ARRAY[0],
@@ -1217,6 +1255,10 @@ TabularBlimeyLime.explain_instance` method.
             kernel_width=None)
         assert futt.is_explanation_equal_dict(
             numerical_np_explanation, explanation, atol=1e-3)
+        assert len(caplog.records) == 3
+        assert caplog.records[2].levelname == 'INFO'
+        assert (caplog.records[2].getMessage()  # yapf: disable
+                == log_info_forward_selection.format(4))
 
         explanation = self.numerical_struct_cat_tabular_lime.explain_instance(
             futt.NUMERICAL_STRUCT_ARRAY[0],
@@ -1225,6 +1267,10 @@ TabularBlimeyLime.explain_instance` method.
             kernel_width=None)
         assert futt.is_explanation_equal_dict(
             numerical_struct_explanation, explanation, atol=1e-3)
+        assert len(caplog.records) == 4
+        assert caplog.records[3].levelname == 'INFO'
+        assert (caplog.records[3].getMessage()  # yapf: disable
+                == log_info_forward_selection.format(2))
 
         explanation = self.categorical_np_lime.explain_instance(
             futt.CATEGORICAL_NP_ARRAY[0],
@@ -1233,6 +1279,10 @@ TabularBlimeyLime.explain_instance` method.
             kernel_width=None)
         assert futt.is_explanation_equal_dict(
             categorical_np_explanation, explanation, atol=1e-3)
+        assert len(caplog.records) == 5
+        assert caplog.records[4].levelname == 'INFO'
+        assert (caplog.records[4].getMessage()  # yapf: disable
+                == log_info_forward_selection.format(2))
 
         explanation, models = self.iris_lime.explain_instance(
             IRIS_DATASET['data'][0],
@@ -1247,6 +1297,10 @@ TabularBlimeyLime.explain_instance` method.
                 sorted(list(iris_explanation[key].values())),
                 sorted(model.coef_.tolist()),
                 atol=1e-3)
+        assert len(caplog.records) == 6
+        assert caplog.records[5].levelname == 'INFO'
+        assert (caplog.records[5].getMessage()  # yapf: disable
+                == log_info_forward_selection.format(2))
 
         explanation = self.iris_lime.explain_instance(
             IRIS_DATASET['data'][0],
@@ -1257,6 +1311,10 @@ TabularBlimeyLime.explain_instance` method.
         explanation_ = {'setosa': {'*petal length (cm)* <= 1.60': 0.666}}
         assert futt.is_explanation_equal_dict(
             explanation, explanation_, atol=1e-3)
+        assert len(caplog.records) == 7
+        assert caplog.records[6].levelname == 'INFO'
+        assert (caplog.records[6].getMessage()  # yapf: disable
+                == log_info_forward_selection.format(1))
 
         explanation = self.iris_lime.explain_instance(
             IRIS_DATASET['data'][0],
@@ -1267,6 +1325,10 @@ TabularBlimeyLime.explain_instance` method.
         explanation_ = {'versicolor': {'*petal length (cm)* <= 1.60': -0.357}}
         assert futt.is_explanation_equal_dict(
             explanation, explanation_, atol=1e-3)
+        assert len(caplog.records) == 8
+        assert caplog.records[7].levelname == 'INFO'
+        assert (caplog.records[7].getMessage()  # yapf: disable
+                == log_info_forward_selection.format(1))
 
         # Regression
         explanation = self.numerical_np_tabular_lime_reg.explain_instance(
@@ -1276,6 +1338,31 @@ TabularBlimeyLime.explain_instance` method.
             kernel_width=None)
         assert futt.is_explanation_equal_dict(
             {'': numerical_np_explanation_reg}, {'': explanation}, atol=1e-3)
+        assert len(caplog.records) == 9
+        assert caplog.records[8].levelname == 'INFO'
+        assert (caplog.records[8].getMessage()  # yapf: disable
+                == log_info_forward_selection.format(4))
+
+        # Weight-based feature selection
+        explanation = self.numerical_np_tabular_lime_wide_reg.explain_instance(
+            self.wide_data[0], samples_number=50, features_number=7)
+        assert futt.is_explanation_equal_dict(
+            {'': numerical_np_explanation_wide_reg}, {'': explanation},
+            atol=1e-3)
+        assert len(caplog.records) == 10
+        assert caplog.records[9].levelname == 'INFO'
+        assert (caplog.records[9].getMessage()  # yapf: disable
+                == log_info_highest_weights.format(7))
+        #
+        explanation = self.numerical_np_tabular_lime_wide_reg.explain_instance(
+            self.wide_data[0], samples_number=50)
+        assert futt.is_explanation_equal_dict(
+            {'': numerical_np_explanation_wide_reg_all}, {'': explanation},
+            atol=1e-3)
+        assert len(caplog.records) == 11
+        assert caplog.records[10].levelname == 'INFO'
+        assert (caplog.records[10].getMessage()  # yapf: disable
+                == log_info_highest_weights.format(8))
 
 
 def map_target(target):

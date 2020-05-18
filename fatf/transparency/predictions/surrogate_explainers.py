@@ -806,7 +806,12 @@ class TabularBlimeyLime(SurrogateTabularExplainer):
 
     .. versionchanged:: 0.1.0
 
-       Added support for regression models.
+       * Added support for regression models.
+       * Changed the feature selection mechanism from k-LASSO to
+         :func:`~fatf.utils.data.feature_selection.sklearn.forward_selection`
+         when the number of selected features is less than 7, and
+         :func:`~fatf.utils.data.feature_selection.sklearn.highest_weights`
+         otherwise -- the default LIME behaviour.
 
     This class implements Local Interpretable Model-agnostic Explanations
     (LIME_) introduced by [RIBEIRO2016WHY]_. This implementation mirrors the
@@ -844,11 +849,13 @@ class TabularBlimeyLime(SurrogateTabularExplainer):
       ``data_row`` is computed and passed through an exponential kernel
       (:func:`fatf.utils.kernels.exponential_kernel`) to get similarity scores,
       which will be used as data point weights when reducing the number of
-      features with k-LASSO (see below) and training the linear regression.
-    * K-LASSO is used to limit the number of features in the explanation if
-      enabled by the user. (This is controlled by the ``features_number``
-      parameter in the ``explain_instance`` method and by default --
-      ``features_number=None`` -- the feature selection is not performed.)
+      features (see below) and training the linear regression.
+    * To limit the number of features in the explanation (if enabled by the
+      user) we either use *forward selection* when the number of selected
+      features is less than 7 or *highest weights* otherwise. (This is
+      controlled by the ``features_number`` parameter in the
+      ``explain_instance`` method and by default -- ``features_number=None`` --
+      all of the feature are used.)
     * A local (weighted) ridge regression (``sklearn.linear_model.Ridge``) is
       fitted to the sampled and binarised data with the target being:
 
@@ -1237,6 +1244,14 @@ predictions.surrogate_explainers.TabularBlimeyLime.explain_instance` method.
         """
         Explains the ``data_row`` with linear regression feature importance.
 
+        .. versionchanged:: 0.1.0
+
+           Changed the feature selection mechanism from k-LASSO to
+           :func:`~fatf.utils.data.feature_selection.sklearn.forward_selection`
+           when the number of selected features is less than 7, and
+           :func:`~fatf.utils.data.feature_selection.sklearn.highest_weights`
+           otherwise -- the default LIME behaviour.
+
         For probabilistic classifiers the explanations will be produced for all
         of the classes by default. This can be changed by selecting a specific
         class with the ``explained_class`` parameter.
@@ -1278,9 +1293,10 @@ surrogate_explainers.SurrogateTabularExplainer.explain_instance`.
             will be used to fit the local surrogate model.
         features_number : integer, optional (default=None)
             The maximum number of (interpretable) features -- found with
-            K-LASSO -- to be used in the explanation (the local surrogate
-            model is trained with this feature subset). By default (``None``),
-            all of the (interpretable) features will be used.
+            *forward selection* or *highest weights* -- to be used in the
+            explanation (the local surrogate model is trained with this feature
+            subset). By default (``None``), all of the (interpretable) features
+            are used.
         kernel_width : float, optional (default=None)
             The width of the exponential kernel used when computing weights of
             the sampled data based on the distances between the sampled data
@@ -1405,6 +1421,16 @@ surrogate_explainers.SurrogateTabularExplainer.explain_instance`.
                 assert False, (  # pragma: nocover
                     'Cannot be anything else but None, string or int.')
 
+        # Filter features
+        if features_number is None:
+            features_number = len(self.column_indices)
+        if features_number < 7:
+            _feature_selection_algo = 'forward selection'
+        else:
+            _feature_selection_algo = 'highest weights'
+        logger.info('Selecting %d features with %s.', features_number,
+                    _feature_selection_algo)
+
         # Generate the explanations
         if self.as_regressor:
             assert len(classes_to_explain) == 1
@@ -1429,28 +1455,33 @@ surrogate_explainers.SurrogateTabularExplainer.explain_instance`.
                 # Select the predictions of the class to be explained
                 predictions = sampled_data_predictions[:, class_index]
 
-            # Filter features using K-LASSO
-            lasso_indices = fudfs.lasso_path(binarised_data, predictions,
-                                             weights, features_number)
-            lasso_training_data = binarised_data[:, lasso_indices]
+            # Filter features
+            if features_number < 7:
+                selected_indices = fudfs.forward_selection(
+                    binarised_data, predictions, weights, features_number)
+            else:
+                selected_indices = fudfs.highest_weights(
+                    binarised_data, predictions, weights, features_number)
+            selected_training_data = binarised_data[:, selected_indices]
             # The returned indices can either be strings (structured) or
             # integers (classic). In this case they have to be integers because
             # the discretised data set is classic.
-            assert isinstance(lasso_indices[0], np.integer), 'Classic array.'
-            lasso_feature_names = [
+            assert isinstance(selected_indices[0],
+                              np.integer), 'Classic array.'
+            selected_feature_names = [
                 binarised_data_feature_names[i]  # type: ignore
-                for i in lasso_indices
+                for i in selected_indices
             ]
 
             # Train the local (weighted) ridge regression and use our
             # linear model explainer to generate explanations.
             local_model = sklearn.linear_model.Ridge()
             local_model.fit(
-                lasso_training_data, predictions, sample_weight=weights)
+                selected_training_data, predictions, sample_weight=weights)
 
             # Get a linear model explainer
             explainer = ftslm.SKLearnLinearModelExplainer(
-                local_model, feature_names=lasso_feature_names)
+                local_model, feature_names=selected_feature_names)
 
             # Extract feature importance explanations from the linear model
             assert explainer.feature_names is not None, 'Defined above.'

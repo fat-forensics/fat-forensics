@@ -1,4 +1,4 @@
-codecov==2.0.15
+codecov==2.1.0
 flake8==3.8.1
 mypy==0.770
 nbval==0.9.1

@@ -106,7 +106,7 @@ jobs:
       deploy:
         provider: script
         script: bash build_tools/doc/deploy-doc.sh ${TRAVIS_BRANCH}
-        cleanup: false
+        skip_cleanup: true
         on: &deploy-conditions
           repo: fat-forensics/fat-forensics
           branch: master
@@ -117,7 +117,7 @@ jobs:
       deploy:
         provider: script
         script: make deploy-code-coverage
-        cleanup: false
+        skip_cleanup: true
         on:
           <<: *deploy-conditions
           all_branches: true
@@ -134,7 +134,7 @@ jobs:
           secure: "OC0Z4KEyI27x9p2PeohulMh9SWWBGwX2EgK5+rIkjM8Crr/IVZC2UmJnwi4CC2xQHYbB5qRLEQo4lzHXPKiNgEoHubUZo1ZKnlqJI+feyDSvlPRoBrm5aTdWj7sI30kTXYbAYFN1roE+PA1ZVhJ9206stq+BF5MvGoVloy+DuGP3xEMI3iB/AQd4Fu5OKrM0z5mTJMSd2m+mo47gQ+NoyGXNWJmAkMOKA5p9zqpcS9SgSuBUgIY9vAg+huC4Kn56cJRKe8aZlpTyLEYnggvY63MAlaNF2lY006/clwRUYgNh56fejecJFMdcdCqwPTSJiPfJDQsnwqqQ3QW8NlPFne2Ct7nKFWrpmC9NkbkLRSapcADmeTBpucXZt2F78wS1yagCLcCVYRRhs0bWswmbNVSERuaNo/nZ3kiOrSwFV3/foHqBwVYUKgmyCxPObf+iYWslPLpam/RuHdeoWaOhvKdl/xgvJw/qUCJoTBC2W/Z+OVjNPYmk/PtzcQ8CZ3jRfYg0pyr9zFSjMfGCVRpVU7or4muOC9MtVH8eeGsZyVj3CgWc85/JF/G6MHF0OuJDbBsWHsSekLKSjCJy3aCpJSyuOw+VHyUDyTslCLAc5Lh5PQkVK23lYjrDWVjSPD3Y6pFxQLq+SI3hLfvMoZvtfx9QHFPq++Gh9FQMixFtYX0="
         distributions: "sdist bdist_wheel"
         skip_existing: true
-        cleanup: false
+        skip_cleanup: true
         on:
           <<: *deploy-conditions
           tags: true
@@ -157,7 +157,7 @@ jobs:
         file: dist/*
         name: FAT-Forensics ${TRAVIS_TAG}
         release_notes: "See change log at: https://fat-forensics.org/changelog.html"
-        cleanup: false
+        skip_cleanup: true
         on:
           <<: *deploy-conditions
           tags: true

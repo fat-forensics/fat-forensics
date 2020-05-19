@@ -6,7 +6,7 @@ Docs           |Homepage|_
 CI             |Travis|_ |Codecov|_
 Try it         |Binder|_
 Contact        |MailingList|_ |Gitter|_
-Cite           |BibTeX|_ |JOSS|_
+Cite           |BibTeX|_ |JOSS|_ |ZENODO|_
 =============  ================================================================
 
 .. |Licence| image:: https://img.shields.io/github/license/fat-forensics/fat-forensics.svg
@@ -56,11 +56,11 @@ Cite           |BibTeX|_ |JOSS|_
 .. |BibTeX| image:: https://img.shields.io/badge/cite-BibTeX-blue.svg
 .. _BibTeX: https://fat-forensics.org/getting_started/cite.html
 
-.. |JOSS| image:: https://joss.theoj.org/papers/070c8b6b705bb47d1432673a1eb03f0c/status.svg
-.. _JOSS: https://joss.theoj.org/papers/070c8b6b705bb47d1432673a1eb03f0c
+.. |JOSS| image:: https://joss.theoj.org/papers/10.21105/joss.01904/status.svg
+.. _JOSS: https://doi.org/10.21105/joss.01904
 
-.. |DOI| image:: https://zenodo.org/badge/DOI/xx.xxxx/zenodo.xxxxxxx.svg
-.. _DOI: https://doi.org/xx.xxxx/zenodo.xxxxxxx
+.. |ZENODO| image:: https://zenodo.org/badge/DOI/10.5281/zenodo.3833199.svg
+.. _ZENODO: https://doi.org/10.5281/zenodo.3833199
 
 ============================================================================
 FAT Forensics: Algorithmic Fairness, Accountability and Transparency Toolbox

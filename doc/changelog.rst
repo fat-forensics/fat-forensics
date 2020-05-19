@@ -45,7 +45,7 @@ regression:
 This release coincides with publication of a `paper <JOSS_paper_>`_
 describing FAT Forensic in The Journal of Open Source Software (JOSS).
 
-.. _JOSS_paper: https://joss.theoj.org/papers/070c8b6b705bb47d1432673a1eb03f0c
+.. _JOSS_paper: https://joss.theoj.org/papers/10.21105/joss.01904
 
 .. _changelog_0_0_2:
 

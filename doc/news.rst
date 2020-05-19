@@ -16,7 +16,7 @@ The changelog summarises the functionality added with this release:
 
 Next up, surrogate explainability for image and text data.
 
-.. _JOSS_paper: https://joss.theoj.org/papers/070c8b6b705bb47d1432673a1eb03f0c
+.. _JOSS_paper: https://joss.theoj.org/papers/10.21105/joss.01904
 
 [04/11/2019] Version 0.0.2 released!
 ====================================

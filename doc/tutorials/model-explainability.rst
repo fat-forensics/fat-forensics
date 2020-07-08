@@ -8,17 +8,18 @@
 
 .. _tutorials_model_explainability:
 
-Explaining a Machine Learning Model: ICE and PD
-+++++++++++++++++++++++++++++++++++++++++++++++
+Explaining a Machine Learning Model: ICE, PD and PFI
+++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 .. topic:: Tutorial Contents
 
     In this tutorial, we show how to gather some insights about inner workings
-    of a predictive model by using *Individual Conditional Expectation* (ICE)
-    and *Partial Dependence* (PD) tools. We highlight pros of these tools and
-    point out a few caveats that every person using them should be aware of.
-    Analysing ICE and PD of a predictive model allows us to understand how the
-    model's predictions change (on average) as we vary one of the features.
+    of a predictive model by using *Individual Conditional Expectation* (ICE),
+    *Partial Dependence* (PD) and *Permutation Feature Importance* (PFI) tools.
+    We highlight pros of these tools and point out a few caveats that every person
+    using them should be aware of. Analysing ICE, PD and PFI of a predictive
+    model allows us to understand how the model's predictions change (on average)
+    as we vary one of the features.
 
 As with all the other tutorials, we first need to import all the necessary
 dependencies and load a data set. For this tutorial we will use the Iris data
@@ -358,10 +359,83 @@ misinterpreting PD results, we often overlay it on top of an ICE plot::
 Such plot presents a full picture and allows us to draw conclusions about the
 usefulness of the PD curve.
 
-----
+Permutation Feature Importance
+==============================
 
-This tutorial walked through using Individual Conditional Expectation and
-Partial Dependence to explain influence of features on predictions of a model.
+Permutation Feature Importance (PFI) tells us by how much does the model's
+predictive error changes as we randomly permute each feature in the dataset.
+By randomly permuting, PFI essentially breaks the relationship between 
+feature and target. Therefore, if permutating a feature results in an increase
+in predictive error then PFI considers this feature important for prediction.
+
+Unlike ICE and PD, PFI measures the change in predictive error as we vary each feature.
+Therefore, there is no need to select a parituclar class of interest, we could also use PFI
+on regression models by selecting an appropriate scoring function. 
+
+To calculate the PFI of the iris_dataset, we make use of :func:`\
+fatf.transparency.models.feature_influence.permutation_feature_importance`
+function::
+
+   >>> pfi_scores = fatf_fi.permutation_feature_importance(
+   ...    iris_data,
+   ...    clf,
+   ...    iris_target,
+   ...    scoring_metric='accuracy',
+   ...    as_regressor=False,
+   ...    repeat_number=5)
+
+As we have chosen for PFI to iterate 5 times, we can extract the mean PFI for each feature
+and its standard deviation over all iterations as::
+ 
+   >>> mean_pfi_scores = np.mean(pfi_scores, axis=0)
+   >>> std_pfi_scores = np.std(pfi_scores, axis=0)
+
+Visualise the PFI scores with a boxplot where whiskers represent
+the range of PFI over different iterations::
+
+   >>> pfi_plot = plt.subplots(1, 1)
+   >>> pfi_figure, pfi_axis = pfi_plot
+   >>> pfi_box = pfi_axis.boxplot(pfi_scores)
+   >>> pfi_xtick = pfi_axis.set_xticklabels(iris_feature_names)
+   >>> pfi_title = pfi_axis.set_title("PFI for Iris Dataset")
+   >>> pfi_xlabel = pfi_axis.set_xlabel("Feature")
+   >>> pfi_ylabel = pfi_axis.set_ylabel("PFI")
+
+.. testsetup:: *
+
+   >>> pfi_plot[0].savefig(fig_loc('pfi.png'), dpi=100)
+
+.. image:: /tutorials/img/pfi.png
+   :align: center
+   :scale: 75
+
+The PFI plot seems to confirm what we have seen before with PD and ICE.
+The least important features according to PFI are sepal width and sepal length.
+The most important feature according to PFI is petal length. 
+
+PFI offers an easy to understand, global insight into the performance of a model.
+It is also model-agnostic and does not require retraining the model.
+Unfortunately, there are a few recognised disadvantages with using this relatively
+simple interpretability technique which we discuss briefly below.
+
+In our implementation, we use numpy's random module to permute the features.
+When using randomness in measurements, the results are likely to vary
+significantly between iterations. Therefore, be mindful when choosing
+the number of times each feature is permuted and averages should be
+taken with care. PFI does not consider correlations between features.
+On one hand, this may result in unrealistic combinations of features
+after permuting and on the other hand, our example suggests that sepal
+width is not an important feature for prediction, however if sepal
+width was highly correlated with petal length, petal length's PFI
+may be hiding sepal width's true importance. Finally, unlike PD and ICE,
+to use PFI you need access to the ground truth labels of the dataset which
+restricts usage.
+
+----------------------------------------------------------------------
+
+This tutorial walked through using Individual Conditional Expectation,
+Partial Dependence and Permutation Feature Importance to explain
+influence of features on predictions of a model.
 We saw how to use both these functions and what to look for when interpreting
 their results.
 
@@ -375,7 +449,9 @@ Relevant FAT Forensics Examples
 ===============================
 
 The following examples provide more structured and code-focused use-cases of
-the ICE and PD functionality:
+the ICE, PD and PFI functionality:
 
 * :ref:`sphx_glr_sphinx_gallery_auto_transparency_xmpl_transparency_ice.py`,
 * :ref:`sphx_glr_sphinx_gallery_auto_transparency_xmpl_transparency_pd.py`.
+* :ref:`sphx_glr_sphinx_gallery_auto_transparency_xmpl_transparency_pfi.py`.
+

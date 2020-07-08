@@ -199,6 +199,7 @@ uses.
    feature_influence.merge_ice_arrays
    feature_influence.partial_dependence_ice
    feature_influence.partial_dependence
+   feature_influence.permutation_feature_importance
 
 :mod:`fatf.transparency.predictions`: Transparency for Predictions
 ------------------------------------------------------------------

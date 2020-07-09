@@ -1,4 +1,4 @@
-# pylint: disable=too-many-lines
+# pylint: disable=too-many-lines, no-member
 """
 The :mod:`fatf.transparency.models.feature_influence` module holds functions
 for calculating feature influence for predictive models.
@@ -830,6 +830,7 @@ def get_scores(dataset: np.ndarray,
             predictions = model.predict(dataset)  # type: ignore
             confusion_matrix = fumt.get_confusion_matrix(target, predictions)
             score = fumm.accuracy(confusion_matrix)
+
     else:
         if ftst.is_sklearn_model(model):
             scorer = sklearn.metrics.check_scoring(model, scoring_metric)

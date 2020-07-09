@@ -23,23 +23,39 @@ import fatf.utils.array.validation as fuav
 import fatf.utils.models.validation as fumv
 import fatf.utils.metrics.tools as fumt
 import fatf.utils.metrics.metrics as fumm
+import fatf.utils.tools as fut
 from fatf.exceptions import IncompatibleModelError, IncorrectShapeError
 
 try:
-    from sklearn.metrics import check_scoring
+    import sklearn
     # pylint: disable=ungrouped-imports
     import fatf.transparency.sklearn.tools as ftst
 
 except ImportError:
     warnings.warn(
-        'Permutation Feature Importance (PFI) requires scikit-learn to be'
-        ' installed to allow user input scoring metrics.'
-        ' As scikit-learn is not installed, PFI will run with'
-        ' default metrics which are accuracy for classifiers'
-        ' and max error for regression', UserWarning)
+        'Permutation Feature Importance (PFI) requires'
+        ' scikit-learn>=0.22.0 to ben installed to allow'
+        ' user input scoring metrics.  As scikit-learn>=0.22.0 is'
+        ' not installed, PFI will run with default metrics which'
+        ' are accuracy for classifiers and max error for'
+        ' regression', ImportWarning)
     SKLEARN_MISSING = True
 else:
-    SKLEARN_MISSING = False
+    _SKLEARN_VERSION = [int(i) for i in sklearn.__version__.split('.')[:2]]
+    _SKLEARN_0_22 = fut.at_least_verion([0, 22], _SKLEARN_VERSION)
+
+    if _SKLEARN_0_22:
+        SKLEARN_MISSING = False
+    else:
+        warnings.warn(
+            'Permutation Feature Importance (PFI) requires'
+            ' scikit-learn>=0.22.0 to ben installed to allow'
+            ' user input scoring metrics.  As scikit-learn>=0.22.0 is'
+            ' not installed, PFI will run with default metrics which'
+            ' are accuracy for classifiers and max error for'
+            ' regression', ImportWarning)
+        SKLEARN_MISSING = True
+
 
 __all__ = ['individual_conditional_expectation',
            'merge_ice_arrays',
@@ -720,12 +736,12 @@ def _input_is_valid_permutation(dataset: np.ndarray,
             pass
         else:
             warnings.warn(
-                ' Permutation Feature Importance (PFI) requires'
-                ' scikit-learn to be installed to allow'
-                ' user input scoring_metric. As scikit-learn'
-                ' is not installed PFI will run with default metrics'
-                ' which are accuracy for classifiers and max error'
-                ' for regression', UserWarning)
+                'Permutation Feature Importance (PFI) requires'
+                ' scikit-learn>=0.22.0 to ben installed to allow'
+                ' user input scoring metrics.  As scikit-learn>=0.22.0 is'
+                ' not installed, PFI will run with default metrics which'
+                ' are accuracy for classifiers and max error for'
+                ' regression', UserWarning)
 
         if as_regressor is None:
             warnings.warn(
@@ -816,15 +832,15 @@ def get_scores(dataset: np.ndarray,
             score = fumm.accuracy(confusion_matrix)
     else:
         if ftst.is_sklearn_model(model):
-            scorer = check_scoring(model, scoring_metric)
+            scorer = sklearn.metrics.check_scoring(model, scoring_metric)
         else:
             if scoring_metric is None:
                 if as_regressor:
-                    scorer = check_scoring(model, 'max_error')
+                    scorer = sklearn.metrics.check_scoring(model, 'max_error')
                 else:
-                    scorer = check_scoring(model, 'accuracy')
+                    scorer = sklearn.metrics.check_scoring(model, 'accuracy')
             else:
-                scorer = check_scoring(model, scoring_metric)
+                scorer = sklearn.metrics.check_scoring(model, scoring_metric)
         score = scorer(model, dataset, target)
     return score
 

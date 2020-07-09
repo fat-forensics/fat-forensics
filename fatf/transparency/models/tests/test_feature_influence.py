@@ -14,9 +14,10 @@ import pytest
 
 import numpy as np
 
-import fatf.transparency.models.feature_influence as ftmfi
 import fatf.utils.models as fum
+import fatf.utils.tools as fut
 import fatf
+import fatf.transparency.models.feature_influence as ftmfi
 
 import warnings
 
@@ -25,18 +26,31 @@ from fatf.utils.testing.arrays import (BASE_NP_ARRAY, BASE_STRUCTURED_ARRAY,
                                        NOT_BASE_NP_ARRAY)
 
 try:
-    from sklearn.linear_model import LogisticRegression
-    from sklearn.linear_model import LinearRegression
+    import sklearn
 except ImportError:
     warnings.warn(
-        'Permutation Feature Importance (PFI) requires scikit-learn to be'
-        'installed to allow user input scoring metrics.'
-        'As scikit-learn is not installed, PFI will run with default metrics'
-        'from fatf/utils/metrics/metrics/accuracy for classifiers'
-        'and max error for regression', UserWarning)
+        'Permutation Feature Importance (PFI) requires'
+        ' scikit-learn>=0.22.0 to ben installed to allow'
+        ' user input scoring metrics.  As scikit-learn>=0.22.0 is'
+        ' not installed, PFI will run with default metrics which'
+        ' are accuracy for classifiers and max error for'
+        ' regression', ImportWarning)
     SKLEARN_MISSING = True
 else:
-    SKLEARN_MISSING = False
+    _SKLEARN_VERSION = [int(i) for i in sklearn.__version__.split('.')[:2]]
+    _SKLEARN_0_22 = fut.at_least_verion([0, 22], _SKLEARN_VERSION)
+
+    if _SKLEARN_0_22:
+        SKLEARN_MISSING = False
+    else:
+        warnings.warn(
+            'Permutation Feature Importance (PFI) requires'
+            ' scikit-learn>=0.22.0 to ben installed to allow'
+            ' user input scoring metrics.  As scikit-learn>=0.22.0 is'
+            ' not installed, PFI will run with default metrics which'
+            ' are accuracy for classifiers and max error for'
+            ' regression', ImportWarning)
+        SKLEARN_MISSING = True
 
 # yapf: disable
 ONE_D_ARRAY = np.array([0, 4, 3, 0])
@@ -1400,8 +1414,8 @@ def test_permutation_feature_importance():
                     [0., -3.33066907e-17, 3.33333333e-02, 8.33333333e-02]))
         # _________________________________________________ #
         # Test on a scikit-learn classifier
-        clf = LogisticRegression().fit(NUMERICAL_NP_ARRAY,
-                                       NUMERICAL_NP_ARRAY_TARGET)
+        clf = sklearn.linear_model.LogisticRegression().fit(
+            NUMERICAL_NP_ARRAY, NUMERICAL_NP_ARRAY_TARGET)
         permutation_scores = ftmfi.permutation_feature_importance(
             NUMERICAL_NP_ARRAY,
             clf,
@@ -1411,8 +1425,8 @@ def test_permutation_feature_importance():
             np.mean(permutation_scores, axis=0),
             np.asarray([0.3, 0.15, 0.13333333, 0.]))
         # Test on a scikit-learn regressor
-        clf = LinearRegression().fit(NUMERICAL_NP_ARRAY,
-                                     NUMERICAL_NP_ARRAY_TARGET)
+        clf = sklearn.linear_model.LinearRegression().fit(
+            NUMERICAL_NP_ARRAY, NUMERICAL_NP_ARRAY_TARGET)
         permutation_scores = ftmfi.permutation_feature_importance(
             NUMERICAL_NP_ARRAY,
             clf,

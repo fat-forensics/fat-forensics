@@ -48,14 +48,6 @@ pfi_scores = fatf_fi.permutation_feature_importance(
 mean_pfi_scores = np.mean(pfi_scores, axis=0)
 std_pfi_scores = np.std(pfi_scores, axis=0)
 
-# Print mean and standard deviation over all
-# iterations PFI scores for each feature
-for feature_index, feature_name in enumerate(iris_feature_names, 0):
-    print('PFI for ' + str(feature_name) + ': '   # yapf: disable
-          + f'{mean_pfi_scores[feature_index]:.3}'  # yapf: disable
-          + ' with std: '  # yapf: disable
-          + f'{std_pfi_scores[feature_index]:.3}')  # yapf: disable
-
 # Visualise the PFI scores with a boxplot where whiskers represent
 # the range of PFI over different iterations
 pfi_plot = plt.subplots(1, 1)

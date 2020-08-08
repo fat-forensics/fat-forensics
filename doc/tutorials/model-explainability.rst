@@ -377,8 +377,8 @@ fatf.transparency.models.feature_influence.permutation_feature_importance`
 function::
 
    >>> pfi_scores = fatf_fi.permutation_feature_importance(
-   ...    iris_data,
    ...    clf,
+   ...    iris_data,
    ...    iris_target,
    ...    scoring_metric='accuracy',
    ...    as_regressor=False,

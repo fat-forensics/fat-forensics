@@ -36,8 +36,8 @@ chosen_metric = 'accuracy'
 
 # Create a PFI explanation
 pfi_scores = fatf_fi.permutation_feature_importance(
-    iris_X,
     clf,
+    iris_X,
     iris_y,
     scoring_metric=chosen_metric,
     as_regressor=False,

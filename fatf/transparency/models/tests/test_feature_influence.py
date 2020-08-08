@@ -30,11 +30,11 @@ try:
 except ImportError:
     warnings.warn(
         'Permutation Feature Importance (PFI) requires'
-        ' scikit-learn>=0.22.0 to ben installed to allow'
+        ' scikit-learn>=0.22.0 to be installed to allow'
         ' user input scoring metrics.  As scikit-learn>=0.22.0 is'
         ' not installed, PFI will run with default metrics which'
         ' are accuracy for classifiers and max error for'
-        ' regression', ImportWarning)
+        ' regression.', ImportWarning)
     SKLEARN_MISSING = True
 else:
     _SKLEARN_VERSION = [int(i) for i in sklearn.__version__.split('.')[:2]]
@@ -45,11 +45,11 @@ else:
     else:
         warnings.warn(
             'Permutation Feature Importance (PFI) requires'
-            ' scikit-learn>=0.22.0 to ben installed to allow'
+            ' scikit-learn>=0.22.0 to be installed to allow'
             ' user input scoring metrics.  As scikit-learn>=0.22.0 is'
             ' not installed, PFI will run with default metrics which'
             ' are accuracy for classifiers and max error for'
-            ' regression', ImportWarning)
+            ' regression.', ImportWarning)
         SKLEARN_MISSING = True
 
 # yapf: disable
@@ -951,104 +951,97 @@ def test_input_is_valid_permutation():
     """
     knn_model = fum.KNN()
 
-    # Data
-    msg = 'The input dataset must be a 2-dimensional array.'
-    with pytest.raises(IncorrectShapeError) as exin:
-        ftmfi._input_is_valid_permutation(ONE_D_ARRAY, None, None, None, None,
-                                          None)
-    assert str(exin.value) == msg
-
-    msg = ('The input dataset must only contain base types'
-           ' (textual and numerical).')
-    with pytest.raises(ValueError) as exin:
-        ftmfi._input_is_valid_permutation(NOT_BASE_NP_ARRAY, None, None, None,
-                                          None, None)
-    assert str(exin.value) == msg
-
     # test model has been fitted
-    msg = ('model must be fitted with a predict() method')
+    msg = ('model must be fitted with a predict() method.')
     model = InvalidModelNotFit()
     with pytest.warns(UserWarning) as warning:
         with pytest.raises(IncompatibleModelError) as exin:
-            ftmfi._input_is_valid_permutation(BASE_STRUCTURED_ARRAY, model,
-                                              ONE_D_ARRAY, None, None, None)
-        assert str(exin.value) == msg
+            ftmfi._input_is_valid_permutation(model, BASE_STRUCTURED_ARRAY,
+                                              ONE_D_ARRAY, 10, False, None)
+    assert str(exin.value) == msg
     assert len(warning) == 1
     assert str(warning[0].message) == ('The *InvalidModelNotFit* (model)'
                                        " class is missing 'fit' method.")
     # test model has been fitted
-    msg = ('model must be fitted with a predict() method')
+    msg = ('model must be fitted with a predict() method.')
     model = InvalidModelNotPredict()
     with pytest.warns(UserWarning) as warning:
         with pytest.raises(IncompatibleModelError) as exin:
-            ftmfi._input_is_valid_permutation(BASE_STRUCTURED_ARRAY, model,
-                                              ONE_D_ARRAY, None, None, None)
+            ftmfi._input_is_valid_permutation(model, BASE_STRUCTURED_ARRAY,
+                                              ONE_D_ARRAY, 10, False, None)
         assert str(exin.value) == msg
     assert len(warning) == 1
     assert str(warning[0].message) == ('The *InvalidModelNotPredict* (model)'
                                        " class is missing 'predict' method.")
 
+    # Data
+    msg = 'The input dataset must be a 2-dimensional array.'
+    with pytest.raises(IncorrectShapeError) as exin:
+        ftmfi._input_is_valid_permutation(knn_model, ONE_D_ARRAY, ONE_D_ARRAY,
+                                          10, False, None)
+    assert str(exin.value) == msg
+
+    msg = ('The input dataset must only contain base types'
+           ' (textual and numerical).')
+    with pytest.raises(ValueError) as exin:
+        ftmfi._input_is_valid_permutation(knn_model, NOT_BASE_NP_ARRAY,
+                                          ONE_D_ARRAY, 10, False, None)
+    assert str(exin.value) == msg
+
     # target
     msg = 'The target must be a 1-dimensional array.'
     with pytest.raises(IncorrectShapeError) as exin:
-        ftmfi._input_is_valid_permutation(BASE_NP_ARRAY, knn_model,
-                                          BASE_NP_ARRAY, None, None, None)
+        ftmfi._input_is_valid_permutation(knn_model, BASE_NP_ARRAY,
+                                          BASE_NP_ARRAY, 10, False, None)
     assert str(exin.value) == msg
 
     # repeat_number
-    msg = 'repeat_number has to either be None or an integer.'
+    msg = 'repeat_number has to be a positive integer.'
     with pytest.raises(TypeError) as exin:
-        ftmfi._input_is_valid_permutation(BASE_NP_ARRAY, knn_model,
-                                          ONE_D_ARRAY, 'a', None, None)
+        ftmfi._input_is_valid_permutation(knn_model, BASE_NP_ARRAY,
+                                          ONE_D_ARRAY, 'a', False, None)
+    assert str(exin.value) == msg
+
+    # as_regressor
+    msg = 'as_regressor has to be a boolean.'
+    with pytest.raises(TypeError) as exin:
+        ftmfi._input_is_valid_permutation(knn_model, BASE_NP_ARRAY,
+                                          ONE_D_ARRAY, 10, 'True', None)
     assert str(exin.value) == msg
 
     # scoring_metric
     msg = 'scoring_metric has to either be None or a string.'
     with pytest.raises(TypeError) as exin:
-        ftmfi._input_is_valid_permutation(BASE_NP_ARRAY, knn_model,
-                                          ONE_D_ARRAY, None, 1, None)
-    assert str(exin.value) == msg
-
-    # as_regressor
-    msg = 'as_regressor has to either be None or a boolean.'
-    with pytest.raises(TypeError) as exin:
-        ftmfi._input_is_valid_permutation(BASE_NP_ARRAY, knn_model,
-                                          ONE_D_ARRAY, None, None, 'True')
+        ftmfi._input_is_valid_permutation(knn_model, BASE_NP_ARRAY,
+                                          ONE_D_ARRAY, 10, False, 1)
     assert str(exin.value) == msg
 
 
 def test_permutation_feature_importance():
 
     # set up a model for Fatf/Classifier standard numerical nd array
-    if SKLEARN_MISSING is True:
+    if SKLEARN_MISSING:
         # Test Classifier
         clf = fum.KNN(k=2)
         clf.fit(NUMERICAL_NP_ARRAY, NUMERICAL_NP_ARRAY_TARGET)
         fatf.setup_random_seed(42)
         # Test FatF/Classifier numerical unstructured array
-        with pytest.warns(UserWarning) as warning:
-            permutation_scores = ftmfi.permutation_feature_importance(
-                NUMERICAL_NP_ARRAY,
-                clf,
-                NUMERICAL_NP_ARRAY_TARGET,
-                repeat_number=10)
-            assert len(warning) == 1
-            assert str(warning[0].message) == (
-                'As as_regressor was not specified,'
-                ' model will be treated as a classifier and'
-                ' accuracy will be used as scoring metric.')
-            assert np.allclose(
-                np.mean(permutation_scores, axis=0),
-                np.asarray(
-                    [-0.11666667, -0.11666667, -0.01666667, -0.01666667]))
+        permutation_scores = ftmfi.permutation_feature_importance(
+            clf,
+            NUMERICAL_NP_ARRAY,
+            NUMERICAL_NP_ARRAY_TARGET,
+            repeat_number=10)
+        assert np.allclose(
+            np.mean(permutation_scores, axis=0),
+            np.asarray([-0.11666667, -0.11666667, -0.01666667, -0.01666667]))
 
         # Test Regression
         clf = fum.KNN(k=2, mode='r')
         clf.fit(NUMERICAL_NP_ARRAY, NUMERICAL_NP_ARRAY_TARGET)
         # Test FatF/Regression numerical unstructured array
         permutation_scores = ftmfi.permutation_feature_importance(
-            NUMERICAL_NP_ARRAY,
             clf,
+            NUMERICAL_NP_ARRAY,
             NUMERICAL_NP_ARRAY_TARGET,
             repeat_number=10,
             as_regressor=True)
@@ -1064,16 +1057,15 @@ def test_permutation_feature_importance():
         # Test FatF/Classifier numerical unstructured array
         with pytest.warns(UserWarning) as warning:
             permutation_scores = ftmfi.permutation_feature_importance(
-                NUMERICAL_NP_ARRAY,
                 clf,
+                NUMERICAL_NP_ARRAY,
                 NUMERICAL_NP_ARRAY_TARGET,
                 repeat_number=10)
             assert len(warning) == 1
-            assert str(warning[0].message) == (
-                'As scoring_metric and'
-                ' as_regressor were not specified,'
-                ' model will be treated as classifier and'
-                ' accuracy will be used as scoring metric.')
+            assert str(warning[0].message) == ('As scoring_metric'
+                                               ' was not specified,'
+                                               ' accuracy will be used as'
+                                               ' scoring metric.')
             assert np.allclose(
                 np.mean(permutation_scores, axis=0),
                 np.asarray(
@@ -1081,13 +1073,12 @@ def test_permutation_feature_importance():
         # Test FatF/Classifier numerical unstructured array without a repeat
         with pytest.warns(UserWarning) as warning:
             permutation_scores = ftmfi.permutation_feature_importance(
-                NUMERICAL_NP_ARRAY, clf, NUMERICAL_NP_ARRAY_TARGET)
+                clf, NUMERICAL_NP_ARRAY, NUMERICAL_NP_ARRAY_TARGET)
             assert len(warning) == 1
-            assert str(warning[0].message) == (
-                'As scoring_metric and'
-                ' as_regressor were not specified,'
-                ' model will be treated as classifier and'
-                ' accuracy will be used as scoring metric.')
+            assert str(warning[0].message) == ('As scoring_metric'
+                                               ' was not specified,'
+                                               ' accuracy will be used as'
+                                               ' scoring metric.')
             assert np.allclose(
                 np.mean(permutation_scores, axis=0),
                 np.asarray(
@@ -1095,8 +1086,8 @@ def test_permutation_feature_importance():
         """ Test FatF/Classifier numerical unstructured array with
         input scoring_metric """
         permutation_scores = ftmfi.permutation_feature_importance(
-            NUMERICAL_NP_ARRAY,
             clf,
+            NUMERICAL_NP_ARRAY,
             NUMERICAL_NP_ARRAY_TARGET,
             scoring_metric='accuracy')
         assert np.allclose(
@@ -1106,8 +1097,8 @@ def test_permutation_feature_importance():
         with input as_regressor"""
         with pytest.warns(UserWarning) as warning:
             permutation_scores = ftmfi.permutation_feature_importance(
-                NUMERICAL_NP_ARRAY,
                 clf,
+                NUMERICAL_NP_ARRAY,
                 NUMERICAL_NP_ARRAY_TARGET,
                 as_regressor=False)
             assert len(warning) == 1
@@ -1126,8 +1117,8 @@ def test_permutation_feature_importance():
         # Test FatF/Regression numerical unstructured array
         with pytest.warns(UserWarning) as warning:
             permutation_scores = ftmfi.permutation_feature_importance(
-                NUMERICAL_NP_ARRAY,
                 clf,
+                NUMERICAL_NP_ARRAY,
                 NUMERICAL_NP_ARRAY_TARGET,
                 repeat_number=10,
                 as_regressor=True)
@@ -1142,8 +1133,8 @@ def test_permutation_feature_importance():
         # Test FatF/Regression numerical unstructured array without a repeat
         with pytest.warns(UserWarning) as warning:
             permutation_scores = ftmfi.permutation_feature_importance(
-                NUMERICAL_NP_ARRAY,
                 clf,
+                NUMERICAL_NP_ARRAY,
                 NUMERICAL_NP_ARRAY_TARGET,
                 as_regressor=True)
             assert len(warning) == 1
@@ -1157,8 +1148,8 @@ def test_permutation_feature_importance():
         """ Test FatF/Regression numerical unstructured array with
         input scoring_metric"""
         permutation_scores = ftmfi.permutation_feature_importance(
-            NUMERICAL_NP_ARRAY,
             clf,
+            NUMERICAL_NP_ARRAY,
             NUMERICAL_NP_ARRAY_TARGET,
             as_regressor=True,
             scoring_metric='max_error')
@@ -1172,15 +1163,13 @@ def test_permutation_feature_importance():
         # Test FatF/Classifier structured array
         with pytest.warns(UserWarning) as warning:
             permutation_scores = ftmfi.permutation_feature_importance(
-                NUMERICAL_STRUCT_ARRAY,
                 clf,
+                NUMERICAL_STRUCT_ARRAY,
                 NUMERICAL_NP_ARRAY_TARGET,
                 repeat_number=10)
             assert len(warning) == 1
             assert str(warning[0].message) == (
-                'As scoring_metric and'
-                ' as_regressor were not specified,'
-                ' model will be treated as classifier and'
+                'As scoring_metric was not specified,'
                 ' accuracy will be used as scoring metric.')
             assert np.allclose(
                 np.mean(permutation_scores, axis=0),
@@ -1188,20 +1177,18 @@ def test_permutation_feature_importance():
         # Test FatF/Classifier structured array with no repeats
         with pytest.warns(UserWarning) as warning:
             permutation_scores = ftmfi.permutation_feature_importance(
-                NUMERICAL_STRUCT_ARRAY, clf, NUMERICAL_NP_ARRAY_TARGET)
+                clf, NUMERICAL_STRUCT_ARRAY, NUMERICAL_NP_ARRAY_TARGET)
             assert len(warning) == 1
             assert str(warning[0].message) == (
-                'As scoring_metric and'
-                ' as_regressor were not specified,'
-                ' model will be treated as classifier and'
+                'As scoring_metric was not specified,'
                 ' accuracy will be used as scoring metric.')
             assert np.allclose(
                 np.mean(permutation_scores, axis=0),
                 np.asarray([-0.1, -0.06666667, 0., -0.05]))
         # Test FatF/Classifier structured array with scoring_metric
         permutation_scores = ftmfi.permutation_feature_importance(
-            NUMERICAL_STRUCT_ARRAY,
             clf,
+            NUMERICAL_STRUCT_ARRAY,
             NUMERICAL_NP_ARRAY_TARGET,
             repeat_number=10,
             scoring_metric='accuracy')
@@ -1211,8 +1198,8 @@ def test_permutation_feature_importance():
         # Test FatF/Classifier structured array with as_regressor
         with pytest.warns(UserWarning) as warning:
             permutation_scores = ftmfi.permutation_feature_importance(
-                NUMERICAL_STRUCT_ARRAY,
                 clf,
+                NUMERICAL_STRUCT_ARRAY,
                 NUMERICAL_NP_ARRAY_TARGET,
                 repeat_number=10,
                 as_regressor=False)
@@ -1230,8 +1217,8 @@ def test_permutation_feature_importance():
         clf.fit(NUMERICAL_STRUCT_ARRAY, NUMERICAL_NP_ARRAY_TARGET)
         with pytest.warns(UserWarning) as warning:
             permutation_scores = ftmfi.permutation_feature_importance(
-                NUMERICAL_STRUCT_ARRAY,
                 clf,
+                NUMERICAL_STRUCT_ARRAY,
                 NUMERICAL_NP_ARRAY_TARGET,
                 as_regressor=True,
                 repeat_number=10)
@@ -1246,8 +1233,8 @@ def test_permutation_feature_importance():
         # Test FatF/Regressor structured array with no repeats
         with pytest.warns(UserWarning) as warning:
             permutation_scores = ftmfi.permutation_feature_importance(
-                NUMERICAL_STRUCT_ARRAY,
                 clf,
+                NUMERICAL_STRUCT_ARRAY,
                 NUMERICAL_NP_ARRAY_TARGET,
                 as_regressor=True)
             assert len(warning) == 1
@@ -1260,8 +1247,8 @@ def test_permutation_feature_importance():
                 np.asarray([0.65, -0.1, -0.15, -0.05]))
         # Test FatF/Regressor structured array with scoring_metric
         permutation_scores = ftmfi.permutation_feature_importance(
-            NUMERICAL_STRUCT_ARRAY,
             clf,
+            NUMERICAL_STRUCT_ARRAY,
             NUMERICAL_NP_ARRAY_TARGET,
             repeat_number=10,
             scoring_metric='max_error')
@@ -1275,34 +1262,30 @@ def test_permutation_feature_importance():
         # Test FatF/Classifier categorical unstructured array
         with pytest.warns(UserWarning) as warning:
             permutation_scores = ftmfi.permutation_feature_importance(
-                CATEGORICAL_NP_ARRAY,
                 clf,
+                CATEGORICAL_NP_ARRAY,
                 CATEGORICAL_NP_ARRAY_TARGET,
                 repeat_number=10)
             assert len(warning) == 1
             assert str(warning[0].message) == (
-                'As scoring_metric and'
-                ' as_regressor were not specified,'
-                ' model will be treated as classifier and'
+                'As scoring_metric was not specified,'
                 ' accuracy will be used as scoring metric.')
             assert np.allclose(
                 np.mean(permutation_scores, axis=0), np.asarray([0., 0., 0.]))
         # Test FatF/Classifier categorical unstructured array no repeats
         with pytest.warns(UserWarning) as warning:
             permutation_scores = ftmfi.permutation_feature_importance(
-                CATEGORICAL_NP_ARRAY, clf, CATEGORICAL_NP_ARRAY_TARGET)
+                clf, CATEGORICAL_NP_ARRAY, CATEGORICAL_NP_ARRAY_TARGET)
             assert len(warning) == 1
             assert str(warning[0].message) == (
-                'As scoring_metric and'
-                ' as_regressor were not specified,'
-                ' model will be treated as classifier and'
+                'As scoring_metric was not specified,'
                 ' accuracy will be used as scoring metric.')
             assert np.allclose(
                 np.mean(permutation_scores, axis=0), np.asarray([0., 0., 0.]))
         # Test FatF/Classifier categorical unstructured array scoring_metric
         permutation_scores = ftmfi.permutation_feature_importance(
-            CATEGORICAL_NP_ARRAY,
             clf,
+            CATEGORICAL_NP_ARRAY,
             CATEGORICAL_NP_ARRAY_TARGET,
             scoring_metric='accuracy')
         assert np.allclose(
@@ -1310,8 +1293,8 @@ def test_permutation_feature_importance():
         # Test FatF/Classifier categorical unstructured array as_regressor
         with pytest.warns(UserWarning) as warning:
             permutation_scores = ftmfi.permutation_feature_importance(
-                CATEGORICAL_NP_ARRAY,
                 clf,
+                CATEGORICAL_NP_ARRAY,
                 CATEGORICAL_NP_ARRAY_TARGET,
                 as_regressor=False)
             assert len(warning) == 1
@@ -1328,8 +1311,8 @@ def test_permutation_feature_importance():
         # Test FatF/Regressor categorical unstructured array
         with pytest.warns(UserWarning) as warning:
             permutation_scores = ftmfi.permutation_feature_importance(
-                CATEGORICAL_NP_ARRAY,
                 clf,
+                CATEGORICAL_NP_ARRAY,
                 CATEGORICAL_NP_ARRAY_TARGET,
                 as_regressor=True,
                 repeat_number=10)
@@ -1343,8 +1326,8 @@ def test_permutation_feature_importance():
         # Test FatF/Regressor categorical unstructured array no repeats
         with pytest.warns(UserWarning) as warning:
             permutation_scores = ftmfi.permutation_feature_importance(
-                CATEGORICAL_NP_ARRAY,
                 clf,
+                CATEGORICAL_NP_ARRAY,
                 CATEGORICAL_NP_ARRAY_TARGET,
                 as_regressor=True)
             assert len(warning) == 1
@@ -1356,8 +1339,8 @@ def test_permutation_feature_importance():
                 np.mean(permutation_scores, axis=0), np.asarray([0., 0., 0.]))
         # Test FatF/Regressor categorical unstructured array scoring_metric
         permutation_scores = ftmfi.permutation_feature_importance(
-            CATEGORICAL_NP_ARRAY,
             clf,
+            CATEGORICAL_NP_ARRAY,
             CATEGORICAL_NP_ARRAY_TARGET,
             scoring_metric='max_error')
         assert np.allclose(
@@ -1369,12 +1352,10 @@ def test_permutation_feature_importance():
         # Test FatF/Classifier mixed unstructured array
         with pytest.warns(UserWarning) as warning:
             permutation_scores = ftmfi.permutation_feature_importance(
-                MIXED_ARRAY, clf, MIXED_ARRAY_TARGET, repeat_number=10)
+                clf, MIXED_ARRAY, MIXED_ARRAY_TARGET, repeat_number=10)
             assert len(warning) == 1
             assert str(warning[0].message) == (
-                'As scoring_metric and'
-                ' as_regressor were not specified,'
-                ' model will be treated as classifier and'
+                'As scoring_metric was not specified,'
                 ' accuracy will be used as scoring metric.')
             assert np.allclose(
                 np.mean(permutation_scores, axis=0),
@@ -1383,26 +1364,24 @@ def test_permutation_feature_importance():
         # Test FatF/Classifier mixed unstructured array no repeats
         with pytest.warns(UserWarning) as warning:
             permutation_scores = ftmfi.permutation_feature_importance(
-                MIXED_ARRAY, clf, MIXED_ARRAY_TARGET)
+                clf, MIXED_ARRAY, MIXED_ARRAY_TARGET)
             assert len(warning) == 1
             assert str(warning[0].message) == (
-                'As scoring_metric and'
-                ' as_regressor were not specified,'
-                ' model will be treated as classifier and'
+                'As scoring_metric was not specified,'
                 ' accuracy will be used as scoring metric.')
             assert np.allclose(
                 np.mean(permutation_scores, axis=0),
                 np.asarray([0., 0.03333333, -0.03333333, 0.01666667]))
         # Test FatF/Classifier mixed unstructured array scoring_metric
         permutation_scores = ftmfi.permutation_feature_importance(
-            MIXED_ARRAY, clf, MIXED_ARRAY_TARGET, scoring_metric='accuracy')
+            clf, MIXED_ARRAY, MIXED_ARRAY_TARGET, scoring_metric='accuracy')
         assert np.allclose(
             np.mean(permutation_scores, axis=0),
             np.asarray([0., 1.66666667e-02, -4.44089210e-17, 3.33333333e-02]))
         # Test FatF/Classifier mixed unstructured array as_regressor
         with pytest.warns(UserWarning) as warning:
             permutation_scores = ftmfi.permutation_feature_importance(
-                MIXED_ARRAY, clf, MIXED_ARRAY_TARGET, as_regressor=False)
+                clf, MIXED_ARRAY, MIXED_ARRAY_TARGET, as_regressor=False)
             assert len(warning) == 1
             assert str(warning[0].message) == ('As scoring_metric'
                                                ' was not specified,'
@@ -1417,8 +1396,8 @@ def test_permutation_feature_importance():
         clf = sklearn.linear_model.LogisticRegression().fit(
             NUMERICAL_NP_ARRAY, NUMERICAL_NP_ARRAY_TARGET)
         permutation_scores = ftmfi.permutation_feature_importance(
-            NUMERICAL_NP_ARRAY,
             clf,
+            NUMERICAL_NP_ARRAY,
             NUMERICAL_NP_ARRAY_TARGET,
             repeat_number=10)
         assert np.allclose(
@@ -1428,8 +1407,8 @@ def test_permutation_feature_importance():
         clf = sklearn.linear_model.LinearRegression().fit(
             NUMERICAL_NP_ARRAY, NUMERICAL_NP_ARRAY_TARGET)
         permutation_scores = ftmfi.permutation_feature_importance(
-            NUMERICAL_NP_ARRAY,
             clf,
+            NUMERICAL_NP_ARRAY,
             NUMERICAL_NP_ARRAY_TARGET,
             repeat_number=10)
         assert np.allclose(

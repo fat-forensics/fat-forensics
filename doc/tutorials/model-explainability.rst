@@ -362,14 +362,15 @@ usefulness of the PD curve.
 Permutation Feature Importance
 ==============================
 
-Permutation Feature Importance (PFI) tells us by how much does the model's
-predictive error changes as we randomly permute each feature in the dataset.
+PFI tells us by how much does the model's
+predictive error change as we randomly permute each feature in the dataset.
 By randomly permuting, PFI essentially breaks the relationship between 
-feature and target. Therefore, if permutating a feature results in an increase
-in predictive error then PFI considers this feature important for prediction.
+feature and target. Therefore, if permuting a feature results in a decrease
+in predictive performance metric then PFI considers this feature important for prediction.
 
-Unlike ICE and PD, PFI measures the change in predictive error as we vary each feature.
-Therefore, there is no need to select a parituclar class of interest, we could also use PFI
+Unlike ICE and PD, PFI measures the change in predictive perfomance metric as we sequentially shuffle
+values of each feature while preserving the original values of the remaining features.
+Therefore, there is no need to select a parituclar class of interest. We could also use PFI
 on regression models by selecting an appropriate scoring function. 
 
 To calculate the PFI of the iris_dataset, we make use of :func:`\
@@ -388,7 +389,11 @@ As we have chosen for PFI to iterate 5 times, we can extract the mean PFI for ea
 and its standard deviation over all iterations as::
  
    >>> mean_pfi_scores = np.mean(pfi_scores, axis=0)
+   >>> mean_pfi_scores
+   array([0.00933333, 0.00133333, 0.58      , 0.07466667])
    >>> std_pfi_scores = np.std(pfi_scores, axis=0)
+   >>> std_pfi_scores
+   array([0.00997775, 0.0077746 , 0.02149935, 0.01543445])
 
 Visualise the PFI scores with a boxplot where whiskers represent
 the range of PFI over different iterations::
@@ -410,8 +415,8 @@ the range of PFI over different iterations::
    :scale: 75
 
 The PFI plot seems to confirm what we have seen before with PD and ICE.
-The least important features according to PFI are sepal width and sepal length.
-The most important feature according to PFI is petal length. 
+The least important features according to PFI are *sepal width* and *sepal length*.
+The most important feature according to PFI is *petal length*. 
 
 PFI offers an easy to understand, global insight into the performance of a model.
 It is also model-agnostic and does not require retraining the model.
@@ -422,21 +427,65 @@ In our implementation, we use numpy's random module to permute the features.
 When using randomness in measurements, the results are likely to vary
 significantly between iterations. Therefore, be mindful when choosing
 the number of times each feature is permuted and averages should be
-taken with care. PFI does not consider correlations between features.
+taken with care. Unlike PD and ICE, to use PFI you need access to the
+ground truth labels of the dataset which restricts usage.
+Finally, PFI does not consider correlations between features.
 On one hand, this may result in unrealistic combinations of features
-after permuting and on the other hand, our example suggests that sepal
-width is not an important feature for prediction, however if sepal
-width was highly correlated with petal length, petal length's PFI
-may be hiding sepal width's true importance. Finally, unlike PD and ICE,
-to use PFI you need access to the ground truth labels of the dataset which
-restricts usage.
+after permuting and on the other hand, PFI's feature independence assumption
+can result in misleading explanations which we exemplify below. We can measure 
+the correlation between features by using Pearson's correlation coefficient, which 
+calculates the correlation between two variables as:
+
+.. math:: Corr(X,Y) =  \frac{Cov(X,Y)}{std(X) * std(Y)}
+
+We have already discussed how PFI ranks *petal length* as the most important feature.
+By calculating the correlation between *petal length* and the other features. We can
+see by how much the feature importance of *petal length* may be obscuring the 
+importance of other features
+::
+
+   >>> sepal_length = iris_data[:,0]
+   >>> sepal_width = iris_data[:,1]
+   >>> petal_length = iris_data[:,2]
+   >>> petal_width = iris_data[:,3]
+
+   >>> corr_sepal_length = np.cov(sepal_length,petal_length)/ (np.std(sepal_length) * np.std(petal_length))
+   >>> corr_sepal_length[0,1]
+   0.8776044868129347
+   >>> corr_sepal_width = np.cov(sepal_width,petal_length)/ (np.std(sepal_width) * np.std(petal_length))
+   >>> corr_sepal_width[0,1]
+   -0.4313155375556608
+   >>> corr_petal_width = np.cov(petal_width,petal_length)/ (np.std(petal_width) * np.std(petal_length))
+   >>> corr_petal_width[0,1]
+   0.9693276221635215
+
+We can see that *petal width* is most correlated with *petal length*, which is semantically not surprising.
+We can also see that *sepal length* is also highly correlated with *petal length* while *sepal width* is the
+least correlated feature. This knowledge implies that PFI does not attribute feature importance in a balanced way
+to highly correlated features. This is confirmed by the new PFI scores (averaged over all iterations) on a
+modified dataset that excludes *petal length*
+::
+
+   >>> modified_clf = fatf_models.KNN()
+   >>> modified_clf.fit(np.delete(iris_data_dict['data'],2,axis=1), iris_target)
+
+   >>> modified_pfi_scores = fatf_fi.permutation_feature_importance(
+   ...   modified_clf,
+   ...   np.delete(iris_data_dict['data'],2,axis=1),
+   ...   iris_target,
+   ...   scoring_metric='accuracy',
+   ...   as_regressor=False,
+   ...   repeat_number=5)
+   >>> np.mean(modified_pfi_scores, axis=0)
+   array([0.13333333, 0.04533333, 0.51466667])
+
 
 ----------------------------------------------------------------------
 
 This tutorial walked through using Individual Conditional Expectation,
 Partial Dependence and Permutation Feature Importance to explain
 influence of features on predictions of a model.
-We saw how to use both these functions and what to look for when interpreting
+We saw how to use these three functions and what to look for when interpreting
 their results.
 
 In the :ref:`next tutorial <tutorials_prediction_explainability>` we will see
@@ -452,6 +501,5 @@ The following examples provide more structured and code-focused use-cases of
 the ICE, PD and PFI functionality:
 
 * :ref:`sphx_glr_sphinx_gallery_auto_transparency_xmpl_transparency_ice.py`,
-* :ref:`sphx_glr_sphinx_gallery_auto_transparency_xmpl_transparency_pd.py`.
+* :ref:`sphx_glr_sphinx_gallery_auto_transparency_xmpl_transparency_pd.py`,
 * :ref:`sphx_glr_sphinx_gallery_auto_transparency_xmpl_transparency_pfi.py`.
-

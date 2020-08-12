@@ -787,12 +787,12 @@ def get_scores(model: object,
     ----------
     model : object
         A fitted model whose predictions will be used to calculate
-        associated predictive error based on 'scoring_metric'. (Please
+        associated predictive performance based on 'scoring_metric'. (Please
         see :class:`fatf.utils.models.models.Model` class documentation for the
         expected model object specification.)
     dataset : numpy.ndarray
         A dataset based on which model predictions and associated
-        predictive error will be alculated
+        predictive performance will be calculated
     target : numpy.ndarray
         A vector corresponding to truth values for class labels of ``dataset``
     as_regressor : boolean
@@ -854,16 +854,16 @@ def permutation_feature_importance(model: object,
     Permutation Feature Importance (PFI).
     PFI works by
     permuting the values of each feature and measuring
-    the change in prediction error compared to the original
+    the change in prediction performance compared to the original
     dataset. To calculate the PFI of a given dataset, first the
-    basline predictive error is calculated on the ``dataset``
+    basline predictive performance is calculated on the ``dataset``
     according to a scoring metric (see below for details).
     Next, a single feature column is permuted
-    and the predictive error is calculated for this new dataset.
+    and the predictive performance is calculated for this new dataset.
     The PFI for that feature is then the difference between the baseline
-    and permuted error. This is repeated for each feature column in the
-    dataset. The above process is repeated according to the ``repeat_number``
-    and all PFI scores are returned to user.
+    and permuted predictive performance. This is repeated for each feature
+    column in the dataset. The above process is repeated according to the
+    ``repeat_number`` and all PFI scores are returned to user.
 
     If scikit-learn is installed:
         If a ``scoring_metric`` is provided by the user,
@@ -872,7 +872,7 @@ def permutation_feature_importance(model: object,
         Only metrics included in ``sklearn.metrics`` are
         compatible with this implementation.
         If  a ``scoring_metric`` is not provided by the user,
-        to calculate the change in prediction error, the function
+        to calculate the change in prediction performance, the function
         will apply the ``model``'s scikit-learn
         scoring method if the ``model`` returns true to
         ``fatf/transparency/sklearn/is_sklearn_model``
@@ -993,10 +993,10 @@ def permutation_feature_importance(model: object,
         corresponds to ``repeat_number`` and number of columns
         corresopnds to the number of features in ``dataset``.
         Each row represents an iteration and each column
-        represents the change in predictive error of permuting
+        represents the change in predictive performance of permuting
         that feature, each value in the array therefore
         represents the value of the change in
-        predictive error for a particular feature in a
+        predictive performance for a particular feature in a
         particular permutation.
     """
 

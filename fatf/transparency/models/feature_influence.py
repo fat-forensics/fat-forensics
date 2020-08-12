@@ -1,12 +1,15 @@
+# pylint: disable=too-many-lines, no-member
 """
 The :mod:`fatf.transparency.models.feature_influence` module holds functions
 for calculating feature influence for predictive models.
 
-This module implements Partial Dependence (PD) and Individual Conditional
-Expectation (ICE) -- model agnostic feature influence measurements.
+This module implements Partial Dependence (PD), Individual Conditional
+Expectation (ICE) and Permutation Feature Importance (PFI)
+-- model agnostic feature influence measurements.
 """
 # Author: Alex Hepburn <ah13558@bristol.ac.uk>
 #         Kacper Sokol <k.sokol@bristol.ac.uk>
+#         Torty Sivill <vs14980@bristol.ac.uk>
 # License: new BSD
 
 from typing import List, Optional, Tuple, Union
@@ -18,13 +21,47 @@ import numpy as np
 import fatf.utils.array.tools as fuat
 import fatf.utils.array.validation as fuav
 import fatf.utils.models.validation as fumv
-
+import fatf.utils.metrics.tools as fumt
+import fatf.utils.metrics.metrics as fumm
+import fatf.utils.tools as fut
 from fatf.exceptions import IncompatibleModelError, IncorrectShapeError
+
+try:
+    import sklearn
+    # pylint: disable=ungrouped-imports
+    import fatf.transparency.sklearn.tools as ftst
+
+except ImportError:
+    warnings.warn(
+        'Permutation Feature Importance (PFI) requires'
+        ' scikit-learn>=0.22.0 to be installed to allow'
+        ' user input scoring metrics.  As scikit-learn>=0.22.0 is'
+        ' not installed, PFI will run with default metrics which'
+        ' are accuracy for classifiers and max error for'
+        ' regression.', ImportWarning)
+    SKLEARN_MISSING = True
+else:
+    _SKLEARN_VERSION = [int(i) for i in sklearn.__version__.split('.')[:2]]
+    _SKLEARN_0_22 = fut.at_least_verion([0, 22], _SKLEARN_VERSION)
+
+    if _SKLEARN_0_22:
+        SKLEARN_MISSING = False
+    else:
+        warnings.warn(
+            'Permutation Feature Importance (PFI) requires'
+            ' scikit-learn>=0.22.0 to be installed to allow'
+            ' user input scoring metrics.  As scikit-learn>=0.22.0 is'
+            ' not installed, PFI will run with default metrics which'
+            ' are accuracy for classifiers and max error for'
+            ' regression.', ImportWarning)
+        SKLEARN_MISSING = True
+
 
 __all__ = ['individual_conditional_expectation',
            'merge_ice_arrays',
            'partial_dependence_ice',
-           'partial_dependence']  # yapf: disable
+           'partial_dependence',
+           'permutation_feature_importance']  # yapf: disable
 
 
 def _input_is_valid(dataset: np.ndarray,
@@ -623,3 +660,379 @@ feature_influence.partial_dependence_ice` functions to minimise the
     partial_dependence_array = partial_dependence_ice(ice_array)
 
     return partial_dependence_array, feature_linespace
+
+
+# pylint: disable=too-many-branches
+# pylint: disable=too-many-arguments
+
+
+def _input_is_valid_permutation(model: object,
+                                dataset: np.ndarray,
+                                target: np.ndarray,
+                                repeat_number: int,
+                                as_regressor: bool,
+                                scoring_metric: Optional[str] = None):
+    """
+    Validates input parameters of Permutation Feature
+    Importance.
+
+    For the input parameter description,
+    warnings and exceptions please see the
+    documentation of the
+    :func:`fatf.transparency.model.feature_influence.\
+    permutation_feature_importance` function.
+
+    Returns
+    -------
+    is_input_ok : boolean
+        ``True`` if the input is valid, ``False`` otherwise.
+    """
+
+    is_input_ok = False
+
+    if not fumv.check_model_functionality(model):
+        raise IncompatibleModelError('model must be'
+                                     ' fitted with a'
+                                     ' predict() method.')
+
+    if not fuav.is_2d_array(dataset):
+        raise IncorrectShapeError('The input dataset must be a'
+                                  ' 2-dimensional array.')
+
+    if not fuav.is_base_array(dataset):
+        raise ValueError('The input dataset must'
+                         ' only contain base types'
+                         ' (textual and numerical).')
+
+    if not fuav.is_1d_array(target):
+        raise IncorrectShapeError('The target'
+                                  ' must be a 1-dimensional'
+                                  ' array.')
+
+    if isinstance(repeat_number, int):
+        if repeat_number < 1:
+            raise ValueError('repeat number has to be a positive integer.')
+    else:
+        raise TypeError('repeat_number has to be a positive integer.')
+
+    if isinstance(scoring_metric, str):
+        if SKLEARN_MISSING:
+            if scoring_metric not in ('accuracy', 'max_error'):
+                raise ValueError('As scikit-learn is not installed'
+                                 ' the only valid scoring metrics are'
+                                 ' accuracy for classification and'
+                                 ' max_error for regressors.')
+        else:
+            try:
+                sklearn.metrics.SCORERS[scoring_metric]
+            except KeyError:
+                raise ValueError(
+                    '%r is not a valid scoring metric. '
+                    'Consult scikit-learn documentation'
+                    'to get list of valid options.' % scoring_metric)
+    elif scoring_metric is not None:
+        raise TypeError('scoring_metric has to either be None or a string.')
+
+    if not isinstance(as_regressor, bool):
+        raise TypeError('as_regressor has to be a boolean.')
+
+    # Check scoring metric aligns with type of model
+    if SKLEARN_MISSING:
+        if scoring_metric is None:
+            pass
+        else:
+            warnings.warn(
+                'Permutation Feature Importance (PFI) requires'
+                ' scikit-learn>=0.22.0 to be installed to allow'
+                ' user input scoring metrics.  As scikit-learn>=0.22.0 is'
+                ' not installed, PFI will run with default metrics which'
+                ' are accuracy for classifiers and max error for'
+                ' regression.', UserWarning)
+    else:
+        if ftst.is_sklearn_model(model):
+            pass
+        else:
+            if scoring_metric is None:
+                if as_regressor:
+                    warnings.warn(
+                        'As scoring_metric was not'
+                        ' specified,'
+                        ' max_error will be used as'
+                        ' scoring metric.', UserWarning)
+                elif as_regressor is False:
+                    warnings.warn(
+                        'As scoring_metric'
+                        ' was not specified,'
+                        ' accuracy will be used as'
+                        ' scoring metric.', UserWarning)
+
+    is_input_ok = True
+    return is_input_ok
+
+
+def get_scores(model: object,
+               dataset: np.ndarray,
+               target: np.ndarray,
+               as_regressor: bool,
+               scoring_metric: Optional[str] = None):
+    """
+    Returns the difference between the trained model's predictions
+    on the ``dataset`` and the ground truth ``target`` according to a
+    particular ``scoring_metric``. For the exceptions description please
+    see the documentation of the
+    :func`fatf.transparency.model.feature_influence.
+    permutation_feature_importance` function.
+
+    Parameters
+    ----------
+    model : object
+        A fitted model whose predictions will be used to calculate
+        associated predictive performance based on 'scoring_metric'. (Please
+        see :class:`fatf.utils.models.models.Model` class documentation for the
+        expected model object specification.)
+    dataset : numpy.ndarray
+        A dataset based on which model predictions and associated
+        predictive performance will be calculated
+    target : numpy.ndarray
+        A vector corresponding to truth values for class labels of ``dataset``
+    as_regressor : boolean
+        A bool variable used to signify that the ``model``
+        is a regression model. Used to inform the ``scoring_metric``
+    scoring_metric : string
+        The type of scoring measure used to evaluate the predictive perfomance
+        of ``model`` on ``dataset``. If ``scoring_metric`` is None, the
+        function either applies scikit learn's default
+        scorer for that model if ``model`` is a scikit-learn model,
+        else applies accuracy for a classifier and max error for a regressor.
+        if scikit-learn is not installed the only accepted scoring metrics are
+        acuuracy for classification or max_error for regression.
+
+    Returns
+    -------
+    score : float
+        Float representing the result of applying the ``scoring_metric``
+        (either default or user-inputted) performed on the outputs
+        of  the``model`` predictions on the ``dataset`` and
+        the ``target`` vector.
+    """
+    if SKLEARN_MISSING:
+        if as_regressor:
+            predictions = model.predict(dataset)  # type: ignore
+            score = -np.max(np.abs(target - predictions))
+        else:
+            predictions = model.predict(dataset)  # type: ignore
+            confusion_matrix = fumt.get_confusion_matrix(target, predictions)
+            score = fumm.accuracy(confusion_matrix)
+
+    else:
+        if ftst.is_sklearn_model(model):
+            scorer = sklearn.metrics.check_scoring(model, scoring_metric)
+        else:
+            if scoring_metric is None:
+                if as_regressor:
+                    scorer = sklearn.metrics.check_scoring(model, 'max_error')
+                else:
+                    scorer = sklearn.metrics.check_scoring(model, 'accuracy')
+            else:
+                scorer = sklearn.metrics.check_scoring(model, scoring_metric)
+        score = scorer(model, dataset, target)
+    return score
+
+
+def permutation_feature_importance(model: object,
+                                   dataset: np.ndarray,
+                                   target: np.ndarray,
+                                   as_regressor: bool = False,
+                                   scoring_metric: Optional[str] = None,
+                                   repeat_number: int = 10):
+    """
+    Calculates the Permutation Feature Importance (PFI)
+    of each feature in a dataset.
+
+    Based on the provided ``dataset``, ``model``
+    and ground truth ``target`` vector, this function computes the
+    Permutation Feature Importance (PFI).
+    PFI works by
+    permuting the values of each feature and measuring
+    the change in prediction performance compared to the original
+    dataset. To calculate the PFI of a given dataset, first the
+    basline predictive performance is calculated on the ``dataset``
+    according to a scoring metric (see below for details).
+    Next, a single feature column is permuted
+    and the predictive performance is calculated for this new dataset.
+    The PFI for that feature is then the difference between the baseline
+    and permuted predictive performance. This is repeated for each feature
+    column in the dataset. The above process is repeated according to the
+    ``repeat_number`` and all PFI scores are returned to user.
+
+    If scikit-learn is installed:
+        If a ``scoring_metric`` is provided by the user,
+        the function will implement the associated ``sklearn.metrics``
+        scoring function.
+        Only metrics included in ``sklearn.metrics`` are
+        compatible with this implementation.
+        If  a ``scoring_metric`` is not provided by the user,
+        to calculate the change in prediction performance, the function
+        will apply the ``model``'s scikit-learn
+        scoring method if the ``model`` returns true to
+        ``fatf/transparency/sklearn/is_sklearn_model``
+        Otherwise, the model will apply a default scoring metric
+        which is either ``accuracy`` for
+        classifiers and ``max_error`` for regressors.
+        If ``as_regressor`` is specified, the
+        ``model`` will be treated accordingly.
+        If unspecified, the ``model`` will be treated as a classifer.
+
+    If scikit-learn is not installed:
+        The user is unable to input a ``scoring_metric``.
+        If ``as_regressor`` is specified
+        the ``model`` will be treated accordingly and
+        the scoring metric applied
+        will either be ``accuracy`` for classifiers or ``max_error``
+        for regressors. If the ``as_regressor`` parameter is unspecified,
+        the model will be treated as a classifier and ``accuracy``
+        will be used to generate scores.
+
+
+    The ``repeat_number`` parameter specifies how many times
+    each feature is permuted, if unspecified, the default value is 10.
+
+    This approach is an implementation of a method first introduced
+    by [BREIMAN2001RANDOM]_ and developed by [FISHER2018MODEL]_
+
+
+    .. [BREIMAN2001RANDOM] L. Breiman, "Random Forests",
+       Machine Learning, 45(1), 5-32, URL
+       https://link.springer.com/content/pdf/10.1023/A:1010933404324.pdf,
+       (2001)
+
+    .. [FISHER2018MODEL] Fisher, Aaron, Cynthia Rudin,
+       and Francesca Dominici, “Model Class Reliance:
+       Variable importance measures for any machine
+       learning model class, from the ‘Rashomon’ perspective.”,
+       URL https://arxiv.org/abs/1801.01489,
+       (2018)
+
+    Parameters
+    ----------
+    model : object
+        A fitted model whose predictions will
+        be used to calculate PFI. (Please
+        see :class:`fatf.utils.models.models.Model`
+        class documentation for the
+        expected model object specification.)
+    dataset : numpy.ndarray
+        A dataset upon which PFI
+        will be computed.
+    target : np.ndarray
+        A vector containing the true labels of the ``dataset``.
+    as_regressor:  boolean, optional (default=false)
+        A boolean variable used to signify that the ``model``
+        is a regression model. Used to inform the ``scoring_metric``.
+        If unspecified, default value is false and model will be
+        treated as a classifier with accuracy as its perfomance
+        metric.
+    scoring_metric : string, optional (default=None)
+        The type of scoring measure used to evaluate the
+        predictive perfomance of ``model`` on ``dataset``. If
+        ``scoring_metric`` is None, the function either
+        applies scikit-learn's default
+        scorer for that model if ``model`` is a scikit-learn
+        model, else applies accuracy for a classifier and max
+        error for a regressor.
+    repeat_number : integer, optional (default=10)
+        number of times each feature column in ``dataset`` is permuted.
+        If unspecified default value is 10.
+
+    Warns
+    -----
+    UserWarning
+        Permutation Feature Importance (PFI) requires
+        ``scikit-learn`` to be installed to allow user
+        input ``scoring_metric``. As ``scikit-learn``
+        is not installed PFI will run with default metrics
+        which are accuracy for classifiers and
+        max error for regression.
+    UserWarning
+        As ``as_regressor`` was not specified,
+        model will be treated as a classifier and
+        accuracy will be used as scoring metric.
+    UserWarning
+        As ``scoring_metric`` and
+        ``as_regressor`` were not specified, ``model``
+        will be treated as classifier and accuracy
+        will be used as scoring metric.
+    UserWarning
+        As ``scoring_metric`` was not specified,
+        max_error will be used as scoring metric.
+    UserWarning
+        As ``scoring_metric`` was not specified,
+        accuracy will be used as scoring metric.
+
+    Raises
+    ------
+    IncorrectShapeError
+        The input dataset must be a 2-dimensional array.
+    ValueError
+        The input dataset must only contain base
+        types textual and numerical.
+    IncompatibleModelError
+        ``model`` must be fitted with a ``predict`` method
+    IncorrectShapeError
+        The target must be a 1-dimensional array.
+    TypeError
+        ``scoring_metric`` has to either be None or a string.
+        ``as_regressor`` has to either be None or a bool.
+        ``repeat_number`` has to either be None or a integer.
+
+    Returns
+    -------
+    overall_scores: np.ndarray
+        An array containing the results of PFI
+        on ``dataset`` where number of rows
+        corresponds to ``repeat_number`` and number of columns
+        corresopnds to the number of features in ``dataset``.
+        Each row represents an iteration and each column
+        represents the change in predictive performance of permuting
+        that feature, each value in the array therefore
+        represents the value of the change in
+        predictive performance for a particular feature in a
+        particular permutation.
+    """
+
+    def permute_column(dataset, column_id, is_structured):
+        permuted_array = dataset.copy()
+        if is_structured:
+            permuted_array[column_id][:] = np.random.permutation(
+                dataset[column_id][:])
+        else:
+            permuted_array[:, column_id] = np.random.permutation(
+                dataset[:, column_id])
+        return permuted_array
+
+    def calculate_permutation_importance(model, dataset, y_val, baseline,
+                                         as_regressor, scoring_metric,
+                                         is_structured):
+        scores = []
+        columns = dataset.dtype.names if is_structured else range(
+            dataset.shape[1])
+        for column in columns:
+            column_permutation = permute_column(dataset, column, is_structured)
+            permutation_score = get_scores(model, column_permutation, y_val,
+                                           as_regressor, scoring_metric)
+            score = baseline - permutation_score
+            scores.append(score)
+        return np.asarray(scores)
+
+    assert _input_is_valid_permutation(model, dataset, target, repeat_number,
+                                       as_regressor, scoring_metric)
+    baseline = get_scores(model, dataset, target, as_regressor, scoring_metric)
+    is_structured = fuav.is_structured_array(dataset)
+    overall_scores = []
+    for _ in range(repeat_number):
+        score = calculate_permutation_importance(model, dataset, target,
+                                                 baseline, as_regressor,
+                                                 scoring_metric, is_structured)
+        overall_scores.append(score)
+
+    return np.asarray(overall_scores)

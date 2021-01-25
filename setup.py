@@ -52,14 +52,11 @@ EXTRAS_REQUIRES_AUX = dependencies_from_file('requirements-aux.txt')
 EXTRAS_REQUIRES_DEV = dependencies_from_file('requirements-dev.txt')
 EXTRAS_REQUIRES_VIS = [
     get_dependency_version('matplotlib', EXTRAS_REQUIRES_AUX)]
-EXTRAS_REQUIRES_LIME = [
-    get_dependency_version('lime', EXTRAS_REQUIRES_AUX)]
 EXTRAS_REQUIRES_ML = [
     get_dependency_version('scikit-learn', EXTRAS_REQUIRES_AUX)]
 EXTRAS_REQUIRE = {
         'all': EXTRAS_REQUIRES_AUX,
         'dev': EXTRAS_REQUIRES_DEV,
-        'lime': EXTRAS_REQUIRES_LIME,
         'ml': EXTRAS_REQUIRES_ML,
         'vis': EXTRAS_REQUIRES_VIS,
         }

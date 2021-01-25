@@ -1,8 +1,8 @@
 """
-FAT-Forensics
+FAT Forensics
 =============
 
-FAT-Forensics is a Python module integrating a variety of fairness,
+FAT Forensics is a Python module integrating a variety of fairness,
 accountability (security, privacy) and transparency (explainability,
 interpretability) approaches to assess social impact of artificial
 intelligence systems.
@@ -24,7 +24,7 @@ __email__ = 'k.sokol@bristol.ac.uk'
 __license__ = 'new BSD'
 
 # The current package version
-__version__ = '0.0.2'
+__version__ = '0.1.0'
 
 __all__ = ['setup_warning_filters', 'setup_random_seed']
 

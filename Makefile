@@ -18,10 +18,11 @@ else
 	MATPLOTLIB_VERSION := ==$(FATF_TEST_MATPLOTLIB)
 endif
 
-ifndef FATF_TEST_LIME
-	LIME_VERSION := $(shell sed -n 's/lime\(.*\)/\1/p' requirements-aux.txt)
+ifndef FATF_TEST_SKLEARN
+	SKLEARN_VERSION := $(shell sed -n 's/scikit-learn\(.*\)/\1/p' \
+		requirements-aux.txt)
 else
-	LIME_VERSION := ==$(FATF_TEST_LIME)
+	SKLEARN_VERSION := ==$(FATF_TEST_SKLEARN)
 endif
 
 # Get environment variables if _envar.sh exists
@@ -60,8 +61,8 @@ install-dev:
 install-matplotlib:
 	pip install "matplotlib$(MATPLOTLIB_VERSION)"
 
-install-lime:
-	pip install "lime$(LIME_VERSION)"
+install-scikit-learn:
+	pip install "scikit-learn$(SKLEARN_VERSION)"
 
 dependencies:
 	pip install -r requirements.txt

@@ -74,7 +74,7 @@ surrogate_evaluation._validate_input_local_fidelity` function.
 
     explained_class_value_error = ('The explained_class_index parameter is '
                                    'negative or larger than the number of '
-                                   'classes outputted by the global '
+                                   'classes output by the global '
                                    'probabilistic model.')
     explained_class_type_error = ('For probabilistic global models, i.e., '
                                   'global predictive functions, the '

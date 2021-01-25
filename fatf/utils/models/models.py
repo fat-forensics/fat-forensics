@@ -2,7 +2,7 @@
 The :mod:`fatf.utils.models.models` module holds custom models.
 
 The models implemented in this module are mainly used for used for
-FAT-Forensics package testing and the examples in the documentation.
+FAT Forensics package testing and the examples in the documentation.
 """
 # Author: Kacper Sokol <k.sokol@bristol.ac.uk>
 # License: new BSD

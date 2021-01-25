@@ -209,7 +209,7 @@ class TestSKLearnExplainer(object):
         log_info_fn = ('Generating missing feature names from the number of '
                        'features using "feature %d" pattern.')
         log_info_cn = ('Generating missing class names from the array of '
-                       'classes outputted by the classifier using "class %s" '
+                       'classes output by the classifier using "class %s" '
                        'pattern.')
 
         user_warning_fn = ('Cannot validate the length of feature names list '

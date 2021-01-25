@@ -23,6 +23,7 @@ import sys
 import numpy as np
 
 import fatf
+import fatf.utils.array.validation as fuav
 import fatf.utils.data.feature_selection.sklearn as fudfs
 import fatf.utils.testing.imports as futi
 
@@ -55,6 +56,18 @@ CATEGORICAL_NP_ARRAY = np.array([
     ['a', 'b', 'g']])
 # yapf: enable
 
+FEATURE_INDICES_WARNING = ('The selected number of features is larger '
+                           'than the total number of features in the '
+                           'dataset array. All of the features are being '
+                           'selected.')
+FEATURE_PERCENTAGE_LOG = (
+    'Since the number of features to be extracted was not given 24% of '
+    'features will be used. This percentage translates to 0 features, '
+    'therefore the number of features to be used is overwritten to 1. To '
+    'prevent this from happening, you should either explicitly set the '
+    'number of features via the features_number parameter or increase the '
+    'value of the features_percentage parameter.')
+
 
 def test_sklearn_import():
     """
@@ -71,17 +84,17 @@ def test_sklearn_import():
 
     # When missing
     assert 'fatf.utils.data.feature_selection.sklearn' in sys.modules
-    warning_msg = (
+    exception_msg = (
         'scikit-learn (sklearn) Python module is not installed on your '
         'system. You must install it in order to use '
         'fatf.utils.data.feature_selection.sklearn functionality. '
         'One possibility is to install scikit-learn alongside this package '
-        'via machine learning dependencies with: pip install fatf[ml].')
+        'via machine learning dependencies with: pip install '
+        'fat-forensics[ml].')
     with futi.module_import_tester('sklearn', when_missing=True):
-        with pytest.warns(ImportWarning) as warning:
+        with pytest.raises(ImportError) as exin:
             importlib.reload(fatf.utils.data.feature_selection.sklearn)
-        assert len(warning) == 1
-        assert str(warning[0].message) == warning_msg
+        assert str(exin.value) == exception_msg
     assert 'fatf.utils.data.feature_selection.sklearn' in sys.modules
 
 
@@ -217,17 +230,6 @@ def test_lasso_path(caplog):
     """
     Tests :func:`fatf.utils.data.feature_choice.sklearn.lasso_path` function.
     """
-    feature_indices_warning = ('The selected number of features is larger '
-                               'than the total number of features in the '
-                               'dataset array. All of the features are being '
-                               'selected.')
-    feature_percentage_log = (
-        'Since the number of features to be extracted was not given 24% of '
-        'features will be used. This percentage translates to 0 features, '
-        'therefore the number of features to be used is overwritten to 1. To '
-        'prevent this from happening, you should either explicitly set the '
-        'number of features via the features_number parameter or increase the '
-        'value of the features_percentage parameter.')
     no_lasso_log = ('The lasso path feature selection could not pick any '
                     'feature subset. All of the features were selected.')
     less_lasso_log = ('The lasso path feature selection could not pick {} '
@@ -246,42 +248,49 @@ def test_lasso_path(caplog):
     # Classic array -- weights
     features = fudfs.lasso_path(NUMERICAL_NP_ARRAY, NUMERICAL_NP_ARRAY_TARGET,
                                 weights, 2)
+    assert fuav.is_1d_array(features)
     assert np.array_equal(features, np.array([0, 1]))
     # Structured array -- no-weights
     features = fudfs.lasso_path(
         NUMERICAL_STRUCT_ARRAY, NUMERICAL_NP_ARRAY_TARGET, features_number=2)
+    assert fuav.is_1d_array(features)
     assert np.array_equal(features, np.array(['a', 'b']))
     #
     # Selecting exactly 4 features -- no need for Lasso
     features = fudfs.lasso_path(NUMERICAL_NP_ARRAY, NUMERICAL_NP_ARRAY_TARGET,
                                 weights, 4)
+    assert fuav.is_1d_array(features)
     assert np.array_equal(features, np.array([0, 1, 2, 3]))
     # Selecting more than 4 features
     with pytest.warns(UserWarning) as warning:
         features = fudfs.lasso_path(NUMERICAL_STRUCT_ARRAY,
                                     NUMERICAL_NP_ARRAY_TARGET, weights, 5)
     assert len(warning) == 1
-    assert str(warning[0].message) == feature_indices_warning
+    assert str(warning[0].message) == FEATURE_INDICES_WARNING
+    assert fuav.is_1d_array(features)
     assert np.array_equal(features, np.array(['a', 'b', 'c', 'd']))
     #
     # No features number -- just percentage
     features = fudfs.lasso_path(
         NUMERICAL_NP_ARRAY, NUMERICAL_NP_ARRAY_TARGET, features_percentage=50)
+    assert fuav.is_1d_array(features)
     assert np.array_equal(features, np.array([0, 1]))
     # No features number -- just percentage -- too small no features selected
     assert len(caplog.records) == 2
     features = fudfs.lasso_path(
         NUMERICAL_NP_ARRAY, NUMERICAL_NP_ARRAY_TARGET, features_percentage=24)
+    assert fuav.is_1d_array(features)
     assert np.array_equal(features, np.array([0]))
     assert len(caplog.records) == 3
     assert caplog.records[2].levelname == 'WARNING'
-    assert caplog.records[2].getMessage() == feature_percentage_log
+    assert caplog.records[2].getMessage() == FEATURE_PERCENTAGE_LOG
 
     # Weights too small so no path is found -- returns all features
     weights = np.array([1, 1, 100, 1, 1, 1]) * 1e-20
     assert len(caplog.records) == 3
     features = fudfs.lasso_path(NUMERICAL_NP_ARRAY, NUMERICAL_NP_ARRAY_TARGET,
                                 weights, 2)
+    assert fuav.is_1d_array(features)
     assert np.array_equal(features, np.array([0, 1, 2, 3]))
     assert len(caplog.records) == 4
     assert caplog.records[3].levelname == 'WARNING'
@@ -291,9 +300,11 @@ def test_lasso_path(caplog):
     weights = np.array([1, 1, 100, 1, 1, 1])
     features = fudfs.lasso_path(NUMERICAL_NP_ARRAY, NUMERICAL_NP_ARRAY_TARGET,
                                 weights, 2)
+    assert fuav.is_1d_array(features)
     assert np.array_equal(features, np.array([0, 2]))
     features = fudfs.lasso_path(NUMERICAL_STRUCT_ARRAY,
                                 NUMERICAL_NP_ARRAY_TARGET, weights, 2)
+    assert fuav.is_1d_array(features)
     assert np.array_equal(features, np.array(['a', 'c']))
 
     # Lasso with no possibility of reducing the number of features
@@ -302,6 +313,172 @@ def test_lasso_path(caplog):
         np.array([[1, 2, 3], [2, 2, 3], [3, 2, 3], [4, 2, 3]]),
         np.array([1, 2, 3, 4]),
         features_number=2)
+    assert fuav.is_1d_array(features)
+    assert np.array_equal(features, np.array([0]))
     assert len(caplog.records) == 5
     assert caplog.records[4].levelname == 'WARNING'
     assert caplog.records[4].getMessage() == less_lasso_log.format(2, 1)
+
+
+def test_forward_selection(caplog):
+    """
+    Tests :func:`fatf.utils.data.feature_choice.sklearn.forward_selection`.
+    """
+    assert len(caplog.records) == 0
+    fatf.setup_random_seed()
+    assert len(caplog.records) == 2
+    assert caplog.records[0].levelname == 'INFO'
+    assert caplog.records[0].getMessage().startswith('Seeding RNGs ')
+    assert caplog.records[1].levelname == 'INFO'
+    assert caplog.records[1].getMessage() == 'Seeding RNGs with 42.'
+
+    # Weights and no-weights
+    weights = np.ones((NUMERICAL_NP_ARRAY.shape[0], ))
+    # Classic array -- weights
+    features = fudfs.forward_selection(NUMERICAL_NP_ARRAY,
+                                       NUMERICAL_NP_ARRAY_TARGET, weights, 2)
+    assert fuav.is_1d_array(features)
+    assert np.array_equal(features, np.array([0, 1]))
+    # Structured array -- no-weights
+    features = fudfs.forward_selection(
+        NUMERICAL_STRUCT_ARRAY, NUMERICAL_NP_ARRAY_TARGET, features_number=2)
+    assert fuav.is_1d_array(features)
+    assert np.array_equal(features, np.array(['a', 'b']))
+    #
+    # Selecting exactly 4 features -- no need for Lasso
+    features = fudfs.forward_selection(NUMERICAL_NP_ARRAY,
+                                       NUMERICAL_NP_ARRAY_TARGET, weights, 4)
+    assert fuav.is_1d_array(features)
+    assert np.array_equal(features, np.array([0, 1, 2, 3]))
+    # Selecting more than 4 features
+    with pytest.warns(UserWarning) as warning:
+        features = fudfs.forward_selection(
+            NUMERICAL_STRUCT_ARRAY, NUMERICAL_NP_ARRAY_TARGET, weights, 5)
+    assert len(warning) == 1
+    assert str(warning[0].message) == FEATURE_INDICES_WARNING
+    assert fuav.is_1d_array(features)
+    assert np.array_equal(features, np.array(['a', 'b', 'c', 'd']))
+    #
+    # No features number -- just percentage
+    features = fudfs.forward_selection(
+        NUMERICAL_NP_ARRAY, NUMERICAL_NP_ARRAY_TARGET, features_percentage=50)
+    assert fuav.is_1d_array(features)
+    assert np.array_equal(features, np.array([0, 1]))
+    # No features number -- just percentage -- too small no features selected
+    assert len(caplog.records) == 2
+    features = fudfs.forward_selection(
+        NUMERICAL_NP_ARRAY, NUMERICAL_NP_ARRAY_TARGET, features_percentage=24)
+    assert fuav.is_1d_array(features)
+    assert np.array_equal(features, np.array([0]))
+    assert len(caplog.records) == 3
+    assert caplog.records[2].levelname == 'WARNING'
+    assert caplog.records[2].getMessage() == FEATURE_PERCENTAGE_LOG
+
+    # Small weights
+    weights = np.array([1, 1, 100, 1, 1, 1]) * 1e-20
+    features = fudfs.forward_selection(NUMERICAL_NP_ARRAY,
+                                       NUMERICAL_NP_ARRAY_TARGET, weights, 2)
+    assert fuav.is_1d_array(features)
+    assert np.array_equal(features, np.array([0, 3]))
+
+    # Another selection
+    weights = np.array([100, 1, 1, 1, 1, 1])
+    features = fudfs.forward_selection(NUMERICAL_NP_ARRAY,
+                                       NUMERICAL_NP_ARRAY_TARGET, weights, 2)
+    assert fuav.is_1d_array(features)
+    assert np.array_equal(features, np.array([0, 2]))
+    features = fudfs.forward_selection(NUMERICAL_STRUCT_ARRAY,
+                                       NUMERICAL_NP_ARRAY_TARGET, weights, 2)
+    assert fuav.is_1d_array(features)
+    assert np.array_equal(features, np.array(['a', 'c']))
+
+    # Custom data
+    features = fudfs.forward_selection(
+        np.array([[1, 2, 3], [2, 2, 3], [3, 2, 3], [4, 2, 3]]),
+        np.array([1, 2, 3, 4]),
+        features_number=2)
+    assert fuav.is_1d_array(features)
+    assert np.array_equal(features, np.array([0, 1]))
+    assert len(caplog.records) == 3
+
+
+def test_highest_weights(caplog):
+    """
+    Tests :func:`fatf.utils.data.feature_choice.sklearn.highest_weights`.
+    """
+    assert len(caplog.records) == 0
+    fatf.setup_random_seed()
+    assert len(caplog.records) == 2
+    assert caplog.records[0].levelname == 'INFO'
+    assert caplog.records[0].getMessage().startswith('Seeding RNGs ')
+    assert caplog.records[1].levelname == 'INFO'
+    assert caplog.records[1].getMessage() == 'Seeding RNGs with 42.'
+
+    # Weights and no-weights
+    weights = np.ones((NUMERICAL_NP_ARRAY.shape[0], ))
+    # Classic array -- weights
+    features = fudfs.highest_weights(NUMERICAL_NP_ARRAY,
+                                     NUMERICAL_NP_ARRAY_TARGET, weights, 2)
+    assert fuav.is_1d_array(features)
+    assert np.array_equal(features, np.array([1, 2]))
+    # Structured array -- no-weights
+    features = fudfs.highest_weights(
+        NUMERICAL_STRUCT_ARRAY, NUMERICAL_NP_ARRAY_TARGET, features_number=2)
+    assert fuav.is_1d_array(features)
+    assert np.array_equal(features, np.array(['b', 'c']))
+    #
+    # Selecting exactly 4 features -- no need for Lasso
+    features = fudfs.highest_weights(NUMERICAL_NP_ARRAY,
+                                     NUMERICAL_NP_ARRAY_TARGET, weights, 4)
+    assert fuav.is_1d_array(features)
+    assert np.array_equal(features, np.array([0, 1, 2, 3]))
+    # Selecting more than 4 features
+    with pytest.warns(UserWarning) as warning:
+        features = fudfs.highest_weights(NUMERICAL_STRUCT_ARRAY,
+                                         NUMERICAL_NP_ARRAY_TARGET, weights, 5)
+    assert len(warning) == 1
+    assert str(warning[0].message) == FEATURE_INDICES_WARNING
+    assert fuav.is_1d_array(features)
+    assert np.array_equal(features, np.array(['a', 'b', 'c', 'd']))
+    #
+    # No features number -- just percentage
+    features = fudfs.highest_weights(
+        NUMERICAL_NP_ARRAY, NUMERICAL_NP_ARRAY_TARGET, features_percentage=50)
+    assert fuav.is_1d_array(features)
+    assert np.array_equal(features, np.array([1, 2]))
+    # No features number -- just percentage -- too small no features selected
+    assert len(caplog.records) == 2
+    features = fudfs.highest_weights(
+        NUMERICAL_NP_ARRAY, NUMERICAL_NP_ARRAY_TARGET, features_percentage=24)
+    assert fuav.is_1d_array(features)
+    assert np.array_equal(features, np.array([2]))
+    assert len(caplog.records) == 3
+    assert caplog.records[2].levelname == 'WARNING'
+    assert caplog.records[2].getMessage() == FEATURE_PERCENTAGE_LOG
+
+    # Small weights
+    weights = np.array([1, 1, 100, 1, 1, 1]) * 1e-20
+    features = fudfs.highest_weights(NUMERICAL_NP_ARRAY,
+                                     NUMERICAL_NP_ARRAY_TARGET, weights, 2)
+    assert fuav.is_1d_array(features)
+    assert np.array_equal(features, np.array([0, 1]))
+
+    # Another selection
+    weights = np.array([100, 1, 1, 1, 1, 1])
+    features = fudfs.highest_weights(NUMERICAL_NP_ARRAY,
+                                     NUMERICAL_NP_ARRAY_TARGET, weights, 2)
+    assert fuav.is_1d_array(features)
+    assert np.array_equal(features, np.array([2, 3]))
+    features = fudfs.highest_weights(NUMERICAL_STRUCT_ARRAY,
+                                     NUMERICAL_NP_ARRAY_TARGET, weights, 2)
+    assert fuav.is_1d_array(features)
+    assert np.array_equal(features, np.array(['c', 'd']))
+
+    # Custom data
+    features = fudfs.highest_weights(
+        np.array([[1, 2, 3], [2, 2, 3], [3, 2, 3], [4, 2, 3]]),
+        np.array([1, 2, 3, 4]),
+        features_number=2)
+    assert fuav.is_1d_array(features)
+    assert np.array_equal(features, np.array([0, 2]))
+    assert len(caplog.records) == 3

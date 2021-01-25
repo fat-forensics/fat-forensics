@@ -21,7 +21,7 @@ We use a range of platforms for communication in the project:
   development happens on our `slack channel`_ and `mailing list`_.
 
 .. _`GitHub issue tracker`: https://github.com/fat-forensics/fat-forensics/issues
-.. _`gitter channel`: https://gitter.im/fat-forensics/fat-forensics
+.. _`gitter channel`: https://gitter.im/fat-forensics
 .. _`slack channel`: https://fat-forensics.slack.com
 .. _`mailing list`: https://groups.google.com/forum/#!forum/fat-forensics
 
@@ -128,6 +128,8 @@ Our Continuous Integration (CI) is run on Travis_ with the configuration file
 .. _Travis: https://travis-ci.com/fat-forensics/fat-forensics
 .. _`.travis.yml`: https://github.com/fat-forensics/fat-forensics/blob/master/.travis.yml
 
+.. _developers_guide_code_formatting:
+
 Code Formatting
 ---------------
 
@@ -166,7 +168,7 @@ directory of the package.
 .. _YAPF: https://github.com/google/yapf
 .. _`.style.yapf`: https://github.com/fat-forensics/fat-forensics/blob/master/.style.yapf
 .. _Pylint: https://www.pylint.org/
-.. _Flake8: http://flake8.pycqa.org/en/latest/
+.. _Flake8: https://flake8.pycqa.org/en/latest/
 .. _`.pylintrc`: https://github.com/fat-forensics/fat-forensics/blob/master/.pylintrc
 .. _`.flake8`: https://github.com/fat-forensics/fat-forensics/blob/master/.flake8
 .. _EditorConfig: https://editorconfig.org
@@ -359,7 +361,7 @@ placed in the :ref:`user_guide`:
 - Is it *Model Dependent* (what are the applicable models) or *Model Agnostic*.
 - Is it *Post-Hoc* or *Ante-Hoc*.
 
-.. _Sphinx: http://www.sphinx-doc.org/en/master/
+.. _Sphinx: https://www.sphinx-doc.org/en/master/
 .. _`custom theme`: https://github.com/fat-forensics/fat-forensics/tree/master/doc/themes/fat-forensics
 .. _numpydoc: https://numpydoc.readthedocs.io/en/latest/
 .. _sphinx-gallery: https://sphinx-gallery.github.io/
@@ -416,7 +418,6 @@ Transparency
 .. autosummary::
 
    fatf.transparency
-   fatf.transparency.lime
    fatf.transparency.data
    fatf.transparency.models
    fatf.transparency.predictions

@@ -190,7 +190,7 @@ def describe_numerical_array(array: Union[np.ndarray, np.void],
     Otherwise, they are included, affecting most of the statistics and possibly
     equating them to ``numpy.nan``.
 
-    The description outputted by this function is a dictionary with the
+    The description output by this function is a dictionary with the
     following keys:
 
     ``count`` : integer
@@ -279,7 +279,7 @@ def describe_categorical_array(
     """
     Describes a categorical numpy array with basic statistics.
 
-    The description outputted by this function is a dictionary with the
+    The description output by this function is a dictionary with the
     following keys:
 
     ``count`` : integer

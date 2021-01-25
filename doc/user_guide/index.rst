@@ -26,7 +26,7 @@ The *Fairness User Guide* discusses techniques used for *detecting*,
 *measuring* and *mitigating* *bias* and *unfairness* in data and predictive
 algorithms.
 
-.. note:: Comming Soon.
+.. note:: Coming Soon.
 
 .. _user_guide_accountability:
 
@@ -36,7 +36,7 @@ Accountability User Guide
 The *Accountability User Guide* discusses *safety*, *security*,
 *robustness* and *privacy* aspects of data sets and predictive algorithms.
 
-.. note:: Comming Soon.
+.. note:: Coming Soon.
 
 .. _user_guide_transparency:
 

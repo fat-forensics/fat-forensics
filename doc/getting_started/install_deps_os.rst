@@ -52,12 +52,6 @@ modules:
 +-----------------------------------------------------------+------------------+
 | ``fatf`` module                                           | Required package |
 +===========================================================+==================+
-| :mod:`fatf.transparency.lime`                             |                  |
-+-----------------------------------------------------------+                  |
-| :mod:`fatf.transparency.models.lime`                      | |lime|_          |
-+-----------------------------------------------------------+                  |
-| :mod:`fatf.transparency.predictions.lime`                 |                  |
-+-----------------------------------------------------------+------------------+
 | :mod:`fatf.transparency.predictions.surrogate_explainers` |                  |
 +-----------------------------------------------------------+                  |
 | :mod:`fatf.transparency.sklearn`                          | |scikit-learn|_  |
@@ -78,11 +72,7 @@ where **xxx** can be replaced with any of the following to pull appropriate
 soft dependencies during the package installation:
 
 all
-  Installs all soft dependencies: ``lime``, ``scikit-learn`` and
-  ``matplotlib``.
-
-lime
-  Only installs ``lime`` as a soft dependency.
+  Installs all soft dependencies: ``scikit-learn`` and ``matplotlib``.
 
 ml
   Only installs ``scikit-learn`` as a soft dependency.
@@ -134,8 +124,6 @@ Developers and contributors may be interesting in the following pages as well:
 .. _NumPy: https://numpy.org/
 .. _SciPy: https://www.scipy.org/
 .. _requirements.txt: https://github.com/fat-forensics/fat-forensics/blob/master/requirements.txt
-.. |lime| replace:: ``lime``
-.. _lime: https://github.com/marcotcr/lime
 .. |scikit-learn| replace:: ``scikit-learn>=0.19.2``
 .. _scikit-learn: https://scikit-learn.org/stable/
 .. |matplotlib| replace:: ``matplotlib>=3.0.0``

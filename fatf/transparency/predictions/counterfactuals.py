@@ -999,7 +999,7 @@ def _validate_input_one(model: Union[object, None],
         raise RuntimeError('You either need to specify a model or a '
                            'predictive_function parameter to initialise a '
                            'counterfactual explainer.')
-    elif model is not None and predictive_function is not None:
+    if model is not None and predictive_function is not None:
         warnings.warn(
             'Both a model and a predictive_function parameters were supplied. '
             'A predictive functions takes the precedence during the '

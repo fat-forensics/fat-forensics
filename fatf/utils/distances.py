@@ -440,7 +440,7 @@ def hamming_distance_base(x: str,
     if distance and equal_length:
         raise ValueError('Input strings differ in length and the equal_length '
                          'parameter forces them to be of equal length.')
-    elif distance:
+    if distance:
         min_index = min(x_len, y_len)
         for i in range(min_index):
             distance += 0 if x[i] == y[i] else 1

@@ -5,19 +5,49 @@
 Citing FAT Forensics
 ++++++++++++++++++++
 
-Please remember to cite our package and user guide whenever you use it.
+Please remember to cite our package and user guide whenever relevant.
 
 Citing the Package
 ==================
 
-When referring to the package, any of its parts, architecture or
-functionality in scientific literature, please reference "*FAT Forensics: A \
-Python Toolbox for Algorithmic Fairness, Accountability and Transparency*",
-which is available on arXiv_.
+|JOSS|_
+
+To reference the package and its functionality, consider citing the paper
+published in JOSS_.
 
 .. code:: latex
 
-   @article{sokol2019fat-forensics,
+   @article{sokol2020fat-forensics,
+     author={Sokol, Kacper and
+             Hepburn, Alexander and
+             Poyiadzi, Rafael and
+             Clifford, Matthew and
+             Santos-Rodriguez, Raul and
+             Flach, Peter},
+     title={{FAT} {F}orensics: {A} {P}ython {T}oolbox for {I}mplementing
+            and {D}eploying {F}airness, {A}ccountability and
+            {T}ransparency {A}lgorithms in {P}redictive {S}ystems},
+     journal={Journal of Open Source Software},
+     volume={5},
+     number={49},
+     pages={1904},
+     year={2020},
+     publisher={The Open Journal},
+     doi={10.21105/joss.01904},
+     url={https://doi.org/10.21105/joss.01904}
+   }
+
+----
+
+|arXiv|_
+
+An extended version of the JOSS_ paper, including usage examples and more
+detailed discussion of the relevant literature, is published as an arXiv_
+preprint.
+
+.. code:: latex
+
+   @article{sokol2019fat-forensics:preprint,
      title={{FAT} {F}orensics: {A} {P}ython {T}oolbox for {A}lgorithmic
             {F}airness, {A}ccountability and {T}ransparency},
      author={Sokol, Kacper and Santos-Rodriguez, Raul and Flach, Peter},
@@ -26,33 +56,44 @@ which is available on arXiv_.
      year={2019}
    }
 
-.. _arXiv: https://arxiv.org/abs/1909.05167
-
 Citing the Code
 ===============
 
-If you want to reference any part of the API (mainly from the software
-engineering perspective) or the code repository itself, you may consider
-referencing "*FAT Forensics: A Python Toolbox for Implementing and Deploying \
-Fairness, Accountability and Transparency Algorithms in Predictive Systems*"
-instead.
+|ZENODO|_
+
+To reference any part of the code, consider citing the software release
+indexed by Zenodo_.
 
 .. code:: latex
 
-   @article{sokol2019fatf,
-     title={{FAT} {F}orensics: {A} {P}ython {T}oolbox for {I}mplementing and
-            {D}eploying {F}airness, {A}ccountability and {T}ransparency
-            {A}lgorithms in {P}redictive {S}ystems},
-     author={Sokol, Kacper and Hepburn, Alexander and Poyiadzi, Rafael and
-             Clifford, Matthew and Santos-Rodriguez, Raul and Flach, Peter},
-     journal={Journal of Open Source Software (JOSS) -- under review},
-     url={https://github.com/openjournals/joss-papers/blob/joss.01727/joss.01727/10.21105.joss.01727.pdf},
-     note={https://github.com/openjournals/joss-reviews/issues/1727},
-     year={2019}
-   }
+  @software{sokol2020fatf,
+    author={Sokol, Kacper and
+            Hepburn, Alexander and
+            Poyiadzi, Rafael and
+            Clifford, Matthew and
+            Santos-Rodriguez, Raul and
+            Flach, Peter},
+    title={{FAT} {F}orensics: {A} {P}ython {T}oolbox for {I}mplementing
+           and {D}eploying {F}airness, {A}ccountability and
+           {T}ransparency {A}lgorithms in {P}redictive {S}ystems},
+    month={May},
+    year={2020},
+    publisher={Zenodo},
+    version={0.1.0},
+    doi={10.5281/zenodo.3833199},
+    url={https://doi.org/10.5281/zenodo.3833199}
+  }
 
 Our Contributors
 ================
 
 Please also remember to have a look at our
 :ref:`contributors and sponsors <contributors>`.
+
+.. |arXiv| image:: https://img.shields.io/badge/arXiv-arXiv:1909.05167-red.svg
+.. _arXiv: https://arxiv.org/abs/1909.05167
+.. |JOSS| image:: https://joss.theoj.org/papers/10.21105/joss.01904/status.svg
+.. _JOSS: https://joss.theoj.org/papers/10.21105/joss.01904
+.. |ZENODO| image:: https://zenodo.org/badge/DOI/10.5281/zenodo.3833199.svg
+.. _ZENODO: https://zenodo.org/record/3833199
+.. _Zenodo: https://zenodo.org/record/3833199

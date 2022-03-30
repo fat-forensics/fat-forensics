@@ -1,5 +1,5 @@
 """
-Tests functions responsible for objects validation across FAT-Forensics.
+Tests functions responsible for objects validation across FAT Forensics.
 """
 # Author: Kacper Sokol <k.sokol@bristol.ac.uk>
 # License: new BSD

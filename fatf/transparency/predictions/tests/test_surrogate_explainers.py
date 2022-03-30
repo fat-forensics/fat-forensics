@@ -99,6 +99,14 @@ def test_input_is_valid():
                           '(textual and/or numerical).')
     as_probabilistic_type_error = ('The as_probabilistic parameter has to '
                                    'be a boolean.')
+    as_regressor_type_error = 'The as_regressor parameter has to be a boolean.'
+    model_incompatible_reg = ('With as_regressor set to True the predictive '
+                              'model needs to be capable of outputting '
+                              'numerical predictions via a *predict* method, '
+                              'which takes exactly one required parameter -- '
+                              'data to be predicted -- and outputs a '
+                              '1-dimensional array with numerical '
+                              'predictions.')
     model_incompatible_model_np = ('With as_predictive set to False the '
                                    'predictive model needs to be capable of '
                                    'outputting (class) predictions via a '
@@ -151,113 +159,128 @@ def test_input_is_valid():
 
     with pytest.raises(IncorrectShapeError) as exin:
         ftps._input_is_valid(futt.LABELS, None, None, None, None, None, None,
-                             None)
+                             None, None)
     assert str(exin.value) == dataset_incorrect_shape
     with pytest.raises(TypeError) as exin:
         array = np.array([[0, None], [0, 8]])
-        ftps._input_is_valid(array, None, None, None, None, None, None, None)
+        ftps._input_is_valid(array, None, None, None, None, None, None, None,
+                             None)
     assert str(exin.value) == dataset_type_error
 
     with pytest.raises(TypeError) as exin:
         ftps._input_is_valid(futt.NUMERICAL_NP_ARRAY, None, None, None, None,
-                             None, None, None)
+                             None, None, None, None)
     assert str(exin.value) == as_probabilistic_type_error
+    with pytest.raises(TypeError) as exin:
+        ftps._input_is_valid(futt.NUMERICAL_NP_ARRAY, None, True, None, None,
+                             None, None, None, None)
+    assert str(exin.value) == as_regressor_type_error
 
     model = futt.InvalidModel()
     with pytest.raises(IncompatibleModelError) as exin:
-        ftps._input_is_valid(futt.NUMERICAL_NP_ARRAY, model, False, None, None,
-                             None, None, None)
+        ftps._input_is_valid(futt.NUMERICAL_NP_ARRAY, model, True, True, None,
+                             None, None, None, None)
+    assert str(exin.value) == model_incompatible_reg
+    with pytest.raises(IncompatibleModelError) as exin:
+        ftps._input_is_valid(futt.NUMERICAL_NP_ARRAY, model, False, True, None,
+                             None, None, None, None)
+    assert str(exin.value) == model_incompatible_reg
+    with pytest.raises(IncompatibleModelError) as exin:
+        ftps._input_is_valid(futt.NUMERICAL_NP_ARRAY, model, False, False,
+                             None, None, None, None, None)
     assert str(exin.value) == model_incompatible_model_np
     with pytest.raises(IncompatibleModelError) as exin:
-        ftps._input_is_valid(futt.NUMERICAL_NP_ARRAY, model, True, None, None,
-                             None, None, None)
+        ftps._input_is_valid(futt.NUMERICAL_NP_ARRAY, model, True, False, None,
+                             None, None, None, None)
     assert str(exin.value) == model_incompatible_model_p
+
     model = futt.NonProbabilisticModel(None)
     with pytest.raises(IncompatibleModelError) as exin:
-        ftps._input_is_valid(futt.NUMERICAL_NP_ARRAY, model, True, None, None,
-                             None, None, None)
+        ftps._input_is_valid(futt.NUMERICAL_NP_ARRAY, model, True, False, None,
+                             None, None, None, None)
     assert str(exin.value) == model_incompatible_model_p
 
     with pytest.raises(TypeError) as exin:
-        ftps._input_is_valid(futt.NUMERICAL_NP_ARRAY, model, False, 'a', None,
-                             None, None, None)
+        ftps._input_is_valid(futt.NUMERICAL_NP_ARRAY, model, False, False, 'a',
+                             None, None, None, None)
     assert str(exin.value) == categorical_indices_type_error
     with pytest.raises(IndexError) as exin:
-        ftps._input_is_valid(futt.NUMERICAL_NP_ARRAY, model, False, ['a'],
-                             None, None, None, None)
+        ftps._input_is_valid(futt.NUMERICAL_NP_ARRAY, model, False, False,
+                             ['a'], None, None, None, None)
     assert str(exin.value) == categorical_indices_index_error.format(
         np.array(['a']))
     with pytest.raises(ValueError) as exin:
-        ftps._input_is_valid(futt.NUMERICAL_NP_ARRAY, model, False,
+        ftps._input_is_valid(futt.NUMERICAL_NP_ARRAY, model, False, False,
                              ['a', 'b', 'a', 'c'], None, None, None, None)
     assert str(exin.value) == categorical_indices_value_error
 
     with pytest.raises(TypeError) as exin:
-        ftps._input_is_valid(futt.NUMERICAL_NP_ARRAY, model, False, None, 'a',
-                             None, None, None)
+        ftps._input_is_valid(futt.NUMERICAL_NP_ARRAY, model, False, False,
+                             None, 'a', None, None, None)
     assert str(exin.value) == class_names_type_error_out
     with pytest.raises(ValueError) as exin:
-        ftps._input_is_valid(futt.NUMERICAL_NP_ARRAY, model, False, None, [],
-                             None, None, None)
+        ftps._input_is_valid(futt.NUMERICAL_NP_ARRAY, model, False, False,
+                             None, [], None, None, None)
     assert str(exin.value) == class_names_value_error_empty
     with pytest.raises(ValueError) as exin:
-        ftps._input_is_valid(futt.NUMERICAL_NP_ARRAY, model, False, None,
-                             ['a', 'b', 'a', 'c'], None, None, None)
+        ftps._input_is_valid(futt.NUMERICAL_NP_ARRAY, model, False, False,
+                             None, ['a', 'b', 'a', 'c'], None, None, None)
     assert str(exin.value) == class_names_value_error_dup
     with pytest.raises(TypeError) as exin:
-        ftps._input_is_valid(futt.NUMERICAL_NP_ARRAY, model, False, None,
-                             ['a', 0, 'b'], None, None, None)
+        ftps._input_is_valid(futt.NUMERICAL_NP_ARRAY, model, False, False,
+                             None, ['a', 0, 'b'], None, None, None)
     assert str(exin.value) == class_names_type_error_in.format(0)
 
     with pytest.raises(TypeError) as exin:
-        ftps._input_is_valid(futt.NUMERICAL_NP_ARRAY, model, False, None, None,
-                             'a', None, None)
+        ftps._input_is_valid(futt.NUMERICAL_NP_ARRAY, model, False, False,
+                             None, None, 'a', None, None)
     assert str(exin.value) == class_number_type_error
     with pytest.raises(ValueError) as exin:
-        ftps._input_is_valid(futt.NUMERICAL_NP_ARRAY, model, False, None, None,
-                             1, None, None)
+        ftps._input_is_valid(futt.NUMERICAL_NP_ARRAY, model, False, False,
+                             None, None, 1, None, None)
     assert str(exin.value) == class_number_value_error
 
     with pytest.raises(TypeError) as exin:
-        ftps._input_is_valid(futt.NUMERICAL_NP_ARRAY, model, False, None, None,
-                             None, 'a', None)
+        ftps._input_is_valid(futt.NUMERICAL_NP_ARRAY, model, False, False,
+                             None, None, None, 'a', None)
     assert str(exin.value) == feature_names_type_error_out
     with pytest.raises(ValueError) as exin:
-        ftps._input_is_valid(futt.NUMERICAL_NP_ARRAY, model, False, None, None,
-                             None, ['a'], None)
+        ftps._input_is_valid(futt.NUMERICAL_NP_ARRAY, model, False, False,
+                             None, None, None, ['a'], None)
     assert str(exin.value) == feature_names_value_error_count.format(4)
     with pytest.raises(ValueError) as exin:
-        ftps._input_is_valid(futt.NUMERICAL_NP_ARRAY, model, False, None, None,
-                             None, ['a', 'b', 'a', 'c'], None)
+        ftps._input_is_valid(futt.NUMERICAL_NP_ARRAY, model, False, False,
+                             None, None, None, ['a', 'b', 'a', 'c'], None)
     assert str(exin.value) == feature_names_value_error_dup
     with pytest.raises(TypeError) as exin:
-        ftps._input_is_valid(futt.NUMERICAL_NP_ARRAY, model, False, None, None,
-                             None, ['0', '1', 2, '3'], None)
+        ftps._input_is_valid(futt.NUMERICAL_NP_ARRAY, model, False, False,
+                             None, None, None, ['0', '1', 2, '3'], None)
     assert str(exin.value) == feature_names_type_error_in.format(2)
 
     with pytest.raises(TypeError) as exin:
-        ftps._input_is_valid(futt.NUMERICAL_NP_ARRAY, model, False, None, None,
-                             None, None, 'list')
+        ftps._input_is_valid(futt.NUMERICAL_NP_ARRAY, model, False, False,
+                             None, None, None, None, 'list')
     assert str(exin.value) == unique_predictions_type_error_out
     with pytest.raises(TypeError) as exin:
-        ftps._input_is_valid(futt.NUMERICAL_NP_ARRAY, model, False, None, None,
-                             None, None, [None, 's', 't'])
+        ftps._input_is_valid(futt.NUMERICAL_NP_ARRAY, model, False, False,
+                             None, None, None, None, [None, 's', 't'])
     assert str(exin.value) == unique_predictions_type_error_in
     with pytest.raises(TypeError) as exin:
-        ftps._input_is_valid(futt.NUMERICAL_NP_ARRAY, model, False, None, None,
-                             None, None, ['s', 't', 'r', 1, 'n', 'g'])
+        ftps._input_is_valid(futt.NUMERICAL_NP_ARRAY, model, False, False,
+                             None, None, None, None,
+                             ['s', 't', 'r', 1, 'n', 'g'])
     assert str(exin.value) == unique_predictions_type_error_in
     with pytest.raises(ValueError) as exin:
-        ftps._input_is_valid(futt.NUMERICAL_NP_ARRAY, model, False, None, None,
-                             None, None, [])
+        ftps._input_is_valid(futt.NUMERICAL_NP_ARRAY, model, False, False,
+                             None, None, None, None, [])
     assert str(exin.value) == unique_predictions_value_error_empty
     with pytest.raises(ValueError) as exin:
-        ftps._input_is_valid(futt.NUMERICAL_NP_ARRAY, model, False, None, None,
-                             None, None, ['a', 'b', 'b', 'a'])
+        ftps._input_is_valid(futt.NUMERICAL_NP_ARRAY, model, False, False,
+                             None, None, None, None, ['a', 'b', 'b', 'a'])
     assert str(exin.value) == unique_predictions_value_error_dup
 
-    assert ftps._input_is_valid(futt.NUMERICAL_NP_ARRAY, model, False, None,
-                                None, None, None, None)
+    assert ftps._input_is_valid(futt.NUMERICAL_NP_ARRAY, model, False, False,
+                                None, None, None, None, None)
 
 
 class TestSurrogateTabularExplainer(object):
@@ -284,6 +307,7 @@ SurrogateTabularExplainer` abstract class.
                      dataset,
                      predictive_model,
                      as_probabilistic=True,
+                     as_regressor=False,
                      categorical_indices=None,
                      class_names=None,
                      classes_number=None,
@@ -293,8 +317,8 @@ SurrogateTabularExplainer` abstract class.
             Dummy initialisation method.
             """
             super().__init__(dataset, predictive_model, as_probabilistic,
-                             categorical_indices, class_names, classes_number,
-                             feature_names, unique_predictions)
+                             as_regressor, categorical_indices, class_names,
+                             classes_number, feature_names, unique_predictions)
 
         def explain_instance(self, data_row):
             """
@@ -310,6 +334,14 @@ SurrogateTabularExplainer` abstract class.
         as_probabilistic=True,
         categorical_indices=[0],
         class_names=None,
+        feature_names=['1', '2', '3', '4'])
+    numerical_dummy_surrogate_reg = BaseSurrogateTabularExplainer(
+        futt.NUMERICAL_NP_ARRAY,
+        numerical_np_array_classifier,
+        as_probabilistic=True,
+        as_regressor=True,
+        categorical_indices=[0],
+        class_names=['a', 'b', 'c'],
         feature_names=['1', '2', '3', '4'])
 
     numerical_struct_array_classifier = fum.KNN(k=3)
@@ -348,6 +380,16 @@ SurrogateTabularExplainer` abstract class.
         futt.MIXED_ARRAY,
         mixed_classifier,
         categorical_indices=['b', 'd'],
+        feature_names=['num1', 'str1', 'num2', 'str2'])
+    mixed_dummy_surrogate_reg = BaseSurrogateTabularExplainer(
+        futt.MIXED_ARRAY,
+        mixed_classifier,
+        as_probabilistic=False,
+        as_regressor=True,
+        categorical_indices=['b', 'd'],
+        class_names=['a', 'b', 'c'],
+        classes_number=8,
+        unique_predictions=['d', 'e'],
         feature_names=['num1', 'str1', 'num2', 'str2'])
 
     def test_surrogate_explainer_init(self, caplog):
@@ -393,9 +435,9 @@ SurrogateTabularExplainer.__init__` initialisation method.
                                         '({}) for the provided probabilistic '
                                         'model is different than the number '
                                         'of columns ({}) in the probabilistic '
-                                        'matrix outputted by the model.')
+                                        'matrix output by the model.')
         unique_predictions_runtime_error_different = (
-            'The predictive_model has outputted different classes ({} extra) '
+            'The predictive_model has output different classes ({} extra) '
             'than were specified by the unique_predictions parameter.')
         unique_predictions_runtime_error_number_i = (
             'The inferred number of unique predictions ({}) does not agree '
@@ -603,6 +645,7 @@ SurrogateTabularExplainer.__init__` initialisation method.
         assert self.numerical_dummy_surrogate.categorical_indices == [0]
         assert self.numerical_dummy_surrogate.numerical_indices == [1, 2, 3]
         assert self.numerical_dummy_surrogate.as_probabilistic
+        assert not self.numerical_dummy_surrogate.as_regressor
         # yapf: disable
         assert (self.numerical_dummy_surrogate.predictive_model
                 == self.numerical_np_array_classifier)
@@ -615,6 +658,26 @@ SurrogateTabularExplainer.__init__` initialisation method.
                 == ['1', '2', '3', '4'])
         assert self.numerical_dummy_surrogate.unique_predictions is None
 
+        assert np.array_equal(self.numerical_dummy_surrogate_reg.dataset,
+                              futt.NUMERICAL_NP_ARRAY)
+        assert not self.numerical_dummy_surrogate_reg.is_structured
+        assert (self.numerical_dummy_surrogate_reg.column_indices
+                == [0, 1, 2, 3])
+        assert self.numerical_dummy_surrogate_reg.categorical_indices == [0]
+        assert (self.numerical_dummy_surrogate_reg.numerical_indices
+                == [1, 2, 3])
+        assert self.numerical_dummy_surrogate_reg.as_probabilistic
+        assert self.numerical_dummy_surrogate_reg.as_regressor
+        assert (self.numerical_dummy_surrogate_reg.predictive_model
+                == self.numerical_np_array_classifier)
+        assert (self.numerical_dummy_surrogate_reg.predictive_function
+                == self.numerical_np_array_classifier.predict)
+        assert self.numerical_dummy_surrogate_reg.classes_number is None
+        assert self.numerical_dummy_surrogate_reg.class_names is None
+        assert (self.numerical_dummy_surrogate_reg.feature_names
+                == ['1', '2', '3', '4'])
+        assert self.numerical_dummy_surrogate_reg.unique_predictions is None
+
         assert np.array_equal(self.numerical_struct_dummy_surrogate.dataset,
                               futt.NUMERICAL_STRUCT_ARRAY)
         assert self.numerical_struct_dummy_surrogate.is_structured
@@ -625,6 +688,7 @@ SurrogateTabularExplainer.__init__` initialisation method.
         assert (self.numerical_struct_dummy_surrogate.numerical_indices
                 == ['c', 'd'])
         assert not self.numerical_struct_dummy_surrogate.as_probabilistic
+        assert not self.numerical_struct_dummy_surrogate.as_regressor
         assert (self.numerical_struct_dummy_surrogate.predictive_model
                 == self.numerical_struct_array_classifier)
         assert (self.numerical_struct_dummy_surrogate.predictive_function
@@ -645,6 +709,7 @@ SurrogateTabularExplainer.__init__` initialisation method.
                 == [0, 1, 2])
         assert self.categorical_np_dummy_surrogate.numerical_indices == []
         assert self.categorical_np_dummy_surrogate.as_probabilistic
+        assert not self.categorical_np_dummy_surrogate.as_regressor
         assert (self.categorical_np_dummy_surrogate.predictive_model
                 == self.categorical_np_array_classifier)
         assert (self.categorical_np_dummy_surrogate.predictive_function
@@ -665,6 +730,7 @@ SurrogateTabularExplainer.__init__` initialisation method.
                 == ['a', 'b', 'c'])
         assert self.categorical_struct_dummy_surrogate.numerical_indices == []
         assert self.categorical_struct_dummy_surrogate.as_probabilistic
+        assert not self.categorical_struct_dummy_surrogate.as_regressor
         assert (self.categorical_struct_dummy_surrogate.predictive_model
                 == self.categorical_struct_array_classifier)
         assert (self.categorical_struct_dummy_surrogate.predictive_function
@@ -685,6 +751,7 @@ SurrogateTabularExplainer.__init__` initialisation method.
         assert self.mixed_dummy_surrogate.categorical_indices == ['b', 'd']
         assert self.mixed_dummy_surrogate.numerical_indices == ['a', 'c']
         assert self.mixed_dummy_surrogate.as_probabilistic
+        assert not self.mixed_dummy_surrogate.as_regressor
         assert (self.mixed_dummy_surrogate.predictive_model
                 == self.mixed_classifier)
         assert (self.mixed_dummy_surrogate.predictive_function
@@ -695,6 +762,25 @@ SurrogateTabularExplainer.__init__` initialisation method.
         assert (self.mixed_dummy_surrogate.feature_names
                 == ['num1', 'str1', 'num2', 'str2'])
         assert self.mixed_dummy_surrogate.unique_predictions is None
+
+        assert np.array_equal(self.mixed_dummy_surrogate_reg.dataset,
+                              futt.MIXED_ARRAY)
+        assert self.mixed_dummy_surrogate_reg.is_structured
+        assert (self.mixed_dummy_surrogate_reg.column_indices
+                == ['a', 'b', 'c', 'd'])
+        assert self.mixed_dummy_surrogate_reg.categorical_indices == ['b', 'd']
+        assert self.mixed_dummy_surrogate_reg.numerical_indices == ['a', 'c']
+        assert not self.mixed_dummy_surrogate_reg.as_probabilistic
+        assert self.mixed_dummy_surrogate_reg.as_regressor
+        assert (self.mixed_dummy_surrogate_reg.predictive_model
+                == self.mixed_classifier)
+        assert (self.mixed_dummy_surrogate_reg.predictive_function
+                == self.mixed_classifier.predict)
+        assert self.mixed_dummy_surrogate_reg.classes_number is None
+        assert self.mixed_dummy_surrogate_reg.class_names is None
+        assert (self.mixed_dummy_surrogate_reg.feature_names
+                == ['num1', 'str1', 'num2', 'str2'])
+        assert self.mixed_dummy_surrogate_reg.unique_predictions is None
         # yapf: enable
 
         assert len(caplog.records) == 2
@@ -769,6 +855,16 @@ TabularBlimeyLime` class.
         numerical_np_array_classifier.fit(futt.NUMERICAL_NP_ARRAY, futt.LABELS)
         numerical_np_tabular_lime = ftps.TabularBlimeyLime(
             futt.NUMERICAL_NP_ARRAY, numerical_np_array_classifier)
+        numerical_np_tabular_lime_reg = ftps.TabularBlimeyLime(
+            futt.NUMERICAL_NP_ARRAY,
+            numerical_np_array_classifier,
+            as_regressor=True)
+
+        wide_data = np.concatenate(2 * [futt.NUMERICAL_NP_ARRAY], axis=1)
+        numerical_np_array_classifier_wide = fum.KNN(k=3)
+        numerical_np_array_classifier_wide.fit(wide_data, futt.LABELS)
+        numerical_np_tabular_lime_wide_reg = ftps.TabularBlimeyLime(
+            wide_data, numerical_np_array_classifier_wide, as_regressor=True)
 
         numerical_struct_array_classifier = fum.KNN(k=3)
         numerical_struct_array_classifier.fit(futt.NUMERICAL_STRUCT_ARRAY,
@@ -1041,14 +1137,26 @@ predictions.surrogate_explainers.TabularBlimeyLime.explain_instance` method.
                 futt.NUMERICAL_NP_ARRAY[0], explained_class=3)
         assert str(exin.value) == explain_class_value_error2.format(2, 3)
 
-    def test_explain_instance(self):
+    def test_explain_instance(self, caplog):
         """
         Tests the ``explain_instance`` method.
 
         Tests :func:`fatf.transparency.predictions.surrogate_explainers.\
 TabularBlimeyLime.explain_instance` method.
         """
+        assert len(caplog.records) == 0
         fatf.setup_random_seed()
+        assert len(caplog.records) == 2
+        assert caplog.records[0].levelname == 'INFO'
+        assert caplog.records[0].getMessage() == ('Seeding RNGs using the '
+                                                  'system variable.')
+        assert caplog.records[1].levelname == 'INFO'
+        assert caplog.records[1].getMessage() == 'Seeding RNGs with 42.'
+
+        log_info_forward_selection = ('Selecting {} features with forward '
+                                      'selection.')
+        log_info_highest_weights = ('Selecting {} features with highest '
+                                    'weights.')
 
         numerical_np_explanation = {
             'class 0': {
@@ -1069,6 +1177,31 @@ TabularBlimeyLime.explain_instance` method.
                 '0.07 < *feature 2* <= 0.22': -0.047,
                 '0.58 < *feature 3* <= 0.79': -0.087
             }
+        }
+        numerical_np_explanation_reg = {
+            '*feature 0* <= 0.00': 1.058,
+            '*feature 1* <= 0.00': -0.659,
+            '0.07 < *feature 2* <= 0.22': -0.065,
+            '0.58 < *feature 3* <= 0.79': -0.015
+        }
+        numerical_np_explanation_wide_reg = {
+            '*feature 0* <= 0.00': 0.571,
+            '*feature 1* <= 0.00': -0.626,
+            '0.07 < *feature 2* <= 0.22': -0.328,
+            '*feature 4* <= 0.00': 0.442,
+            '*feature 5* <= 0.00': -0.265,
+            '0.07 < *feature 6* <= 0.22': 0.371,
+            '0.58 < *feature 7* <= 0.79': 0.230
+        }
+        numerical_np_explanation_wide_reg_all = {
+            '*feature 0* <= 0.00': 0.752,
+            '*feature 1* <= 0.00': -0.260,
+            '0.07 < *feature 2* <= 0.22': 0.246,
+            '0.58 < *feature 3* <= 0.79': -0.464,
+            '*feature 4* <= 0.00': 0.811,
+            '*feature 5* <= 0.00': -0.305,
+            '0.07 < *feature 6* <= 0.22': -0.036,
+            '0.58 < *feature 7* <= 0.79': 0.096
         }
         numerical_struct_explanation = {
             'class 0': {
@@ -1113,6 +1246,8 @@ TabularBlimeyLime.explain_instance` method.
             }
         }
 
+        assert len(caplog.records) == 2
+        # Probabilistic
         explanation = self.numerical_np_tabular_lime.explain_instance(
             futt.NUMERICAL_NP_ARRAY[0],
             samples_number=50,
@@ -1120,6 +1255,10 @@ TabularBlimeyLime.explain_instance` method.
             kernel_width=None)
         assert futt.is_explanation_equal_dict(
             numerical_np_explanation, explanation, atol=1e-3)
+        assert len(caplog.records) == 3
+        assert caplog.records[2].levelname == 'INFO'
+        assert (caplog.records[2].getMessage()  # yapf: disable
+                == log_info_forward_selection.format(4))
 
         explanation = self.numerical_struct_cat_tabular_lime.explain_instance(
             futt.NUMERICAL_STRUCT_ARRAY[0],
@@ -1128,6 +1267,10 @@ TabularBlimeyLime.explain_instance` method.
             kernel_width=None)
         assert futt.is_explanation_equal_dict(
             numerical_struct_explanation, explanation, atol=1e-3)
+        assert len(caplog.records) == 4
+        assert caplog.records[3].levelname == 'INFO'
+        assert (caplog.records[3].getMessage()  # yapf: disable
+                == log_info_forward_selection.format(2))
 
         explanation = self.categorical_np_lime.explain_instance(
             futt.CATEGORICAL_NP_ARRAY[0],
@@ -1136,6 +1279,10 @@ TabularBlimeyLime.explain_instance` method.
             kernel_width=None)
         assert futt.is_explanation_equal_dict(
             categorical_np_explanation, explanation, atol=1e-3)
+        assert len(caplog.records) == 5
+        assert caplog.records[4].levelname == 'INFO'
+        assert (caplog.records[4].getMessage()  # yapf: disable
+                == log_info_forward_selection.format(2))
 
         explanation, models = self.iris_lime.explain_instance(
             IRIS_DATASET['data'][0],
@@ -1150,6 +1297,10 @@ TabularBlimeyLime.explain_instance` method.
                 sorted(list(iris_explanation[key].values())),
                 sorted(model.coef_.tolist()),
                 atol=1e-3)
+        assert len(caplog.records) == 6
+        assert caplog.records[5].levelname == 'INFO'
+        assert (caplog.records[5].getMessage()  # yapf: disable
+                == log_info_forward_selection.format(2))
 
         explanation = self.iris_lime.explain_instance(
             IRIS_DATASET['data'][0],
@@ -1160,6 +1311,10 @@ TabularBlimeyLime.explain_instance` method.
         explanation_ = {'setosa': {'*petal length (cm)* <= 1.60': 0.666}}
         assert futt.is_explanation_equal_dict(
             explanation, explanation_, atol=1e-3)
+        assert len(caplog.records) == 7
+        assert caplog.records[6].levelname == 'INFO'
+        assert (caplog.records[6].getMessage()  # yapf: disable
+                == log_info_forward_selection.format(1))
 
         explanation = self.iris_lime.explain_instance(
             IRIS_DATASET['data'][0],
@@ -1170,6 +1325,44 @@ TabularBlimeyLime.explain_instance` method.
         explanation_ = {'versicolor': {'*petal length (cm)* <= 1.60': -0.357}}
         assert futt.is_explanation_equal_dict(
             explanation, explanation_, atol=1e-3)
+        assert len(caplog.records) == 8
+        assert caplog.records[7].levelname == 'INFO'
+        assert (caplog.records[7].getMessage()  # yapf: disable
+                == log_info_forward_selection.format(1))
+
+        # Regression
+        explanation = self.numerical_np_tabular_lime_reg.explain_instance(
+            futt.NUMERICAL_NP_ARRAY[0],
+            samples_number=50,
+            features_number=4,
+            kernel_width=None)
+        assert futt.is_explanation_equal_dict(
+            {'': numerical_np_explanation_reg}, {'': explanation}, atol=1e-3)
+        assert len(caplog.records) == 9
+        assert caplog.records[8].levelname == 'INFO'
+        assert (caplog.records[8].getMessage()  # yapf: disable
+                == log_info_forward_selection.format(4))
+
+        # Weight-based feature selection
+        explanation = self.numerical_np_tabular_lime_wide_reg.explain_instance(
+            self.wide_data[0], samples_number=50, features_number=7)
+        assert futt.is_explanation_equal_dict(
+            {'': numerical_np_explanation_wide_reg}, {'': explanation},
+            atol=1e-3)
+        assert len(caplog.records) == 10
+        assert caplog.records[9].levelname == 'INFO'
+        assert (caplog.records[9].getMessage()  # yapf: disable
+                == log_info_highest_weights.format(7))
+        #
+        explanation = self.numerical_np_tabular_lime_wide_reg.explain_instance(
+            self.wide_data[0], samples_number=50)
+        assert futt.is_explanation_equal_dict(
+            {'': numerical_np_explanation_wide_reg_all}, {'': explanation},
+            atol=1e-3)
+        assert len(caplog.records) == 11
+        assert caplog.records[10].levelname == 'INFO'
+        assert (caplog.records[10].getMessage()  # yapf: disable
+                == log_info_highest_weights.format(8))
 
 
 def map_target(target):
@@ -1202,6 +1395,10 @@ TabularBlimeyTree` class.
         numerical_np_array_classifier.fit(futt.NUMERICAL_NP_ARRAY, futt.LABELS)
         numerical_np_tabular_blimey = ftps.TabularBlimeyTree(
             futt.NUMERICAL_NP_ARRAY, numerical_np_array_classifier)
+        numerical_np_tabular_blimey_reg = ftps.TabularBlimeyTree(
+            futt.NUMERICAL_NP_ARRAY,
+            numerical_np_array_classifier,
+            as_regressor=True)
 
         numerical_np_array_classifier_noprob = fum.KNN(k=3)
         numerical_np_array_classifier_noprob.fit(futt.NUMERICAL_NP_ARRAY,
@@ -1466,6 +1663,13 @@ TabularBlimeyTree.explain_instance` method.
             'this parameter can be used to indicate the index of the class '
             '(from the list above) to be explained.')
 
+        mixup_warning = (
+            'Since the ground truth vector was not provided while '
+            'initialising the Mixup class it is not possible to get a '
+            'stratified sample of data points. Instead, Mixup will choose '
+            'data points at random, which is equivalent to assuming that the '
+            'class distribution is balanced.')
+
         numerical_np_explanation = {
             'class 0': {
                 'feature 0': 0.552,
@@ -1485,6 +1689,12 @@ TabularBlimeyTree.explain_instance` method.
                 'feature 2': 0.0,
                 'feature 3': 0.0
             }
+        }
+        numerical_np_explanation_reg = {
+            'feature 0': 0.432,
+            'feature 1': 0.568,
+            'feature 2': 0.0,
+            'feature 3': 0.0
         }
         numerical_np_cat_explanation = {
             'class 0': {
@@ -1730,5 +1940,14 @@ TabularBlimeyTree.explain_instance` method.
         }
         exp_ = {k: exp_uni for k in exp}
         assert futt.is_explanation_equal_dict(exp_, exp, atol=1e-3)
+
+        # Regression
+        with pytest.warns(UserWarning) as warning:
+            exp = self.numerical_np_tabular_blimey_reg.explain_instance(
+                futt.NUMERICAL_NP_ARRAY[0], samples_number=50, maximum_depth=3)
+        assert len(warning) == 1
+        assert str(warning[0].message) == mixup_warning
+        assert futt.is_explanation_equal_dict(
+            {'': numerical_np_explanation_reg}, {'': exp}, atol=1e-3)
 
         assert len(caplog.records) == 6

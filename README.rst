@@ -6,7 +6,7 @@ Docs           |Homepage|_
 CI             |Travis|_ |Codecov|_
 Try it         |Binder|_
 Contact        |MailingList|_ |Gitter|_
-Cite           |BibTeX|_ |DOI|_
+Cite           |BibTeX|_ |JOSS|_ |ZENODO|_
 =============  ================================================================
 
 .. |Licence| image:: https://img.shields.io/github/license/fat-forensics/fat-forensics.svg
@@ -51,19 +51,22 @@ Cite           |BibTeX|_ |DOI|_
 .. _MailingList: https://groups.google.com/forum/#!forum/fat-forensics
 
 .. |Gitter| image:: https://img.shields.io/gitter/room/fat-forensics/FAT-Forensics.svg
-.. _Gitter: https://gitter.im/fat-forensics/fat-forensics
+.. _Gitter: https://gitter.im/fat-forensics
 
 .. |BibTeX| image:: https://img.shields.io/badge/cite-BibTeX-blue.svg
 .. _BibTeX: https://fat-forensics.org/getting_started/cite.html
 
-.. |DOI| image:: https://zenodo.org/badge/DOI/xx.xxxx/zenodo.xxxxxxx.svg
-.. _DOI: https://doi.org/xx.xxxx/zenodo.xxxxxxx
+.. |JOSS| image:: https://joss.theoj.org/papers/10.21105/joss.01904/status.svg
+.. _JOSS: https://doi.org/10.21105/joss.01904
+
+.. |ZENODO| image:: https://zenodo.org/badge/DOI/10.5281/zenodo.3833199.svg
+.. _ZENODO: https://doi.org/10.5281/zenodo.3833199
 
 ============================================================================
 FAT Forensics: Algorithmic Fairness, Accountability and Transparency Toolbox
 ============================================================================
 
-FAT-Forensics (``fatf``) is a Python toolbox for evaluating fairness,
+FAT Forensics (``fatf``) is a Python toolbox for evaluating fairness,
 accountability and transparency of predictive systems. It is built on top of
 SciPy_ and NumPy_, and is distributed under the 3-Clause BSD license (new BSD).
 
@@ -100,12 +103,6 @@ In addition, some of the modules require *optional* dependencies:
 +--------------------------------------------------------+------------------+------------+
 | ``fatf`` module                                        | Package          | Version    |
 +========================================================+==================+============+
-| ``fatf.transparency.lime``                             |                  |            |
-+--------------------------------------------------------+                  |            |
-| ``fatf.transparency.models.lime``                      | LIME_            | >=0.0.0.0  |
-+--------------------------------------------------------+                  |            |
-| ``fatf.transparency.predictions.lime``                 |                  |            |
-+--------------------------------------------------------+------------------+------------+
 | ``fatf.transparency.predictions.surrogate_explainers`` |                  |            |
 +--------------------------------------------------------+                  |            |
 | ``fatf.transparency.sklearn``                          | `scikit-learn`_  | >=0.19.2   |
@@ -201,8 +198,8 @@ more information.
 Submitting a Pull Request
 -------------------------
 
-Before opening a Pull Request, please have a look at the whole content of the
-`Contributing page <contrib_guide_>`_ to make sure that your code complies with
+Before opening a Pull Request, please have a look at the
+`Contributing <contrib_guide_>`_ page to make sure that your code complies with
 our guidelines.
 
 Help and Support
@@ -241,7 +238,6 @@ and the University of Bristol with the initial funding provided by Thales.
 
 .. _SciPy: https://www.scipy.org/
 .. _NumPy: https://www.numpy.org/
-.. _LIME: https://github.com/marcotcr/lime
 .. _scikit-learn: https://scikit-learn.org/stable/
 .. _matplotlib: https://matplotlib.org/
 .. _`https://fat-forensics.org`: https://fat-forensics.org
@@ -255,5 +251,5 @@ and the University of Bristol with the initial funding provided by Thales.
 .. _dev_testing: https://fat-forensics.org/development.html#testing
 .. _dev_testing_env: https://fat-forensics.org/development.html#testing-environment
 .. _getting_started: https://fat-forensics.org/getting_started/index.html
-.. _gitter: https://gitter.im/fat-forensics/fat-forensics
+.. _gitter: https://gitter.im/fat-forensics
 .. _`mailing list`: https://groups.google.com/forum/#!forum/fat-forensics

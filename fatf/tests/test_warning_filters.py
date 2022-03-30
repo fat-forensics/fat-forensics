@@ -12,7 +12,7 @@ import pytest
 import fatf
 import fatf.utils.testing.warnings as testing_w
 
-PYTEST_WARNING_FILTERS = ['fatf.vis', 'fatf.transparency.sklearn']
+PYTEST_WARNING_FILTERS = []
 
 
 def test_logger_level():

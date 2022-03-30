@@ -13,8 +13,6 @@ except ImportError:  # pragma: no cover
         'Skipping tests of scikit-learn linear models explainers '
         '-- scikit-learn is not installed.',
         allow_module_level=True)
-else:
-    del sklearn
 
 import sklearn.cluster
 import sklearn.discriminant_analysis
@@ -31,6 +29,12 @@ import numpy as np
 import fatf
 
 import fatf.transparency.sklearn.linear_model as ftsl
+import fatf.utils.tools as fut
+
+_SKLEARN_VERSION = [int(i) for i in sklearn.__version__.split('.')[:2]]
+_SKLEARN_0_20 = fut.at_least_verion([0, 20], _SKLEARN_VERSION)
+_SKLEARN_0_22 = fut.at_least_verion([0, 22], _SKLEARN_VERSION)
+_SKLEARN_0_23 = fut.at_least_verion([0, 23], _SKLEARN_VERSION)
 
 # yapf: disable
 LINEAR_CLASSIFIERS = [
@@ -84,7 +88,6 @@ LINEAR_MULTITASK_REGRESSORS = [
 ]
 NON_LINEAR_MODELS = [
     sklearn.cluster.KMeans,
-    sklearn.dummy.DummyClassifier,
     sklearn.dummy.DummyRegressor,
     sklearn.naive_bayes.BernoulliNB,
     sklearn.neighbors.KNeighborsClassifier,
@@ -93,6 +96,7 @@ NON_LINEAR_MODELS = [
     sklearn.tree.DecisionTreeRegressor
 ]
 NON_LINEAR_MODELS_ = [
+    sklearn.dummy.DummyClassifier,
     sklearn.linear_model.RANSACRegressor
 ]
 
@@ -118,6 +122,9 @@ LINEAR_REG_COEF = [
     np.array([0.017, -0.003, 0.040, -0.005]),
     np.array([1.219, 10.356, -0.982, -19.025])  # / 1e+10
 ]
+if not _SKLEARN_0_20:  # pragma: nocover
+    LINEAR_REG_COEF[17] = np.array([0.013, 0.001, 0.033, -0.008])
+    LINEAR_REG_COEF[18] = np.array([-2.663, -1.089, -14.857, 23.487])
 LINEAR_REG_COEF_ = [
     np.array([0.035, -0.004, 0.020, -0.005]),
     np.array([0.012, 0.007, 0.027, -0.016])
@@ -140,6 +147,8 @@ LINEAR_CLF_COEF = [
     np.array([[0.021, -0.024, 0.063, -0.195]]),
     np.array([[0.001, -0.003, 0.001, -0.015]])
 ]
+if _SKLEARN_0_23:  # pragma: nocover
+    LINEAR_CLF_COEF[2] = np.array([0.069, -0.007, 0.039, -0.010])
 LINEAR_MUL_REG_COEF = [
     np.array([[0., -0.001, 0., -0.009], [0., -0.001, 0., -0.009]]),
     np.array([[0., -0.002, 0., -0.009], [0., -0.002, 0., -0.009]]),
@@ -250,8 +259,9 @@ def test_is_fitted_linear():
     """
     Tests :func:`fatf.transparency.sklearn.linear_model._is_fitted_linear`.
     """
-    unfit_error = ("This {} instance is not fitted yet. Call 'fit' with "
-                   'appropriate arguments before using this method.')
+    unfit_error = ("This {{}} instance is not fitted yet. Call 'fit' with "
+                   'appropriate arguments before using this {}.'.format(
+                       'estimator' if _SKLEARN_0_22 else 'method'))
 
     for clf in LINEAR_CLASSIFIERS + LINEAR_CLASSIFIERS_ + LINEAR_REGRESSORS:
         name = clf.__name__
@@ -291,8 +301,9 @@ linear_classifier_coefficients` function.
 
     type_error = ('This functionality is designated for linear-like '
                   'scikit-learn predictor instances only. Instead got: {}.')
-    unfit_error = ("This {} instance is not fitted yet. Call 'fit' with "
-                   'appropriate arguments before using this method.')
+    unfit_error = ("This {{}} instance is not fitted yet. Call 'fit' with "
+                   'appropriate arguments before using this {}.'.format(
+                       'estimator' if _SKLEARN_0_22 else 'method'))
 
     for clf in NON_LINEAR_MODELS:
         clf_instance = clf()

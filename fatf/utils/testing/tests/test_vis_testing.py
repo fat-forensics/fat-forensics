@@ -28,13 +28,13 @@ def test_import_when_missing():
     Tests importing :mod:`fatf.utils.testing.vis` module sans matplotlib.
     """
     assert 'fatf.utils.testing.vis' in sys.modules
-    warning_msg = ('Visualisation testing helper functions require matplotlib '
-                   'Python module, which is not installed on your system.')
+    exception_msg = ('Visualisation testing helper functions require '
+                     'matplotlib Python module, which is not installed '
+                     'on your system.')
     with futi.module_import_tester('matplotlib', when_missing=True):
-        with pytest.warns(ImportWarning) as w:
+        with pytest.raises(ImportError) as excinfo:
             importlib.reload(futv)
-        assert len(w) == 1
-        assert str(w[0].message) == warning_msg
+        assert str(excinfo.value) == exception_msg
     assert 'fatf.utils.testing.vis' in sys.modules
 
 

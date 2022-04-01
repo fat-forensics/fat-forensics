@@ -1,0 +1,43 @@
+name: Docs
+on:
+  push:
+    branches:
+      - master
+jobs:
+  build-n-publish:
+    name: Build, test and publish documentation
+    runs-on: ubuntu-18.04
+    steps:
+    - name: Checkout the code
+      uses: actions/checkout@v3
+      with:
+        fetch-depth: 5
+        submodules: false
+    - name: Cache sphinx gallery
+      uses: actions/cache@v3
+      with:
+        path: doc/sphinx_gallery_auto
+    - name: Set up Python 3.6
+      uses: actions/setup-python@v3
+      with:
+        python-version: 3.6
+    - name: Install dependencies
+      env:
+        MAKEFLAGS: '-j 2'
+        FATF_TEST_SCIPY: '1.3.0'
+        FATF_TEST_NUMPY: '1.16.3'
+      run: |
+        make install-matplotlib
+        make install-scikit-learn
+        make dependencies-dev
+    - name: Test documentation
+      run: |
+        make test-doc
+        make doc-linkcheck
+        make doc-coverage
+    - name: Build documentation
+      run: make doc-html
+    - name: Publish documentation
+      env:
+        FAT_FORENSICS_AUTOMATOR_GITHUB_TOKEN: ${{ secrets.FAT_FORENSICS_AUTOMATOR_GITHUB_TOKEN }}
+      run: ./build_tools/doc/deploy-doc.sh

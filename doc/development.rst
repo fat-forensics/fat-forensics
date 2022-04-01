@@ -107,8 +107,8 @@ All of the test and build commands are held in the Makefile_, which is placed
 in the root directory of the package. Please consult this file for the specific
 commands that are executed when building and testing the package.
 
-Our Continuous Integration (CI) is run on Travis_ with the configuration file
--- `.travis.yml`_ -- held in the root directory of the package.
+Our Continuous Integration (CI) is based on `GitHub Actions`_, with the
+configuration files held in the `.github/workflows`_ directory.
 
 .. note:: **Random number generator**
 
@@ -125,8 +125,8 @@ Our Continuous Integration (CI) is run on Travis_ with the configuration file
    calling the :func:`fatf.setup_random_seed` function should suffice.
 
 .. _Makefile: https://github.com/fat-forensics/fat-forensics/blob/master/Makefile
-.. _Travis: https://travis-ci.com/fat-forensics/fat-forensics
-.. _`.travis.yml`: https://github.com/fat-forensics/fat-forensics/blob/master/.travis.yml
+.. _`GitHub Actions`: https://github.com/fat-forensics/fat-forensics/actions
+.. _`.github/workflows`: https://github.com/fat-forensics/fat-forensics/tree/master/.github/workflows
 
 .. _developers_guide_code_formatting:
 
@@ -269,7 +269,9 @@ Step by Step Guide
 ==================
 
 To summarise, the following commands should be executed to fully test the
-package (cf. `.travis.yml`_ for more details):
+package (cf. `.github/workflows/tests.yml`_ for more details):
+
+.. _`.github/workflows/tests.yml`: https://github.com/fat-forensics/fat-forensics/tree/master/.github/workflows/tests.yml
 
 .. code-block:: bash
 

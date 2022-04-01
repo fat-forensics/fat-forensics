@@ -48,7 +48,7 @@ def test_validate_confusion_matrix():
     index_error = ('The label index {} is not a valid index for the confusion '
                    'matrix of shape {}x{}.')
 
-    three_d_array = np.asarray([[[0], [2]], [[3]]])
+    three_d_array = np.array([[[0], [2]], [[3], [8]]])
     two_d_array_rect = np.array([[0, 2], [3, 5], [7, 9]])
     two_d_array_one = np.array([[0]])
     struct_array = np.array([(1, 2), (3, 4)], dtype=[('a', 'i'), ('b', 'i')])
@@ -100,7 +100,7 @@ def test_validate_confusion_matrix_size():
                              '{}x{} is the requirement.')
 
     two_d = np.array([[0, 1], [2, 3]])
-    three_d = np.asarray([[1, 2, 3], [1, 2, 3], [1, 2, 3]])
+    three_d = np.array([[1, 2, 3], [1, 2, 3], [1, 2, 3]])
 
     with pytest.raises(IncorrectShapeError) as exi:
         fumt.validate_confusion_matrix_size(two_d, 3)

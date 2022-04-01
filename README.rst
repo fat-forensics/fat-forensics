@@ -3,7 +3,7 @@
 =============  ================================================================
 Software       |Licence|_ |GitHubRelease|_ |PyPi|_ |Python35|_
 Docs           |Homepage|_
-CI             |Travis|_ |Codecov|_
+CI             |GitHubTests|_ |GitHubDocs|_ |Codecov|_
 Try it         |Binder|_
 Contact        |MailingList|_ |Gitter|_
 Cite           |BibTeX|_ |JOSS|_ |ZENODO|_
@@ -28,8 +28,10 @@ Cite           |BibTeX|_ |JOSS|_ |ZENODO|_
 .. _Homepage: https://fat-forensics.org
 .. What about wiki?
 
-.. |Travis| image:: https://travis-ci.com/fat-forensics/fat-forensics.svg?branch=master
-.. _Travis: https://travis-ci.com/fat-forensics/fat-forensics
+.. |GitHubTests| image:: https://github.com/fat-forensics/fat-forensics/actions/workflows/tests.yml/badge.svg
+.. _GitHubTests: https://github.com/fat-forensics/fat-forensics/actions/workflows/tests.yml
+.. |GitHubDocs| image:: https://github.com/fat-forensics/fat-forensics/actions/workflows/docs.yml/badge.svg
+.. _GitHubDocs: https://github.com/fat-forensics/fat-forensics/actions/workflows/docs.yml
 
 .. .. |CircleCI| image:: https://circleci.com/gh/fat-forensics/fat-forensics/tree/master.svg?style=shield
 .. .. _CircleCI: https://circleci.com/gh/fat-forensics/fat-forensics/tree/master

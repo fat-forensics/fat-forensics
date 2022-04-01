@@ -1,11 +1,11 @@
-name: Build and Publish Documentation
+name: Docs
 on:
   push:
     branches:
       - master
 jobs:
   build-n-publish:
-    name: Documentation Testing and Deployment
+    name: Build, test and publish documentation
     runs-on: ubuntu-18.04
     steps:
     - name: Checkout the code

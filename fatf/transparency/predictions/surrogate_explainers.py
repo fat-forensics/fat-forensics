@@ -2066,8 +2066,12 @@ surrogate_explainers.SurrogateTabularExplainer.explain_instance`.
                             local_model.feature_importances_)  # type: ignore
                         explanations[class_name] = dict(exp)
             else:
-                assert explained_class_index, 'Explain a single class.'
-                assert explained_class_name, 'Explain a single class.'
+                assert (explained_class_index is not None
+                        and str(explained_class_index)), (
+                            'Explain a single class.')
+                assert (explained_class_name is not None
+                        and str(explained_class_name)), (  # yapf: disable
+                            'Explain a single class.')
 
                 local_model = self._get_local_model(
                     sampled_data, sampled_data_predictions,

@@ -120,18 +120,41 @@ def test_check_model_functionality():
 
     # Test optional arguments
     assert fumv.check_model_functionality(
-        class_fit_11_predict_1, suppress_warning=True) is False
+        class_fit_11_predict_1, suppress_warning=True) is True
+    assert fumv.check_model_functionality(
+        class_fit_11_predict_1, suppress_warning=False) is True
     assert fumv.check_model_functionality(class_fit_21_predict_1) is True
 
     # Too few method parameters
     with pytest.warns(UserWarning) as warning:
         assert fumv.check_model_functionality(
+            class_fit_0, suppress_warning=False) is False
+    w_message = str(warning[0].message)
+    m_message_1_1 = ("The 'fit' method of the *ClassFit0* (model) "
+                     'class has incorrect number (0) of the required '
+                     'parameters. It needs to have exactly 1 required '
+                     'parameter(s). Try using optional parameters if you '
+                     'require more functionality.')
+    m_message_1_2 = ("The 'fit' method of the *ClassFit0* (model) "
+                     'class has incorrect number (0) of the required '
+                     'parameters. It needs to have exactly 2 required '
+                     'parameter(s). Try using optional parameters if you '
+                     'require more functionality.')
+    m_message_2 = "The *ClassFit0* (model) class is missing 'predict' method."
+    assert m_message_1_1 in w_message and m_message_1_2 in w_message
+    assert m_message_2 in w_message
+
+    # Not an instance
+    with pytest.warns(UserWarning) as warning:
+        assert fumv.check_model_functionality(
             class_fit_1_predict_2, suppress_warning=False) is False
     w_message = str(warning[0].message)
-    m_message_1 = ("The 'fit' method of the *ClassFit1Predict2* (model) class "
-                   'has incorrect number (1) of the required parameters. It '
-                   'needs to have exactly 2 required parameter(s). Try using '
-                   'optional parameters if you require more functionality.')
+    # Supervised only
+    m_message_1 = ("The 'fit' method of the *ClassFit1Predict2* (model) "
+                   'class has incorrect number (1) of the required '
+                   'parameters. It needs to have exactly 2 required '
+                   'parameter(s). Try using optional parameters if you '
+                   'require more functionality.')
     m_message_2 = ("The 'predict' method of the *ClassFit1Predict2* (model) "
                    'class has incorrect number (2) of the required '
                    'parameters. It needs to have exactly 1 required '
@@ -139,7 +162,6 @@ def test_check_model_functionality():
                    'require more functionality.')
     assert m_message_1 in w_message and m_message_2 in w_message
 
-    # Not an instance
     with pytest.warns(UserWarning) as warning:
         assert fumv.check_model_functionality(
             ClassFit1Predict2, suppress_warning=False) is False
@@ -148,46 +170,49 @@ def test_check_model_functionality():
 
     with pytest.warns(UserWarning) as warning:
         assert fumv.check_model_functionality(
-            class_fit_3_predict_0, suppress_warning=False) is False
+            ClassFit3Predict0, suppress_warning=False) is False
     w_message = str(warning[0].message)
-    m_message_1 = ("The 'fit' method of the *ClassFit3Predict0* (model) class "
-                   'has incorrect number (3) of the required parameters. It '
-                   'needs to have exactly 2 required parameter(s). Try using '
-                   'optional parameters if you require more functionality.')
+    m_message_1_1 = ("The 'fit' method of the *ClassFit3Predict0* (model) "
+                     'class has incorrect number (3) of the required '
+                     'parameters. It needs to have exactly 1 required '
+                     'parameter(s). Try using optional parameters if you '
+                     'require more functionality.')
+    m_message_1_2 = ("The 'fit' method of the *ClassFit3Predict0* (model) "
+                     'class has incorrect number (3) of the required '
+                     'parameters. It needs to have exactly 2 required '
+                     'parameter(s). Try using optional parameters if you '
+                     'require more functionality.')
     m_message_2 = ("The 'predict' method of the *ClassFit3Predict0* (model) "
                    'class has incorrect number (0) of the required '
                    'parameters. It needs to have exactly 1 required '
                    'parameter(s). Try using optional parameters if you '
                    'require more functionality.')
-    assert m_message_1 in w_message and m_message_2 in w_message
+    assert m_message_1_1 in w_message and m_message_1_1 in w_message
+    assert m_message_2 in w_message
 
     # Not an instance
     with pytest.warns(UserWarning) as warning:
         assert fumv.check_model_functionality(
-            ClassFit3Predict0, suppress_warning=False) is False
-    assert m_message_1 in w_message and m_message_2 in w_message
+            class_fit_3_predict_0, suppress_warning=False) is False
+    assert m_message_1_1 in w_message and m_message_1_1 in w_message
+    assert m_message_2 in w_message
 
     with pytest.warns(UserWarning) as warning:
         assert fumv.check_model_functionality(class_fit_3_predict_0, True,
                                               False) is False
     w_message = str(warning[0].message)
-    m_message_1 = ("The 'fit' method of the *ClassFit3Predict0* (model) class "
-                   'has incorrect number (3) of the required parameters. It '
-                   'needs to have exactly 2 required parameter(s). Try using '
-                   'optional parameters if you require more functionality.')
-    m_message_2 = ("The 'predict' method of the *ClassFit3Predict0* (model) "
-                   'class has incorrect number (0) of the required '
-                   'parameters. It needs to have exactly 1 required '
-                   'parameter(s). Try using optional parameters if you '
-                   'require more functionality.')
-    assert (m_message_1 in w_message and m_message_2 in w_message
-            and 'missing \'predict_proba\'' in w_message)
+    assert m_message_1_1 in w_message and m_message_1_1 in w_message
+    assert m_message_2 in w_message
+    assert 'missing \'predict_proba\'' in w_message
 
     # Not an instance
     with pytest.warns(UserWarning) as warning:
         assert fumv.check_model_functionality(ClassFit3Predict0, True,
                                               False) is False
     w_message = str(warning[0].message)
+    assert m_message_1_1 in w_message and m_message_1_1 in w_message
+    assert m_message_2 in w_message
+    assert 'missing \'predict_proba\'' in w_message
 
     assert fumv.check_model_functionality(
         class_fit_2_predict_1_predict_proba_0) is True

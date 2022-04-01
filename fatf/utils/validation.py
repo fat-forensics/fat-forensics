@@ -104,7 +104,7 @@ def check_object_functionality(
             # The splitting is necessary for consistent error raising with
             # Python 3.5 (and, possibly, below).
             key_str = sorted([i for i in methods.keys() if isinstance(i, str)])
-            key_otr = [i for i in methods.keys() if i not in key_str]
+            key_otr = sorted([i for i in methods.keys() if i not in key_str])
 
             for key in key_str + key_otr:
                 value = methods[key]
@@ -151,7 +151,8 @@ def check_object_functionality(
     is_functional = True
     message_strings = []
 
-    for method in methods:
+    methods_keys = sorted(list(methods.keys()))
+    for method in methods_keys:
         if not hasattr(an_object, method):
             is_functional = False
             message_strings.append("The {} is missing '{}' method.".format(

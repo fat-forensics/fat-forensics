@@ -202,7 +202,7 @@ def test_is_valid_input():
            'incorrect number (2) of the required parameters. It needs to have '
            'exactly 1 required parameter(s). Try using optional parameters if '
            'you require more functionality.\n\n'
-           '--> Supervised models <--'
+           '--> Supervised models <--\n'
            "The *InvalidModel* (model) class is missing 'predict_proba' "
            'method.')
     assert str(warning[0].message) == msg

@@ -38,4 +38,6 @@ jobs:
     - name: Build documentation
       run: make doc-html
     - name: Publish documentation
+      env:
+        FAT_FORENSICS_AUTOMATOR_GITHUB_TOKEN: ${{ secrets.FAT_FORENSICS_AUTOMATOR_GITHUB_TOKEN }}
       run: ./build_tools/doc/deploy-doc.sh

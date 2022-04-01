@@ -172,6 +172,7 @@ jobs:
     - name: Deploy code coverage
       env:
         GITHUB_PULL_REQUEST: false
+        CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
       run: make deploy-code-coverage
 
 

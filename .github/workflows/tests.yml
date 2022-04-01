@@ -87,8 +87,9 @@ jobs:
     steps:
     - name: Checkout the code
       uses: actions/checkout@v3
-      fetch_depth: 5
-      submodules: false
+      with:
+        fetch-depth: 5
+        submodules: false
     - name: Set up Python ${{ matrix.python }}
       uses: actions/setup-python@v3
       with:
@@ -128,8 +129,9 @@ jobs:
     steps:
     - name: Checkout the code
       uses: actions/checkout@v3
-      fetch-depth: 5
-      submodules: false
+      with:
+        fetch-depth: 5
+        submodules: false
     - name: Set up Python 3.6
       uses: actions/setup-python@v3
       with:
@@ -162,8 +164,9 @@ jobs:
     steps:
     - name: Checkout the code
       uses: actions/checkout@v3
-      fetch-depth: 5
-      submodules: false
+      with:
+        fetch-depth: 5
+        submodules: false
     - name: Set up Python 3.6
       uses: actions/setup-python@v3
       with:

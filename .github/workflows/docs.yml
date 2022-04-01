@@ -10,8 +10,9 @@ jobs:
     steps:
     - name: Checkout the code
       uses: actions/checkout@v3
-      fetch-depth: 5
-      submodules: false
+      with:
+        fetch-depth: 5
+        submodules: false
     - name: Cache sphinx gallery
       uses: actions/cache@v3
       with:

@@ -259,8 +259,17 @@ class TestCounterfactualExplainer(object):
         """
         Tests some initialisation errors for the ``CounterfactualExplainer``.
         """
-        user_warning_model = ("The *Dummy* (model) class is missing 'predict' "
-                              'method.')
+        user_warning_model = (
+            'Model object characteristics are neither consistent with '
+            'supervised nor unsupervised models.\n\n'
+            '--> Unsupervised models <--\n'
+            "The 'fit' method of the *Dummy* (model) class has incorrect "
+            'number (2) of the required parameters. It needs to have exactly '
+            '1 required parameter(s). Try using optional parameters if you '
+            'require more functionality.\n'
+            "The *Dummy* (model) class is missing 'predict' method.\n\n"
+            '--> Supervised models <--\n'
+            "The *Dummy* (model) class is missing 'predict' method.")
         user_warning_model_predictive_function = (
             'Both a model and a predictive_function parameters were supplied. '
             'A predictive functions takes the precedence during the '

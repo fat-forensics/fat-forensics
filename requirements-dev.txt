@@ -1,5 +1,6 @@
 codecov==2.1.0
 flake8==3.8.1
+isort<=4.3.21
 mypy==0.770
 nbval==0.9.1
 numpydoc==0.8.0

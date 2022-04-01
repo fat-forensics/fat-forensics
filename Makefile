@@ -5,10 +5,10 @@
 
 $(mkdir -p temp)
 
-ifndef TRAVIS_PYTHON_VERSION
+ifndef GITHUB_PYTHON_VERSION
 	PYTHON_VERSION := $(shell python -V | grep -Eo '\d+.\d+.\d+')
 else
-	PYTHON_VERSION := $(TRAVIS_PYTHON_VERSION)
+	PYTHON_VERSION := $(GITHUB_PYTHON_VERSION)
 endif
 
 ifndef FATF_TEST_MATPLOTLIB
@@ -32,7 +32,7 @@ endif
 	dependencies-dev doc-html doc-html-coverage doc-linkcheck doc-coverage \
 	test-doc test-notebooks test code-coverage test-with-code-coverage \
 	deploy-code-coverage linting-pylint linting-flake8 linting-yapf check-types \
-	build readme-gen readme-preview validate-travis validate-sphinx-conf \
+	build readme-gen readme-preview validate-sphinx-conf \
 	find-flags clean doc-clean test-docstrings deploy-pypi
 
 all: \
@@ -185,11 +185,11 @@ test-with-code-coverage:
 
 deploy-code-coverage:
 # @ before the command suppresses printing it out, hence hides the token
-ifeq ($(TRAVIS_PULL_REQUEST),false)
+ifeq ($(GITHUB_PULL_REQUEST),false)
 	@codecov -f temp/coverage_$(PYTHON_VERSION).xml
 else
 	$(error Code coverage can only be submitted from a branch of the main \
-		repository. (TRAVIS_PULL_REQUEST variable is undefined.))
+		repository. (GITHUB_PULL_REQUEST variable is undefined.))
 endif
 
 linting-pylint:
@@ -226,9 +226,6 @@ readme-gen:
 
 readme-preview:
 	restview README.rst
-
-validate-travis:
-	travis lint .travis.yml
 
 validate-sphinx-conf:
 	pylint --rcfile=.pylintrc -d invalid-name doc/conf.py

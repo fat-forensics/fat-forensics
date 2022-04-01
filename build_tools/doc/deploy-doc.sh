@@ -27,8 +27,8 @@ else
   DEPLOY_BRANCH="$1"
 fi
 
-git config user.name "Travis Deploy Bot"
-git config user.email "travis-deploy@fat-forensics.org"
+git config user.name "GitHub Action Deploy Bot"
+git config user.email "github-action-deploy@fat-forensics.org"
 
 git clone $DOC_DEPLOY_URL@github.com/$DOC_REPO.git --depth 1 $DOC_TARGET
 

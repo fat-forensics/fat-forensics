@@ -10,7 +10,7 @@ FATF_VERSION=$(python -c "import fatf; print(fatf.__version__)")
 # git describe --tags
 GIT_TAG=$(git tag --points-at HEAD)
 
-if [ -z "$TRAVIS_TAG" ]; then
+if [ -z "$GITHUB_TAG" ]; then
   if [ -z "$GIT_TAG" ]; then
     echo "This git commit is not tagged. Cannot create a release."
     exit 1
@@ -24,8 +24,8 @@ if [ -z "$TRAVIS_TAG" ]; then
     fi
   fi
 else
-  if [ "$GIT_TAG" == "$TRAVIS_TAG" ]; then
-    if [ "$TRAVIS_TAG" == "$FATF_VERSION" ]; then
+  if [ "$GIT_TAG" == "$GITHUB_TAG" ]; then
+    if [ "$GITHUB_TAG" == "$FATF_VERSION" ]; then
       echo "Safe to deploy FAT Forensics version $FATF_VERSION."
     else
       echo "The fatf.__varsion__ ($FATF_VERSION) and git tag ($GIT_TAG) do" \
@@ -33,7 +33,7 @@ else
       exit 1
     fi
   else
-    echo "Internal error: the Travis tag ($TRAVIS_TAG) and git tag" \
+    echo "Internal error: the GitHub tag ($GITHUB_TAG) and git tag" \
       "($GIT_TAG) do not agree."
     exit 1
   fi

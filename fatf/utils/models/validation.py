@@ -82,10 +82,9 @@ def check_model_functionality(model_object: Union[object, type],
     if not is_functional and not suppress_warning:
         message = ('Model object characteristics are neither consistent with '
                    'supervised nor unsupervised models.\n\n'
-                   '--> Unsupervised models <--\n'
-                   f'{message_us}'
-                   '\n\n--> Supervised models <--\n'
-                   f'{message_s}')
+                   '--> Unsupervised models <--\n{}'
+                   '\n\n--> Supervised models <--\n{}').format(
+                       message_us, message_s)
         warnings.warn(message, category=UserWarning)
 
     return is_functional

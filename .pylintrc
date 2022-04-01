@@ -1,6 +1,7 @@
 [pylint]
 # Errors or warning code-names to be ignored (separated with ,)
-disable = locally-disabled
+# TODO(Kacper): fix unsubscriptable-object
+disable = locally-disabled,unsubscriptable-object
 
 # 0 is auto-detect
 jobs = 0

@@ -34,7 +34,8 @@ __all__ = ['Augmentation',
            'Mixup',
            'NormalClassDiscovery',
            'DecisionBoundarySphere',
-           'LocalSphere']  # yapf: disable
+           'LocalSphere',
+           'random_binary_sampler']  # yapf: disable
 
 logger = logging.getLogger(__name__)  # pylint: disable=invalid-name
 
@@ -2203,3 +2204,43 @@ class LocalSphere(Augmentation):
             else:
                 samples[:, index] = data_row[i] + directional_vectors[:, i]
         return samples
+
+
+def random_binary_sampler(elements_number: int,
+                          samples_number: int = 50) -> np.ndarray:
+    """
+    Samples ``samples_number`` of random binary vectors of length
+    ``elements_number``.
+
+    Parameters
+    ----------
+    elements_number : integer
+        The number of samples to generate.
+    samples_number : integer, optional (default=50)
+        The number of binary elements in each sample.
+
+    Raises
+    ------
+    TypeError
+        Either ``samples_number`` or ``elements_number`` is not an integer.
+    ValueError
+        Either ``samples_number`` or ``elements_number`` is smaller than 1.
+
+    Returns
+    -------
+    samples : numpy.ndarray
+        A binary numpy array of shape ``samples_number``X``elements_number``
+        with random samples.
+    """
+    if not isinstance(elements_number, int):
+        raise TypeError('The number of elements must be an integer.')
+    elif elements_number < 1:
+        raise ValueError('The number of elements must be greater than 0.')
+
+    if not isinstance(samples_number, int):
+        raise TypeError('The number of samples must be an integer.')
+    elif samples_number < 1:
+        raise ValueError('The number of samples must be greater than 0.')
+
+    samples = np.random.randint(0, 2, size=(samples_number, elements_number))
+    return samples

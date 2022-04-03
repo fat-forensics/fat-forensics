@@ -25,9 +25,10 @@ def check_model_functionality(model_object: Union[object, type],
 
     Examines a ``model_object`` and ensures that it has all the required
     methods with the correct number of parameters (excluding ``self``):
-    ``__init__`` (at least 0), ``fit`` (at least 2), ``predict`` (at least 1)
-    and, if required (``require_probabilities=True``), ``predict_proba`` (at
-    least 1).
+    ``__init__`` (at least 0), ``fit`` (at least 1 for unsupervised and at
+    least 2 for supervised models), ``predict`` (at least 1) and,
+    if required (``require_probabilities=True``), ``predict_proba`` (at
+    least 1, in which case ``fit`` requires at least 2).
 
     Parameters
     ----------
@@ -67,14 +68,23 @@ def check_model_functionality(model_object: Union[object, type],
     if not isinstance(suppress_warning, bool):
         raise TypeError('The suppress_warning parameter must be boolean.')
 
-    methods = {'fit': 2, 'predict': 1}
+    methods_unsupervised = {'fit': 1, 'predict': 1}
+    methods_supervised = {'fit': 2, 'predict': 1}
     if require_probabilities:
-        methods['predict_proba'] = 1
+        methods_supervised['predict_proba'] = 1
 
-    is_functional, message = fuv.check_object_functionality(
-        model_object, methods, object_reference_name='model')
+    is_functional_us, message_us = fuv.check_object_functionality(
+        model_object, methods_unsupervised, object_reference_name='model')
+    is_functional_s, message_s = fuv.check_object_functionality(
+        model_object, methods_supervised, object_reference_name='model')
+    is_functional = is_functional_us or is_functional_s
 
     if not is_functional and not suppress_warning:
+        message = ('Model object characteristics are neither consistent with '
+                   'supervised nor unsupervised models.\n\n'
+                   '--> Unsupervised models <--\n{}'
+                   '\n\n--> Supervised models <--\n{}').format(
+                       message_us, message_s)
         warnings.warn(message, category=UserWarning)
 
     return is_functional

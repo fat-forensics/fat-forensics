@@ -1951,3 +1951,20 @@ TabularBlimeyTree.explain_instance` method.
             {'': numerical_np_explanation_reg}, {'': exp}, atol=1e-3)
 
         assert len(caplog.records) == 6
+
+        # ...explain class string first indexed class
+        explanation_ = {
+            'class 0': {
+                'feature 0': 0.485,
+                'feature 1': 0.515,
+                'feature 2': 0.0,
+                'feature 3': 0.0
+            }
+        }
+        explanation = self.numerical_np_tabular_blimey.explain_instance(
+            futt.NUMERICAL_NP_ARRAY[0],
+            samples_number=50,
+            maximum_depth=2,
+            explained_class=0)
+        assert futt.is_explanation_equal_dict(
+            explanation_, explanation, atol=1e-3)

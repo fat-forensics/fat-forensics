@@ -195,8 +195,17 @@ def test_is_valid_input():
                                   None)
         assert str(exin.value) == msg
     assert len(warning) == 1
-    assert str(warning[0].message) == ('The *InvalidModel* (model) class is '
-                                       "missing 'predict_proba' method.")
+    msg = ('Model object characteristics are neither consistent with '
+           'supervised nor unsupervised models.\n\n'
+           '--> Unsupervised models <--\n'
+           "The 'fit' method of the *InvalidModel* (model) class has "
+           'incorrect number (2) of the required parameters. It needs to have '
+           'exactly 1 required parameter(s). Try using optional parameters if '
+           'you require more functionality.\n\n'
+           '--> Supervised models <--\n'
+           "The *InvalidModel* (model) class is missing 'predict_proba' "
+           'method.')
+    assert str(warning[0].message) == msg
 
     # Feature index
     msg = 'Provided feature index is not valid for the input dataset.'

@@ -46,9 +46,6 @@ Cite           |BibTeX|_ |JOSS|_ |ZENODO|_
 .. |Binder| image:: https://mybinder.org/badge_logo.svg
 .. _Binder: https://mybinder.org/v2/gh/fat-forensics/fat-forensics-doc/master?filepath=notebooks
 
-.. |Docker| image:: https://images.microbadger.com/badges/image/anthropocentricai/ai-python.svg
-.. _Docker: https://hub.docker.com/r/anthropocentricai/ai-python
-
 .. |MailingList| image:: https://img.shields.io/badge/mailing%20list-Google%20Groups-green.svg
 .. _MailingList: https://groups.google.com/forum/#!forum/fat-forensics
 
@@ -244,7 +241,7 @@ and the University of Bristol with the initial funding provided by Thales.
 .. _matplotlib: https://matplotlib.org/
 .. _`https://fat-forensics.org`: https://fat-forensics.org
 .. _inst: https://fat-forensics.org/getting_started/install_deps_os.html#installation-instructions
-.. _changelog: https://fat-forensics.org/getting_started/changelog.html
+.. _changelog: https://fat-forensics.org/changelog.html
 .. _dev_guide: https://fat-forensics.org/development.html
 .. _`https://github.com/fat-forensics/fat-forensics`: https://github.com/fat-forensics/fat-forensics
 .. _`https://pypi.org/project/fat-forensics`: https://pypi.org/project/fat-forensics

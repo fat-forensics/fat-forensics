@@ -43,7 +43,7 @@ with open('README.rst') as f:
     LONG_DESCRIPTION = f.read()
 MAINTAINER = 'Kacper Sokol'
 MAINTAINER_EMAIL = 'k.sokol@bristol.ac.uk'
-URL = 'https://anthropocentricai.github.io/{}'.format(DISTNAME)
+URL = 'https://fat-forensics.org/'
 DOWNLOAD_URL = 'https://pypi.org/project/{}/#files'.format(DISTNAME)
 LICENSE = 'new BSD'
 PACKAGES = find_packages(exclude=['*.tests', '*.tests.*', 'tests.*', 'tests'])

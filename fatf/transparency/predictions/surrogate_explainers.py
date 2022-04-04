@@ -141,7 +141,7 @@ surrogate_explainers.SurrogateTabularExplainer` class.
                 predictive_model, True, True)
             if not is_functional:
                 raise IncompatibleModelError(
-                    'With as_predictive set to True the predictive model '
+                    'With as_probabilistic set to True the predictive model '
                     'needs to be capable of outputting probabilities via '
                     'a *predict_proba* method, which takes exactly one '
                     'required parameter -- data to be predicted -- and '
@@ -151,7 +151,7 @@ surrogate_explainers.SurrogateTabularExplainer` class.
                 predictive_model, False, True)
             if not is_functional:
                 raise IncompatibleModelError(
-                    'With as_predictive set to False the predictive model '
+                    'With as_probabilistic set to False the predictive model '
                     'needs to be capable of outputting (class) predictions '
                     'via a *predict* method, which takes exactly one required '
                     'parameter -- data to be predicted -- and outputs a '

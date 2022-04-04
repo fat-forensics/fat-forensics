@@ -12,6 +12,7 @@ from typing import List, Optional, Tuple, Union
 
 import abc
 import logging
+import warnings
 
 import numpy as np
 
@@ -295,11 +296,16 @@ class Segmentation(abc.ABC):
     segmentation_mask : numpy.ndarray, optional (default=None)
         A numpy array representing an image to be used for generating the
         segmentation. If this parameter is not provided, the ``image`` will
-        be used ot generate the segmentation.
+        be used to generate the segmentation.
     **kwargs : dictionary
         A list of named parameters saved to the ``kwargs`` attribute,
         which can be used to pass configuration options to the ``_segment``
         method.
+
+    Warns
+    -----
+    UserWarning
+        Inform the user that only a single segment was found.
 
     Raises
     ------
@@ -384,6 +390,11 @@ class Segmentation(abc.ABC):
 
         # Number of segments
         self.segments_number = np.unique(self._segments).shape[0]
+
+        if self.segments_number == 1:
+            warnings.warn('The segmentation returned only **one** segment. '
+                          'Consider tweaking the parameters to generate a '
+                          'reasonable segmentation.', UserWarning)
 
     @abc.abstractmethod
     def _segment(self) -> np.ndarray:
@@ -1329,7 +1340,8 @@ class Slic(Segmentation):
         elif n_segments < 2:
             raise ValueError('The n_segments parameter must be at least 2.')
 
-        segments = ski_segmentation.slic(self.segmentation_mask, **self.kwargs)
+        segments = ski_segmentation.slic(
+            self.segmentation_mask, start_label=1, **self.kwargs)
         return segments
 
 
@@ -1354,9 +1366,9 @@ class QuickShift(Segmentation):
     Parameters
     ----------
     ratio : number, optional (default=0.2)
-         Balances color-space proximity and image-space proximity.
-         Higher values give more weight to color-space.
-         Between 0 and 1.
+        Balances color-space proximity and image-space proximity.
+        Higher values give more weight to color-space.
+        Between 0 and 1.
     kernel_size : number, optional (default=4)
         Width of Gaussian kernel used in smoothing the sample density.
         Higher means fewer clusters.
@@ -1414,8 +1426,9 @@ class QuickShift(Segmentation):
         if not isinstance(max_dist, Number):
             raise TypeError('Max dist should be a number.')
 
-        segments = ski_segmentation.quickshift(self.segmentation_mask,
-                                               **self.kwargs)
+        segments = ski_segmentation.quickshift(
+            self.segmentation_mask, **self.kwargs)
+        segments = segments + 1  # quickshift starts segment numbering at 0
         return segments
 
 

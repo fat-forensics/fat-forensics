@@ -519,7 +519,7 @@ optional (default=None)
         colour : string, integer, tuple(integer, integer, integer), \
 optional (default=None)
             A colour specifier.
-            By default (colour=None) the colouring strategy of the class is
+            By default (``colour=None``) the colouring strategy of the class is
             used.
             See the documentation of the
             :func:`fatf.utils.data.occlusion.Occlusion.set_colouring_strategy`

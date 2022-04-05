@@ -54,8 +54,8 @@ def batch_data(data: np.ndarray,
         The transformation function does not have exactly one required
         parameter.
     TypeError
-        The ``batch_size`` is not an integer or the ``transformation_fn`` is not
-        a callable object.
+        The ``batch_size`` is not an integer or the ``transformation_fn`` is
+        not a callable object.
     ValueError
         The ``batch_size`` is smaller than 1.
 
@@ -67,34 +67,34 @@ def batch_data(data: np.ndarray,
     if not fuav.is_2d_array(data):
         raise IncorrectShapeError('The data array must be 2-dimensional.')
     if fuav.is_structured_array(data):
-        slice_fn = lambda d, a, b: d[a:b]
+        slice_fn = lambda d, a, b: d[a:b]  # noqa: E731
     else:
-        slice_fn = lambda d, a, b: d[a:b, :]
+        slice_fn = lambda d, a, b: d[a:b, :]  # noqa: E731
 
     if not isinstance(batch_size, int):
         raise TypeError('The batch size must be an integer.')
-    elif batch_size < 1:
+    if batch_size < 1:
         raise ValueError('The batch size must be larger than 0.')
-    
-    if not callable(transformation_fn):
-        raise TypeError(
-            'The transformation function must be a callable object.')
-    required_params = fuv.get_required_parameters_number(transformation_fn)
-    if required_params != 1:
-        raise RuntimeError(
-            'The transformation function must have only one required '
-            'parameter; now it has {}.'.format(required_params))
+
+    if transformation_fn is None:
+        transformation_fn = lambda slice: slice  # noqa: E731
+    else:
+        if not callable(transformation_fn):
+            raise TypeError(
+                'The transformation function must be a callable object.')
+        required_params = fuv.get_required_parameters_number(transformation_fn)
+        if required_params != 1:
+            raise RuntimeError(
+                'The transformation function must have only one required '
+                'parameter; now it has {}.'.format(required_params))
 
     n_rows = data.shape[0]
 
-    for i_start in np.arange(0, n_rows, batch_size):
-        i_end = np.min([i_start + batch_size, n_rows])
+    def _batch_data():
+        for i_start in np.arange(0, n_rows, batch_size):
+            i_end = np.min([i_start + batch_size, n_rows])
+            data_slice_ = slice_fn(data, i_start, i_end)
+            data_slice = transformation_fn(data_slice_)
+            yield data_slice
 
-        slice_ = slice_fn(data, i_start, i_end)
-
-        if transformation_fn is None:
-            slice = slice_
-        else:
-            slice = transformation_fn(slice_)
-
-        yield slice
+    return _batch_data()

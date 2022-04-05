@@ -2234,12 +2234,12 @@ def random_binary_sampler(elements_number: int,
     """
     if not isinstance(elements_number, int):
         raise TypeError('The number of elements must be an integer.')
-    elif elements_number < 1:
+    if elements_number < 1:
         raise ValueError('The number of elements must be greater than 0.')
 
     if not isinstance(samples_number, int):
         raise TypeError('The number of samples must be an integer.')
-    elif samples_number < 1:
+    if samples_number < 1:
         raise ValueError('The number of samples must be greater than 0.')
 
     samples = np.random.randint(0, 2, size=(samples_number, elements_number))

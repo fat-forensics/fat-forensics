@@ -62,7 +62,7 @@ flexibility -- none of the three aforementioned components can be customised.
    on Neural Information Processing Systems (NeurIPS 2019), Vancouver, Canada.
    arXiv preprint arXiv:1910.13016. URL https://arxiv.org/abs/1910.13016.
 .. [RIBEIRO2016WHY] Ribeiro, M.T., Singh, S. and Guestrin, C., 2016,
-   August. Why should i trust you?: Explaining the predictions of any
+   August. Why should I trust you?: Explaining the predictions of any
    classifier. In Proceedings of the 22nd ACM SIGKDD international
    conference on knowledge discovery and data mining (pp. 1135-1144). ACM.
 

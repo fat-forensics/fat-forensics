@@ -906,7 +906,7 @@ surrogate_explainers.SurrogateTabularExplainer`.
        master/lime/lime_tabular.py#L357
 
     .. [RIBEIRO2016WHY] Ribeiro, M.T., Singh, S. and Guestrin, C., 2016,
-       August. Why should i trust you?: Explaining the predictions of any
+       August. Why should I trust you?: Explaining the predictions of any
        classifier. In Proceedings of the 22nd ACM SIGKDD international
        conference on knowledge discovery and data mining (pp. 1135-1144). ACM.
 

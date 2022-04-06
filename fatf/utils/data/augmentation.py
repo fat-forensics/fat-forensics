@@ -1,5 +1,8 @@
 """
 The :mod:`fatf.utils.data.augmentation` module implements data set augmenters.
+
+.. versionchanged:: 0.1.1
+    Added the ``random_binary_sampler`` function.
 """
 # Author: Alex Hepburn <ah13558@bristol.ac.uk>
 #         Kacper Sokol <k.sokol@bristol.ac.uk>
@@ -2211,6 +2214,8 @@ def random_binary_sampler(elements_number: int,
     """
     Samples ``samples_number`` of random binary vectors of length
     ``elements_number``.
+
+    .. versionadded:: 0.1.1
 
     Parameters
     ----------

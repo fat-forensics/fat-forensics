@@ -4,8 +4,9 @@ The :mod:`fatf.utils.data.segmentation` module implements image segmenters.
 .. versionadded:: 0.1.1
 """
 # Author: Kacper Sokol <k.sokol@bristol.ac.uk>
-#         Alex Hepburn <ah13558@bristol.ac.uk>
 # License: new BSD
+
+# pylint: disable=too-many-lines
 
 from numbers import Number
 from typing import List, Optional, Tuple, Union
@@ -28,8 +29,8 @@ except ImportError:
         'scikit-image Python package is not installed on your system. '
         'You must install it in order to use the fatf.utils.data.segmentation '
         'functionality. '
-        'One possibility is to install scikit-image alongside this package via '
-        'auxiliary dependencies with: pip install fat-forensics[all].')
+        'One possibility is to install scikit-image alongside this package '
+        'via auxiliary dependencies with: pip install fat-forensics[all].')
 
 try:
     from PIL import Image, ImageFont, ImageDraw
@@ -84,26 +85,28 @@ def _validate_image_array(image: np.ndarray, image_name: str) -> bool:
     is_valid = False
 
     assert (isinstance(image_name, str)
-               and image_name), 'image_name must be a non-empty string.'
+            and image_name), 'image_name must be a non-empty string.'
 
     # Validate the image
     if fuav.is_structured_array(image):
-        raise TypeError(f'The input {image_name} must not be a structured '
-                        'numpy array.')
+        raise TypeError(('The input {} must not be a structured '
+                         'numpy array.').format(image_name))
     if not fuav.is_numerical_array(image):
-        raise TypeError(f'The input {image_name} must be of a numerical type.')
+        raise TypeError(
+            'The input {} must be of a numerical type.'.format(image_name))
     # Ensure that we are dealing with integers within the 0--255 range
-    _image_is_int = image.dtype.kind in ('iu')
+    _image_is_int = image.dtype.kind in 'iu'
     _image_min, _image_max = image.min(), image.max()
     if _image_min < 0 or _image_max > 255 or not _image_is_int:
-        raise ValueError(f'The numpy representation of the input {image_name} '
-                         'should have its values (integers) between the '
-                         '0--255 range.')
+        raise ValueError(('The numpy representation of the input {} '
+                          'should have its values (integers) between the '
+                          '0--255 range.').format(image_name))
     # Ensure 2- or 3-dimensional
     _image_in_shape = len(image.shape) in (2, 3)
     if not _image_in_shape:
-        raise IncorrectShapeError(f'The input {image_name} must be a 2- or 3-'
-                                  'dimensional numpy array.')
+        raise IncorrectShapeError(
+            'The input {} must be a 2- or 3-dimensional numpy array.'.format(
+                image_name))
 
     is_valid = True
     return is_valid
@@ -135,9 +138,9 @@ def _validate_input(image: np.ndarray,
 
     if segmentation_mask is not None:
         assert _validate_image_array(
-            segmentation_mask, 'image segmentation mask'), \
-                'image segmentation mask is invalid.'
-        
+            segmentation_mask,
+            'image segmentation mask'), 'image segmentation mask is invalid.'
+
         # Check shape
         if image.shape[:2] != segmentation_mask.shape[:2]:
             raise IncorrectShapeError(
@@ -193,9 +196,9 @@ def _validate_segmentation(segments: np.ndarray, image: np.ndarray) -> bool:
     if not fuav.is_2d_array(segments):
         raise IncorrectShapeError('The segmentation array must be a 2-'
                                   'dimensional numpy array.')
-    _segments_is_int = segments.dtype.kind in ('iu')
+    _segments_is_int = segments.dtype.kind in 'iu'
     if not fuav.is_numerical_array(segments) or not _segments_is_int:
-        raise TypeError('The segmentation array must be of a numerical type.')
+        raise TypeError('The segmentation array must be of integer type.')
     _segments_min, _segments_max = segments.min(), segments.max()
     _segments_unique = np.unique(segments)
     _segments_is_continuous = True
@@ -204,8 +207,8 @@ def _validate_segmentation(segments: np.ndarray, image: np.ndarray) -> bool:
             _segments_is_continuous = False
             break
     if _segments_min != 1 or not _segments_is_continuous:
-        raise ValueError('The segmentation array should encode unique segments '
-                         'with a continuous sequence of integers '
+        raise ValueError('The segmentation array should encode unique '
+                         'segments with a continuous sequence of integers '
                          'starting at 1.')
 
     # Check shape
@@ -255,9 +258,8 @@ def _validate_colour(colour: Union[None, RGBcolour]) -> bool:
             if not isinstance(i, int):
                 raise TypeError(
                     'Each element of the colour tuple must be an integer.')
-            elif i < 0 or i > 255:
-                raise ValueError(
-                    'Each RGB value must be between 0 and 255.')
+            if i < 0 or i > 255:
+                raise ValueError('Each RGB value must be between 0 and 255.')
     is_valid = True
     return is_valid
 
@@ -352,25 +354,24 @@ class Segmentation(abc.ABC):
                  segmentation_mask: Optional[np.ndarray] = None,
                  **kwargs):
         """Constructs a ``Segmentation`` abstract class."""
-        assert _validate_input(
-            image,
-            segmentation_mask), 'Invalid input.'
+        assert _validate_input(image, segmentation_mask), 'Invalid input.'
 
         # The image and the segmentation mask in numpy representation
-        self.image = image  # (np.array(image) * 255).astype(np.uint8)
+        self.image = image.copy()  # (np.array(image) * 255).astype(np.uint8)
         if segmentation_mask is None:
-            self.segmentation_mask = self.image
+            self.segmentation_mask = self.image.copy()
         else:
-            self.segmentation_mask = segmentation_mask
+            self.segmentation_mask = segmentation_mask.copy()
 
         # Check whether the image is RGB, greyscale or black-and-white
         self.is_rgb = len(self.image.shape) == 3
 
         # If {0, 1} black-and-white, scale to {0, 255}
         if not self.is_rgb:
+            # For the image
             _unique_intensities = set(np.unique(self.image))
             _unique_intensities_n = len(_unique_intensities)
-            if _unique_intensities_n == 2 or _unique_intensities_n == 1:
+            if _unique_intensities_n in (1, 2):
                 logger.info('Assuming a black-and-white image.')
                 if 1 in _unique_intensities:
                     logger.info('Rescale 0/1 black-and-white image to 0/255.')
@@ -379,22 +380,39 @@ class Segmentation(abc.ABC):
                 if _unique_intensities.difference((0, 1, 255)):
                     raise RuntimeError('Black-and-white images must use 0 as '
                                        'black and 1 or 255 as white.')
+        # Repeat the same for the mask
+        if len(self.segmentation_mask.shape) != 3:
+            _unique_intensities = set(np.unique(self.segmentation_mask))
+            _unique_intensities_n = len(_unique_intensities)
+            if _unique_intensities_n in (1, 2):
+                logger.info('Assuming a black-and-white segmentation mask.')
+                print(_unique_intensities, _unique_intensities_n)
+                if 1 in _unique_intensities:
+                    logger.info('Rescale 0/1 black-and-white segmentation '
+                                'mask to 0/255.')
+                    _bnw_mask = (self.segmentation_mask == 1)
+                    self.segmentation_mask[_bnw_mask] = 255
+                if _unique_intensities.difference((0, 1, 255)):
+                    raise RuntimeError(
+                        'Black-and-white segmentation masks must use 0 as '
+                        'black and 1 or 255 as white.')
 
         # Memorise optional arguments used for the _segment method
         self.kwargs = kwargs
 
         # Segments map
         self._segments = self._segment()
-        assert _validate_segmentation(self._segments, self.image), (
-            'Invalid segments.')
+        assert _validate_segmentation(self._segments,
+                                      self.image), 'Invalid segments.'
 
         # Number of segments
         self.segments_number = np.unique(self._segments).shape[0]
 
         if self.segments_number == 1:
-            warnings.warn('The segmentation returned only **one** segment. '
-                          'Consider tweaking the parameters to generate a '
-                          'reasonable segmentation.', UserWarning)
+            warnings.warn(
+                'The segmentation returned only **one** segment. '
+                'Consider tweaking the parameters to generate a reasonable '
+                'segmentation.', UserWarning)
 
     @abc.abstractmethod
     def _segment(self) -> np.ndarray:
@@ -423,12 +441,13 @@ class Segmentation(abc.ABC):
             A two-dimensional numpy array encoding segment id for each pixel
             of the segmented image.
         """
-        raise NotImplementedError(
+        raise NotImplementedError(  # pragma: nocover
             'Overwrite this method with your implementation of a bespoke '
             'segmentation algorithm.')
 
-        segmentation = None  # Use self.kwargs
-        return segmentation
+        # pylint: disable=unreachable
+        segmentation = None  # Use self.kwargs # pragma: nocover
+        return segmentation  # pragma: nocover
 
     @property
     def segments(self) -> np.ndarray:
@@ -438,7 +457,10 @@ class Segmentation(abc.ABC):
     @segments.setter
     def segments(self, segments: np.ndarray):
         """Setups the segments manually."""
-        assert _validate_segmentation(segments, self.image), 'Invalid segments.'
+        assert _validate_segmentation(segments, self.image), 'Bad segments.'
+        if np.unique(segments).shape[0] == 1:
+            warnings.warn('The segmentation has only **one** segment.',
+                          UserWarning)
         self._segments = segments
 
     def set_segments(self, segments: np.ndarray):
@@ -454,8 +476,8 @@ class Segmentation(abc.ABC):
         .. note::
            The same can be achieved by directly setting the ``self.segments``
            with ``my_segmenter.segments = segments``.
-           (A dedicated *setter* method takes care of validating the correctness
-           of ``segments``.)
+           (A dedicated *setter* method takes care of validating the
+           correctness of ``segments``.)
 
         Parameters
         ----------
@@ -475,14 +497,16 @@ class Segmentation(abc.ABC):
             The unique elements of the ``segments`` array do not form a
             continuous sequence starting at 1.
         """
-        assert _validate_segmentation(segments, self.image), 'Invalid segments.'
+        assert _validate_segmentation(segments, self.image), 'Bad segments.'
+        if np.unique(segments).shape[0] == 1:
+            warnings.warn('The segmentation has only **one** segment.',
+                          UserWarning)
         self._segments = segments
 
     def mark_boundaries(self,
                         mask: bool = False,
                         image: Optional[np.ndarray] = None,
-                        colour: Optional[RGBcolour] = None
-                        ) -> np.ndarray:
+                        colour: Optional[RGBcolour] = None) -> np.ndarray:
         """
         Marks segment boundaries atop the image used to initialise this class.
 
@@ -534,7 +558,7 @@ class Segmentation(abc.ABC):
         if colour is None:
             _colour = colour
         else:
-            _colour = tuple([i/255 for i in colour])  # To avoid a UserWarning
+            _colour = tuple([i / 255 for i in colour])  # Avoids a UserWarning
 
         if image is None:
             if mask:
@@ -552,8 +576,9 @@ class Segmentation(abc.ABC):
         bnd_float = ski_segmentation.mark_boundaries(
             canvas, self._segments, color=_colour)
         marked_image = (bnd_float * 255).astype(np.uint8)
-        assert _validate_image_array(marked_image, 'image with boundaries'), (
-            'Invalid integer-based image.')
+        assert _validate_image_array(
+            marked_image,
+            'image with boundaries'), 'Invalid integer-based image.'
         return marked_image
 
     def number_segments(
@@ -582,7 +607,8 @@ class Segmentation(abc.ABC):
         ----------
         segments_subset : intiger or list(integer), optional (default=None)
             A number of a specific segment to be numbered or a list of segments
-            to be numbered. By default (``None``) all the segments are numbered.
+            to be numbered. By default (``None``) all the segments are
+            numbered.
         mask : boolean, optional (default=False)
             If ``True``, number the segmentation mask;
             if ``False``, number the image (default).
@@ -614,9 +640,10 @@ class Segmentation(abc.ABC):
         Returns
         -------
         numbered_image : numpy.ndarray
-            A numpy array holding the image with the selected subset of segments
-            numbered.
+            A numpy array holding the image with the selected subset of
+            segments numbered.
         """
+        # pylint: disable=too-many-locals,too-many-branches,too-many-statements
         assert self._segments is not None, 'The segmenter was not initialised.'
         unique_segments = np.unique(self._segments)
 
@@ -627,8 +654,8 @@ class Segmentation(abc.ABC):
                 if segments_subset not in unique_segments:
                     raise ValueError(
                         ('The segment id {} does not correspond to any of '
-                        'the known segments ({}).').format(
-                            segments_subset, unique_segments.tolist()))
+                         'the known segments ({}).').format(
+                             segments_subset, unique_segments.tolist()))
                 segments_subset = np.asarray([segments_subset])
             elif isinstance(segments_subset, list):
                 if not segments_subset:
@@ -643,7 +670,7 @@ class Segmentation(abc.ABC):
                         raise ValueError(
                             ('The segment id {} does not correspond to any of '
                              'the known segments ({}).').format(
-                                i, unique_segments.tolist()))
+                                 i, unique_segments.tolist()))
                 segments_subset = np.asarray(segments_subset)
             else:
                 raise TypeError('Segments subset must be either of None, '
@@ -670,6 +697,9 @@ class Segmentation(abc.ABC):
             is_rgb = len(image.shape) == 3
         if not is_rgb:
             canvas = ski_colour.gray2rgb(canvas)
+            assert _validate_image_array(
+                canvas, 'grayscale->RGB image'), 'Invalid image.'
+            canvas = canvas.astype(np.uint8)
         # canvas = self.mark_boundaries(image=canvas, colour=colour)
 
         # font = ImageFont.truetype('~/Library/Fonts/Calibri.ttf', 11)
@@ -687,17 +717,17 @@ class Segmentation(abc.ABC):
 
             eligible_y_ind = np.where(
                 segment_id_indices[:, 0] == segment_y_top)[0]
-            segment_x_middle = segment_id_indices[eligible_y_ind].min(axis=0)[1]
+            segment_x_middle = segment_id_indices[eligible_y_ind].min(
+                axis=0)[1]
 
-            numbered_canvas_draw.text(
-                (segment_x_middle, segment_y_top),
-                '{}'.format(segment_id),
-                fill=colour,
-                font=font)
+            numbered_canvas_draw.text((segment_x_middle, segment_y_top),
+                                      '{}'.format(segment_id),
+                                      fill=colour,
+                                      font=font)
 
         numbered_image = np.asarray(numbered_canvas)
-        assert _validate_image_array(numbered_image, 'numbered image'), (
-            'Invalid numbered image.')
+        assert _validate_image_array(
+            numbered_image, 'numbered image'), 'Invalid numbered image.'
 
         return numbered_image
 
@@ -707,7 +737,7 @@ class Segmentation(abc.ABC):
             mask: bool = False,
             image: Optional[np.ndarray] = None,
             colour: Optional[Union[RGBcolour, List[RGBcolour]]] = None
-            ) -> np.ndarray:
+    ) -> np.ndarray:
         """
         Highlights image segments by translucently colouring them.
 
@@ -731,7 +761,8 @@ class Segmentation(abc.ABC):
         ----------
         segments_subset : intiger or list(integer), optional (default=None)
             A number of a specific segment or a list of segments to be
-            highlighted. By default (``None``) all the segments are highlighted.
+            highlighted. By default (``None``) all the segments are
+            highlighted.
         mask : boolean, optional (default=False)
             If ``True``, highlight the segmentation mask;
             if ``False``, highlight the image (default).
@@ -769,9 +800,10 @@ list(tuple(integer, integer, integer)), optional (default=None)
         Returns
         -------
         image_highlighted : numpy.ndarray
-            A numpy array holding the image with the selected subset of segments
-            highlighted.
+            A numpy array holding the image with the selected subset of
+            segments highlighted.
         """
+        # pylint: disable=too-many-locals,too-many-branches,too-many-statements
         assert self._segments is not None, 'The segmenter was not initialised.'
         unique_segments = np.unique(self._segments)
 
@@ -782,8 +814,8 @@ list(tuple(integer, integer, integer)), optional (default=None)
                 if segments_subset not in unique_segments:
                     raise ValueError(
                         ('The segment id {} does not correspond to any of '
-                        'the known segments ({}).').format(
-                            segments_subset, unique_segments.tolist()))
+                         'the known segments ({}).').format(
+                             segments_subset, unique_segments.tolist()))
                 segments_subset = np.asarray([segments_subset])
             elif isinstance(segments_subset, list):
                 if not segments_subset:
@@ -798,7 +830,7 @@ list(tuple(integer, integer, integer)), optional (default=None)
                         raise ValueError(
                             ('The segment id {} does not correspond to any of '
                              'the known segments ({}).').format(
-                                i, unique_segments.tolist()))
+                                 i, unique_segments.tolist()))
                 segments_subset = np.asarray(segments_subset)
             else:
                 raise TypeError('Segments subset must be either of None, '
@@ -817,8 +849,8 @@ list(tuple(integer, integer, integer)), optional (default=None)
                 raise ValueError('If colours are provided as a list, their '
                                  'number must match the number of segments '
                                  'chosen to be highlighted.')
-            for c in colour:
-                assert _validate_colour(c), 'Invalid colour.'
+            for clr in colour:
+                assert _validate_colour(clr), 'Invalid colour.'
         else:
             if colour is not None:
                 raise TypeError('The colour can be either of an RGB tuple, '
@@ -842,8 +874,8 @@ list(tuple(integer, integer, integer)), optional (default=None)
             canvas = ski_colour.gray2rgb(canvas)
 
         highlight_mask = np.zeros(shape=self._segments.shape, dtype=int)
-        for i, s in enumerate(segments_subset):
-            s_mask = (self._segments == s)
+        for i, segments in enumerate(segments_subset):
+            s_mask = (self._segments == segments)
             highlight_mask[s_mask] = i + 1
 
         # This step converts the image to grayscale first...
@@ -855,8 +887,8 @@ list(tuple(integer, integer, integer)), optional (default=None)
             bg_color=None,
             kind='overlay')
         image_highlighted_ = (image_highlighted_ * 255).astype(np.uint8)
-        assert _validate_image_array(image_highlighted_, 'highlighted image'), (
-            'Invalid highlighted image.')
+        assert _validate_image_array(
+            image_highlighted_, 'highlighted image'), 'Bad highlighted image.'
 
         # ... so we need to restore the colour to the background
         image_highlighted = canvas.copy()
@@ -870,8 +902,7 @@ list(tuple(integer, integer, integer)), optional (default=None)
             segments_subset: Optional[Union[int, List[int]]] = None,
             mask: bool = False,
             image: Optional[np.ndarray] = None,
-            colour: Optional[Union[str, List[str]]] = None
-            ) -> np.ndarray:
+            colour: Optional[Union[str, List[str]]] = None) -> np.ndarray:
         """
         Stain selected segments of the image with red, green or blue tint.
 
@@ -927,16 +958,18 @@ list(tuple(integer, integer, integer)), optional (default=None)
             One of the segment ids provided via ``segments_subset`` is invalid
             for the class segmentation, the list of segments is empty or some
             of its elements are duplicated.
-            One of the colour strings is neither of ``'r'``, ``'g'`` or ``'b'``.
+            One of the colour strings is neither of ``'r'``, ``'g'`` or
+            ``'b'``.
             The colour list is empty or its length is different to the number
             of segments selected to be stained.
 
         Returns
         -------
         image_stained : numpy.ndarray
-            A numpy array holding the image with the selected subset of segments
-            stained.
+            A numpy array holding the image with the selected subset of
+            segments stained.
         """
+        # pylint: disable=too-many-locals,too-many-branches,too-many-statements
         _accepted_colours = ('r', 'g', 'b')
         _colour_map = {'r': 0, 'g': 1, 'b': 2}
 
@@ -954,8 +987,8 @@ list(tuple(integer, integer, integer)), optional (default=None)
                 if segments_subset not in unique_segments:
                     raise ValueError(
                         ('The segment id {} does not correspond to any of '
-                        'the known segments ({}).').format(
-                            segments_subset, unique_segments.tolist()))
+                         'the known segments ({}).').format(
+                             segments_subset, unique_segments.tolist()))
                 segments_subset = [segments_subset]
             elif isinstance(segments_subset, list):
                 if not segments_subset:
@@ -970,7 +1003,7 @@ list(tuple(integer, integer, integer)), optional (default=None)
                         raise ValueError(
                             ('The segment id {} does not correspond to any of '
                              'the known segments ({}).').format(
-                                i, unique_segments.tolist()))
+                                 i, unique_segments.tolist()))
             else:
                 raise TypeError('Segments subset must be either of None, '
                                 'an integer or a list of integers.')
@@ -993,10 +1026,11 @@ list(tuple(integer, integer, integer)), optional (default=None)
                 raise ValueError('If colours are provided as a list, their '
                                  'number must match the number of segments '
                                  'chosen to be highlighted.')
-            for c in colour:
-                if c not in _accepted_colours:
-                    raise ValueError(('One of the provided colour strings ({}) '
-                                      "is not 'r', 'g' or 'b'.").format(c))
+            for clr in colour:
+                if clr not in _accepted_colours:
+                    raise ValueError(
+                        ('One of the provided colour strings ({}) is not '
+                         "'r', 'g' or 'b'.").format(clr))
         else:
             raise TypeError("The colour can be either of 'r', 'g' or 'b' "
                             'strings, a list thereof or None.')
@@ -1009,7 +1043,8 @@ list(tuple(integer, integer, integer)), optional (default=None)
         else:
             assert _validate_image_array(image, 'image'), 'Invalid image.'
             if len(image.shape) != 3:
-                raise IncorrectShapeError('The user-provided image is not RGB.')
+                raise IncorrectShapeError(
+                    'The user-provided image is not RGB.')
             if image.shape[:2] != self.image.shape[:2]:
                 raise IncorrectShapeError(
                     'The width and height of the input image do not agree '
@@ -1018,13 +1053,13 @@ list(tuple(integer, integer, integer)), optional (default=None)
 
         image_stained = canvas.copy()
         max_value = np.max(image_stained)
-        for id, c in zip(segments_subset, colour):
-            pixel_mask = get_segment_mask(id, self._segments)
-            colour_channel = _colour_map[c]
+        for id_, clr in zip(segments_subset, colour):
+            pixel_mask = get_segment_mask(id_, self._segments)
+            colour_channel = _colour_map[clr]
             image_stained[pixel_mask, colour_channel] = max_value
 
         return image_stained
-    
+
     def grayout_segments(
             self,
             segments_subset: Optional[Union[int, List[int]]] = None,
@@ -1074,9 +1109,10 @@ list(tuple(integer, integer, integer)), optional (default=None)
         Returns
         -------
         image_grayscale : numpy.ndarray
-            A numpy array holding the image with the selected subset of segments
-            grayed out.
+            A numpy array holding the image with the selected subset of
+            segments grayed out.
         """
+        # pylint: disable=too-many-branches
         assert self._segments is not None, 'The segmenter was not initialised.'
 
         if not self.is_rgb:
@@ -1092,8 +1128,8 @@ list(tuple(integer, integer, integer)), optional (default=None)
                 if segments_subset not in unique_segments:
                     raise ValueError(
                         ('The segment id {} does not correspond to any of '
-                        'the known segments ({}).').format(
-                            segments_subset, unique_segments.tolist()))
+                         'the known segments ({}).').format(
+                             segments_subset, unique_segments.tolist()))
                 segments_subset = [segments_subset]
             elif isinstance(segments_subset, list):
                 if not segments_subset:
@@ -1108,7 +1144,7 @@ list(tuple(integer, integer, integer)), optional (default=None)
                         raise ValueError(
                             ('The segment id {} does not correspond to any of '
                              'the known segments ({}).').format(
-                                i, unique_segments.tolist()))
+                                 i, unique_segments.tolist()))
                 segments_subset = segments_subset
             else:
                 raise TypeError('Segments subset must be either of None, '
@@ -1125,7 +1161,8 @@ list(tuple(integer, integer, integer)), optional (default=None)
         else:
             assert _validate_image_array(image, 'image'), 'Invalid image.'
             if len(image.shape) != 3:
-                raise IncorrectShapeError('The user-provided image is not RGB.')
+                raise IncorrectShapeError(
+                    'The user-provided image is not RGB.')
             if image.shape[:2] != self.image.shape[:2]:
                 raise IncorrectShapeError(
                     'The width and height of the input image do not agree '
@@ -1133,8 +1170,7 @@ list(tuple(integer, integer, integer)), optional (default=None)
             canvas = image
 
         # Convert RGB into a grayscale representation
-        image_grayscale_ = np.dot(
-            canvas, self.GRAYSCALE_TRANSFORMATION)
+        image_grayscale_ = np.dot(canvas, self.GRAYSCALE_TRANSFORMATION)
         image_grayscale_ = np.repeat(
             image_grayscale_[:, :, np.newaxis], 3, axis=2).astype(np.uint8)
 
@@ -1153,11 +1189,10 @@ list(tuple(integer, integer, integer)), optional (default=None)
 
         return image_grayscale
 
-    def merge_segments(
-            self,
-            segments_grouping: Union[List[int], List[List[int]]],
-            inplace: bool = True,
-            segments: Optional[np.ndarray] = None) -> np.ndarray:
+    def merge_segments(self,
+                       segments_grouping: Union[List[int], List[List[int]]],
+                       inplace: bool = True,
+                       segments: Optional[np.ndarray] = None) -> np.ndarray:
         """
         Merges segments based on the provided grouping.
 
@@ -1200,12 +1235,13 @@ list(tuple(integer, integer, integer)), optional (default=None)
         merged_segments : numpy.ndarray
             A 2-dimensional numpy array holding the merged segmentation.
         """
+        # pylint: disable=too-many-branches
         assert self._segments is not None, 'The segmenter was not initialised.'
         if segments is None:
             segments_ = self._segments
         else:
-            assert _validate_segmentation(segments, self.image), (
-                'Invalid segmentation.')
+            assert _validate_segmentation(segments,
+                                          self.image), 'Invalid segmentation.'
             segments_ = segments
 
         if not isinstance(inplace, bool):
@@ -1216,7 +1252,7 @@ list(tuple(integer, integer, integer)), optional (default=None)
             if not segments_grouping:
                 raise ValueError(
                     'The segments grouping cannot be an empty list.')
-            
+
             if isinstance(segments_grouping[0], int):
                 if len(segments_grouping) != len(set(segments_grouping)):
                     raise ValueError('The segments grouping has duplicates.')
@@ -1227,8 +1263,8 @@ list(tuple(integer, integer, integer)), optional (default=None)
                     if i not in unique_segments:
                         raise ValueError(
                             ('The segment id {} does not correspond to any of '
-                                'the known segments ({}).').format(
-                                i, unique_segments.tolist()))
+                             'the known segments ({}).').format(
+                                 i, unique_segments.tolist()))
                 segments_grouping = [segments_grouping]
             elif isinstance(segments_grouping[0], list):
                 _item_collector = []
@@ -1247,15 +1283,14 @@ list(tuple(integer, integer, integer)), optional (default=None)
                                     j))
                         if j not in unique_segments:
                             raise ValueError(
-                                ('The segment id {} does not correspond to any '
-                                 'of the known segments ({}).').format(
-                                    j, unique_segments.tolist()))
+                                ('The segment id {} does not correspond to '
+                                 'any of the known segments ({}).').format(
+                                     j, unique_segments.tolist()))
                         if j in _item_collector:
                             raise ValueError(
                                 ('The segment id {} is duplicated across '
                                  'grouping lists.').format(j))
-                        else:
-                            _item_collector.append(j)
+                        _item_collector.append(j)
             else:
                 raise TypeError('The segments grouping must either be a list '
                                 'of integers or a list of lists.')
@@ -1264,7 +1299,7 @@ list(tuple(integer, integer, integer)), optional (default=None)
 
         merged_segments_ = segments_.copy()
         for group in segments_grouping:
-            mask = get_segment_mask(group, self._segments)
+            mask = get_segment_mask(group, segments_)
             # use the smallest id to avoid collisions
             merged_segments_[mask] = min(group)
 
@@ -1275,8 +1310,8 @@ list(tuple(integer, integer, integer)), optional (default=None)
             mask = (merged_segments_ == old_id)
             merged_segments[mask] = new_id + 1
         assert not (merged_segments == -1).any(), 'Internal remapping error.'
-        assert _validate_segmentation(merged_segments, self.image), (
-            'Invalid segmentation.')
+        assert _validate_segmentation(merged_segments,
+                                      self.image), 'Invalid segmentation.'
 
         if inplace:
             self.set_segments(merged_segments)
@@ -1296,7 +1331,7 @@ class Slic(Segmentation):
     For the documentation see the specification of the
     :class:`fatf.utils.data.segmentation.Segmentation` abstract class.
     The initialisation parameters specific to the slic segmenter are
-    documented below. 
+    documented below.
 
     Parameters
     ----------
@@ -1310,6 +1345,7 @@ class Slic(Segmentation):
     ValueError
         The number of segments parameter is less than 2.
     """
+
     def __init__(self,
                  image: np.ndarray,
                  segmentation_mask: Optional[np.ndarray] = None,
@@ -1337,7 +1373,7 @@ class Slic(Segmentation):
         n_segments = self.kwargs.get('n_segments')
         if not isinstance(n_segments, int):
             raise TypeError('The n_segments parameter must be an integer.')
-        elif n_segments < 2:
+        if n_segments < 2:
             raise ValueError('The n_segments parameter must be at least 2.')
 
         segments = ski_segmentation.slic(
@@ -1357,7 +1393,7 @@ class QuickShift(Segmentation):
     For the documentation see the specification of the
     :class:`fatf.utils.data.segmentation.Segmentation` abstract class.
     The initialisation parameters specific to the quickshift segmenter are
-    documented below. 
+    documented below.
     The parameter values for ``ratio``, ``kernel_size`` and ``max_dist`` are
     by default set to the values used by the official LIME_ implementation.
 
@@ -1382,6 +1418,7 @@ class QuickShift(Segmentation):
     ValueError
         The ratio parameter is outside of the 0--1 range.
     """
+
     def __init__(self,
                  image: np.ndarray,
                  segmentation_mask: Optional[np.ndarray] = None,
@@ -1389,11 +1426,13 @@ class QuickShift(Segmentation):
                  kernel_size: Number = 4,
                  max_dist: Number = 200):
         """Constructs a ``quickshift`` segmenter."""
-        super().__init__(image,
-                         segmentation_mask,
-                         ratio=ratio,
-                         kernel_size=kernel_size,
-                         max_dist=max_dist)
+        # pylint: disable=too-many-arguments
+        super().__init__(
+            image,
+            segmentation_mask,
+            ratio=ratio,
+            kernel_size=kernel_size,
+            max_dist=max_dist)
 
     def _segment(self):
         """
@@ -1411,13 +1450,12 @@ class QuickShift(Segmentation):
         segments : numpy.ndarray
             Segments of the image (segmentation mask).
         """
-        assert ('ratio' in self.kwargs
-                and 'kernel_size' in self.kwargs
+        assert ('ratio' in self.kwargs and 'kernel_size' in self.kwargs
                 and 'max_dist' in self.kwargs), 'Parameters missing.'
         ratio = self.kwargs.get('ratio')
         if not isinstance(ratio, Number):
             raise TypeError('Ratio should be a number.')
-        elif ratio < 0 or ratio > 1:
+        if ratio < 0 or ratio > 1:
             raise ValueError('Ratio must be between 0 and 1.')
         kernel_size = self.kwargs.get('kernel_size')
         if not isinstance(kernel_size, Number):
@@ -1426,17 +1464,16 @@ class QuickShift(Segmentation):
         if not isinstance(max_dist, Number):
             raise TypeError('Max dist should be a number.')
 
-        segments = ski_segmentation.quickshift(
-            self.segmentation_mask, **self.kwargs)
+        segments = ski_segmentation.quickshift(self.segmentation_mask,
+                                               **self.kwargs)
         segments = segments + 1  # quickshift starts segment numbering at 0
         return segments
 
 
-def get_segment_mask(
-        segments_subset: Union[int, List[int]],
-        segmentation: np.ndarray) -> np.ndarray:
+def get_segment_mask(segments_subset: Union[int, List[int]],
+                     segmentation: np.ndarray) -> np.ndarray:
     """
-    Generates a boolean mask for the pixels belonging to the specified segments.
+    Generates a boolean mask for pixels belonging to the specified segments.
 
     .. versionadded:: 0.1.1
 
@@ -1484,8 +1521,8 @@ def get_segment_mask(
         if segments_subset not in unique_segments:
             raise ValueError(
                 ('The segment id {} does not correspond to any of '
-                 'the known segments ({}).').format(
-                    segments_subset, unique_segments.tolist()))
+                 'the known segments ({}).').format(segments_subset,
+                                                    unique_segments.tolist()))
         segments_subset = np.asarray([segments_subset])
     elif isinstance(segments_subset, list):
         if len(segments_subset) != len(set(segments_subset)):
@@ -1497,8 +1534,8 @@ def get_segment_mask(
             if i not in unique_segments:
                 raise ValueError(
                     ('The segment id {} does not correspond to any of '
-                        'the known segments ({}).').format(
-                        i, unique_segments.tolist()))
+                     'the known segments ({}).').format(
+                         i, unique_segments.tolist()))
         segments_subset = np.asarray(segments_subset)
     else:
         raise TypeError('Segments subset must either be an integer '

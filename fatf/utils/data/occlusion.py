@@ -11,6 +11,7 @@ from typing import Callable, List, Optional, Tuple, Union
 
 import logging
 import random
+import warnings
 
 import numpy as np
 
@@ -26,7 +27,7 @@ logger = logging.getLogger(__name__)  # pylint: disable=invalid-name
 RGBcolour = Tuple[int, int, int]
 
 
-class Occlusion(object):
+class Occlusion(object):  # pylint: disable=useless-object-inheritance
     """
     Implements functionality for (partiall) occlusion a segmented image.
 
@@ -41,8 +42,8 @@ class Occlusion(object):
       black-and-white (0 and 255 valued) images; and
     - 3-dimensional arrays for colour images.
 
-    The colouring strategy used by this class can be overwritten either with the
-    ``set_colouring_strategy`` method or by directly setting the
+    The colouring strategy used by this class can be overwritten either with
+    the ``set_colouring_strategy`` method or by directly setting the
     ``colouring_strategy`` attribute, both of which will perform the
     necessary validation.
 
@@ -67,7 +68,8 @@ optional (default=None)
         See the documentation of the
         :func:`fatf.utils.data.occlusion.Occlusion.set_colouring_strategy`
         method for more details.
-        By default (``None``) the mean-colour occlusion is selected.
+        By default (``None``) the mean-colour occlusion is selected for colour
+        and grayscale images, and black occlusion for black-and-white images.
 
     Raises
     ------
@@ -117,16 +119,19 @@ optional (default=None)
         A function that returns a numpy array with the colour(s) of patches
         for the requested indices (mask) of the occluded ``image``.
     """
+
     def __init__(self,
                  image: np.ndarray,
                  segments: np.ndarray,
                  colour: Optional[Union[str, int, RGBcolour]] = None):
         """Constructs an occluder object."""
-        assert fuds._validate_image_array(image, 'image'), 'Invalid image.'
-        self.image = image
+        assert fuds._validate_image_array(  # pylint: disable=protected-access
+            image, 'image'), 'Invalid image.'
+        self.image = image.copy()
 
-        assert fuds._validate_segmentation(segments, image), 'Invalid segments.'
-        self.segments = segments
+        assert fuds._validate_segmentation(  # pylint: disable=protected-access
+            segments, image), 'Bad segments.'
+        self.segments = segments.copy()
 
         self.is_rgb = len(self.image.shape) == 3
 
@@ -136,7 +141,7 @@ optional (default=None)
         else:
             _unique_intensities = set(np.unique(self.image))
             _unique_intensities_n = len(_unique_intensities)
-            if _unique_intensities_n == 2 or _unique_intensities_n == 1:
+            if _unique_intensities_n in (1, 2):
                 is_bnw = True
                 logger.info('Assuming a black-and-white image.')
                 if 1 in _unique_intensities:
@@ -153,7 +158,16 @@ optional (default=None)
         self.unique_segments = np.unique(self.segments)
         self.segments_number = self.unique_segments.shape[0]
 
+        if self.segments_number == 1:
+            warnings.warn('The segmentation has only **one** segment.',
+                          UserWarning)
+
         # This must be called as last since it requires other class attributes
+        if colour is None:
+            if self.is_bnw:
+                colour = 'black'
+            else:
+                colour = 'mean'
         self._colouring_strategy = self._generate_colouring_strategy(colour)
 
     @property
@@ -189,8 +203,8 @@ optional (default=None)
 
         Alternatively, it can be a user-defined RGB colour provided as a
         3-tuple with values in the 0--255 range.
-        For black-and-white and grayscale images the string specifier can be one
-        of:
+        For black-and-white and grayscale images the string specifier can be
+        one of:
 
         * ``'black'`` -- black (0);
         * ``'white'`` -- white (255);
@@ -202,9 +216,9 @@ optional (default=None)
         * ``'randomise-patch'`` -- for each occlusion procedure randomly select
           a separate random intensity for each segment.
 
-        Alternatively, it can be a user-defined intensity provided as an integer
-        with values in the 0--255 range for grayscale images or 0 or 255 for
-        black-and-white images.
+        Alternatively, it can be a user-defined intensity provided as an
+        integer with values in the 0--255 range for grayscale images or 0 or
+        255 for black-and-white images.
 
         The colouring strategy is constructed as a callable object (a function)
         that takes in a boolean numpy array of the same dimensions as
@@ -263,12 +277,12 @@ optional (default=None)
 
         randomise_patch = self.image.copy()
         unique_segments = np.unique(self.segments[mask])
-        for id in unique_segments:
-            segment_mask = (self.segments == id)
+        for id_ in unique_segments:
+            segment_mask = (self.segments == id_)
             if self.is_rgb:
                 segment_colour = (random.randint(0, 255),
                                   random.randint(0, 255),
-                                  random.randint(0, 255))
+                                  random.randint(0, 255))  # yapf: disable
             else:
                 if self.is_bnw:
                     segment_colour = random.choice([0, 255])
@@ -287,40 +301,46 @@ optional (default=None)
         :func:`fatf.utils.data.occlusion.Occlusion.set_colouring_strategy`
         method for more details.
         """
+        # pylint: disable=too-many-branches,too-many-statements
         colouring_strategy = None
         if self.is_rgb:
-            _colouring_strategies = {'mean': None,
-                                     'black': (0, 0, 0),
-                                     'white': (255, 255, 255),
-                                     'red': (255, 0, 0),
-                                     'green': (0, 255, 0),
-                                     'blue': (0, 0, 255),
-                                     'pink': (255, 192, 203),
-                                     'random': (random.randint(0, 255),
-                                                random.randint(0, 255),
-                                                random.randint(0, 255)),
-                                     'random-patch': None,
-                                     'randomise': None,
-                                     'randomise-patch': None}
+            _colouring_strategies = {
+                'mean': None,
+                'black': (0, 0, 0),
+                'white': (255, 255, 255),
+                'red': (255, 0, 0),
+                'green': (0, 255, 0),
+                'blue': (0, 0, 255),
+                'pink': (255, 192, 203),
+                'random': (random.randint(0, 255),
+                           random.randint(0, 255),
+                           random.randint(0, 255)),
+                'random-patch': None,
+                'randomise': None,
+                'randomise-patch': None
+            }  # yapf: disable
         else:
             if self.is_bnw:
                 _rnd = random.choice([0, 255])
             else:
                 _rnd = random.randint(0, 255)
-            _colouring_strategies = {'mean': None,
-                                     'black': 0,
-                                     'white': 255,
-                                     'random': _rnd,
-                                     'random-patch': None,
-                                     'randomise': None,
-                                     'randomise-patch': None}
+            _colouring_strategies = {
+                'mean': None,
+                'black': 0,
+                'white': 255,
+                'random': _rnd,
+                'random-patch': None,
+                'randomise': None,
+                'randomise-patch': None
+            }  # yapf: disable
 
         if isinstance(colour, tuple) and self.is_rgb:
-            assert fuds._validate_colour(colour), 'Invalid colour.'
-            colouring_strategy = lambda _: colour
+            assert fuds._validate_colour(  # pylint: disable=protected-access
+                colour), 'Invalid colour.'
+            colouring_strategy = lambda _: colour  # noqa: E731
         elif isinstance(colour, int) and not self.is_rgb:
             if self.is_bnw:
-                if colour == 1 or colour == 255:
+                if colour in (1, 255):
                     colour = 255
                 elif colour != 0:
                     raise ValueError(
@@ -330,12 +350,12 @@ optional (default=None)
                 if colour < 0 or colour > 255:
                     raise ValueError('The colour should be an integer between '
                                      '0 and 255 for grayscale images.')
-            colouring_strategy = lambda _: colour
+            colouring_strategy = lambda _: colour  # noqa: E731
         elif isinstance(colour, str) or colour is None:
             if colour is None or colour == 'mean':
                 mosaic = self.image.copy()
-                for id in self.unique_segments:
-                    segment_mask = (self.segments == id)
+                for id_ in self.unique_segments:
+                    segment_mask = (self.segments == id_)
                     if self.is_rgb:
                         segment_colour = (self.image[segment_mask, 0].mean(),
                                           self.image[segment_mask, 1].mean(),
@@ -345,15 +365,14 @@ optional (default=None)
                             raise RuntimeError(
                                 'Mean occlusion is not supported for '
                                 'black-and-white images.')
-                        else:
-                            segment_colour = self.image[segment_mask].mean()
+                        segment_colour = self.image[segment_mask].mean()
                     mosaic[segment_mask] = segment_colour
                 mosaic = mosaic.astype(np.uint8)
-                colouring_strategy = lambda mask: mosaic[mask]
+                colouring_strategy = lambda mask: mosaic[mask]  # noqa: E731
             elif colour == 'random-patch':
                 random_patch = self.image.copy()
-                for id in self.unique_segments:
-                    segment_mask = (self.segments == id)
+                for id_ in self.unique_segments:
+                    segment_mask = (self.segments == id_)
                     if self.is_rgb:
                         segment_colour = (random.randint(0, 255),
                                           random.randint(0, 255),
@@ -364,35 +383,41 @@ optional (default=None)
                         else:
                             segment_colour = random.randint(0, 255)
                     random_patch[segment_mask] = segment_colour
-                colouring_strategy = lambda mask: random_patch[mask]
+                colouring_strategy = lambda mask: (  # noqa: E731
+                    random_patch[mask])
             elif colour == 'randomise':
                 if self.is_rgb:
-                    colouring_strategy = lambda _: (random.randint(0, 255),
-                                                    random.randint(0, 255),
-                                                    random.randint(0, 255))
+                    colouring_strategy = lambda _: (  # noqa: E731
+                        random.randint(0, 255),
+                        random.randint(0, 255),
+                        random.randint(0, 255))  # yapf: disable
                 else:
                     if self.is_bnw:
-                        colouring_strategy = lambda _: random.choice([0, 255])
+                        colouring_strategy = lambda _: (  # noqa: E731
+                            random.choice([0, 255]))
                     else:
-                        colouring_strategy = lambda _: random.randint(0, 255)
+                        colouring_strategy = lambda _: (  # noqa: E731
+                            random.randint(0, 255))
             elif colour == 'randomise-patch':
-                colouring_strategy = lambda mask: self._randomise_patch(mask)
+                colouring_strategy = self._randomise_patch
             elif colour in _colouring_strategies:
-                colouring_strategy = lambda _: _colouring_strategies[colour]
+                colouring_strategy = lambda _: (  # noqa: E731
+                    _colouring_strategies[colour])
             else:
-                raise ValueError(('Unknown colouring strategy name: {}.\n'
-                                  'Choose one of the following: {}.').format(
-                                    colour,
-                                    sorted(list(_colouring_strategies.keys()))))
+                raise ValueError((
+                    'Unknown colouring strategy name: {}.\n'
+                    'Choose one of the following: {}.').format(
+                        colour, sorted(list(
+                            _colouring_strategies.keys()))))  # yapf: disable
         else:
             raise TypeError('The colour can either be a string specifier; or '
-                            'an RGB thriplet for RGB images and an integer for '
-                            ' or grayscale and black-and-white images.')
+                            'an RGB thriplet for RGB images and an integer '
+                            'for or grayscale and black-and-white images.')
 
         return colouring_strategy
 
     def occlude_segments(
-            self, 
+            self,
             segments_subset: Union[int, List[int]],
             image: Optional[np.ndarray] = None,
             colour: Optional[Union[str, int, RGBcolour]] = None) -> np.ndarray:
@@ -408,7 +433,8 @@ optional (default=None)
         Parameters
         ----------
         segments_subset : intiger or list(integer)
-            An id of a specific segment or a list of segment ids to be occluded.
+            An id of a specific segment or a list of segment ids to be
+            occluded.
         image : numpy.ndarray, optional (default=None)
             If provided, this ``image`` will be occluded instead of the one
             used to initialise this class.
@@ -437,15 +463,16 @@ optional (default=None)
         Returns
         -------
         image_occluded : numpy.ndarray
-            A numpy array holding the image with the selected subset of segments
-            occluded.
+            A numpy array holding the image with the selected subset of
+            segments occluded.
         """
+        # pylint: disable=too-many-branches
         if isinstance(segments_subset, int):
             if segments_subset not in self.unique_segments:
                 raise ValueError(
                     ('The segment id {} does not correspond to any of '
-                    'the known segments ({}).').format(
-                        segments_subset, self.unique_segments.tolist()))
+                     'the known segments ({}).').format(
+                         segments_subset, self.unique_segments.tolist()))
             segments_subset = [segments_subset]
         elif isinstance(segments_subset, list):
             if len(segments_subset) != len(set(segments_subset)):
@@ -457,8 +484,8 @@ optional (default=None)
                 if i not in self.unique_segments:
                     raise ValueError(
                         ('The segment id {} does not correspond to any of '
-                            'the known segments ({}).').format(
-                            i, self.unique_segments.tolist()))
+                         'the known segments ({}).').format(
+                             i, self.unique_segments.tolist()))
         else:
             raise TypeError('Segments subset must be either '
                             'an integer or a list of integers.')
@@ -466,7 +493,9 @@ optional (default=None)
         if image is None:
             canvas = self.image
         else:
-            assert fuds._validate_image_array(image, 'image'), 'Invalid image.'
+            assert (
+                fuds._validate_image_array(  # pylint: disable=protected-access
+                    image, 'image')), 'Invalid image.'  # yapf: disable
             if image.shape != self.image.shape:
                 raise IncorrectShapeError(
                     'The width, height or number of channels of the input '
@@ -478,19 +507,19 @@ optional (default=None)
             colouring_strategy = self._colouring_strategy
         else:
             colouring_strategy = self._generate_colouring_strategy(colour)
-        
+
         occlusion_mask = fuds.get_segment_mask(segments_subset, self.segments)
         image_occluded = canvas.copy()
         image_occluded[occlusion_mask] = colouring_strategy(occlusion_mask)
         return image_occluded
 
     def occlude_segments_vectorised(
-            self, 
+            self,
             vectorised_segments_subset: np.ndarray,
             image: Optional[np.ndarray] = None,
             colour: Optional[Union[str, int, RGBcolour]] = None) -> np.ndarray:
         """
-        Generates multiple images with a specified subsets of segments occluded.
+        Generates multiple images with a selected subsets of segments occluded.
 
         The segments to be occluded are provided as boolean vectors;
         either a 1-D numpy array of length equal to the number of segments
@@ -530,8 +559,8 @@ optional (default=None)
         IncorrectShapeError
             The ``vectorised_segments_subset`` numpy array is neither 1- nor
             2-dimensional.
-            The number of elements in ``vectorised_segments_subset`` (when it is
-            1-D) does not correspond to the number of segments.
+            The number of elements in ``vectorised_segments_subset`` (when it
+            is 1-D) does not correspond to the number of segments.
             The number of columns in ``vectorised_segments_subset`` (when it is
             2-D) does not correspond to the number of segments.
             The input ``image`` is neither a 2- nor 3-dimensional numpy array.
@@ -546,10 +575,13 @@ optional (default=None)
             A numpy array holding the image(s) with the selected subset(s) of
             segments occluded.
         """
+        # pylint: disable=too-many-branches
         if image is None:
             canvas = self.image
         else:
-            assert fuds._validate_image_array(image, 'image'), 'Invalid image.'
+            assert (  # yapf: disable
+                fuds._validate_image_array(  # pylint: disable=protected-access
+                    image, 'image')), 'Invalid image.'
             if image.shape != self.image.shape:
                 raise IncorrectShapeError(
                     'The width, height or number of channels of the input '
@@ -562,15 +594,18 @@ optional (default=None)
         else:
             colouring_strategy = self._generate_colouring_strategy(colour)
 
+        if fuav.is_structured_array(vectorised_segments_subset):
+            raise TypeError('The vector representation of segments cannot be '
+                            'a structured numpy array.')
         if not fuav.is_numerical_array(vectorised_segments_subset):
-            raise TypeError('The vector representation of segments should be a '
-                            'numerical numpy array.')
+            raise TypeError('The vector representation of segments should be '
+                            'a numerical numpy array.')
         if fuav.is_1d_array(vectorised_segments_subset):
             if vectorised_segments_subset.shape[0] != self.segments_number:
                 raise IncorrectShapeError(
-                    ('The number of elements ({}) in the vector representation '
-                     'of segments should correspond to the unique number of '
-                     'segments ({}).').format(
+                    ('The number of elements ({}) in the vector '
+                     'representation of segments should correspond to the '
+                     'unique number of segments ({}).').format(
                          vectorised_segments_subset.shape[0],
                          self.segments_number))
             samples = 1
@@ -589,8 +624,8 @@ optional (default=None)
             raise IncorrectShapeError(
                 'The vector representation of segments should be a 1- or '
                 '2-dimensional numpy array.')
-        _unique_entries = set(np.unique(
-            vectorised_segments_subset).astype(int)).difference((0, 1))
+        _unique_entries = set(np.unique(vectorised_segments_subset).astype(
+            int)).difference((0, 1))  # yapf: disable
         if _unique_entries:
             raise TypeError('The vector representation of segments should be '
                             'binary numpy array.')
@@ -601,8 +636,8 @@ optional (default=None)
             # Get ids of segments to be occluded (0s) from a vector form
             # 1 is added as segments are numbered from 1, not 0
             segments_subset = np.where(vec == 0)[0] + 1
-            occlusion_mask = fuds.get_segment_mask(
-                segments_subset.tolist(), self.segments)
+            occlusion_mask = fuds.get_segment_mask(segments_subset.tolist(),
+                                                   self.segments)
             image_occluded[i, occlusion_mask] = colouring_strategy(
                 occlusion_mask)
         if samples == 1:

@@ -40,7 +40,7 @@ try:
     import fatf.utils.data.occlusion as fatf_occlusion
     import fatf.utils.data.segmentation as fatf_segmentation
 except ImportError as _exc:
-    _err = (
+    _err = (  # pylint: disable=invalid-name
         'The ImageBlimeyLime surrogate image explainer requires scikit-learn, '
         'scikit-image and Pillow to be installed.\n\n{}')
     raise ImportError(_err.format(str(_exc)))
@@ -50,7 +50,7 @@ ExplanationTuple = Union[Explanation, Tuple[Explanation, fatf_models.Model]]
 RGBcolour = Tuple[int, int, int]
 
 
-class ImageBlimeyLime(object):
+class ImageBlimeyLime(object):  # pylint: disable=useless-object-inheritance
     """
     Implements a surrogate image explainer equivalent to LIME.
 
@@ -160,8 +160,8 @@ optional (default=None)
         ``predictive_model.predict`` method for crisp classifiers.
     image_prediction : Union[string, integer]
         The prediction of the explained image. For probabilistic models it is
-        the index of the class assigned to this instance by the explained model;
-        for crisp classifier it is the predicted class.
+        the index of the class assigned to this instance by the explained
+        model; for crisp classifier it is the predicted class.
     classes_number : integer or None
         The number of modelled classes for probabilistic models;
         ``None`` for crisp classifiers unless ``class_names`` was provided.
@@ -183,28 +183,34 @@ optional (default=None)
         thorough the exponential kernel and generated during the last call of
         the ``explain_instance`` method.
     """
-    def __init__(
-            self,
-            image: np.ndarray,
-            predictive_model: object,
-            as_probabilistic: bool = True,
-            class_names: Optional[Union[List[str], List[int]]] = None,
-            segmentation_mask: Optional[np.ndarray] = None,
-            segments_merge_list: Union[None, List[int], List[List[int]]] = None,
-            ratio: Number = 0.2,
-            kernel_size: Number = 4,
-            max_dist: Number = 200,
-            colour: Optional[Union[str, int, RGBcolour]] = None):
+
+    # pylint: disable=too-many-instance-attributes
+
+    def __init__(self,
+                 image: np.ndarray,
+                 predictive_model: object,
+                 as_probabilistic: bool = True,
+                 class_names: Optional[Union[List[str], List[int]]] = None,
+                 segmentation_mask: Optional[np.ndarray] = None,
+                 segments_merge_list: Union[None, List[int], List[
+                     List[int]]] = None,
+                 ratio: Number = 0.2,
+                 kernel_size: Number = 4,
+                 max_dist: Number = 200,
+                 colour: Optional[Union[str, int, RGBcolour]] = None):
         """Constructs a bLIMEy LIME image explainer."""
+        # pylint: disable=too-many-arguments,too-many-locals,too-many-branches
+        # pylint: disable=too-many-statements
         # The image and the segmentation mask in numpy representation
-        self.image = image
+        self.image = image.copy()
         if segmentation_mask is None:
-            self.segmentation_mask = self.image
+            self.segmentation_mask = self.image.copy()
         else:
-            self.segmentation_mask = segmentation_mask
+            self.segmentation_mask = segmentation_mask.copy()
 
         if not isinstance(as_probabilistic, bool):
-            raise TypeError('The as_probabilistic parameter must be a boolean.')
+            raise TypeError(
+                'The as_probabilistic parameter must be a boolean.')
         self.as_probabilistic = as_probabilistic
 
         if self.as_probabilistic:
@@ -252,13 +258,13 @@ optional (default=None)
                 _chosen_type = type(class_names[0])
                 if _chosen_type is int or _chosen_type is str:
                     _chosen_error = False
-                    class_name = class_names[0]
+                    for class_name in class_names:
+                        if not isinstance(class_name, _chosen_type):
+                            _chosen_error = True
+                            break
                 else:
                     _chosen_error = True
-                for class_name in class_names:
-                    if not isinstance(class_name, _chosen_type):
-                        _chosen_error = True
-                        break
+                    class_name = class_names[0]
                 if _chosen_error:
                     raise TypeError('All elements of the class_names '
                                     'list must be strings or integers; '
@@ -267,9 +273,9 @@ optional (default=None)
                     self.classes_number = len(class_names)
                 else:
                     if self.classes_number != len(class_names):
-                        raise RuntimeError('The number of class names does not '
-                                           'correspond to the shape of the '
-                                           'model predictions.')
+                        raise RuntimeError('The number of class names does '
+                                           'not correspond to the shape of '
+                                           'the model predictions.')
             else:
                 raise TypeError('The class_names parameter must be a Python '
                                 'list or None.')
@@ -283,15 +289,13 @@ optional (default=None)
             kernel_size=kernel_size,
             max_dist=max_dist)
         if segments_merge_list is not None:
-            self.segmentation.marge_segments(segments_merge_list, inplace=True)
+            self.segmenter.merge_segments(segments_merge_list, inplace=True)
 
         logger.debug('Building occlusion.')
         self.occluder = fatf_occlusion.Occlusion(
-            self.image,
-            self.segmenter.segments,
-            colour=colour)
+            self.image, self.segmenter.segments, colour=colour)
 
-        # A placeholder to memorise the last data sample for training surrogates
+        # Placeholder to memorise the last data sample for training surrogates
         self.surrogate_data_sample = None
         self.surrogate_data_predictions = None
         self.similarities = None
@@ -335,9 +339,9 @@ optional (default=None)
         batch_size : integer, optional (default=50)
             The number of images to be processed in one iteration. Since this
             step is computationally expensive -- images need to be generated
-            and occluded according to the binary data sample, and then predicted
-            by the explained model -- the data points can be processed in
-            fixed-size batches.
+            and occluded according to the binary data sample, and then
+            predicted by the explained model -- the data points can be
+            processed in fixed-size batches.
         kernel_width : float, optional (default=None)
             The width of the exponential kernel used when computing weights of
             the binary sampled data based on the cosine distances between them
@@ -361,9 +365,9 @@ optional (default=None)
         Warns
         -----
         UserWarning
-            Informs the user if none of the sampled data were predicted with the
-            explained class when explaining a crisp model -- such a situation
-            will most probably result in unreliable explanations.
+            Informs the user if none of the sampled data were predicted with
+            the explained class when explaining a crisp model -- such a
+            situation will most probably result in unreliable explanations.
 
         Raises
         ------
@@ -380,7 +384,8 @@ optional (default=None)
             A class name cannot be used when explaining a probabilistic model
             without initialising this object with class names.
         TypeError
-            The ``return_model`` or ``reuse_sample`` parameter is not a boolean.
+            The ``return_model`` or ``reuse_sample`` parameter is not a
+            boolean.
             The ``explained_class`` parameter is neither of ``None``, a string
             or an integer.
 
@@ -393,13 +398,15 @@ optional (default=None)
             A locally fitted surrogate linear model.
             This model is only returned when ``return_model=True``.
         """
+        # pylint: disable=too-many-arguments,too-many-locals,too-many-branches
+        # pylint: disable=too-many-statements
         if not isinstance(return_model, bool):
             raise TypeError('The return_model parameter should be a boolean.')
         if not isinstance(reuse_sample, bool):
             raise TypeError('The reuse_sample parameter should be a boolean.')
 
-        if not (explained_class is None
-                or isinstance(explained_class, (int, str))):
+        if not (explained_class is None or isinstance(explained_class,
+                                                      (int, str))):
             raise TypeError('The explained_class parameter must be either of '
                             'None, a string or an integer.')
         if explained_class is None:
@@ -416,22 +423,21 @@ optional (default=None)
                 if self.class_names is None:
                     raise RuntimeError(
                         'It is not possible to use a name for the explained '
-                        'class without initialising this explainer with a list '
-                        'of class names (the *class_names* parameter).')
-                else:
-                    if explained_class not in self.class_names:
-                        raise IndexError(
-                            'The name of the explained class could not be '
-                            'found in the list of class names used to '
-                            'initialise this explainer (the *class_names* '
-                            'parameter).')
-                    explained_class = self.class_names.index(explained_class)
+                        'class without initialising this explainer with a '
+                        'list of class names (the *class_names* parameter).')
+                if explained_class not in self.class_names:
+                    raise IndexError(
+                        'The name of the explained class could not be '
+                        'found in the list of class names used to '
+                        'initialise this explainer (the *class_names* '
+                        'parameter).')
+                explained_class = self.class_names.index(explained_class)
         else:
             if self.class_names is not None:
                 if explained_class not in self.class_names:
                     raise IndexError(
-                        'The name of the explained class could not be found in '
-                        'the list of class names used to initialise this '
+                        'The name of the explained class could not be found '
+                        'in the list of class names used to initialise this '
                         'explainer (the *class_names* parameter).')
 
         if reuse_sample:
@@ -444,30 +450,28 @@ optional (default=None)
         else:
             # Generate binary samples in the interpretable domain
             logger.debug('Generating a sample.')
-            self.surrogate_data_sample = fatf_augmentation.random_binary_sampler(
-                self.segmenter.segments_number, samples_number)
+            self.surrogate_data_sample = \
+                fatf_augmentation.random_binary_sampler(
+                    self.segmenter.segments_number, samples_number)
 
             # Build interpretable representation of the explained instance
             explained_instance_ir = np.ones(
-                shape=(1, self.surrogate_data_sample.shape[1]),
-                dtype=np.int8)
+                shape=(1, self.surrogate_data_sample.shape[1]), dtype=np.int8)
 
             # Get distances to the sampled data
             logger.debug('Computing distances.')
             distances = scipy.spatial.distance.cdist(
                 explained_instance_ir,
                 self.surrogate_data_sample,
-                'cosine').flatten()
+                'cosine').flatten()  # yapf: disable
             # all-0 vectors nan-out cosine similarity
             _all_zero = self.surrogate_data_sample.sum(axis=1)
             _all_zero_mask = (_all_zero == 0)
             if _all_zero_mask.any():
-                assert np.isnan(distances[_all_zero_mask]).all(), 'Expect nans.'
+                assert np.isnan(distances[_all_zero_mask]).all(), 'nans.'
                 logger.debug('Setting the distance to all-0 vectors to 1.')
                 distances[_all_zero_mask] = 1  # similarity is 0
-            if np.isnan(distances).any():
-                raise RuntimeError(
-                    "Some of the cosine distances are undefined (nan's).")
+            assert not np.isnan(distances).any(), 'Do not expect any nans.'
 
             # Kernelise the distance
             logger.debug('Transforming distances into similarities.')
@@ -478,7 +482,7 @@ optional (default=None)
                 transformation_fn = self.occluder.occlude_segments_vectorised
             else:
                 transformation_fn = lambda data: \
-                    self.occluder.occlude_segments_vectorised(
+                    self.occluder.occlude_segments_vectorised(  # noqa: E731
                         data, colour=colour)
 
             # Transform to images and predict the sampled data
@@ -489,15 +493,17 @@ optional (default=None)
             sample_predictions = []
             logger.debug('Reconstructing and predicting images.')
             for batch in iter_:
-                sample_predictions.append(
-                    self.predictive_function(batch))
-            self.surrogate_data_predictions = np.vstack(sample_predictions)
+                sample_predictions.append(self.predictive_function(batch))
+            if self.as_probabilistic:
+                self.surrogate_data_predictions = np.vstack(sample_predictions)
+            else:
+                self.surrogate_data_predictions = np.hstack(sample_predictions)
 
         # Fit surrogate model
         logger.debug('Fitting the surrogate.')
         if self.as_probabilistic:
             surrogate = sklearn.linear_model.Ridge()
-            y = self.surrogate_data_predictions[:, explained_class]
+            predictions = self.surrogate_data_predictions[:, explained_class]
         else:
             surrogate = sklearn.linear_model.RidgeClassifier()
             y_mask = (self.surrogate_data_predictions == explained_class)
@@ -505,23 +511,26 @@ optional (default=None)
                 warnings.warn(
                     'None of the sampled data points were predicted by the '
                     'model with the explained class. The explanation may be '
-                    'untrustworthy or the name of the explained class has been '
-                    'missspelled!', UserWarning)
-            y = np.zeros(
-                shape=(self.surrogate_data_predictions.shape[0],),
-                dtype=np.int8)
-            y[y_mask] = 1
+                    'untrustworthy or the name of the explained class has '
+                    'been missspelled!', UserWarning)
+            predictions = np.zeros(
+                shape=(self.surrogate_data_predictions.shape[0], ), dtype=int)
+            predictions[y_mask] = 1
         surrogate.fit(
-            self.surrogate_data_sample, y, sample_weight=self.similarities)
+            self.surrogate_data_sample,
+            predictions,
+            sample_weight=self.similarities)
 
         # Get names of the interpretable components
-        ir_names = ['Segment #{}'.format(i)
-                    for i in range(1, self.segmenter.segments_number + 1)]
+        ir_names = [
+            'Segment #{}'.format(i)
+            for i in range(1, self.segmenter.segments_number + 1)
+        ]
         # Get a linear model explainer
         explainer = fatf_linear_explainer.SKLearnLinearModelExplainer(
             surrogate, feature_names=ir_names)
-        explanation = dict(zip(explainer.feature_names,
-                               explainer.feature_importance()))
+        explanation = dict(
+            zip(explainer.feature_names, explainer.feature_importance()))
 
         if return_model:
             return_ = (explanation, surrogate)

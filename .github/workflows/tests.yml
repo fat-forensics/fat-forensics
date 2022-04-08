@@ -130,6 +130,7 @@ jobs:
         make install-matplotlib
         make install-scikit-learn
         make dependencies-dev
+        pip install scikit-image Pillow
     - name: Test
       run: |
         make linting-pylint

@@ -1,10 +1,7 @@
 name: Docs
-on:
-  push:
-    branches:
-      - master
+on: [push, pull_request]
 jobs:
-  build-n-publish:
+  test-build-publish:
     name: Build, test and publish documentation
     runs-on: ubuntu-18.04
     steps:
@@ -30,6 +27,7 @@ jobs:
         make install-matplotlib
         make install-scikit-learn
         make dependencies-dev
+        pip install scikit-image Pillow
     - name: Test documentation
       run: |
         make test-doc
@@ -38,6 +36,10 @@ jobs:
     - name: Build documentation
       run: make doc-html
     - name: Publish documentation
+      if: >
+        github.event_name == 'push'
+        && github.repository == 'fat-forensics/fat-forensics'
+        && github.ref == 'refs/heads/master'
       env:
         FAT_FORENSICS_AUTOMATOR_GITHUB_TOKEN: ${{ secrets.FAT_FORENSICS_AUTOMATOR_GITHUB_TOKEN }}
       run: ./build_tools/doc/deploy-doc.sh

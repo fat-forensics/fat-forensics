@@ -11,7 +11,7 @@ the surrogate image explainer to work.
 # License: new BSD
 
 from numbers import Number
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Callable, Dict, List, Optional, Tuple, Union
 
 import logging
 import warnings
@@ -48,6 +48,7 @@ except ImportError as _exc:
 Explanation = Dict[str, Number]
 ExplanationTuple = Union[Explanation, Tuple[Explanation, fatf_models.Model]]
 RGBcolour = Tuple[int, int, int]
+ColourFn = Callable[[np.ndarray], np.ndarray]
 
 
 class ImageBlimeyLime(object):  # pylint: disable=useless-object-inheritance
@@ -194,9 +195,9 @@ optional (default=None)
                  segmentation_mask: Optional[np.ndarray] = None,
                  segments_merge_list: Union[None, List[int], List[
                      List[int]]] = None,
-                 ratio: Number = 0.2,
-                 kernel_size: Number = 4,
-                 max_dist: Number = 200,
+                 ratio: float = 0.2,
+                 kernel_size: float = 4,
+                 max_dist: float = 200,
                  colour: Optional[Union[str, int, RGBcolour]] = None):
         """Constructs a bLIMEy LIME image explainer."""
         # pylint: disable=too-many-arguments,too-many-locals,too-many-branches
@@ -236,12 +237,13 @@ optional (default=None)
         self.predictive_model = predictive_model
 
         if self.as_probabilistic:
-            predictive_function = self.predictive_model.predict_proba
+            predictive_function = \
+                self.predictive_model.predict_proba  # type: ignore
             image_prediction = predictive_function([self.image])[0]
             classes_number = image_prediction.shape[0]
             image_prediction = int(np.argmax(image_prediction))
         else:
-            predictive_function = self.predictive_model.predict
+            predictive_function = self.predictive_model.predict  # type: ignore
             classes_number = None
             image_prediction = predictive_function([self.image])[0]
         self.predictive_function = predictive_function
@@ -296,9 +298,9 @@ optional (default=None)
             self.image, self.segmenter.segments, colour=colour)
 
         # Placeholder to memorise the last data sample for training surrogates
-        self.surrogate_data_sample = None
-        self.surrogate_data_predictions = None
-        self.similarities = None
+        self.surrogate_data_sample = None  # type: Union[None, np.ndarray]
+        self.surrogate_data_predictions = None  # type: Union[None, np.ndarray]
+        self.similarities = None  # type: Union[None, np.ndarray]
 
     def set_occlusion_colour(self, colour):
         """
@@ -314,7 +316,7 @@ optional (default=None)
                          explained_class: Optional[Union[int, str]] = None,
                          samples_number: int = 50,
                          batch_size: int = 50,
-                         kernel_width: Number = .25,
+                         kernel_width: float = .25,
                          colour: Optional[Union[str, int, RGBcolour]] = None,
                          reuse_sample: bool = False,
                          return_model: bool = False) -> ExplanationTuple:
@@ -431,7 +433,8 @@ optional (default=None)
                         'found in the list of class names used to '
                         'initialise this explainer (the *class_names* '
                         'parameter).')
-                explained_class = self.class_names.index(explained_class)
+                explained_class = self.class_names.index(
+                    explained_class)  # type: ignore
         else:
             if self.class_names is not None:
                 if explained_class not in self.class_names:
@@ -479,7 +482,8 @@ optional (default=None)
                 distances, width=kernel_width)
 
             if colour is None:
-                transformation_fn = self.occluder.occlude_segments_vectorised
+                transformation_fn = \
+                    self.occluder.occlude_segments_vectorised  # type: ColourFn
             else:
                 transformation_fn = lambda data: \
                     self.occluder.occlude_segments_vectorised(  # noqa: E731
@@ -529,11 +533,12 @@ optional (default=None)
         # Get a linear model explainer
         explainer = fatf_linear_explainer.SKLearnLinearModelExplainer(
             surrogate, feature_names=ir_names)
+        assert isinstance(explainer.feature_names, list)
         explanation = dict(
             zip(explainer.feature_names, explainer.feature_importance()))
 
         if return_model:
-            return_ = (explanation, surrogate)
+            return_ = (explanation, surrogate)  # type: ExplanationTuple
         else:
             return_ = explanation
         return return_

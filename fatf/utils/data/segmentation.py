@@ -648,7 +648,7 @@ class Segmentation(abc.ABC):
         unique_segments = np.unique(self._segments)
 
         if segments_subset is None:
-            segments_subset = unique_segments
+            segments_subset_ = unique_segments
         else:
             if isinstance(segments_subset, int):
                 if segments_subset not in unique_segments:
@@ -656,7 +656,7 @@ class Segmentation(abc.ABC):
                         ('The segment id {} does not correspond to any of '
                          'the known segments ({}).').format(
                              segments_subset, unique_segments.tolist()))
-                segments_subset = np.asarray([segments_subset])
+                segments_subset_ = np.asarray([segments_subset])
             elif isinstance(segments_subset, list):
                 if not segments_subset:
                     raise ValueError('The list of segments cannot be empty.')
@@ -671,7 +671,7 @@ class Segmentation(abc.ABC):
                             ('The segment id {} does not correspond to any of '
                              'the known segments ({}).').format(
                                  i, unique_segments.tolist()))
-                segments_subset = np.asarray(segments_subset)
+                segments_subset_ = np.asarray(segments_subset)
             else:
                 raise TypeError('Segments subset must be either of None, '
                                 'an integer or a list of integers.')
@@ -708,7 +708,7 @@ class Segmentation(abc.ABC):
         numbered_canvas = Image.fromarray(canvas)
         numbered_canvas_draw = ImageDraw.Draw(numbered_canvas)
 
-        for segment_id in segments_subset:
+        for segment_id in segments_subset_:
             segment_id_mask = (self._segments == segment_id)
             segment_id_indices = np.argwhere(segment_id_mask)
 
@@ -808,7 +808,7 @@ list(tuple(integer, integer, integer)), optional (default=None)
         unique_segments = np.unique(self._segments)
 
         if segments_subset is None:
-            segments_subset = unique_segments
+            segments_subset_ = unique_segments
         else:
             if isinstance(segments_subset, int):
                 if segments_subset not in unique_segments:
@@ -816,7 +816,7 @@ list(tuple(integer, integer, integer)), optional (default=None)
                         ('The segment id {} does not correspond to any of '
                          'the known segments ({}).').format(
                              segments_subset, unique_segments.tolist()))
-                segments_subset = np.asarray([segments_subset])
+                segments_subset_ = np.asarray([segments_subset])
             elif isinstance(segments_subset, list):
                 if not segments_subset:
                     raise ValueError('The list of segments cannot be empty.')
@@ -831,7 +831,7 @@ list(tuple(integer, integer, integer)), optional (default=None)
                             ('The segment id {} does not correspond to any of '
                              'the known segments ({}).').format(
                                  i, unique_segments.tolist()))
-                segments_subset = np.asarray(segments_subset)
+                segments_subset_ = np.asarray(segments_subset)
             else:
                 raise TypeError('Segments subset must be either of None, '
                                 'an integer or a list of integers.')
@@ -845,7 +845,7 @@ list(tuple(integer, integer, integer)), optional (default=None)
         elif isinstance(colour, list):
             if not colour:
                 raise ValueError('The colour list cannot be empty.')
-            if len(colour) != segments_subset.shape[0]:
+            if len(colour) != segments_subset_.shape[0]:
                 raise ValueError('If colours are provided as a list, their '
                                  'number must match the number of segments '
                                  'chosen to be highlighted.')
@@ -874,7 +874,7 @@ list(tuple(integer, integer, integer)), optional (default=None)
             canvas = ski_colour.gray2rgb(canvas)
 
         highlight_mask = np.zeros(shape=self._segments.shape, dtype=int)
-        for i, segments in enumerate(segments_subset):
+        for i, segments in enumerate(segments_subset_):
             s_mask = (self._segments == segments)
             highlight_mask[s_mask] = i + 1
 
@@ -981,7 +981,7 @@ list(tuple(integer, integer, integer)), optional (default=None)
         unique_segments = np.unique(self._segments)
 
         if segments_subset is None:
-            segments_subset = unique_segments.astype(int).tolist()
+            segments_subset_ = unique_segments.astype(int).tolist()
         else:
             if isinstance(segments_subset, int):
                 if segments_subset not in unique_segments:
@@ -989,7 +989,7 @@ list(tuple(integer, integer, integer)), optional (default=None)
                         ('The segment id {} does not correspond to any of '
                          'the known segments ({}).').format(
                              segments_subset, unique_segments.tolist()))
-                segments_subset = [segments_subset]
+                segments_subset_ = [segments_subset]
             elif isinstance(segments_subset, list):
                 if not segments_subset:
                     raise ValueError('The list of segments cannot be empty.')
@@ -1004,6 +1004,7 @@ list(tuple(integer, integer, integer)), optional (default=None)
                             ('The segment id {} does not correspond to any of '
                              'the known segments ({}).').format(
                                  i, unique_segments.tolist()))
+                segments_subset_ = segments_subset
             else:
                 raise TypeError('Segments subset must be either of None, '
                                 'an integer or a list of integers.')
@@ -1011,7 +1012,7 @@ list(tuple(integer, integer, integer)), optional (default=None)
         if not isinstance(mask, bool):
             raise TypeError('The mask parameter must be a boolean.')
 
-        segments_subset_n = len(segments_subset)
+        segments_subset_n = len(segments_subset_)
         if colour is None:
             colour = segments_subset_n * ['b']
         elif isinstance(colour, str):
@@ -1053,7 +1054,7 @@ list(tuple(integer, integer, integer)), optional (default=None)
 
         image_stained = canvas.copy()
         max_value = np.max(image_stained)
-        for id_, clr in zip(segments_subset, colour):
+        for id_, clr in zip(segments_subset_, colour):
             pixel_mask = get_segment_mask(id_, self._segments)
             colour_channel = _colour_map[clr]
             image_stained[pixel_mask, colour_channel] = max_value
@@ -1235,7 +1236,7 @@ list(tuple(integer, integer, integer)), optional (default=None)
         merged_segments : numpy.ndarray
             A 2-dimensional numpy array holding the merged segmentation.
         """
-        # pylint: disable=too-many-branches
+        # pylint: disable=too-many-branches,too-many-locals
         assert self._segments is not None, 'The segmenter was not initialised.'
         if segments is None:
             segments_ = self._segments
@@ -1265,7 +1266,7 @@ list(tuple(integer, integer, integer)), optional (default=None)
                             ('The segment id {} does not correspond to any of '
                              'the known segments ({}).').format(
                                  i, unique_segments.tolist()))
-                segments_grouping = [segments_grouping]
+                segments_grouping_ = [segments_grouping]
             elif isinstance(segments_grouping[0], list):
                 _item_collector = []
                 for i in segments_grouping:
@@ -1291,6 +1292,7 @@ list(tuple(integer, integer, integer)), optional (default=None)
                                 ('The segment id {} is duplicated across '
                                  'grouping lists.').format(j))
                         _item_collector.append(j)
+                segments_grouping_ = segments_grouping  # type: ignore
             else:
                 raise TypeError('The segments grouping must either be a list '
                                 'of integers or a list of lists.')
@@ -1298,8 +1300,8 @@ list(tuple(integer, integer, integer)), optional (default=None)
             raise TypeError('Segments grouping must be a list.')
 
         merged_segments_ = segments_.copy()
-        for group in segments_grouping:
-            mask = get_segment_mask(group, segments_)
+        for group in segments_grouping_:
+            mask = get_segment_mask(group, segments_)  # type: ignore
             # use the smallest id to avoid collisions
             merged_segments_[mask] = min(group)
 
@@ -1422,9 +1424,9 @@ class QuickShift(Segmentation):
     def __init__(self,
                  image: np.ndarray,
                  segmentation_mask: Optional[np.ndarray] = None,
-                 ratio: Number = 0.2,
-                 kernel_size: Number = 4,
-                 max_dist: Number = 200):
+                 ratio: float = 0.2,
+                 kernel_size: float = 4,
+                 max_dist: float = 200):
         """Constructs a ``quickshift`` segmenter."""
         # pylint: disable=too-many-arguments
         super().__init__(
@@ -1523,7 +1525,7 @@ def get_segment_mask(segments_subset: Union[int, List[int]],
                 ('The segment id {} does not correspond to any of '
                  'the known segments ({}).').format(segments_subset,
                                                     unique_segments.tolist()))
-        segments_subset = np.asarray([segments_subset])
+        segments_subset_ = np.asarray([segments_subset])
     elif isinstance(segments_subset, list):
         if len(segments_subset) != len(set(segments_subset)):
             raise ValueError('The list of segments has duplicates.')
@@ -1536,14 +1538,14 @@ def get_segment_mask(segments_subset: Union[int, List[int]],
                     ('The segment id {} does not correspond to any of '
                      'the known segments ({}).').format(
                          i, unique_segments.tolist()))
-        segments_subset = np.asarray(segments_subset)
+        segments_subset_ = np.asarray(segments_subset)
     else:
         raise TypeError('Segments subset must either be an integer '
                         'or a list of integers.')
 
     # Get a 2-D mask where True indicates pixels from the selected segments
     segment_mask = np.zeros(shape=segmentation.shape, dtype=bool)
-    for segment_id in segments_subset:
+    for segment_id in segments_subset_:
         mask = (segmentation == segment_id)
         segment_mask[mask] = True
     return segment_mask

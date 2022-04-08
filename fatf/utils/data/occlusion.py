@@ -7,7 +7,7 @@ partial occlusion of images represented as numpy arrays.
 # Author: Kacper Sokol <k.sokol@bristol.ac.uk>
 # License: new BSD
 
-from typing import Callable, List, Optional, Tuple, Union
+from typing import Callable, Dict, List, Optional, Tuple, Union
 
 import logging
 import random
@@ -25,6 +25,7 @@ __all__ = ['Occlusion']
 logger = logging.getLogger(__name__)  # pylint: disable=invalid-name
 
 RGBcolour = Tuple[int, int, int]
+SegmentColour = Union[int, RGBcolour]
 
 
 class Occlusion(object):  # pylint: disable=useless-object-inheritance
@@ -280,9 +281,11 @@ optional (default=None)
         for id_ in unique_segments:
             segment_mask = (self.segments == id_)
             if self.is_rgb:
-                segment_colour = (random.randint(0, 255),
-                                  random.randint(0, 255),
-                                  random.randint(0, 255))  # yapf: disable
+                segment_colour = (
+                    random.randint(0, 255),
+                    random.randint(0, 255),
+                    random.randint(0, 255)
+                )  # type: SegmentColour # yapf: disable
             else:
                 if self.is_bnw:
                     segment_colour = random.choice([0, 255])
@@ -292,8 +295,9 @@ optional (default=None)
         randomise_patch = randomise_patch[mask]
         return randomise_patch
 
-    def _generate_colouring_strategy(
-            self, colour: Union[None, str, int, RGBcolour]) -> Callable:
+    def _generate_colouring_strategy(self,
+                                     colour: Union[None, str, int, RGBcolour]
+                                     ) -> Callable[[np.ndarray], np.ndarray]:
         """
         Builds a callable form a specifier of the colouring strategy.
 
@@ -302,7 +306,7 @@ optional (default=None)
         method for more details.
         """
         # pylint: disable=too-many-branches,too-many-statements
-        colouring_strategy = None
+        colouring_strategy = None  # type: Union[None, Callable]
         if self.is_rgb:
             _colouring_strategies = {
                 'mean': None,
@@ -318,7 +322,7 @@ optional (default=None)
                 'random-patch': None,
                 'randomise': None,
                 'randomise-patch': None
-            }  # yapf: disable
+            }  # type: Dict[str, Union[None, SegmentColour]] # yapf: disable
         else:
             if self.is_bnw:
                 _rnd = random.choice([0, 255])
@@ -359,7 +363,8 @@ optional (default=None)
                     if self.is_rgb:
                         segment_colour = (self.image[segment_mask, 0].mean(),
                                           self.image[segment_mask, 1].mean(),
-                                          self.image[segment_mask, 2].mean())
+                                          self.image[segment_mask, 2].mean()
+                                          )  # type: SegmentColour
                     else:
                         if self.is_bnw:
                             raise RuntimeError(
@@ -402,7 +407,7 @@ optional (default=None)
                 colouring_strategy = self._randomise_patch
             elif colour in _colouring_strategies:
                 colouring_strategy = lambda _: (  # noqa: E731
-                    _colouring_strategies[colour])
+                    _colouring_strategies[colour])  # type: ignore
             else:
                 raise ValueError((
                     'Unknown colouring strategy name: {}.\n'
@@ -414,7 +419,7 @@ optional (default=None)
                             'an RGB thriplet for RGB images and an integer '
                             'for or grayscale and black-and-white images.')
 
-        return colouring_strategy
+        return colouring_strategy  # type: ignore
 
     def occlude_segments(
             self,

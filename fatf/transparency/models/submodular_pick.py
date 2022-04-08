@@ -14,7 +14,7 @@ submodular pick algorithm proposed by [RIBEIRO2016WHY]_.
 # License: new BSD
 
 from numbers import Number
-from typing import Callable, Dict, List, Union
+from typing import Callable, Dict, List, Set, Tuple, Union
 
 import logging
 import warnings
@@ -84,11 +84,11 @@ def _validate_input(dataset: np.ndarray, explain_instance: Callable,
     return is_valid
 
 
-def submodular_pick(
-        dataset: np.ndarray,
-        explain_instance: Callable,
-        sample_size: int = 0,
-        explanations_number: int = 5) -> List[Dict[Union[int, str], Number]]:
+def submodular_pick(dataset: np.ndarray,
+                    explain_instance: Callable,
+                    sample_size: int = 0,
+                    explanations_number: int = 5
+                    ) -> Tuple[List[Dict[Union[int, str], Number]], List[int]]:
     """
     Applies submodular pick to explanations of a given subset of data.
 
@@ -193,7 +193,7 @@ def submodular_pick(
     explanations_no = len(explanations)
 
     # Get unique feature names and fix index mapping
-    feature_names = set()
+    feature_names = set()  # type: Set[str]
     for exp in explanations:
         feature_names = feature_names.union(exp.keys())
     feature_names_no = len(feature_names)
@@ -210,7 +210,7 @@ def submodular_pick(
     importance = np.abs(weights).sum(axis=0)**.5
 
     indices = set(range(explanations_no))
-    sp_indices = []
+    sp_indices = []  # type: List[int]
     for _ in range(explanations_number):
         coverage = []
         for i in indices:

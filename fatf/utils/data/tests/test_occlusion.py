@@ -19,8 +19,6 @@ except ImportError:  # pragma: no cover
         'Skipping tests of image occlusion -- scikit-image or Pillow is '
         'not installed (and is required for the segmentation dependency).',
         allow_module_level=True)
-else:
-    del fatf.utils.data.segmentation
 
 import fatf.utils.data.occlusion as fudo
 

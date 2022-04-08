@@ -14,6 +14,7 @@ jobs:
       uses: actions/cache@v3
       with:
         path: doc/sphinx_gallery_auto
+        key: ${{ runner.os }}-${{ hashFiles('examples/**') }}
     - name: Set up Python 3.6
       uses: actions/setup-python@v3
       with:

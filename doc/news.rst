@@ -16,7 +16,7 @@ augmentation technique and submodular pick.
 The changelog summarises the functionality added with this release:
 :ref:`changelog_0_1_1`.
 
-Next up, surrogate explainability for image text data.
+Next up, surrogate explainability for text data.
 
 [18/05/2020] Version 0.1.0 released!
 ====================================

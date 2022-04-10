@@ -1378,8 +1378,8 @@ class Slic(Segmentation):
         if n_segments < 2:
             raise ValueError('The n_segments parameter must be at least 2.')
 
-        segments = ski_segmentation.slic(self.segmentation_mask,
-                                         **self.kwargs)  # , start_label=1
+        segments = ski_segmentation.slic(
+            self.segmentation_mask, start_label=1, **self.kwargs)
         return segments
 
 

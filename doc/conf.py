@@ -267,5 +267,7 @@ intersphinx_mapping = {
     'numpy': ('https://docs.scipy.org/doc/numpy/', None),
     'scipy': ('https://docs.scipy.org/doc/scipy/reference', None),
     'sklearn': ('https://scikit-learn.org/stable', None),
+    'skimage': ('https://scikit-image.org/docs/stable', None),
+    'PIL': ('https://pillow.readthedocs.io/en/stable', None),
     'matplotlib': ('https://matplotlib.org/', None)
 }

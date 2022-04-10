@@ -49,17 +49,31 @@ Some parts (modules) of FAT Forensics depend on other packages. These are not
 installed by default. The following table shows soft dependencies of ``fatf``
 modules:
 
-+-----------------------------------------------------------+------------------+
-| ``fatf`` module                                           | Required package |
-+===========================================================+==================+
-| :mod:`fatf.transparency.predictions.surrogate_explainers` |                  |
-+-----------------------------------------------------------+                  |
-| :mod:`fatf.transparency.sklearn`                          | |scikit-learn|_  |
-+-----------------------------------------------------------+                  |
-| :mod:`fatf.utils.data.feature_selection.sklearn`          |                  |
-+-----------------------------------------------------------+------------------+
-| :mod:`fatf.vis`                                           | |matplotlib|_    |
-+-----------------------------------------------------------+------------------+
++-----------------------------------------------------------------+------------------+
+| ``fatf`` module                                                 | Required package |
++=================================================================+==================+
+| :mod:`fatf.transparency.predictions.surrogate_explainers`       |                  |
++-----------------------------------------------------------------+                  |
+| :mod:`fatf.transparency.predictions.surrogate_image_explainers` |                  |
++-----------------------------------------------------------------+                  |
+| :mod:`fatf.transparency.sklearn`                                | |scikit-learn|_  |
++-----------------------------------------------------------------+                  |
+| :mod:`fatf.utils.data.feature_selection.sklearn`                |                  |
++-----------------------------------------------------------------+------------------+
+| :mod:`fatf.transparency.predictions.surrogate_image_explainers` |                  |
++-----------------------------------------------------------------+                  |
+| :mod:`fatf.utils.data.occlusion`                                | |scikit-image|_  |
++-----------------------------------------------------------------+                  |
+| :mod:`fatf.utils.data.segmentation`                             |                  |
++-----------------------------------------------------------------+------------------+
+| :mod:`fatf.transparency.predictions.surrogate_image_explainers` |                  |
++-----------------------------------------------------------------+                  |
+| :mod:`fatf.utils.data.occlusion`                                | |Pillow|_        |
++-----------------------------------------------------------------+                  |
+| :mod:`fatf.utils.data.segmentation`                             |                  |
++-----------------------------------------------------------------+------------------+
+| :mod:`fatf.vis`                                                 | |matplotlib|_    |
++-----------------------------------------------------------------+------------------+
 
 These dependencies can either be installed manually or alongside
 ``fat-forensics`` via ``pip``:
@@ -128,4 +142,8 @@ Developers and contributors may be interesting in the following pages as well:
 .. _scikit-learn: https://scikit-learn.org/stable/
 .. |matplotlib| replace:: ``matplotlib>=3.0.0``
 .. _matplotlib: https://matplotlib.org/
+.. |scikit-image| replace:: ``scikit-image>=0.17.0``
+.. _scikit-image: https://scikit-image.org/
+.. |Pillow| replace:: ``Pillow>=8.4.0``
+.. _Pillow: https://pillow.readthedocs.io/
 .. _requirements-aux.txt: https://github.com/fat-forensics/fat-forensics/blob/master/requirements-aux.txt

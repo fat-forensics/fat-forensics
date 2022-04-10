@@ -22,7 +22,7 @@ import numpy as np
 
 from fatf.exceptions import IncompatibleModelError
 
-import fatf.utils.data.augmentation as fatf_augmentation
+import fatf.utils.data.instance_augmentation as fatf_augmentation
 import fatf.utils.kernels as fatf_kernels
 import fatf.utils.models.models as fatf_models
 import fatf.utils.models.processing as fatf_processing
@@ -146,7 +146,7 @@ optional (default=None)
         A numpy array representing an image used to perform segmentation.
     segmenter : fatf.utils.data.segmentation.Segmentation
         A *quickshift* image segmenter
-       (:class:`fatf.utils.data.segmentation.QuickShift`).
+        (:class:`fatf.utils.data.segmentation.QuickShift`).
     occluder : fatf.utils.data.occlusion.Occlusion
         An image occluder (:class:`fatf.utils.data.occlusion.Occlusion`).
     as_probabilistic : boolean
@@ -344,7 +344,7 @@ optional (default=None)
             and occluded according to the binary data sample, and then
             predicted by the explained model -- the data points can be
             processed in fixed-size batches.
-        kernel_width : float, optional (default=None)
+        kernel_width : float, optional (default=0.25)
             The width of the exponential kernel used when computing weights of
             the binary sampled data based on the cosine distances between them
             and the explained image.
@@ -534,8 +534,12 @@ optional (default=None)
         explainer = fatf_linear_explainer.SKLearnLinearModelExplainer(
             surrogate, feature_names=ir_names)
         assert isinstance(explainer.feature_names, list)
+        feature_importance = explainer.feature_importance()
+        if not self.as_probabilistic:
+            assert feature_importance.shape[0] == 1, 'Single-output clf.'
+            feature_importance = feature_importance[0]
         explanation = dict(
-            zip(explainer.feature_names, explainer.feature_importance()))
+            zip(explainer.feature_names, feature_importance))
 
         if return_model:
             return_ = (explanation, surrogate)  # type: ExplanationTuple

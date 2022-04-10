@@ -38,3 +38,4 @@ custom solutions using FAT Forensics.
    :name: how-to-transparency
 
    transparency/tabular-surrogates
+   transparency/image-surrogates

@@ -88,9 +88,12 @@ names the main techniques implemented by FAT Forensics for each intersection.
 | Models      | * Group-based fairness    | * Systematic performance | * Partial dependence     |
 |             |   (disparate impact)      |   bias                   | * Individual conditional |
 |             |                           |                          |   expectation            |
+|             |                           |                          | * Submodular pick        |
 +-------------+---------------------------+--------------------------+--------------------------+
 | Predictions | * Counterfactual fairness |                          | * Counterfactuals        |
 |             |   (disparate treatment)   |                          | * Tabular bLIMEy (LIME   |
+|             |                           |                          |   alternative)           |
+|             |                           |                          | * Image bLIMEy (LIME     |
 |             |                           |                          |   alternative)           |
 +-------------+---------------------------+--------------------------+--------------------------+
 

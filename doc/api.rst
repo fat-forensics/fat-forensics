@@ -200,6 +200,22 @@ uses.
    feature_influence.partial_dependence_ice
    feature_influence.partial_dependence
 
+:mod:`fatf.transparency.models.submodular_pick`: Submodular Pick
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. automodule:: fatf.transparency.models.submodular_pick
+    :no-members:
+    :no-inherited-members:
+
+.. currentmodule:: fatf.transparency.models
+
+.. autosummary::
+   :toctree: generated/
+   :template: function.rst
+   :nosignatures:
+
+   submodular_pick.submodular_pick
+
 :mod:`fatf.transparency.predictions`: Transparency for Predictions
 ------------------------------------------------------------------
 
@@ -247,6 +263,22 @@ uses.
    surrogate_explainers.SurrogateTabularExplainer
    surrogate_explainers.TabularBlimeyLime
    surrogate_explainers.TabularBlimeyTree
+
+:mod:`fatf.transparency.predictions.surrogate_image_explainers`: Surrogate Image Explainers
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. automodule:: fatf.transparency.predictions.surrogate_image_explainers
+    :no-members:
+    :no-inherited-members:
+
+.. currentmodule:: fatf.transparency.predictions
+
+.. autosummary::
+   :toctree: generated/
+   :template: class.rst
+   :nosignatures:
+
+   surrogate_image_explainers.ImageBlimeyLime
 
 :mod:`fatf.transparency.sklearn`: Scikit-learn Explainers
 ---------------------------------------------------------
@@ -490,6 +522,7 @@ Base classes
    :nosignatures:
 
    instance_augmentation.binary_sampler
+   instance_augmentation.random_binary_sampler
 
 :mod:`fatf.utils.data.transformation`: Data Set Transformation
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -565,6 +598,47 @@ Base classes
    sklearn.forward_selection
    sklearn.highest_weights
 
+:mod:`fatf.utils.data.occlusion`: Image Occlusion
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. automodule:: fatf.utils.data.occlusion
+    :no-members:
+    :no-inherited-members:
+
+.. currentmodule:: fatf.utils.data
+
+.. autosummary::
+   :toctree: generated/
+   :template: class.rst
+   :nosignatures:
+
+   occlusion.Occlusion
+
+:mod:`fatf.utils.data.segmentation`: Image Segmentation
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. automodule:: fatf.utils.data.segmentation
+    :no-members:
+    :no-inherited-members:
+
+.. currentmodule:: fatf.utils.data
+
+.. autosummary::
+   :toctree: generated/
+   :template: class.rst
+   :nosignatures:
+
+   segmentation.Segmentation
+   segmentation.Slic
+   segmentation.QuickShift
+
+.. autosummary::
+   :toctree: generated/
+   :template: function.rst
+   :nosignatures:
+
+   segmentation.get_segment_mask
+
 :mod:`fatf.utils.models`: Models Utilities
 ------------------------------------------
 
@@ -587,6 +661,22 @@ Base classes
    :nosignatures:
 
    models.KNN
+
+:mod:`fatf.utils.models.processing`: Model Processing
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. automodule:: fatf.utils.models.processing
+    :no-members:
+    :no-inherited-members:
+
+.. currentmodule:: fatf.utils.models
+
+.. autosummary::
+   :toctree: generated/
+   :template: function.rst
+   :nosignatures:
+
+   processing.batch_data
 
 :mod:`fatf.utils.models.validation`: Model Validation Tools
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -820,31 +910,51 @@ Base classes
 Constants
 ~~~~~~~~~
 
-.. currentmodule:: fatf.utils.testing
+..
+  .. currentmodule:: fatf.utils.testing
+  .. autosummary::
+     :toctree: generated/
+     :nosignatures:
 
-.. autosummary::
-   :toctree: generated/
-   :nosignatures:
-
-   arrays.NUMERICAL_NP_ARRAY
-   arrays.NOT_NUMERICAL_NP_ARRAY
-   arrays.WIDE_NP_ARRAY
-   arrays.NUMERICAL_STRUCTURED_ARRAY
-   arrays.NOT_NUMERICAL_STRUCTURED_ARRAY
-   arrays.WIDE_STRUCTURED_ARRAY
-   arrays.BASE_NP_ARRAY
-   arrays.NOT_BASE_NP_ARRAY
-   arrays.BASE_STRUCTURED_ARRAY
-   arrays.NOT_BASE_STRUCTURED_ARRAY
-   transparency.LABELS
-   transparency.NUMERICAL_NP_ARRAY
-   transparency.NUMERICAL_STRUCT_ARRAY
-   transparency.CATEGORICAL_NP_ARRAY
-   transparency.CATEGORICAL_STRUCT_ARRAY
-   transparency.MIXED_ARRAY
-   warnings.DEFAULT_WARNINGS
-   warnings.EMPTY_RE
-   warnings.EMPTY_RE_I
++----------------------------------------------+
+| ``arrays.NUMERICAL_NP_ARRAY``                |
++----------------------------------------------+
+| ``arrays.NOT_NUMERICAL_NP_ARRAY``            |
++----------------------------------------------+
+| ``arrays.WIDE_NP_ARRAY``                     |
++----------------------------------------------+
+| ``arrays.NUMERICAL_STRUCTURED_ARRAY``        |
++----------------------------------------------+
+| ``arrays.NOT_NUMERICAL_STRUCTURED_ARRAY``    |
++----------------------------------------------+
+| ``arrays.WIDE_STRUCTURED_ARRAY``             |
++----------------------------------------------+
+| ``arrays.BASE_NP_ARRAY``                     |
++----------------------------------------------+
+| ``arrays.NOT_BASE_NP_ARRAY``                 |
++----------------------------------------------+
+| ``arrays.BASE_STRUCTURED_ARRAY``             |
++----------------------------------------------+
+| ``arrays.NOT_BASE_STRUCTURED_ARRAY``         |
++----------------------------------------------+
+| ``transparency.LABELS``                      |
++----------------------------------------------+
+| ``transparency.NUMERICAL_NP_ARRAY``          |
++----------------------------------------------+
+| ``transparency.NUMERICAL_STRUCT_ARRAY``      |
++----------------------------------------------+
+| ``transparency.CATEGORICAL_NP_ARRAY``        |
++----------------------------------------------+
+| ``transparency.CATEGORICAL_STRUCT_ARRAY``    |
++----------------------------------------------+
+| ``transparency.MIXED_ARRAY``                 |
++----------------------------------------------+
+| ``warnings.DEFAULT_WARNINGS``                |
++----------------------------------------------+
+| ``warnings.EMPTY_RE``                        |
++----------------------------------------------+
+| ``warnings.EMPTY_RE_I``                      |
++----------------------------------------------+
 
 Classes
 ~~~~~~~

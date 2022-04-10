@@ -222,9 +222,9 @@ accountability functionality will be implemented as well.
     trained using cross-entropy loss, while canonical library fits regression
     model on probability output."
 
-.. _`Google blog post`: http://research.google.com/bigpicture/attacking-discrimination-in-ml/
-.. _`Interpreting random forests`: http://blog.datadive.net/interpreting-random-forests/
-.. _`Random forest interpretation with scikit-learn`: http://blog.datadive.net/random-forest-interpretation-with-scikit-learn/
+.. _`Google blog post`: https://research.google.com/bigpicture/attacking-discrimination-in-ml/
+.. _`Interpreting random forests`: https://blog.datadive.net/interpreting-random-forests/
+.. _`Random forest interpretation with scikit-learn`: https://blog.datadive.net/random-forest-interpretation-with-scikit-learn/
 .. _`Background Check`: https://github.com/perellonieto/background_check/blob/master/jupyter/background_check.ipynb
 .. _`eli5 package`: https://eli5.readthedocs.io/en/latest/libraries/sklearn.html
 .. _ANCHOR: https://github.com/marcotcr/anchor
@@ -393,5 +393,5 @@ networks (Deep Learning, autograd, optimisation).
 
 .. _`what-if tool`: https://pair-code.github.io/what-if-tool/
 .. _`Occlusion implementation`: https://github.com/marcoancona/DeepExplain/blob/master/deepexplain/tensorflow/methods.py
-.. _`Integrated Gradient slides`: http://theory.stanford.edu/~ataly/Talks/sri_attribution_talk_jun_2017.pdf
+.. _`Integrated Gradient slides`: https://theory.stanford.edu/~ataly/Talks/sri_attribution_talk_jun_2017.pdf
 .. _`DeepExplain implementation`: https://github.com/marcoancona/DeepExplain/blob/master/deepexplain/tensorflow/methods.py

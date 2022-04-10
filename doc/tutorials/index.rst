@@ -18,7 +18,7 @@ launch a Python interpreter and check the version of the package::
   $ python
   >>> import fatf
   >>> fatf.__version__
-  '0.1.0'
+  '0.1.1'
 
 .. note:: **Doctest Mode**
 

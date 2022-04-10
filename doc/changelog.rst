@@ -5,6 +5,65 @@
 Changelog
 +++++++++
 
+.. _changelog_0_1_1:
+
+0.1.1 (10/04/2022)
+==================
+
+The following functionality is made available with this release:
+
++-------------+----------+----------------+---------------------+
+|             | Fairness | Accountability | Transparency        |
++-------------+----------+----------------+---------------------+
+| Data/       |          |                |                     |
+| Features    |          |                |                     |
++-------------+----------+----------------+---------------------+
+| Models      |          |                | * Submodular        |
+|             |          |                |   Pick              |
++-------------+----------+----------------+---------------------+
+| Predictions |          |                | * Image bLIMEy      |
+|             |          |                |   (LIME-equivalent) |
++-------------+----------+----------------+---------------------+
+
+This update focuses on surrogate *image* explainers for predictions of
+crisp and probabilistic black-box classifiers.
+In particular, it implements:
+
+- Segmentation:
+
+  * Segmentation abstract class -- :class:`~fatf.utils.data.segmentation.\
+    Segmentation`.
+  * Slic segmentation -- :class:`~fatf.utils.data.segmentation.Slic`.
+  * QuickShift segmentation -- :class:`~fatf.utils.data.segmentation.\
+    QuickShift`.
+
+- Occlusion:
+
+  * Generic image occlusion -- :class:`~fatf.utils.data.occlusion.Occlusion`.
+
+- Sampling:
+
+  * Binary random sampling -- :func:`~fatf.utils.data.instance_augmentation.\
+    random_binary_sampler`.
+
+- Incremental model processing:
+
+  * Batch-processing and -transforming data for predicting it with a model
+    -- :func:`~fatf.utils.models.processing.batch_data`.
+
+- Surrogate image explainability:
+
+  * bLIMEy-based LIME surrogate image explainer -- :class:`~fatf.transparency.\
+    predictions.surrogate_image_explainers.ImageBlimeyLime`.
+
+- Aggregation-based model explainability:
+
+  * Submodular pick -- :func:`~fatf.transparency.models.submodular_pick.\
+    submodular_pick`.
+
+Additionally, this release moves away from Travis CI in favour of GitHub
+Actions.
+
 .. _changelog_0_1_0:
 
 0.1.0 (18/05/2020)

@@ -107,14 +107,14 @@ def test_input_is_valid():
                               'data to be predicted -- and outputs a '
                               '1-dimensional array with numerical '
                               'predictions.')
-    model_incompatible_model_np = ('With as_predictive set to False the '
+    model_incompatible_model_np = ('With as_probabilistic set to False the '
                                    'predictive model needs to be capable of '
                                    'outputting (class) predictions via a '
                                    '*predict* method, which takes exactly one '
                                    'required parameter -- data to be '
                                    'predicted -- and outputs a 1-dimensional '
                                    'array with (class) predictions.')
-    model_incompatible_model_p = ('With as_predictive set to True the '
+    model_incompatible_model_p = ('With as_probabilistic set to True the '
                                   'predictive model needs to be capable of '
                                   'outputting probabilities via a '
                                   '*predict_proba* method, which takes '

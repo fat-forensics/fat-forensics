@@ -1,10 +1,7 @@
 name: Docs
-on:
-  push:
-    branches:
-      - master
+on: [push, pull_request]
 jobs:
-  build-n-publish:
+  test-build-publish:
     name: Build, test and publish documentation
     runs-on: ubuntu-18.04
     steps:
@@ -17,10 +14,15 @@ jobs:
       uses: actions/cache@v3
       with:
         path: doc/sphinx_gallery_auto
+        key: ${{ runner.os }}-${{ hashFiles('examples/**') }}
     - name: Set up Python 3.6
       uses: actions/setup-python@v3
       with:
         python-version: 3.6
+    - name: Set extra env -- scikit-learn and matplotlib
+      run: |
+        echo "FATF_TEST_SKLEARN=0.19.2" >> $GITHUB_ENV
+        echo "FATF_TEST_MATPLOTLIB=3.2.0" >> $GITHUB_ENV
     - name: Install dependencies
       env:
         MAKEFLAGS: '-j 2'
@@ -30,6 +32,7 @@ jobs:
         make install-matplotlib
         make install-scikit-learn
         make dependencies-dev
+        pip install -r requirements-aux.txt
     - name: Test documentation
       run: |
         make test-doc
@@ -38,6 +41,10 @@ jobs:
     - name: Build documentation
       run: make doc-html
     - name: Publish documentation
+      if: >
+        github.event_name == 'push'
+        && github.repository == 'fat-forensics/fat-forensics'
+        && github.ref == 'refs/heads/master'
       env:
         FAT_FORENSICS_AUTOMATOR_GITHUB_TOKEN: ${{ secrets.FAT_FORENSICS_AUTOMATOR_GITHUB_TOKEN }}
       run: ./build_tools/doc/deploy-doc.sh

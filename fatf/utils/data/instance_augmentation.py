@@ -3,6 +3,9 @@
 
 The :mod:`fatf.utils.data.instance_augmentation` module implements various
 augmentation function for 1-dimensional numpy array-like objects.
+
+.. versionchanged:: 0.1.1
+    Added the ``random_binary_sampler`` function.
 """
 # Author: Alex Hepburn <ah13558@bristol.ac.uk>
 #         Kacper Sokol <k.sokol@bristol.ac.uk>
@@ -17,7 +20,7 @@ import fatf.utils.array.validation as fuav
 
 from fatf.exceptions import IncorrectShapeError
 
-__all__ = ['binary_sampler']
+__all__ = ['binary_sampler', 'random_binary_sampler']
 
 
 def _validate_input(data_row: Union[np.ndarray, np.void],
@@ -109,3 +112,45 @@ def binary_sampler(data_row: Union[np.ndarray, np.void],
             binary_samples[:, column_index] = column_values
 
     return binary_samples
+
+
+def random_binary_sampler(elements_number: int,
+                          samples_number: int = 50) -> np.ndarray:
+    """
+    Samples ``samples_number`` of random binary vectors of length
+    ``elements_number``.
+
+    .. versionadded:: 0.1.1
+
+    Parameters
+    ----------
+    elements_number : integer
+        The number of samples to generate.
+    samples_number : integer, optional (default=50)
+        The number of binary elements in each sample.
+
+    Raises
+    ------
+    TypeError
+        Either ``samples_number`` or ``elements_number`` is not an integer.
+    ValueError
+        Either ``samples_number`` or ``elements_number`` is smaller than 1.
+
+    Returns
+    -------
+    samples : numpy.ndarray
+        A binary numpy array of shape ``samples_number``X``elements_number``
+        with random samples.
+    """
+    if not isinstance(elements_number, int):
+        raise TypeError('The number of elements must be an integer.')
+    if elements_number < 1:
+        raise ValueError('The number of elements must be greater than 0.')
+
+    if not isinstance(samples_number, int):
+        raise TypeError('The number of samples must be an integer.')
+    if samples_number < 1:
+        raise ValueError('The number of samples must be greater than 0.')
+
+    samples = np.random.randint(0, 2, size=(samples_number, elements_number))
+    return samples

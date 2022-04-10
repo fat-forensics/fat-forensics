@@ -62,7 +62,7 @@ flexibility -- none of the three aforementioned components can be customised.
    on Neural Information Processing Systems (NeurIPS 2019), Vancouver, Canada.
    arXiv preprint arXiv:1910.13016. URL https://arxiv.org/abs/1910.13016.
 .. [RIBEIRO2016WHY] Ribeiro, M.T., Singh, S. and Guestrin, C., 2016,
-   August. Why should i trust you?: Explaining the predictions of any
+   August. Why should I trust you?: Explaining the predictions of any
    classifier. In Proceedings of the 22nd ACM SIGKDD international
    conference on knowledge discovery and data mining (pp. 1135-1144). ACM.
 
@@ -169,7 +169,7 @@ last two dimensions of the data and highlighting the ``data_point``::
 Surrogate Linear Model (LIME)
 =============================
 
-We will use the quartile discretiser for the
+We will use the quartile discretisation for the
 *interpretable data representation*::
 
    >>> import fatf.utils.data.discretisation as fatf_discretisation
@@ -302,7 +302,7 @@ Finally, we train a local linear (ridge) regression to the locally sampled,
 discretised and binarised data and extract the explanation from its
 coefficient. To enforce the locality of the explanation even further, we first
 calculate the distances between the binarised ``data_point`` and the sampled
-data and kernelis these distances (with an exponential kernel) to get data
+data and kernelise these distances (with an exponential kernel) to get data
 point weights. We use the :math:`0.75 * \sqrt{\text{features number}}` as the
 kernel width::
 
@@ -331,7 +331,7 @@ As mentioned before, we will explain the ``'setosa'`` class, which has index
    0
 
 Therefore, we extract the probabilities of the first column (with index ``0``)
-form the black-box predictions::
+from the black-box predictions::
 
    >>> sampled_data_predictions_setosa = sampled_data_probabilities[:, 0]
 
@@ -415,7 +415,7 @@ probabilities of one of the classes (as with LIME) or use a classification
 tree. We will go with the latter option. Now, we have a choice between training
 the tree as a multi-class classifier for all of the classes or as one-vs-rest
 for a selected class. The advantage of the former is that the same tree can be
-used to explain all of the classes at one, therefore we will go with a
+used to explain all of the classes at once, therefore we will go with a
 multi-class classification tree::
 
    >>> import sklearn.tree
@@ -425,7 +425,7 @@ multi-class classification tree::
    ...     sampled_data, sampled_data_predictions, sample_weight=weights)
    DecisionTreeClassifier(max_depth=3)
 
-Once possible explanation that we can extract from the tree is feature
+One possible explanation that we can extract from the tree is feature
 importance::
 
    >>> for n_i in zip(iris_feature_names, blimey_tree.feature_importances_):

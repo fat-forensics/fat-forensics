@@ -5,6 +5,19 @@
 News
 ++++
 
+[10/04/2022] Version 0.1.1 released!
+====================================
+
+Today we release an incremental update focused on surrogate *image* explainers.
+This release comes with functionality for image segmentation, image occlusion
+and a bLIMEy implementation of image LIME, as well as a simple binary data
+augmentation technique and submodular pick.
+
+The changelog summarises the functionality added with this release:
+:ref:`changelog_0_1_1`.
+
+Next up, surrogate explainability for text data.
+
 [18/05/2020] Version 0.1.0 released!
 ====================================
 

@@ -141,7 +141,7 @@ surrogate_explainers.SurrogateTabularExplainer` class.
                 predictive_model, True, True)
             if not is_functional:
                 raise IncompatibleModelError(
-                    'With as_predictive set to True the predictive model '
+                    'With as_probabilistic set to True the predictive model '
                     'needs to be capable of outputting probabilities via '
                     'a *predict_proba* method, which takes exactly one '
                     'required parameter -- data to be predicted -- and '
@@ -151,7 +151,7 @@ surrogate_explainers.SurrogateTabularExplainer` class.
                 predictive_model, False, True)
             if not is_functional:
                 raise IncompatibleModelError(
-                    'With as_predictive set to False the predictive model '
+                    'With as_probabilistic set to False the predictive model '
                     'needs to be capable of outputting (class) predictions '
                     'via a *predict* method, which takes exactly one required '
                     'parameter -- data to be predicted -- and outputs a '
@@ -906,7 +906,7 @@ surrogate_explainers.SurrogateTabularExplainer`.
        master/lime/lime_tabular.py#L357
 
     .. [RIBEIRO2016WHY] Ribeiro, M.T., Singh, S. and Guestrin, C., 2016,
-       August. Why should i trust you?: Explaining the predictions of any
+       August. Why should I trust you?: Explaining the predictions of any
        classifier. In Proceedings of the 22nd ACM SIGKDD international
        conference on knowledge discovery and data mining (pp. 1135-1144). ACM.
 

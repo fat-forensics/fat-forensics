@@ -137,3 +137,47 @@ def test_binary_sampler():
             atol=1e-1)
     assert fuav.are_similar_dtype_arrays(
         np.asarray(numerical_binary_struct_array), samples, True)
+
+
+def test_random_binary_sampler():
+    """
+    Tests :func:`fatf.utils.data.instance_augmentation.random_binary_sampler`.
+    """
+    err_msg = 'The number of elements must be an integer.'
+    with pytest.raises(TypeError) as exin:
+        fudi.random_binary_sampler('int')
+    assert str(exin.value) == err_msg
+    with pytest.raises(TypeError) as exin:
+        fudi.random_binary_sampler(1.0)
+    assert str(exin.value) == err_msg
+
+    err_msg = 'The number of elements must be greater than 0.'
+    with pytest.raises(ValueError) as exin:
+        fudi.random_binary_sampler(0)
+    assert str(exin.value) == err_msg
+    with pytest.raises(ValueError) as exin:
+        fudi.random_binary_sampler(-42)
+    assert str(exin.value) == err_msg
+
+    err_msg = 'The number of samples must be an integer.'
+    with pytest.raises(TypeError) as exin:
+        fudi.random_binary_sampler(4, 'int')
+    assert str(exin.value) == err_msg
+    with pytest.raises(TypeError) as exin:
+        fudi.random_binary_sampler(4, 4.2)
+    assert str(exin.value) == err_msg
+
+    err_msg = 'The number of samples must be greater than 0.'
+    with pytest.raises(ValueError) as exin:
+        fudi.random_binary_sampler(4, 0)
+    assert str(exin.value) == err_msg
+    with pytest.raises(ValueError) as exin:
+        fudi.random_binary_sampler(4, -42)
+    assert str(exin.value) == err_msg
+
+    fatf.setup_random_seed()
+    sample = fudi.random_binary_sampler(4, 10)
+    sample_ = np.array([[0, 1, 0, 0], [0, 1, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0],
+                        [1, 1, 1, 0], [1, 0, 1, 1], [1, 1, 1, 1], [1, 1, 0, 0],
+                        [1, 1, 1, 0], [1, 0, 0, 0]])
+    assert np.array_equal(sample, sample_)

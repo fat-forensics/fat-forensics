@@ -164,7 +164,7 @@ author will automatically adhere to some of our coding style. You can find the
 configuration file of the EditorConfig -- `.editorconfig`_ -- in the root
 directory of the package.
 
-.. _`Google Python Style Guide`: http://google.github.io/styleguide/pyguide.html
+.. _`Google Python Style Guide`: https://google.github.io/styleguide/pyguide.html
 .. _YAPF: https://github.com/google/yapf
 .. _`.style.yapf`: https://github.com/fat-forensics/fat-forensics/blob/master/.style.yapf
 .. _Pylint: https://www.pylint.org/

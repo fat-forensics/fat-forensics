@@ -46,9 +46,6 @@ Cite           |BibTeX|_ |JOSS|_ |ZENODO|_
 .. |Binder| image:: https://mybinder.org/badge_logo.svg
 .. _Binder: https://mybinder.org/v2/gh/fat-forensics/fat-forensics-doc/master?filepath=notebooks
 
-.. |Docker| image:: https://images.microbadger.com/badges/image/anthropocentricai/ai-python.svg
-.. _Docker: https://hub.docker.com/r/anthropocentricai/ai-python
-
 .. |MailingList| image:: https://img.shields.io/badge/mailing%20list-Google%20Groups-green.svg
 .. _MailingList: https://groups.google.com/forum/#!forum/fat-forensics
 
@@ -102,17 +99,31 @@ FAT Forensics requires **Python 3.5** or higher and the following dependencies:
 
 In addition, some of the modules require *optional* dependencies:
 
-+--------------------------------------------------------+------------------+------------+
-| ``fatf`` module                                        | Package          | Version    |
-+========================================================+==================+============+
-| ``fatf.transparency.predictions.surrogate_explainers`` |                  |            |
-+--------------------------------------------------------+                  |            |
-| ``fatf.transparency.sklearn``                          | `scikit-learn`_  | >=0.19.2   |
-+--------------------------------------------------------+                  |            |
-| ``fatf.utils.data.feature_selection.sklearn``          |                  |            |
-+--------------------------------------------------------+------------------+------------+
-| ``fatf.vis``                                           | matplotlib_      | >=3.0.0    |
-+--------------------------------------------------------+------------------+------------+
++--------------------------------------------------------------+------------------+------------+
+| ``fatf`` module                                              | Package          | Version    |
++==============================================================+==================+============+
+| ``fatf.transparency.predictions.surrogate_explainers``       |                  |            |
++--------------------------------------------------------------+                  |            |
+| ``fatf.transparency.predictions.surrogate_image_explainers`` |                  |            |
++--------------------------------------------------------------+                  |            |
+| ``fatf.transparency.sklearn``                                | `scikit-learn`_  | >=0.19.2   |
++--------------------------------------------------------------+                  |            |
+| ``fatf.utils.data.feature_selection.sklearn``                |                  |            |
++--------------------------------------------------------------+------------------+------------+
+| ``fatf.transparency.predictions.surrogate_image_explainers`` |                  |            |
++--------------------------------------------------------------+                  |            |
+| ``fatf.utils.data.occlusion``                                | `scikit-image`_  | >=0.17.0   |
++--------------------------------------------------------------+                  |            |
+| ``fatf.utils.data.segmentation``                             |                  |            |
++--------------------------------------------------------------+------------------+------------+
+| ``fatf.transparency.predictions.surrogate_image_explainers`` |                  |            |
++--------------------------------------------------------------+                  |            |
+| ``fatf.utils.data.occlusion``                                | `Pillow`_        | >=8.4.0    |
++--------------------------------------------------------------+                  |            |
+| ``fatf.utils.data.segmentation``                             |                  |            |
++--------------------------------------------------------------+------------------+------------+
+| ``fatf.vis``                                                 | matplotlib_      | >=3.0.0    |
++--------------------------------------------------------------+------------------+------------+
 
 User Installation
 -----------------
@@ -242,9 +253,11 @@ and the University of Bristol with the initial funding provided by Thales.
 .. _NumPy: https://www.numpy.org/
 .. _scikit-learn: https://scikit-learn.org/stable/
 .. _matplotlib: https://matplotlib.org/
+.. _scikit-image: https://scikit-image.org/
+.. _Pillow: https://pillow.readthedocs.io/
 .. _`https://fat-forensics.org`: https://fat-forensics.org
 .. _inst: https://fat-forensics.org/getting_started/install_deps_os.html#installation-instructions
-.. _changelog: https://fat-forensics.org/getting_started/changelog.html
+.. _changelog: https://fat-forensics.org/changelog.html
 .. _dev_guide: https://fat-forensics.org/development.html
 .. _`https://github.com/fat-forensics/fat-forensics`: https://github.com/fat-forensics/fat-forensics
 .. _`https://pypi.org/project/fat-forensics`: https://pypi.org/project/fat-forensics

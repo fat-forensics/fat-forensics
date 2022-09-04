@@ -1384,6 +1384,11 @@ class Slic(Segmentation):
 
         Raises
         ------
+        RuntimeError
+            Slic segmenter can sometimes fail quietly, returning a segmentation
+            that starts at 0 or is all 0s.
+            This appears to have been resolved in scikit-image 0.19.2 and
+            higher.
         TypeError
             The number of segments parameter is not an integer.
         ValueError
@@ -1403,6 +1408,14 @@ class Slic(Segmentation):
 
         segments = ski_segmentation.slic(
             self.segmentation_mask, start_label=1, **self.kwargs)
+
+        # Slic sometimes fails quietly, returning segmentation that starts
+        # at 0 or all-0
+        if 0 in np.unique(segments):
+            raise RuntimeError(  # pragma: nocover
+                'Slic segmenter failed. '
+                'Try upgrading to scikit-image 0.19.2 or higher.')
+
         return segments
 
 

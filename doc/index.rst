@@ -48,7 +48,7 @@ more information about the support we receive :ref:`here <contributors>`.
 Please remember to :ref:`cite us <citing>` if you use any part of the package
 or its documentation.
 
-.. _SciPy: https://www.scipy.org/
+.. _SciPy: https://scipy.org/
 .. _NumPy: https://numpy.org/
 .. _`FAT-Forensics organisation`: https://github.com/fat-forensics
 .. _`fat-forensics`: https://github.com/fat-forensics/fat-forensics

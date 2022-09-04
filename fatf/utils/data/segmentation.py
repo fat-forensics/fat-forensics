@@ -456,12 +456,20 @@ class Segmentation(abc.ABC):
 
     @segments.setter
     def segments(self, segments: np.ndarray):
-        """Setups the segments manually."""
+        """
+        Setups the segments manually.
+
+        Warns
+        -----
+        UserWarning
+            Inform the user that the segmentation has only one segment.
+        """
         assert _validate_segmentation(segments, self.image), 'Bad segments.'
         if np.unique(segments).shape[0] == 1:
             warnings.warn('The segmentation has only **one** segment.',
                           UserWarning)
         self._segments = segments
+        self.segments_number = np.unique(self._segments).shape[0]
 
     def set_segments(self, segments: np.ndarray):
         """
@@ -484,6 +492,11 @@ class Segmentation(abc.ABC):
         segments : numpy.ndarray
             A 2-dimensional numpy array representing a segmentation.
 
+        Warns
+        -----
+        UserWarning
+            Inform the user that the segmentation has only one segment.
+
         Raises
         ------
         IncorrectShapeError
@@ -502,6 +515,7 @@ class Segmentation(abc.ABC):
             warnings.warn('The segmentation has only **one** segment.',
                           UserWarning)
         self._segments = segments
+        self.segments_number = np.unique(self._segments).shape[0]
 
     def mark_boundaries(self,
                         mask: bool = False,
@@ -1079,7 +1093,7 @@ list(tuple(integer, integer, integer)), optional (default=None)
 
         Parameters
         ----------
-        segments_subset : intiger or list(integer), optional (default=None)
+        segments_subset : integer or list(integer), optional (default=None)
             A number of a specific segment or a list of segments to be
             grayed out. By default (``None``) all the segments are grayed out.
         mask : boolean, optional (default=False)
@@ -1212,6 +1226,11 @@ list(tuple(integer, integer, integer)), optional (default=None)
             If provided, the merging will be performed on this segmentation
             instead of the one stored in the class.
 
+        Warns
+        -----
+        UserWarning
+            Inform the user that only a single segment is being created.
+
         Raises
         ------
         IncorrectShapeError
@@ -1317,6 +1336,10 @@ list(tuple(integer, integer, integer)), optional (default=None)
 
         if inplace:
             self.set_segments(merged_segments)
+        else:
+            if np.unique(merged_segments).shape[0] == 1:
+                warnings.warn('The new segmentation has only **one** segment.',
+                              UserWarning)
 
         return merged_segments
 
@@ -1361,6 +1384,11 @@ class Slic(Segmentation):
 
         Raises
         ------
+        RuntimeError
+            Slic segmenter can sometimes fail quietly, returning a segmentation
+            that starts at 0 or is all 0s.
+            This appears to have been resolved in scikit-image 0.19.2 and
+            higher.
         TypeError
             The number of segments parameter is not an integer.
         ValueError
@@ -1380,6 +1408,14 @@ class Slic(Segmentation):
 
         segments = ski_segmentation.slic(
             self.segmentation_mask, start_label=1, **self.kwargs)
+
+        # Slic sometimes fails quietly, returning segmentation that starts
+        # at 0 or all-0
+        if 0 in np.unique(segments):
+            raise RuntimeError(  # pragma: nocover
+                'Slic segmenter failed. '
+                'Try upgrading to scikit-image 0.19.2 or higher.')
+
         return segments
 
 

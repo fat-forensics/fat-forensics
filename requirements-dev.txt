@@ -1,6 +1,8 @@
 codecov==2.1.0
+docutils<0.18
 flake8==3.8.1
 isort<=4.3.21
+jinja2<3.1.0
 mypy==0.770
 nbval==0.9.1
 numpydoc==0.8.0
@@ -10,4 +12,5 @@ pytest-cov==2.6.0
 sphinx==2.0
 sphinx-gallery==0.3.1
 twine==1.14.0
+wheel
 yapf==0.26.0

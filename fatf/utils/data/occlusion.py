@@ -605,6 +605,8 @@ optional (default=None)
         if not fuav.is_numerical_array(vectorised_segments_subset):
             raise TypeError('The vector representation of segments should be '
                             'a numerical numpy array.')
+
+        input_1d = False
         if fuav.is_1d_array(vectorised_segments_subset):
             if vectorised_segments_subset.shape[0] != self.segments_number:
                 raise IncorrectShapeError(
@@ -614,6 +616,7 @@ optional (default=None)
                          vectorised_segments_subset.shape[0],
                          self.segments_number))
             samples = 1
+            input_1d = True
             vectorised_segments_subset = np.asarray(
                 [vectorised_segments_subset])
         elif fuav.is_2d_array(vectorised_segments_subset):
@@ -645,7 +648,7 @@ optional (default=None)
                                                    self.segments)
             image_occluded[i, occlusion_mask] = colouring_strategy(
                 occlusion_mask)
-        if samples == 1:
+        if input_1d:
             image_occluded = image_occluded[0]
 
         return image_occluded

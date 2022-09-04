@@ -5,6 +5,14 @@
 News
 ++++
 
+[04/09/2022] Version 0.1.2 released!
+====================================
+
+Today we release a minor update fixing segmentation and occlusion bugs.
+
+The changelog summarises the bugs fixed in this release:
+:ref:`changelog_0_1_2`.
+
 [10/04/2022] Version 0.1.1 released!
 ====================================
 

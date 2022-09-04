@@ -5,6 +5,31 @@
 Changelog
 +++++++++
 
+.. _changelog_0_1_2:
+
+0.1.2 (04/09/2022)
+==================
+
+The following bugs are fixed in this release:
+
+- Segmentation:
+
+  * A :class:`~fatf.utils.data.segmentation.Segmentation` object holds
+    incorrect segment count after manipulation (`#39 <issue_39_>`_).
+  * :class:`~fatf.utils.data.segmentation.Slic` segmentation fails quietly by
+    not starting the segment count at 1.
+    (This issue appears to have been fixed in scikit-image 0.19.2 and higher.)
+
+- Occlusion:
+
+  * `occlude_segments_vectorised`
+    (:class:`~fatf.utils.data.occlusion.Occlusion`) returns an occlusion
+    of incorrect shape if the input array is 2D with just one row
+    (`#40 <issue_40_>`_).
+
+.. _issue_39: https://github.com/fat-forensics/fat-forensics/issues/39
+.. _issue_40: https://github.com/fat-forensics/fat-forensics/issues/40
+
 .. _changelog_0_1_1:
 
 0.1.1 (10/04/2022)

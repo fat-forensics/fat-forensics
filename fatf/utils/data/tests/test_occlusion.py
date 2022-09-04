@@ -500,6 +500,11 @@ occlude_segments_vectorised`.
             np.array([[1.0, 0.0], [1, 0]]), colour='black')
         assert np.array_equal(ocl, np.array([ocl_, ocl_]))
 
+        # 2-D mask -- one image
+        ocl = occlusion.occlude_segments_vectorised(
+            np.array([[1, 0]]), colour='black')
+        assert np.array_equal(ocl, np.array([ocl_]))
+
         # 2-D mask -- external image
         ocl = occlusion.occlude_segments_vectorised(
             np.array([[1.0, 0.0], [1, 0]]), image=ocl_, colour='black')

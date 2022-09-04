@@ -426,32 +426,72 @@ class TestSegmentation(object):
         segments_[0, 1] = 2
         segments_one = segments.copy()
         segments_one[0, 0] = 1
+        segments_three = segments.copy()
+        segments_three[1, 1] = 3
 
         segmenter = self.BinarySegmentation(ARRAY_IMAGE_3D)
-
         assert np.array_equal(segmenter._segments, segments)
         assert np.array_equal(segmenter.segments, segments)
+        assert segmenter.segments_number == 2
+
         segmenter.segments = segments_
         assert np.array_equal(segmenter._segments, segments_)
         assert np.array_equal(segmenter.segments, segments_)
+        assert segmenter.segments_number == np.unique(segments_).shape[0]
 
         segmenter.segments = segments
         assert np.array_equal(segmenter._segments, segments)
         assert np.array_equal(segmenter.segments, segments)
+        assert segmenter.segments_number == np.unique(segments).shape[0]
         segmenter.set_segments(segments_)
         assert np.array_equal(segmenter._segments, segments_)
         assert np.array_equal(segmenter.segments, segments_)
+        assert segmenter.segments_number == np.unique(segments_).shape[0]
 
         segmenter.segments = segments
         assert np.array_equal(segmenter._segments, segments)
         assert np.array_equal(segmenter.segments, segments)
+        assert segmenter.segments_number == np.unique(segments).shape[0]
         segmenter._segments = segments_
         assert np.array_equal(segmenter._segments, segments_)
         assert np.array_equal(segmenter.segments, segments_)
+        assert segmenter.segments_number == np.unique(segmenter.segments).shape[0]
 
         segmenter.segments = segments
         assert np.array_equal(segmenter._segments, segments)
         assert np.array_equal(segmenter.segments, segments)
+        assert segmenter.segments_number == np.unique(segments).shape[0]
+
+        # Different number of segments
+        segmenter.segments = segments_three
+        assert np.array_equal(segmenter._segments, segments_three)
+        assert np.array_equal(segmenter.segments, segments_three)
+        assert segmenter.segments_number == np.unique(segments_three).shape[0]
+        ## ...restore
+        segmenter.segments = segments
+        assert np.array_equal(segmenter._segments, segments)
+        assert np.array_equal(segmenter.segments, segments)
+        assert segmenter.segments_number == np.unique(segments).shape[0]
+        ## Illegal
+        segmenter._segments = segments_three
+        assert np.array_equal(segmenter._segments, segments_three)
+        assert np.array_equal(segmenter.segments, segments_three)
+        assert segmenter.segments_number != np.unique(segments_three).shape[0]
+        ## ...restore
+        segmenter.segments = segments
+        assert np.array_equal(segmenter._segments, segments)
+        assert np.array_equal(segmenter.segments, segments)
+        assert segmenter.segments_number == np.unique(segments).shape[0]
+        ## Legal
+        segmenter.set_segments(segments_three)
+        assert np.array_equal(segmenter._segments, segments_three)
+        assert np.array_equal(segmenter.segments, segments_three)
+        assert segmenter.segments_number == np.unique(segments_three).shape[0]
+        ## ...restore
+        segmenter.segments = segments
+        assert np.array_equal(segmenter._segments, segments)
+        assert np.array_equal(segmenter.segments, segments)
+        assert segmenter.segments_number == np.unique(segments).shape[0]
 
         wrn_msg = 'The segmentation has only **one** segment.'
         with pytest.warns(UserWarning) as warning:
@@ -962,10 +1002,21 @@ class TestSegmentation(object):
         segments_ = np.ones(shape=ARRAY_IMAGE_2D.shape, dtype=np.uint8)
         segments_[0, 0] = 2
 
-        # No mergin
+        # No merging
         segments = segmenter.merge_segments([[1], [2]], inplace=False)
         assert np.array_equal(segmenter.segments, segments_)
         assert np.array_equal(segments, segments_)
+        assert segmenter.segments_number == np.unique(segments_).shape[0]
+
+        wrn_msg = 'The new segmentation has only **one** segment.'
+        with pytest.warns(UserWarning) as warning:
+            segments = segmenter.merge_segments([[1, 2]], inplace=False)
+        assert len(warning) == 1
+        assert str(warning[0].message) == wrn_msg
+        assert np.array_equal(segmenter.segments, segments_)
+        assert np.array_equal(segments, np.ones(shape=(2, 2), dtype=np.uint8))
+        assert segmenter.segments_number == np.unique(segments_).shape[0]
+        assert np.unique(segments).shape[0] != np.unique(segments_).shape[0]
 
         # In-place
         wrn_msg = 'The segmentation has only **one** segment.'
@@ -976,6 +1027,7 @@ class TestSegmentation(object):
         assert np.array_equal(segmenter.segments,
                               np.ones(shape=(2, 2), dtype=np.uint8))
         assert np.array_equal(segments, np.ones(shape=(2, 2), dtype=np.uint8))
+        assert segmenter.segments_number == 1
 
         segmenter = self.BinarySegmentation(ARRAY_IMAGE_3D)
         with pytest.warns(UserWarning) as warning:
@@ -985,6 +1037,7 @@ class TestSegmentation(object):
         assert np.array_equal(segmenter.segments,
                               np.ones(shape=(2, 2), dtype=np.uint8))
         assert np.array_equal(segments, np.ones(shape=(2, 2), dtype=np.uint8))
+        assert segmenter.segments_number == 1
 
         # Custom segmentation -- leave one out
         segments = segmenter.merge_segments(  # yapf: disable
@@ -994,6 +1047,8 @@ class TestSegmentation(object):
         assert np.array_equal(segmenter.segments,
                               np.ones(shape=(2, 2), dtype=np.uint8))
         assert np.array_equal(segments, np.array([[1, 2], [1, 1]]))
+        assert segmenter.segments_number == 1
+        assert np.unique(segments).shape[0] != np.unique(segmenter.segments).shape[0]
 
 
 def test_slic():

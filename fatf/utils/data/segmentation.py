@@ -1339,7 +1339,7 @@ list(tuple(integer, integer, integer)), optional (default=None)
         else:
             if np.unique(merged_segments).shape[0] == 1:
                 warnings.warn('The new segmentation has only **one** segment.',
-                            UserWarning)
+                              UserWarning)
 
         return merged_segments
 

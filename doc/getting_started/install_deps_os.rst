@@ -136,7 +136,7 @@ Developers and contributors may be interesting in the following pages as well:
 
 .. _PyPi: https://pypi.org/
 .. _NumPy: https://numpy.org/
-.. _SciPy: https://www.scipy.org/
+.. _SciPy: https://scipy.org/
 .. _requirements.txt: https://github.com/fat-forensics/fat-forensics/blob/master/requirements.txt
 .. |scikit-learn| replace:: ``scikit-learn>=0.19.2``
 .. _scikit-learn: https://scikit-learn.org/stable/

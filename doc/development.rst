@@ -167,7 +167,7 @@ directory of the package.
 .. _`Google Python Style Guide`: https://google.github.io/styleguide/pyguide.html
 .. _YAPF: https://github.com/google/yapf
 .. _`.style.yapf`: https://github.com/fat-forensics/fat-forensics/blob/master/.style.yapf
-.. _Pylint: https://www.pylint.org/
+.. _Pylint: https://pylint.pycqa.org
 .. _Flake8: https://flake8.pycqa.org/en/latest/
 .. _`.pylintrc`: https://github.com/fat-forensics/fat-forensics/blob/master/.pylintrc
 .. _`.flake8`: https://github.com/fat-forensics/fat-forensics/blob/master/.flake8
@@ -271,7 +271,7 @@ Step by Step Guide
 To summarise, the following commands should be executed to fully test the
 package (cf. `.github/workflows/tests.yml`_ for more details):
 
-.. _`.github/workflows/tests.yml`: https://github.com/fat-forensics/fat-forensics/tree/master/.github/workflows/tests.yml
+.. _`.github/workflows/tests.yml`: https://github.com/fat-forensics/fat-forensics/blob/master/.github/workflows/tests.yml
 
 .. code-block:: bash
 

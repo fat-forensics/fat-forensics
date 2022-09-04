@@ -249,7 +249,7 @@ Acknowledgements
 This project is the result of a collaborative research agreement between Thales
 and the University of Bristol with the initial funding provided by Thales.
 
-.. _SciPy: https://www.scipy.org/
+.. _SciPy: https://scipy.org/
 .. _NumPy: https://www.numpy.org/
 .. _scikit-learn: https://scikit-learn.org/stable/
 .. _matplotlib: https://matplotlib.org/

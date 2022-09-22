@@ -10,6 +10,10 @@ illustrate how to solve a certain problem or achieve a desired result with
 FAT Forensics. The *How-to* guides are split into three parts: *fairness*,
 *transparency_* and *accountability*.
 
+.. note::
+   Additional learning resources are available on the FAT Forensics
+   `events website`_.
+
 .. _how_to_fairness:
 
 Fairness How-to
@@ -39,3 +43,5 @@ custom solutions using FAT Forensics.
 
    transparency/tabular-surrogates
    transparency/image-surrogates
+
+.. _`events website`: https://events.fat-forensics.org/

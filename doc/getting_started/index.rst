@@ -52,6 +52,12 @@ out of it.
 ----
 
 .. note::
+   Additional learning resources are available on the FAT Forensics
+   `events website`_.
+
+----
+
+.. note::
    If you use our package or the user guide please remember to
    :ref:`cite us <citing>`.
 
@@ -82,3 +88,4 @@ out of it.
    cite
 
 .. _`magic command`: https://ipython.readthedocs.io/en/stable/interactive/magics.html#magic-doctest_mode
+.. _`events website`: https://events.fat-forensics.org/

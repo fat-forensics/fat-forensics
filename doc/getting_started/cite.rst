@@ -7,13 +7,13 @@ Citing FAT Forensics
 
 Please remember to cite our package and user guide whenever relevant.
 
-Citing the Package
-==================
+Citing the Code
+===============
 
-|JOSS|_
+|JOSS|_ |ZENODO|_
 
-To reference the package and its functionality, consider citing the paper
-published in JOSS_.
+To reference any part of the code or use of the software package,
+consider citing the paper published in the `Journal of Open Source Software`_.
 
 .. code:: latex
 
@@ -24,9 +24,9 @@ published in JOSS_.
              Clifford, Matthew and
              Santos-Rodriguez, Raul and
              Flach, Peter},
-     title={{FAT} {F}orensics: {A} {P}ython {T}oolbox for {I}mplementing
-            and {D}eploying {F}airness, {A}ccountability and
-            {T}ransparency {A}lgorithms in {P}redictive {S}ystems},
+     title={{FAT F}orensics: {A} {Python} Toolbox for Implementing
+            and Deploying Fairness, Accountability and
+            Transparency Algorithms in Predictive Systems},
      journal={Journal of Open Source Software},
      volume={5},
      number={49},
@@ -37,52 +37,27 @@ published in JOSS_.
      url={https://doi.org/10.21105/joss.01904}
    }
 
-----
+Citing the Package
+==================
 
-|arXiv|_
+|simpa|_
 
-An extended version of the JOSS_ paper, including usage examples and more
-detailed discussion of the relevant literature, is published as an arXiv_
-preprint.
+A more detailed description of the package -- covering usage examples,
+deployment scenarios and its influence -- is published in `Software Impacts`_.
+Consider citing this paper to refer to the design, functionality and impact
+of the software package.
 
 .. code:: latex
 
-   @article{sokol2019fat-forensics:preprint,
-     title={{FAT} {F}orensics: {A} {P}ython {T}oolbox for {A}lgorithmic
-            {F}airness, {A}ccountability and {T}ransparency},
+   @article{sokol2022fat-forensics,
+     title={{FAT Forensics}: {A} {Python} Toolbox for Algorithmic Fairness,
+            Accountability and Transparency},
      author={Sokol, Kacper and Santos-Rodriguez, Raul and Flach, Peter},
-     journal={arXiv preprint arXiv:1909.05167},
-     url={https://arxiv.org/abs/1909.05167},
-     year={2019}
+     journal={Software Impacts},
+     pages={100406},
+     year={2022},
+     publisher={Elsevier}
    }
-
-Citing the Code
-===============
-
-|ZENODO|_
-
-To reference any part of the code, consider citing the software release
-indexed by Zenodo_.
-
-.. code:: latex
-
-  @software{sokol2020fatf,
-    author={Sokol, Kacper and
-            Hepburn, Alexander and
-            Poyiadzi, Rafael and
-            Clifford, Matthew and
-            Santos-Rodriguez, Raul and
-            Flach, Peter},
-    title={{FAT} {F}orensics: {A} {P}ython {T}oolbox for {I}mplementing
-           and {D}eploying {F}airness, {A}ccountability and
-           {T}ransparency {A}lgorithms in {P}redictive {S}ystems},
-    month={May},
-    year={2020},
-    publisher={Zenodo},
-    version={0.1.0},
-    doi={10.5281/zenodo.3833199},
-    url={https://doi.org/10.5281/zenodo.3833199}
-  }
 
 Our Contributors
 ================
@@ -90,10 +65,11 @@ Our Contributors
 Please also remember to have a look at our
 :ref:`contributors and sponsors <contributors>`.
 
-.. |arXiv| image:: https://img.shields.io/badge/arXiv-arXiv:1909.05167-red.svg
-.. _arXiv: https://arxiv.org/abs/1909.05167
+.. |simpa| image:: https://img.shields.io/badge/Software%20Impacts-10.1016/j.simpa.2022.100406-orange.svg
+.. _simpa: https://doi.org/10.1016/j.simpa.2022.100406
+.. _`Software Impacts`: https://doi.org/10.1016/j.simpa.2022.100406
 .. |JOSS| image:: https://joss.theoj.org/papers/10.21105/joss.01904/status.svg
 .. _JOSS: https://joss.theoj.org/papers/10.21105/joss.01904
+.. _`Journal of Open Source Software`: https://joss.theoj.org/papers/10.21105/joss.01904
 .. |ZENODO| image:: https://zenodo.org/badge/DOI/10.5281/zenodo.3833199.svg
 .. _ZENODO: https://zenodo.org/record/3833199
-.. _Zenodo: https://zenodo.org/record/3833199

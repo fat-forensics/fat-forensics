@@ -17,6 +17,10 @@ use of the method, available implementations in a variety of programming
 languages, best practices, advised usage and caveats, among many other listed
 properties.
 
+.. note::
+   Additional learning resources are available on the FAT Forensics
+   `events website`_.
+
 .. _user_guide_fairness:
 
 Fairness User Guide
@@ -52,3 +56,5 @@ The *Transparency User Guide* tackles *interpretability* and
    :name: user-guide-transparency
 
    transparency/surrogates
+
+.. _`events website`: https://events.fat-forensics.org/

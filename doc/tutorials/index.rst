@@ -47,3 +47,9 @@ Tutorials Content
    grouping-robustness
    model-explainability
    prediction-explainability
+
+.. note::
+   Additional learning resources are available on the FAT Forensics
+   `events website`_.
+
+.. _`events website`: https://events.fat-forensics.org/

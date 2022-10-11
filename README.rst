@@ -128,7 +128,7 @@ In addition, some of the modules require *optional* dependencies:
 User Installation
 -----------------
 
-The easies way to install FAT Forensics is via ``pip``::
+The easiest way to install FAT Forensics is via ``pip``::
 
    pip install fat-forensics
 
